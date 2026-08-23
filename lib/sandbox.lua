@@ -46,12 +46,20 @@ local snapshot = codeblock.env.snapshot
 local snapshot_module = codeblock.env.snapshot_module
 local seal = codeblock.env.seal
 local new_env = codeblock.env.new_env
+local build_api = codeblock.api.build
 
 --------------------------------------------------------------------------------
 -- private
 --------------------------------------------------------------------------------
 
-local function round(dec, num)
+-- round(value, decimals). The arguments used to be the other way round, which
+-- contradicted both doc/api.md and the in-game help - each documented
+-- `round(x, num)` with the value first, and described round0(x) as "short for
+-- round(x, 0)", which only holds in this order. Calling it the documented way
+-- silently returned nonsense rather than erroring: round(3.14159, 2) computed
+-- 10^3.14159 as the multiplier and gave ~2. No bundled example used it, so
+-- nothing depended on the old order.
+local function round(num, dec)
     local mult = 10 ^ (dec or 0)
     return floor(num * mult + 0.5) / mult
 end
@@ -86,126 +94,120 @@ local function getScriptEnv(drone)
 
     assert(drone, S("Error, drone does not exist"))
 
-    local api = {
-        -- movements
-        move = function(x, y, z) move(drone, x, y, z) end,
-        forward = function(n) forward(drone, n) end,
-        back = function(n) back(drone, n) end,
-        left = function(n) left(drone, n) end,
-        right = function(n) right(drone, n) end,
-        up = function(n) up(drone, n) end,
-        down = function(n) down(drone, n) end,
-        turn_left = function() turn_left(drone) end,
-        turn_right = function() turn_right(drone) end,
-        turn = function(quarters) turn(drone, quarters) end,
-        place = function(block) place_block(drone, block) end,
-        place_relative = function(x, y, z, block, chkpt)
+    -- Every name a program may use, paired with what it does. The names come
+    -- from lib/api.lua so the environment, the in-game help and doc/api.md all
+    -- describe one thing; build_api below refuses to start if this table and
+    -- that description disagree, which is what makes the docs trustworthy
+    -- rather than merely checked.
+    local impls = {
+        -- movement
+        ['move'] = function(x, y, z) move(drone, x, y, z) end,
+        ['forward'] = function(n) forward(drone, n) end,
+        ['back'] = function(n) back(drone, n) end,
+        ['left'] = function(n) left(drone, n) end,
+        ['right'] = function(n) right(drone, n) end,
+        ['up'] = function(n) up(drone, n) end,
+        ['down'] = function(n) down(drone, n) end,
+        ['turn_left'] = function() turn_left(drone) end,
+        ['turn_right'] = function() turn_right(drone) end,
+        ['turn'] = function(quarters) turn(drone, quarters) end,
+        -- placement
+        ['place'] = function(block) place_block(drone, block) end,
+        ['place_relative'] = function(x, y, z, block, chkpt)
             place_relative(drone, x, y, z, block, chkpt)
         end,
-        save = function(chkpt) save_checkpoint(drone, chkpt) end,
-        go = function(chkpt, x, y, z)
+        -- checkpoints
+        ['save'] = function(chkpt) save_checkpoint(drone, chkpt) end,
+        ['go'] = function(chkpt, x, y, z)
             goto_checkpoint(drone, chkpt, x, y, z)
         end,
-        -- worldedit commands
-        cube = function(w, h, l, block, hollow)
+        -- shapes
+        ['cube'] = function(w, h, l, block, hollow)
             place_cube(drone, w, h, l, block, hollow)
         end,
-        sphere = function(r, block, hollow)
+        ['sphere'] = function(r, block, hollow)
             place_sphere(drone, r, block, hollow)
         end,
-        dome = function(r, block, hollow)
+        ['dome'] = function(r, block, hollow)
             place_dome(drone, r, block, hollow)
         end,
-        cylinder = function(l, r, block, hollow)
+        ['cylinder'] = function(l, r, block, hollow)
             place_cylinder(drone, 'V', l, r, block, hollow)
         end,
-        vertical = {
-            cylinder = function(l, r, block, hollow)
-                place_cylinder(drone, 'V', l, r, block, hollow)
-            end
-        },
-        horizontal = {
-            cylinder = function(l, r, block, hollow)
-                place_cylinder(drone, 'H', l, r, block, hollow)
-            end
-        },
-        centered = {
-            cube = function(w, h, l, block, hollow)
-                place_ccube(drone, w, h, l, block, hollow)
-            end,
-            sphere = function(r, block, hollow)
-                place_csphere(drone, r, block, hollow)
-            end,
-            dome = function(r, block, hollow)
-                place_cdome(drone, r, block, hollow)
-            end,
-            cylinder = function(l, r, block, hollow)
-                place_ccylinder(drone, 'V', l, r, block, hollow)
-            end,
-            vertical = {
-                cylinder = function(l, r, block, hollow)
-                    place_ccylinder(drone, 'V', l, r, block, hollow)
-                end
-            },
-            horizontal = {
-                cylinder = function(l, r, block, hollow)
-                    place_ccylinder(drone, 'H', l, r, block, hollow)
-                end
-            }
-        },
-        -- blocks: wools. Snapshots, not the config tables themselves - a
-        -- program used to be able to assign into these and corrupt them for
-        -- every player until the server restarted.
-        wools = snapshot(wools),
-        iwools = snapshot(iwools),
-        -- blocks: default
-        blocks = snapshot(cubes),
-        plants = snapshot(plants),
-        -- vector3 commands. snapshot_module keeps the metatable so vector(x,y,z)
-        -- still resolves through its __call.
-        vector = snapshot_module(vector3),
-        -- utilities
-        get_block = function() return drone_get_block(drone) end,
-        print = function(str) return send_message(drone, str) end,
-        color = color,
-        ipairs = ipairs,
-        pairs = pairs,
-        random = setmetatable({}, {
-            __index = {
-                block = table_randomizer(cubes),
-                plant = table_randomizer(plants),
-                wool = table_randomizer(wools)
-            },
-            __call = function(self, ...) return math.random(...) end
-        }),
-        table = {randomizer = table_randomizer},
-        floor = math.floor,
-        ceil = math.ceil,
-        round = round,
-        round0 = round0,
-        deg = math.deg,
-        rad = math.rad,
-        exp = math.exp,
-        log = math.log,
-        max = math.max,
-        min = math.min,
-        pow = math.pow,
-        sqrt = math.sqrt,
-        abs = math.abs,
-        sin = math.sin,
-        sinh = math.sinh,
-        asin = math.asin,
-        cos = math.cos,
-        cosh = math.cosh,
-        acos = math.acos,
-        tan = math.tan,
-        tanh = math.tanh,
-        atan = math.atan,
-        atan2 = math.atan2,
-        pi = math.pi,
-        e = math.exp(1),
-        error = error
+        ['vertical.cylinder'] = function(l, r, block, hollow)
+            place_cylinder(drone, 'V', l, r, block, hollow)
+        end,
+        ['horizontal.cylinder'] = function(l, r, block, hollow)
+            place_cylinder(drone, 'H', l, r, block, hollow)
+        end,
+        ['centered.cube'] = function(w, h, l, block, hollow)
+            place_ccube(drone, w, h, l, block, hollow)
+        end,
+        ['centered.sphere'] = function(r, block, hollow)
+            place_csphere(drone, r, block, hollow)
+        end,
+        ['centered.dome'] = function(r, block, hollow)
+            place_cdome(drone, r, block, hollow)
+        end,
+        ['centered.cylinder'] = function(l, r, block, hollow)
+            place_ccylinder(drone, 'V', l, r, block, hollow)
+        end,
+        ['centered.vertical.cylinder'] = function(l, r, block, hollow)
+            place_ccylinder(drone, 'V', l, r, block, hollow)
+        end,
+        ['centered.horizontal.cylinder'] = function(l, r, block, hollow)
+            place_ccylinder(drone, 'H', l, r, block, hollow)
+        end,
+        -- block tables: snapshots, so a program cannot alter them for others
+        ['blocks'] = snapshot(cubes),
+        ['plants'] = snapshot(plants),
+        ['wools'] = snapshot(wools),
+        ['iwools'] = snapshot(iwools),
+        -- choosing blocks
+        ['random.block'] = table_randomizer(cubes),
+        ['random.plant'] = table_randomizer(plants),
+        ['random.wool'] = table_randomizer(wools),
+        ['color'] = color,
+        ['get_block'] = function() return drone_get_block(drone) end,
+        -- vectors. snapshot_module keeps the metatable so vector(x, y, z) still
+        -- resolves through its __call.
+        ['vector'] = snapshot_module(vector3),
+        -- math
+        ['random'] = math.random,
+        ['round'] = round,
+        ['round0'] = round0,
+        ['floor'] = math.floor,
+        ['ceil'] = math.ceil,
+        ['abs'] = math.abs,
+        ['max'] = math.max,
+        ['min'] = math.min,
+        ['sqrt'] = math.sqrt,
+        ['pow'] = math.pow,
+        ['exp'] = math.exp,
+        ['log'] = math.log,
+        ['deg'] = math.deg,
+        ['rad'] = math.rad,
+        ['sin'] = math.sin,
+        ['cos'] = math.cos,
+        ['tan'] = math.tan,
+        ['asin'] = math.asin,
+        ['acos'] = math.acos,
+        ['atan'] = math.atan,
+        ['atan2'] = math.atan2,
+        ['sinh'] = math.sinh,
+        ['cosh'] = math.cosh,
+        ['tanh'] = math.tanh,
+        ['pi'] = math.pi,
+        ['e'] = math.exp(1),
+        -- misc
+        ['print'] = function(str) return send_message(drone, str) end,
+        ['error'] = error,
+        ['ipairs'] = ipairs,
+        ['pairs'] = pairs,
+        ['table.randomizer'] = table_randomizer
     }
+
+    local api = build_api(impls)
 
     -- The instrumenter emits `_G.use_call()`, so this is the budget counter the
     -- program is paying into. Sealed: a program that could assign to

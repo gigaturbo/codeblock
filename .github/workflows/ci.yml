@@ -82,10 +82,18 @@ jobs:
         run: lua tests/strguard_spec.lua
 
   docs:
-    name: docs match the code
+    name: docs are generated from the code
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check doc/api.md against config and the sandbox
-        run: bash scripts/check_docs.sh
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: "5.1"
+
+      # Stronger than the check this replaced. That one compared the docs against
+      # the config and reported mismatches; this regenerates the reference from
+      # lib/api.lua and fails if the committed file differs, so the docs cannot
+      # describe an API that does not exist.
+      - name: Check doc/api.md is up to date
+        run: lua scripts/gen_docs.lua --check

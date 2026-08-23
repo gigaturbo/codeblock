@@ -57,244 +57,178 @@ player requires `codeblock`.
 
 # Lua api
 
-## Movements
+This section is generated from `lib/api.lua` by `scripts/gen_docs.lua`.
+Edit that file rather than this one.
 
-The coordinate system used is *relative to the player*. When the drone is placed it is oriented in the player direction, going forwards. All movements on the `x`, `y` and `z` axis are always relative to the drone direction.
+## Moving the drone
 
-The parameter `n` denotes an integer describing how much to move in the specified direction axis. A negative value can be used to represent movement on the oposite direction, that is, `up(-1)` is equivalent ot `down(1)`. The default value of `n` is `1` and can be ommited (`forward()` is equivalent to `forward(1)`)
-
-### Moving the drone
-
-```lua
-up(n) 
-down(n)
-forward(n)
-back(n)
-left(n)
-right(n)
-move(n_right, n_up, n_forward) -- each parameter defaults to zero
-```
-
-Example: `move(-5, 1, 3)`
-
-### Rotating the drone
+The coordinate system is relative to the drone, which faces the direction the player was facing when it was placed. `n` is a whole number of blocks, defaults to 1, and may be negative - `up(-1)` is `down(1)`.
 
 ```lua
-turn_right()
-turn_left()
-turn(n_quarters_anti_clockwise)
+up(n)                          -- Move n blocks up.
+down(n)                        -- Move n blocks down.
+forward(n)                     -- Move n blocks forward.
+back(n)                        -- Move n blocks backward.
+left(n)                        -- Move n blocks left.
+right(n)                       -- Move n blocks right.
+move(n_right, n_up, n_forward) -- Move on all three axes at once. Each defaults to zero.
 ```
 
-Example: `turn(2)`
-
-### Checkpoints
-
-Checkpoints allow to save the current position of the drone to use it later. Checkpoints are remembered by their `name` which must be a string. A default checkpoint with name `spawn` is associated to the drone spawn position.
+## Rotating the drone
 
 ```lua
-save(name) -- creates a checkpoint
-go(name, n_right, n_up, n_forward) -- go back to a checkpoint
+turn_right()                    -- Turn a quarter turn right.
+turn_left()                     -- Turn a quarter turn left.
+turn(n_quarters_anti_clockwise) -- Turn n quarter turns anti-clockwise.
 ```
 
-Example:
-```lua
-save('place1')
-save('place2')
-go() -- same as go('spawn', 0, 0, 0)
-go('place1') -- same as go('place1', 0, 0, 0)
-go('place2', 10, -50, 1) -- go to checkpoint with offsets
+## Checkpoints
 
-```
-
-## Block types
-
-Placing blocks and building shapes requires a `block` parameter, which can be obtained using the following tables.
-
-### `blocks`
-
-String-indexed table with the following values:
+A checkpoint remembers a position so it can be returned to. Names are strings. The checkpoint `spawn` always exists and is where the drone was placed.
 
 ```lua
-air, stone, cobble, stonebrick, stone_block, mossycobble, desert_stone, desert_cobble, desert_stonebrick, desert_stone_block, sandstone, sandstonebrick, sandstone_block, desert_sandstone, desert_sandstone_brick, desert_sandstone_block, silver_sandstone, silver_sandstone_brick, silver_sandstone_block, obsidian, obsidianbrick, obsidian_block, dirt, dirt_with_grass, dirt_with_dry_grass, dirt_with_snow, dirt_with_rainforest_litter, dirt_with_coniferous_litter, dry_dirt, dry_dirt_with_dry_grass, permafrost, permafrost_with_stones, permafrost_with_moss, clay, snowblock, ice, tree, wood, leaves, jungletree, junglewood, jungleleaves, pine_tree, pine_wood, pine_needles, acacia_tree, acacia_wood, acacia_leaves, aspen_tree, aspen_wood, aspen_leaves, stone_with_coal, coalblock, stone_with_iron, steelblock, stone_with_copper, copperblock, stone_with_tin, tinblock, bronzeblock, stone_with_gold, goldblock, stone_with_mese, mese, stone_with_diamond, diamondblock, cactus, bush_leaves, acacia_bush_leaves, pine_bush_needles, bookshelf, glass, obsidian_glass, brick, meselamp
+save(name)                         -- Save the current position under this name.
+go(name, n_right, n_up, n_forward) -- Return to a checkpoint, with an optional offset.
 ```
 
-Example: `local b = blocks.glass`
+**`go`** &mdash; Every argument is optional: `go()` is `go('spawn', 0, 0, 0)`.
 
-### `plants`
+## Placing one block
 
-String-indexed table with the following values:
+The default block is stone.
 
 ```lua
-sapling, apple, junglesapling, emergent_jungle_sapling, pine_sapling, acacia_sapling, aspen_sapling, large_cactus_seedling, dry_shrub, junglegrass, grass_1, grass_2, grass_3, grass_4, grass_5, dry_grass_1, dry_grass_2, dry_grass_3, dry_grass_4, dry_grass_5, fern_1, fern_2, fern_3, marram_grass_1, marram_grass_2, marram_grass_3, bush_stem, bush_sapling, acacia_bush_stem, acacia_bush_sapling, pine_bush_stem, pine_bush_sapling
+place(block)                                                -- Place one block at the drone position.
+place_relative(n_right, n_up, n_forward, block, checkpoint) -- Place one block at an offset from a checkpoint.
 ```
 
-Example: `local p = plants.pine_sapling`
+**`place_relative`** &mdash; `checkpoint` defaults to `spawn`.
 
-### `wools`
+## Shapes
 
-String-indexed table with the following values:
+The drone position is the back-bottom-left of the shape, which extends right, up and forward. `width` runs right, `height` up, `length` forward, and `radius` in the remaining directions. `hollow` defaults to false and `block` to stone.
 
 ```lua
-white, grey, dark_grey, black, violet, blue, cyan, dark_green, green, yellow, brown, orange, red, magenta, pink
+cube(width, height, length, block, hollow)         -- A rectangular box.
+sphere(radius, block, hollow)                      -- A sphere.
+dome(radius, block, hollow)                        -- The upper half of a sphere.
+cylinder(height, radius, block, hollow)            -- A vertical cylinder; short for vertical.cylinder.
+vertical.cylinder(height, radius, block, hollow)   -- A cylinder standing on its end.
+horizontal.cylinder(length, radius, block, hollow) -- A cylinder lying along the forward axis.
 ```
 
-Example: `local rw = wools.red`
+## Centered shapes
 
-### `iwools`
-
-Integer-indexed table, without white, black and greys, in pseudo-rainbow order (`red`, `brown`, `orange`, `yellow`, `green`, `dark_green`, `cyan`, `blue`, `violet`, `magenta`, `pink`), with the following values:
+The same shapes, positioned so the drone is at their centre rather than a corner. For a dome the drone is at the centre of its flat base. `width` runs left-right, `height` up-down and `length` forward-backward.
 
 ```lua
-1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+centered.cube(width, height, length, block, hollow)         -- A box centred on the drone.
+centered.sphere(radius, block, hollow)                      -- A sphere centred on the drone.
+centered.dome(radius, block, hollow)                        -- A dome centred on the drone.
+centered.cylinder(height, radius, block, hollow)            -- Short for centered.vertical.cylinder.
+centered.vertical.cylinder(height, radius, block, hollow)   -- A standing cylinder centred on the drone.
+centered.horizontal.cylinder(length, radius, block, hollow) -- A lying cylinder centred on the drone.
 ```
 
-Example: `local orange = iwools[3]`
+## Block tables
 
-### `color(v, min, max)`
-
-Maps a number onto the `iwools` palette, for colouring a shape by height, distance
-or any other value.
+Anything taking a `block` argument wants a value from one of these. The names each table holds are listed under Block types below.
 
 ```lua
-color(v)            -- min and max default to 1 and 11
-color(v, min, max)
+blocks -- Building blocks, indexed by name.
+plants -- Plants, indexed by name.
+wools  -- The full wool palette, indexed by name.
+iwools -- The colourful wools as an array, in rainbow order, without white, black or greys.
 ```
 
-Values at or below `min` give the first colour, values at or above `max` give the
-last, and anything outside the range is clamped rather than wrapped.
-
-Example:
-```lua
-for y = 0, 20 do
-    place_relative(0, y, 0, color(y, 0, 20))
-end
-```
-
-
-### Random blocks
+## Choosing blocks
 
 ```lua
-random.block()
-random.plant()
-random.wool()
+random.block()     -- A random building block.
+random.plant()     -- A random plant.
+random.wool()      -- A random wool colour.
+color(v, min, max) -- Map a number onto the iwools palette.
+get_block()        -- The block at the drone position, or false if it is not one the drone can place.
 ```
 
-### Block at drone position
+**`color`** &mdash; Values at or below `min` give the first colour and those at or above `max` the last; anything outside the range is clamped rather than wrapped. `min` and `max` default to 1 and 11. Useful for colouring a shape by height or distance.
+
+## Vectors
+
+A small vector library. See https://github.com/ISs25u/vector3 for the full list of methods, reading `vector` for `vector3`.
 
 ```lua
-get_block()
+vector(x, y, z) -- Make a vector. Also carries the library's constructors, such as vector.fromPolar.
 ```
 
-## Construction
+**`vector`** &mdash; Vectors support `+ - * /`, and methods including `:length()`, `:norm()`, `:dot(v)`, `:cross(v)`, `:rotate_around(axis, angle)`, `:round()` and `:unpack()`.
 
-### Placing one block
-
-Functions to place individual blocks.
+## Math
 
 ```lua
-place(block) -- place one block at drone position
-place_relative(n_right, n_up, n_forward, block, checkpoint) -- place one block relative to a checkpoint
+random(m, n)       -- A random number: no arguments for 0..1, one for 1..m, two for m..n.
+round(x, decimals) -- Round x to this many decimal places (default 0).
+round0(x)          -- Round x to a whole number; short for round(x, 0).
+floor(x)           -- Round down.
+ceil(x)            -- Round up.
+abs(x)             -- Absolute value.
+max(x, ...)        -- Largest argument.
+min(x, ...)        -- Smallest argument.
+sqrt(x)            -- Square root.
+pow(x, y)          -- x to the power of y.
+exp(x)             -- e to the power of x.
+log(x)             -- Natural logarithm.
+deg(x)             -- Radians to degrees.
+rad(x)             -- Degrees to radians.
+sin(x)             -- Sine.
+cos(x)             -- Cosine.
+tan(x)             -- Tangent.
+asin(x)            -- Arc sine.
+acos(x)            -- Arc cosine.
+atan(x)            -- Arc tangent.
+atan2(x, y)        -- Arc tangent of x/y, using the signs to pick the quadrant.
+sinh(x)            -- Hyperbolic sine.
+cosh(x)            -- Hyperbolic cosine.
+tanh(x)            -- Hyperbolic tangent.
+pi                 -- 3.14159...
+e                  -- 2.71828...
 ```
 
-Example:
-```lua
-place() -- equivalent to place(blocks.stone)
-place(blocks.brick)
-save('place2')
-place_relative(1, 0, 0, wools.blue, 'place2')
-place_relative(0, 1, 0, wools.green) -- equivalent to place_relative(0, 1, 0, wools.green, 'spawn')
-place_relative(0, 1, 0) -- equivalent to place_relative(0, 1, 0, blocks.stone, 'spawn')
-```
-
-### Shapes
-
-Shapes are placed such that the drone position corresponds to the back-bottom-left of the shape (a cube will extend to the right-up-forward direction). `width` extends in the *right* direction, `height` extends in the *up* direction, `length` extends in the *forward* direction and `radius` extends in the remaining directions. `hollow` is `false` by default and the default `block` is stone.
-
-```lua
-cube(width, height, length, block, hollow)
-sphere(radius, block, hollow)
-dome(radius, block, hollow)
-cylinder(height, radius, block, hollow) -- short for vertical.cylinder
-vertical.cylinder(height, radius, block, hollow)
-horizontal.cylinder(length, radius, block, hollow)
-```
-
-Example:
-```lua
-cube(10, 10, 10, blocks.leaves) -- short for cube(10, 10, 10, blocks.leaves, false)
-```
-
-### Centered shapes
-
-These variants of the shapes are placed such that the drone position corresponds to the center of the shape. For the dome it corresponds to the bottom of the dome and its center for the other coordinates. `width` extends in the *left-right* direction, `height` extends in the *up-down* direction, `length` extends in the *forward-backward* direction and `radius` extends in the remaining directions.
+## Misc
 
 ```lua
-centered.cube(width, height, length, block, hollow)
-centered.sphere(radius, block, hollow)
-centered.dome(radius, block, hollow)
-centered.cylinder(height, radius, block, hollow) -- short for centered.vertical.cylinder
-centered.vertical.cylinder(height, radius, block, hollow)
-centered.horizontal.cylinder(length, radius, block, hollow)
+print(message)      -- Print a message in the chat.
+error(message)      -- Stop the program and print a message.
+ipairs(table)       -- Standard ipairs.
+pairs(table)        -- Standard pairs.
+table.randomizer(t) -- Return a function that picks a random value from t.
 ```
 
-## Math 
+# Block types
+
+The names each block table holds. Generated from `lib/config.lua`.
+
+## `blocks`
 
 ```lua
-random([m [, n]])
-round(x, num)
-round0(x)   -- short for round(x, 0) (integer rounding)
-ceil(x)
-floor(x)
-deg(x)
-rad(x)
-exp(x)
-log(x)
-max(x, ...)
-min(x, ...)
-abs(x)
-pow(x, y)
-sqrt(x)
-sin(x)
-asin(x)
-sinh(x)
-cos(x)
-acos(x)
-cosh(x)
-tan(x)
-atan(x)
-atan2(x, y)
-tanh(x)
-pi
-e
+acacia_bush_leaves, acacia_leaves, acacia_tree, acacia_wood, air, aspen_leaves, aspen_tree, aspen_wood, bookshelf, brick, bronzeblock, bush_leaves, cactus, clay, coalblock, cobble, copperblock, desert_cobble, desert_sandstone, desert_sandstone_block, desert_sandstone_brick, desert_stone, desert_stone_block, desert_stonebrick, diamondblock, dirt, dirt_with_coniferous_litter, dirt_with_dry_grass, dirt_with_grass, dirt_with_rainforest_litter, dirt_with_snow, dry_dirt, dry_dirt_with_dry_grass, glass, goldblock, ice, jungleleaves, jungletree, junglewood, leaves, mese, meselamp, mossycobble, obsidian, obsidian_block, obsidian_glass, obsidianbrick, permafrost, permafrost_with_moss, permafrost_with_stones, pine_bush_needles, pine_needles, pine_tree, pine_wood, sandstone, sandstone_block, sandstonebrick, silver_sandstone, silver_sandstone_block, silver_sandstone_brick, snowblock, steelblock, stone, stone_block, stone_with_coal, stone_with_copper, stone_with_diamond, stone_with_gold, stone_with_iron, stone_with_mese, stone_with_tin, stonebrick, tinblock, tree, wood
 ```
 
-### Vectors
-
-See documentation [here](https://github.com/ISs25u/vector3) (replacing `vector3` by `vector`).
-
-Example:
-```lua
-local u = vector(1, 2, 3)
-local v = vector(4, 5, 6)
-local w = (5 * u + u:dot(v) * u:cross(v:scale(5))):norm()
-local x, y, z = w:unpack()
-```
-
-## Misc 
+## `plants`
 
 ```lua
-print(message) -- print `message` in minetest chat
-error(message) -- stops the program and prints `message`
-ipairs(table)
-pairs(table)
-table.randomizer(t) -- returns a table randomizer
+acacia_bush_sapling, acacia_bush_stem, acacia_sapling, apple, aspen_sapling, bush_sapling, bush_stem, dry_grass_1, dry_grass_2, dry_grass_3, dry_grass_4, dry_grass_5, dry_shrub, emergent_jungle_sapling, fern_1, fern_2, fern_3, grass_1, grass_2, grass_3, grass_4, grass_5, junglegrass, junglesapling, large_cactus_seedling, marram_grass_1, marram_grass_2, marram_grass_3, pine_bush_sapling, pine_bush_stem, pine_sapling, sapling
 ```
 
-Example:
+## `wools`
+
 ```lua
-local my_random = table.randomizer({blocks.ice, blocks.brick})
-for i = 1, 10 do
-    place(my_random()) 
-    up()
-end
+black, blue, brown, cyan, dark_green, dark_grey, green, grey, magenta, orange, pink, red, violet, white, yellow
 ```
+
+## `iwools`
+
+```lua
+red, brown, orange, yellow, green, dark_green, cyan, blue, violet, magenta, pink
+```
+
