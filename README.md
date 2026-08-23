@@ -1,12 +1,12 @@
 CodeBlock
 =========================
 
-![License](https://img.shields.io/badge/License-GPLv3-blue.svg)
+![License](https://img.shields.io/badge/License-AGPLv3-blue.svg)
 [![ContentDB](https://content.minetest.net/packages/giga-turbo/codeblock/shields/downloads/)](https://content.minetest.net/packages/giga-turbo/codeblock/)
 
 **CodeBlock allows to use `lua` code in Minetest to build anything you want**
 
-**License:** GPLv3   
+**License:** AGPLv3   
 **Credits:** inspired by [Gnancraft](http://gnancraft.net/), [ComputerCraft](http://www.computercraft.info/), [Visual Bots](https://content.minetest.net/packages/Nigel/vbots/), [TurtleMiner](https://content.minetest.net/packages/BirgitLachner/turtleminer/), [basic_robot](https://github.com/ac-minetest/basic_robot)
 
 ![screenshot](https://raw.githubusercontent.com/gigaturbo/codeblock/master/screenshot.png)
