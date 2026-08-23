@@ -27,6 +27,7 @@ local max_distance = codeblock.config.max_distance
 local max_dimension = codeblock.config.max_dimension
 local commands_before_yield = codeblock.config.commands_before_yield
 local calls_before_yield = codeblock.config.calls_before_yield
+local max_memory_kb = codeblock.config.max_memory_kb
 
 local tmp1 = 2 * pi
 local tmp2 = pi / 2
@@ -63,7 +64,20 @@ local function use_call(drone)
 
     local calls = drone.calls + 1;
     if calls <= max_calls[al] then
-        if (calls % calls_before_yield[al] == 0) then coroutine.yield() end
+        if (calls % calls_before_yield[al] == 0) then
+            -- Yield points are also where heap growth is checked. See
+            -- max_memory_kb in config.lua for what this does and does not catch:
+            -- it stops a program that accumulates, not one that makes a single
+            -- enormous allocation.
+            if drone.mem0 then
+                local grown = collectgarbage('count') - drone.mem0
+                if grown > max_memory_kb[al] then
+                    error(S('Memory limit exceeded (@1 kB)', max_memory_kb[al]),
+                          4)
+                end
+            end
+            coroutine.yield()
+        end
         drone.calls = calls
     else
         error(S('Call limit exeeded (@1)', max_calls[al]), 4);

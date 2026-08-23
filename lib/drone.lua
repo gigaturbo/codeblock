@@ -197,6 +197,10 @@ local drone_mt = {
             end
 
             drone.tstart = os.clock()
+            -- Baseline for the heap-growth guard in commands.use_call.
+            -- collectgarbage('count') is server-wide, so only the delta from
+            -- here is meaningful, and even that is approximate.
+            drone.mem0 = collectgarbage('count')
             drone.cor = res
 
         end,

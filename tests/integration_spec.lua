@@ -187,6 +187,30 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- the vendored WorldEdit fork still provides what this mod depends on
+--
+-- That fork has had modules removed from it (code.lua, which loadstring'd
+-- arbitrary Lua). These four are the entire surface codeblock uses, so if a
+-- future trim goes too far this catches it at load time rather than the first
+-- time a player asks for a sphere.
+--------------------------------------------------------------------------------
+
+do
+    it('worldedit.cube is available', type(worldedit and worldedit.cube),
+       'function')
+    it('worldedit.sphere is available', type(worldedit and worldedit.sphere),
+       'function')
+    it('worldedit.dome is available', type(worldedit and worldedit.dome),
+       'function')
+    it('worldedit.cylinder is available', type(worldedit and worldedit.cylinder),
+       'function')
+    it('the removed arbitrary-execution entry point is gone',
+       (worldedit and worldedit.lua), nil)
+    it('and so is its per-node variant', (worldedit and worldedit.luatransform),
+       nil)
+end
+
+--------------------------------------------------------------------------------
 -- summary
 --------------------------------------------------------------------------------
 

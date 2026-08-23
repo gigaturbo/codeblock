@@ -244,8 +244,10 @@ function codeblock.sandbox.get_safe_coroutine(drone, filename)
     assert(drone)
     assert(filename)
 
+    -- `filename` used to be immediately overwritten with drone.file, silently
+    -- discarding the argument. The only caller passes drone.file anyway, so the
+    -- behaviour is unchanged - the parameter is simply honoured now.
     local name = drone.name
-    local filename = drone.file
 
     -- loading file
     local untrusted_code = codeblock.filesystem.read_file(name, filename, true)

@@ -16,6 +16,22 @@ codeblock.config.max_dimension = {15, 30, 70, 150}
 codeblock.config.commands_before_yield = {1, 10, 20, 40}
 codeblock.config.calls_before_yield = {1, 100, 250, 600}
 
+-- How much Lua heap growth, in kB, one program run may be responsible for
+-- before it is stopped. Checked at yield points, so it catches a program that
+-- accumulates - appending to a table in a loop, building an ever-longer string.
+--
+-- What it deliberately does NOT catch: a single enormous allocation such as
+-- ("x"):rep(1e9). That returns before any check can run, so the memory is
+-- already gone. Nothing inside Lua 5.1 can prevent it either, because the string
+-- metatable is reachable from any literal regardless of the sandbox
+-- environment. Treat these as a guard against runaway accumulation, not as a
+-- hard memory cap.
+--
+-- Generous on purpose: collectgarbage('count') reports the whole server's heap,
+-- so the figure is a delta from program start and other mods' allocations show
+-- up in it. Only genuine runaway growth should trip these.
+codeblock.config.max_memory_kb = {64 * 1024, 128 * 1024, 256 * 1024, 512 * 1024}
+
 --------------------------------------------------------------------------------
 -- Allowed blocks with their names
 --------------------------------------------------------------------------------
