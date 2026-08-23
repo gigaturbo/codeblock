@@ -11,19 +11,39 @@ Drone capacities depends on the user's _codelevel_ which can be set with the `/c
 | max_dimension         |          15 |        30 |             70 |         150 | max dimension of shapes (either width, length, height or radius)     |
 | commands_before_yield |           1 |        10 |             20 |          40 | number of codeblock commands before releasing control to Minetest    |
 | calls_before_yield    |           1 |       100 |            250 |         600 | number of function/loop calls before releasing control to Minetest   |
+| max_memory_kb         |       65536 |    131072 |         262144 |      524288 | max Lua heap growth (kB) one program run may cause                   |
 
 Codelevel definitions can be modified by editing `lib/config.lua`.
 
+`max_memory_kb` stops a program that *accumulates* memory — appending to a table
+in a loop, building an ever-longer string. It cannot stop a single enormous
+allocation such as `("x"):rep(1e9)`, which returns before the check can run.
+Treat it as a guard against runaway growth, not a hard cap. The figures are
+generous because the underlying measurement covers the whole server's Lua heap,
+so it is a delta from program start and other mods' allocations appear in it.
+
 # Chat commands
 
-## `/codelevel <playername> <1-4>`
+## `/codelevel [<playername>] <1-4>`
 
-Set the codelevel of an user. Requires the `codeblock` privilege (`/grant <user> codeblock`).
-`<playername>` defautls to the user name if ommited.
+Sets a player's codelevel. `<playername>` defaults to the caller.
 
-## `/codegenerate`
+Requires the `codeblock` privilege (`/grant <user> codeblock`), including for your
+own codelevel — codelevel is what bounds how much work a program may do, so being
+able to raise your own would defeat the limits. In singleplayer the privilege is
+granted automatically, since the player is the administrator.
 
-Generates the example programs for the user issuing the command.
+## `/codegenerate [<playername>]`
+
+Writes any of the bundled example programs that are **missing** from a player's
+files. `<playername>` defaults to the caller.
+
+Files that already exist are left untouched, and the reply reports how many were
+written and how many were already present. To get a pristine copy of an example
+you have edited, delete it in the editor and run the command again.
+
+Generating your own examples needs no privilege. Generating them for *another*
+player requires `codeblock`.
 
 # Lua api
 
@@ -85,7 +105,7 @@ Placing blocks and building shapes requires a `block` parameter, which can be ob
 String-indexed table with the following values:
 
 ```lua
-air, stone, cobble, stonebrick, stone_block, mossycobble, desert_stone, desert_cobble, desert_stonebrick, desert_stone_block, sandstone, sandstonebrick, sandstone_block, desert_sandstone, desert_sandstone_brick, desert_sandstone_block, silver_sandstone, silver_sandstone_brick, silver_sandstone_block, obsidian, obsidianbrick, obsidian_block, dirt, dirt_with_grass, dirt_with_grass_footsteps, dirt_with_dry_grass, dirt_with_snow, dirt_with_rainforest_litter, dirt_with_coniferous_litter, dry_dirt, dry_dirt_with_dry_grass, permafrost, permafrost_with_stones, permafrost_with_moss, clay, snowblock, ice, cave_ice, tree, wood, leaves, jungletree, junglewood, jungleleaves, pine_tree, pine_wood, pine_needles, acacia_tree, acacia_wood, acacia_leaves, aspen_tree, aspen_wood, aspen_leaves, stone_with_coal, coalblock, stone_with_iron, steelblock, stone_with_copper, copperblock, stone_with_tin, tinblock, bronzeblock, stone_with_gold, goldblock, stone_with_mese, mese, stone_with_diamond, diamondblock, cactus, bush_leaves, acacia_bush_leaves, pine_bush_needles, bookshelf, glass, obsidian_glass, brick, meselamp
+air, stone, cobble, stonebrick, stone_block, mossycobble, desert_stone, desert_cobble, desert_stonebrick, desert_stone_block, sandstone, sandstonebrick, sandstone_block, desert_sandstone, desert_sandstone_brick, desert_sandstone_block, silver_sandstone, silver_sandstone_brick, silver_sandstone_block, obsidian, obsidianbrick, obsidian_block, dirt, dirt_with_grass, dirt_with_dry_grass, dirt_with_snow, dirt_with_rainforest_litter, dirt_with_coniferous_litter, dry_dirt, dry_dirt_with_dry_grass, permafrost, permafrost_with_stones, permafrost_with_moss, clay, snowblock, ice, tree, wood, leaves, jungletree, junglewood, jungleleaves, pine_tree, pine_wood, pine_needles, acacia_tree, acacia_wood, acacia_leaves, aspen_tree, aspen_wood, aspen_leaves, stone_with_coal, coalblock, stone_with_iron, steelblock, stone_with_copper, copperblock, stone_with_tin, tinblock, bronzeblock, stone_with_gold, goldblock, stone_with_mese, mese, stone_with_diamond, diamondblock, cactus, bush_leaves, acacia_bush_leaves, pine_bush_needles, bookshelf, glass, obsidian_glass, brick, meselamp
 ```
 
 Example: `local b = blocks.glass`
@@ -95,7 +115,7 @@ Example: `local b = blocks.glass`
 String-indexed table with the following values:
 
 ```lua
-sapling, apple, junglesapling, emergent_jungle_sapling, pine_sapling, acacia_sapling, aspen_sapling, large_cactus_seedling, dry_shrub, grass_1, grass_2, grass_3, grass_4, grass_5, dry_grass_1, dry_grass_2, dry_grass_3, dry_grass_4, dry_grass_5, fern_1, fern_2, fern_3, marram_grass_1, marram_grass_2, marram_grass_3, bush_stem, bush_sapling, acacia_bush_stem, acacia_bush_sapling, pine_bush_stem, pine_bush_needles, pine_bush_sapling
+sapling, apple, junglesapling, emergent_jungle_sapling, pine_sapling, acacia_sapling, aspen_sapling, large_cactus_seedling, dry_shrub, junglegrass, grass_1, grass_2, grass_3, grass_4, grass_5, dry_grass_1, dry_grass_2, dry_grass_3, dry_grass_4, dry_grass_5, fern_1, fern_2, fern_3, marram_grass_1, marram_grass_2, marram_grass_3, bush_stem, bush_sapling, acacia_bush_stem, acacia_bush_sapling, pine_bush_stem, pine_bush_sapling
 ```
 
 Example: `local p = plants.pine_sapling`
@@ -119,6 +139,26 @@ Integer-indexed table, without white, black and greys, in pseudo-rainbow order (
 ```
 
 Example: `local orange = iwools[3]`
+
+### `color(v, min, max)`
+
+Maps a number onto the `iwools` palette, for colouring a shape by height, distance
+or any other value.
+
+```lua
+color(v)            -- min and max default to 1 and 11
+color(v, min, max)
+```
+
+Values at or below `min` give the first colour, values at or above `max` give the
+last, and anything outside the range is clamped rather than wrapped.
+
+Example:
+```lua
+for y = 0, 20 do
+    place_relative(0, y, 0, color(y, 0, 20))
+end
+```
 
 
 ### Random blocks

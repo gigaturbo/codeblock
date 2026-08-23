@@ -24,6 +24,26 @@ function codeblock.utils.split(inputstr, sep)
     return t
 end
 
+--- Parse "[<playername>] <rest>" from a chat command's arguments.
+--
+-- The player name is optional and defaults to `caller`. There is deliberately
+-- no singleplayer special case: the engine passes the caller's own name either
+-- way, and the previous hard-coded 'singleplayer' was wrong for a renamed
+-- player.
+--
+-- `rest_pattern` is a Lua pattern for the remaining argument, e.g. '%d+'.
+-- Returns target_name, rest - or nil, nil when the arguments do not match.
+function codeblock.utils.parse_target(caller, params, rest_pattern)
+    -- "<name> <rest>"
+    local pname, rest = string.match(params, '^%s*([%a][%w_%-]*)%s+(' ..
+                                         rest_pattern .. ')%s*$')
+    if pname then return pname, rest end
+    -- "<rest>" alone, addressed to the caller
+    rest = string.match(params, '^%s*(' .. rest_pattern .. ')%s*$')
+    if rest then return caller, rest end
+    return nil, nil
+end
+
 function codeblock.utils.table_reverse(tbl)
     local rev = {}
     for k, v in pairs(tbl) do rev[v] = k end

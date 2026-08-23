@@ -74,3 +74,15 @@ jobs:
 
       - name: Run preprocessor spec
         run: lua tests/preprocess_spec.lua
+
+      - name: Run env spec
+        run: lua tests/env_spec.lua
+
+  docs:
+    name: docs match the code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check doc/api.md against config and the sandbox
+        run: bash scripts/check_docs.sh

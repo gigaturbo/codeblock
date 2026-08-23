@@ -272,9 +272,14 @@ local drone_mt = {
             local player = get_player_by_name(name)
             if player then
                 local meta = player:get_meta()
-                soe = meta:get_int('codeblock:save_on_exit')
-                loe = meta:get_int('codeblock:load_on_exit')
-                sos = meta:get_int('codeblock:save_on_switch')
+                -- Converted to booleans here, at the persistence boundary.
+                -- These used to be carried around as the 0/1 that get_int
+                -- returns and then tested with `if meta.sos then`, which is
+                -- always true in Lua - 0 is truthy - so both checkboxes were
+                -- permanently on whatever the player ticked.
+                soe = meta:get_int('codeblock:save_on_exit') == 1
+                loe = meta:get_int('codeblock:load_on_exit') == 1
+                sos = meta:get_int('codeblock:save_on_switch') == 1
                 local saved_active = meta:get_string(
                                          'codeblock:editor_state_active')
                 local saved_tabs =

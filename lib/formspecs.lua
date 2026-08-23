@@ -98,11 +98,11 @@ local file_editor = {
 
         -- checkboxes
         -- fs = fs .. 'checkbox[0,10;soe;Save on exit;' ..
-        --          (meta.soe == 0 and 'false' or 'true') .. ']'
+        --          (meta.soe and 'true' or 'false') .. ']'
         fs = fs .. 'checkbox[0,10;loe;' .. S('Load program on exit') .. ';' ..
-                 (meta.loe == 0 and 'false' or 'true') .. ']'
+                 (meta.loe and 'true' or 'false') .. ']'
         fs = fs .. 'checkbox[5,10;sos;' .. S('Save on tab switch') .. ';' ..
-                 (meta.sos == 0 and 'false' or 'true') .. ']'
+                 (meta.sos and 'true' or 'false') .. ']'
 
         -- textarea
         local text = meta.contents[meta.active]
@@ -294,9 +294,10 @@ local file_editor = {
                 pmeta:set_string('codeblock:editor_state_tabs', stabs)
                 pmeta:set_string('codeblock:editor_state_active',
                                  meta.tabs[meta.active])
-                pmeta:set_int('codeblock:save_on_exit', meta.soe)
-                pmeta:set_int('codeblock:load_on_exit', meta.loe)
-                pmeta:set_int('codeblock:save_on_switch', meta.sos)
+                -- booleans in memory, ints on disk
+                pmeta:set_int('codeblock:save_on_exit', meta.soe and 1 or 0)
+                pmeta:set_int('codeblock:load_on_exit', meta.loe and 1 or 0)
+                pmeta:set_int('codeblock:save_on_switch', meta.sos and 1 or 0)
             end
         end
 
@@ -330,13 +331,13 @@ local file_editor = {
             remove_active()
             update()
         elseif fields.soe then
-            meta.soe = (fields.soe == 'true') and 1 or 0
+            meta.soe = (fields.soe == 'true')
             update()
         elseif fields.loe then
-            meta.loe = (fields.loe == 'true') and 1 or 0
+            meta.loe = (fields.loe == 'true')
             update()
         elseif fields.sos then
-            meta.sos = (fields.sos == 'true') and 1 or 0
+            meta.sos = (fields.sos == 'true')
             update()
         elseif fields.files then
             local e = explode_textlist_event(fields.files)

@@ -12,9 +12,11 @@ local drone_on_remove = codeblock.Drone.on_remove
 local drone_show_file_editor_form = codeblock.Drone.show_file_editor_form
 
 local check_auth_level = codeblock.utils.check_auth_level
+local parse_target = codeblock.utils.parse_target
 
 local get_user_data = codeblock.filesystem.get_user_data
 local write_file = codeblock.filesystem.write_file
+local exists = codeblock.filesystem.exists
 local remove_user_data = codeblock.filesystem.remove_user_data
 local make_user_dir = codeblock.filesystem.make_user_dir
 
@@ -38,19 +40,37 @@ local function set_tools(player)
     inv:add_item('main', ItemStack('codeblock:setter'))
 end
 
+--- Write the bundled example programs into a player's directory.
+--
+-- Existing files are left alone. This used to overwrite unconditionally, so a
+-- player who had opened an example and edited it in place lost that work the
+-- next time anyone ran /codegenerate. To get a pristine copy back, delete the
+-- file in the editor and run the command again.
+--
+-- Returns err, written, skipped.
 local function generate_examples(name)
 
     local err = make_user_dir(name)
-    if not err then
-        for ex_name, content in pairs(examples) do
-            local filename = ex_name .. '.lua'
-            write_file(name, filename, content)
-        end
-        return nil
-    else
-        chat_send_player(name, err)
-        return err
+    if err then
+        return err, 0, 0
     end
+
+    local written, skipped = 0, 0
+    for ex_name, content in pairs(examples) do
+        local filename = ex_name .. '.lua'
+        -- filesystem.exists returns nil when the file IS present
+        if exists(name, filename, true) == nil then
+            skipped = skipped + 1
+        else
+            local werr = write_file(name, filename, content)
+            if werr then
+                return werr, written, skipped
+            end
+            written = written + 1
+        end
+    end
+
+    return nil, written, skipped
 end
 
 --------------------------------------------------------------------------------
@@ -174,75 +194,76 @@ end)
 -- Commands and privileges
 --------------------------------------------------------------------------------
 
+-- give_to_singleplayer was false, which made /codelevel unusable in exactly the
+-- setting this game is mostly played in - while the command's own body carried
+-- a dead is_singleplayer() branch trying to work around it. In singleplayer the
+-- player is the administrator, so the privilege belongs to them.
 minetest.register_privilege("codeblock", {
-    description = "Player can use the codeblock admin commands",
-    give_to_singleplayer = false
+    description = "Player can set another player's codelevel and generate " ..
+        "their example programs",
+    give_to_singleplayer = true
 })
 
 minetest.register_chatcommand("codelevel", {
+    params = "[<playername>] <1-4>",
+    description = "Set a player's codelevel",
+    -- Stays privileged, including for your own level. codelevel is the knob
+    -- that bounds how much a program may do - calls, volume, commands - so a
+    -- player who could raise their own would be lifting their own limits. The
+    -- bug was never the privilege, it was that the privilege was unobtainable
+    -- in singleplayer.
     privs = {codeblock = true},
     func = function(name, params)
 
-        local pname, pal
-        pname, pal = string.match(params, '([%w_-]*)%s*([%d]*)')
-        if type(tonumber(pname)) == 'number' and pal == '' then -- autoname
-            pal = tonumber(pname)
-            if minetest.is_singleplayer() then
-                pname = 'singleplayer'
-            else
-                pname = name
-            end
-        elseif type(pname) == 'string' and type(pal) == 'string' then
-            if pname == '' and pal == '' then
-                chat_send_player(name, S(
-                                     'Usage: codelevel <playername> <level> OR codelevel <level>'))
-                return
-            else
-                pal = tonumber(pal)
-            end
+        local pname, level = parse_target(name, params, '%d+')
+
+        if not pname then
+            return false, S(
+                       'Usage: codelevel <playername> <level> OR codelevel <level>')
         end
 
-        local valid, al = check_auth_level(tonumber(pal))
+        local valid, al = check_auth_level(tonumber(level))
+        if not valid then return false, S('Invalid codelevel') end
 
-        if valid then
-            local player = get_player_by_name(pname or '')
-            if player then
-                player:get_meta():set_int('codeblock:auth_level', al)
-                return true, S('@1 codelevel set to @2', pname, al)
-            else
-                return false, S('Player not found')
-            end
-        else
-            return false, S('Invalid codelevel')
-        end
+        local player = get_player_by_name(pname)
+        if not player then return false, S('Player not found') end
+
+        player:get_meta():set_int('codeblock:auth_level', al)
+        return true, S('@1 codelevel set to @2', pname, al)
 
     end
 })
 
 minetest.register_chatcommand("codegenerate", {
+    params = "[<playername>]",
+    description = "Write any missing example programs into a player's files",
+    -- Same rule: your own files are yours; someone else's need the privilege.
+    -- This command used to have no privs at all AND ignore the name it parsed,
+    -- so it could only ever overwrite the caller's own files.
     func = function(name, params)
 
-        local pname = string.match(params, '([%w_-]*)')
+        local pname = string.match(params, '^%s*([%a][%w_%-]*)%s*$') or
+                          (params:match('^%s*$') and name)
 
-        if pname == '' then
-            if minetest.is_singleplayer() then
-                pname = 'singleplayer'
-            else
-                pname = name
-            end
+        if not pname then return false, S('Usage: codegenerate [playername]') end
+
+        if pname ~= name and not minetest.check_player_privs(name, {
+            codeblock = true
+        }) then
+            return false, S('You need the codeblock privilege to generate ' ..
+                                'examples for another player')
         end
 
-        local player = get_player_by_name(pname or '')
-        if player then
-            local err = generate_examples(name)
-            if err then
-                return false, S('An error occured when generating example')
-            else
-                return true, S('Examples generated')
-            end
-        else
+        if not get_player_by_name(pname) then
             return false, S('Player not found')
         end
+
+        local err, written, skipped = generate_examples(pname)
+        if err then
+            return false, S('An error occured when generating example')
+        end
+        return true, S('@1: @2 examples written, @3 already present', pname,
+                       written, skipped)
 
     end
 })

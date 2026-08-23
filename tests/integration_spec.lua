@@ -211,6 +211,38 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- chat command argument parsing (B8, B9)
+--
+-- Both commands mishandled their optional player name: /codegenerate parsed one
+-- and then ignored it, always acting on the caller, and /codelevel carried a
+-- dead singleplayer branch. Parsing is where they went wrong, so it is tested.
+--------------------------------------------------------------------------------
+
+do
+    local parse = codeblock.utils.parse_target
+
+    local function both(caller, params, pat)
+        local a, b = parse(caller, params, pat)
+        return tostring(a) .. '|' .. tostring(b)
+    end
+
+    it('level only, addressed to the caller', both('bob', '3', '%d+'), 'bob|3')
+    it('name and level', both('bob', 'alice 2', '%d+'), 'alice|2')
+    it('tolerates surrounding space', both('bob', '  alice   2  ', '%d+'),
+       'alice|2')
+    it('rejects empty arguments', both('bob', '', '%d+'), 'nil|nil')
+    it('rejects a name with no level', both('bob', 'alice', '%d+'), 'nil|nil')
+    it('rejects a non-numeric level', both('bob', 'alice x', '%d+'), 'nil|nil')
+    it('rejects trailing junk', both('bob', 'alice 2 3', '%d+'), 'nil|nil')
+    it('accepts names with underscore and dash',
+       both('bob', 'a_player-1 4', '%d+'), 'a_player-1|4')
+    -- A digit-led token is a level, not a name: this is the case the old
+    -- `([%w_-]*)%s*([%d]*)` pattern got wrong, since %w matches digits.
+    it('does not read a bare number as a player name', both('bob', '4', '%d+'),
+       'bob|4')
+end
+
+--------------------------------------------------------------------------------
 -- summary
 --------------------------------------------------------------------------------
 
