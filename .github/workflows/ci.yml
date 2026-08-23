@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+# Component-level CI for the CodeBlock mod: lint and unit-test this mod's own
+# code. The Codecube game that embeds this mod runs a separate, integration-level
+# workflow and does not duplicate these checks.
+
+jobs:
+  lint:
+    name: luacheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: "5.1"
+
+      - uses: leafo/gh-actions-luarocks@v4
+
+      - name: Install luacheck
+        run: luarocks install luacheck
+
+      - name: Lint
+        run: |
+          luacheck . --formatter plain --codes > luacheck.txt 2>&1 || true
+          cat luacheck.txt
+          # Re-emit findings as inline annotations. Besides showing up on the
+          # diff in a PR, annotations are readable through the public
+          # check-runs API, which the raw job log is not.
+          sed -nE 's#^([^:]+):([0-9]+):([0-9]+): (.*)$#::error file=\1,line=\2::\4#p' luacheck.txt
+          if grep -qE '^[^:]+:[0-9]+:[0-9]+: ' luacheck.txt; then
+            exit 1
+          fi
+          # No findings matched, yet luacheck may still have failed - a bad
+          # config, for instance. Surface the raw output rather than fail silently.
+          if grep -qiE 'error|cannot|could not|unknown' luacheck.txt; then
+            echo "::error::luacheck did not report findings but failed: $(head -c 800 luacheck.txt | tr '\n' ' ')"
+            exit 1
+          fi
+
+      - name: Report what the baseline exemptions hide
+        # Informational only, and if: always() so it still reports when the
+        # blocking lint above fails - which is when it is most useful.
+        if: always()
+        continue-on-error: true
+        env:
+          LUACHECK_STRICT: "1"
+        run: |
+          luacheck . --formatter plain --codes > strict.txt 2>&1 || true
+          cat strict.txt
+          sed -nE 's#^([^:]+):([0-9]+):([0-9]+): (.*)$#::warning file=\1,line=\2::[exempted] \4#p' strict.txt
+          echo "exempted findings: $(grep -cE '^[^:]+:[0-9]+:[0-9]+: ' strict.txt || true)"
+
+  test:
+    name: preprocessor spec
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          # Plain 5.1 rather than a luajit-* value: every LuaJIT variant fails
+          # to build in this action on ubuntu-latest. Luanti runs Lua 5.1
+          # semantics either way, which is what these string-handling specs
+          # exercise. They also run in-engine under Luanti's real LuaJIT when
+          # the game is started with codeblock_run_tests = true.
+          luaVersion: "5.1"
+
+      - name: Run preprocessor spec
+        run: lua tests/preprocess_spec.lua

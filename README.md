@@ -1,6 +1,7 @@
 CodeBlock
 =========================
 
+[![CI](https://github.com/gigaturbo/codeblock/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/gigaturbo/codeblock/actions/workflows/ci.yml)
 ![License](https://img.shields.io/badge/License-AGPLv3-blue.svg)
 [![ContentDB](https://content.minetest.net/packages/giga-turbo/codeblock/shields/downloads/)](https://content.minetest.net/packages/giga-turbo/codeblock/)
 
