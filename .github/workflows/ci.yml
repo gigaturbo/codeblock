@@ -78,6 +78,9 @@ jobs:
       - name: Run env spec
         run: lua tests/env_spec.lua
 
+      - name: Run string-guard spec
+        run: lua tests/strguard_spec.lua
+
   docs:
     name: docs match the code
     runs-on: ubuntu-latest

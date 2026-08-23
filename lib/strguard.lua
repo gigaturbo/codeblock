@@ -93,14 +93,22 @@ function strguard.install()
     local proxy = {}
     for k, v in pairs(real) do proxy[k] = v end
 
+    -- string.rep's separator is a 5.2 addition. LuaJIT has it; plain Lua 5.1
+    -- ignores a third argument entirely. Probe rather than assume, or the size
+    -- estimate would count separators that the interpreter never emits and
+    -- reject calls that would in fact have been fine.
+    local sep_supported = (#real_rep('x', 2, 'yy') == 4)
+
     proxy.rep = function(s, n, sep)
         if active then
             local count = tonumber(n) or 0
             if count > 0 then
                 local size = #s * count
-                if sep then size = size + #sep * (count - 1) end
-                -- #s * count can overflow into inf for absurd n; either way the
-                -- comparison below is the one that matters.
+                if sep and sep_supported then
+                    size = size + #sep * (count - 1)
+                end
+                -- #s * count can reach inf for an absurd n; the comparison
+                -- below still does the right thing.
                 if size > limit then too_big('rep', size) end
             end
         end

@@ -51,8 +51,8 @@ local function raises(f, ...)
     return (not ok), tostring(err)
 end
 
--- Installed once by init.lua in-engine; standalone we install it here.
-if not strguard.is_active and true then end
+-- Installed once by init.lua in-engine; installing again here is harmless and is
+-- what makes the spec work standalone.
 local installed = strguard.install()
 it('installs onto the string metatable', (installed == true), true)
 
@@ -105,10 +105,22 @@ end)), true)
 
 it('allows rep just under the limit', #(('x'):rep(1000)), 1000)
 
-it('accounts for the separator in rep', (raises(function()
-    -- 600 chars of content, plus 599 separators of 1 char = 1199 > 1024
-    return ('x'):rep(600, 'y')
-end)), true)
+-- rep's separator is a 5.2 addition: LuaJIT honours it, plain Lua 5.1 ignores a
+-- third argument. The guard probes for this, so the spec has to as well - the
+-- expected answer genuinely differs between the two interpreters this runs on.
+do
+    local sep_supported = (#string.rep('x', 2, 'yy') == 4)
+    if sep_supported then
+        -- 600 chars plus 599 one-char separators = 1199, over the 1024 ceiling
+        it('accounts for the separator in rep', (raises(function()
+            return ('x'):rep(600, 'y')
+        end)), true)
+    else
+        -- the separator is discarded, so only the 600 chars count
+        it('ignores an unsupported separator rather than over-counting',
+           #(('x'):rep(600, 'y')), 600)
+    end
+end
 
 it('blocks an amplifying gsub', (raises(function()
     return (('a'):rep(100)):gsub('a', ('b'):rep(100))

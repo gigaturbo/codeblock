@@ -12,15 +12,25 @@ Drone capacities depends on the user's _codelevel_ which can be set with the `/c
 | commands_before_yield |           1 |        10 |             20 |          40 | number of codeblock commands before releasing control to Minetest    |
 | calls_before_yield    |           1 |       100 |            250 |         600 | number of function/loop calls before releasing control to Minetest   |
 | max_memory_kb         |       65536 |    131072 |         262144 |      524288 | max Lua heap growth (kB) one program run may cause                   |
+| max_string_bytes      |     1048576 |   4194304 |       16777216 |    67108864 | max size (bytes) of a string a single call may produce               |
 
 Codelevel definitions can be modified by editing `lib/config.lua`.
 
 `max_memory_kb` stops a program that *accumulates* memory — appending to a table
-in a loop, building an ever-longer string. It cannot stop a single enormous
-allocation such as `("x"):rep(1e9)`, which returns before the check can run.
-Treat it as a guard against runaway growth, not a hard cap. The figures are
-generous because the underlying measurement covers the whole server's Lua heap,
-so it is a delta from program start and other mods' allocations appear in it.
+in a loop, building an ever-longer string. It is checked when the drone yields, so
+it cannot see inside a single call. The figures are generous because the
+underlying measurement covers the whole server's Lua heap, so it is a delta from
+program start and other mods' allocations appear in it.
+
+`max_string_bytes` covers what that cannot: one call that allocates everything at
+once. `("x"):rep(1e9)` is a single call, costs one unit against `max_calls`, and
+would allocate a gigabyte before any yield happened. Only two string methods can
+turn a small input into a large output — `rep` and `gsub` — and both refuse a
+result over this size before computing it. (`format` cannot: Lua accepts at most
+two digits of field width, so `%100d` is already rejected by the language.)
+
+Neither limit can stop a pathological Lua pattern from burning CPU inside a
+single `find` or `match` call. That is a known gap.
 
 # Chat commands
 
