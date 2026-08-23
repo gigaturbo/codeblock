@@ -211,6 +211,36 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- the string guards apply to real player code (S2)
+--
+-- strguard_spec checks the guards in isolation. This checks that a program
+-- written by a player, running through the pipeline, actually hits them - and
+-- that the guard is released afterwards, because one left armed would impose the
+-- limit on every other mod on the server.
+--------------------------------------------------------------------------------
+
+do
+    local strguard = codeblock.strguard
+
+    strguard.enter(4096)
+    local ok, _, _, err = run('local s = ("x"):rep(1e9)\n')
+    strguard.leave()
+
+    it('a program cannot allocate a gigabyte in one call', ok, false)
+    it('and is told why',
+       (err ~= nil and err:find('byte limit', 1, true) ~= nil), true)
+
+    strguard.enter(4096)
+    local ok2 = run('local s = ("x"):rep(100)\n')
+    strguard.leave()
+    it('a reasonable string still works', ok2, true)
+
+    it('the guard is released after the run', strguard.is_active(), false)
+    it('and normal string work is unaffected once released',
+       #(('x'):rep(50000)), 50000)
+end
+
+--------------------------------------------------------------------------------
 -- chat command argument parsing (B8, B9)
 --
 -- Both commands mishandled their optional player name: /codegenerate parsed one

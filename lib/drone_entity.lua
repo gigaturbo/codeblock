@@ -10,6 +10,10 @@ local chat_send_player = minetest.chat_send_player
 local drone_get = codeblock.Drone.get
 local drone_rmv = codeblock.Drone.remove
 
+local strguard_enter = codeblock.strguard.enter
+local strguard_leave = codeblock.strguard.leave
+local max_string_bytes = codeblock.config.max_string_bytes
+
 --------------------------------------------------------------------------------
 -- private
 --------------------------------------------------------------------------------
@@ -43,7 +47,14 @@ local entity_mt = {
                 if drone.cor ~= nil then
                     local status = coroutine.status(drone.cor)
                     if status == 'suspended' then
+                        -- Arm the string guards for exactly the span in which
+                        -- player code runs. Luanti runs mods on one thread, so
+                        -- no other mod executes inside this window - and leave()
+                        -- runs unconditionally afterwards, because a guard left
+                        -- armed would apply the limit to the whole server.
+                        strguard_enter(max_string_bytes[drone.auth_level])
                         local success, ret = coroutine.resume(drone.cor)
+                        strguard_leave()
                         if not success then
                             chat_send_player(drone.name, S(
                                                  'Runtime error in @1:',

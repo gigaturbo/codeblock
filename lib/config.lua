@@ -32,6 +32,15 @@ codeblock.config.calls_before_yield = {1, 100, 250, 600}
 -- up in it. Only genuine runaway growth should trip these.
 codeblock.config.max_memory_kb = {64 * 1024, 128 * 1024, 256 * 1024, 512 * 1024}
 
+-- Largest string a single call may produce, in bytes. This is the companion to
+-- max_memory_kb and covers what that cannot: one call that allocates everything
+-- at once, such as ("x"):rep(1e9). See lib/strguard.lua - only rep, format and
+-- gsub can turn a small input into a large output, and they are bounded rather
+-- than removed, because Lua 5.1 shares one string metatable across every string
+-- and it cannot be hidden from the sandbox.
+codeblock.config.max_string_bytes = {1024 * 1024, 4 * 1024 * 1024,
+                                     16 * 1024 * 1024, 64 * 1024 * 1024}
+
 --------------------------------------------------------------------------------
 -- Allowed blocks with their names
 --------------------------------------------------------------------------------
