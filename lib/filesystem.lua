@@ -170,7 +170,7 @@ end
 
 local function remove_file(name, filename)
     if user_data[name].ftp[filename] then
-        local nul, err = os.remove(get_file_path(name, filename))
+        local _, err = os.remove(get_file_path(name, filename))
         if err then
             return S('Failed to remove @1', filename)
         else

@@ -3,7 +3,6 @@ function wavy_donut(r, R, H, block)
     save('origin')
 
     local v
-    local vx = vector.x
     local vy = vector.y
     local vz = vector.z
     local visited = {}
