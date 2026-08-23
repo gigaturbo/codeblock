@@ -11,6 +11,7 @@ dofile(codeblock.modpath .. "/lib/examples.lua")
 --
 dofile(codeblock.modpath .. "/lib/commands.lua")
 dofile(codeblock.modpath .. "/lib/preprocess.lua")
+dofile(codeblock.modpath .. "/lib/env.lua")
 dofile(codeblock.modpath .. "/lib/sandbox.lua")
 dofile(codeblock.modpath .. "/lib/drone.lua")
 dofile(codeblock.modpath .. "/lib/drone_entity.lua")
@@ -25,4 +26,6 @@ end
 -- means the specs are runnable without a Lua toolchain installed.
 if minetest.settings:get_bool("codeblock_run_tests") then
     dofile(codeblock.modpath .. "/tests/preprocess_spec.lua")
+    dofile(codeblock.modpath .. "/tests/env_spec.lua")
+    dofile(codeblock.modpath .. "/tests/integration_spec.lua")
 end

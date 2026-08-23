@@ -190,23 +190,56 @@ end
 -- forbidden constructs
 --------------------------------------------------------------------------------
 
--- Names a player program may not mention. This is now checked against real
--- identifier tokens, so `"wait until done"` in a string or a variable called
--- `repeat_count` are no longer rejected - the old substring check refused both.
+-- What this list is *not*: a security boundary. The boundary is the environment
+-- table in lib/sandbox.lua, which simply does not contain these names, plus the
+-- read-only API surface in lib/env.lua. This list exists to turn an obscure
+-- runtime failure into a useful message: a program calling os.time() would
+-- otherwise die with "attempt to index a nil value (global 'os')" on some later
+-- line, which tells a beginner nothing.
 --
--- `repeat` and `until` used to be here because the pattern-based instrumenter
--- could not handle them. The tokeniser can, so repeat/until now works.
-local forbidden_names = {
-    -- reaching _G would let a program overwrite the injected budget counter
-    ['_G'] = true
+-- The old list was a blacklist doing security work it could not do, and it
+-- produced false positives because it matched raw substrings: `local
+-- until_done`, `print("repeat that")` and the word `_G` inside a comment were
+-- all refused. Matching identifier tokens fixes that.
+--
+-- `repeat` and `until` are gone from it because the pattern-based instrumenter
+-- could not handle those loops; the tokeniser can, so they simply work now.
+--
+-- `_G` is gone too: the injected counter is sealed (lib/env.lua) and the
+-- environment refuses to have API names reassigned, so `_G.use_call = ...` and
+-- `_G = {}` both fail on their own. Blocking the name is no longer what makes
+-- that safe.
+local unavailable = {
+    -- loading code at runtime would sidestep instrumentation entirely
+    ['load'] = true, ['loadstring'] = true, ['loadfile'] = true,
+    ['dofile'] = true, ['require'] = true,
+    -- would let a program reach outside the sandbox
+    ['os'] = true, ['io'] = true, ['debug'] = true, ['package'] = true,
+    ['getfenv'] = true, ['setfenv'] = true, ['rawget'] = true,
+    ['rawset'] = true, ['rawequal'] = true, ['setmetatable'] = true,
+    ['getmetatable'] = true, ['newproxy'] = true,
+    -- pcall would swallow the errors that enforce the budget, and in Lua 5.1
+    -- you cannot yield across it, so the drone's pacing would break too
+    ['pcall'] = true, ['xpcall'] = true, ['coroutine'] = true,
+    -- the engine itself
+    ['minetest'] = true, ['core'] = true, ['worldedit'] = true
 }
 
---- Returns the first forbidden name a program mentions, or nil if clean.
+--- Returns the first unavailable name a program mentions, or nil if clean.
 -- The caller turns this into a translated message.
+--
+-- Only names used as globals count. A name after `.` or `:` is a field, so a
+-- player's own `t.os` or `shape:load()` is their business and must not be
+-- refused - the old substring check had no way to tell the difference.
 function preprocess.find_forbidden(code)
-    for _, t in ipairs(preprocess.tokenize(code)) do
-        if t.type == 'name' and forbidden_names[t.value] then
-            return t.value
+    local tokens = preprocess.tokenize(code)
+    for k = 1, #tokens do
+        local t = tokens[k]
+        if t.type == 'name' and unavailable[t.value] then
+            local prev = tokens[k - 1]
+            local is_field = prev and prev.type == 'op' and
+                                 (prev.value == '.' or prev.value == ':')
+            if not is_field then return t.value end
         end
     end
     return nil

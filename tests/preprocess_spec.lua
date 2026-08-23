@@ -166,12 +166,33 @@ it('handles a hex literal without inventing a keyword',
 -- forbidden names, now checked against identifier tokens
 --------------------------------------------------------------------------------
 
-it('rejects _G access', forbidden('_G.print("x")'), '_G')
 it('accepts an ordinary program', forbidden('for i=1,3 do up(1) end'), nil)
+
+-- Names that are simply absent from the environment. Naming them here is not
+-- what makes them safe - it turns "attempt to index a nil value" into a message
+-- that says which name a beginner reached for.
+it('names os', forbidden('local t = os.time()'), 'os')
+it('names io', forbidden('io.open("x")'), 'io')
+it('names loadstring', forbidden('loadstring("x")()'), 'loadstring')
+it('names require', forbidden('require("foo")'), 'require')
+it('names pcall', forbidden('pcall(up, 1)'), 'pcall')
+it('names setmetatable', forbidden('setmetatable({}, {})'), 'setmetatable')
+it('names the engine namespace', forbidden('minetest.chat_send_all("x")'),
+   'minetest')
+
+-- ... and does so without the substring false positives the old list had.
 it('allows an identifier containing "until"', forbidden('local until_done = 1'), nil)
 it('allows "repeat" inside a string', forbidden('print("repeat that")'), nil)
-it('allows _G written inside a string', forbidden('print("_G")'), nil)
-it('allows _G written inside a comment', forbidden('-- about _G\nup(1)\n'), nil)
+it('allows an unavailable name inside a string', forbidden('print("os")'), nil)
+it('allows an unavailable name inside a comment',
+   forbidden('-- about os.time\nup(1)\n'), nil)
+it('allows an identifier merely containing one', forbidden('local iowa = 1'), nil)
+it('allows a field with the same name', forbidden('local x = t.os'), nil)
+
+-- _G is no longer blocked by name. The counter is sealed and API names cannot
+-- be reassigned, so `_G.use_call = ...` and `_G = {}` fail on their own; see
+-- env_spec and integration_spec.
+it('no longer blocks _G by name', forbidden('_G.print("x")'), nil)
 
 --------------------------------------------------------------------------------
 -- repeat/until, previously refused outright because patterns could not
@@ -269,6 +290,15 @@ it('charges a bounded loop once per iteration',
 
 it('charges nothing for a program with no loop or function',
    select(1, run_with_budget('local x = 1 + 2\n', 500)), 0)
+
+-- Known, accepted imprecision. Every `do` is charged, which includes a plain
+-- `do ... end` block that runs exactly once. Excluding those would mean pairing
+-- each loop header with its body - precisely the nesting logic this design
+-- avoids, since `while f(function() ... end) do` is legal Lua. The cost is one
+-- spurious count on a construct players rarely write. Recorded as a known gap
+-- rather than hidden, so it stays visible if anyone revisits the trade-off.
+xfail('does not charge a plain do-block',
+      select(1, run_with_budget('do local x = 1 end\n', 500)), 0)
 
 --------------------------------------------------------------------------------
 -- the shipped examples are real player programs: instrumenting them must not

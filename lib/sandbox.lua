@@ -42,6 +42,11 @@ local iwools = codeblock.config.allowed_blocks.iwools
 local niwools = #iwools
 local table_randomizer = codeblock.utils.table_randomizer
 
+local snapshot = codeblock.env.snapshot
+local snapshot_module = codeblock.env.snapshot_module
+local seal = codeblock.env.seal
+local new_env = codeblock.env.new_env
+
 --------------------------------------------------------------------------------
 -- private
 --------------------------------------------------------------------------------
@@ -53,6 +58,14 @@ end
 
 local function round0(num) return floor(num + 0.5) end
 
+-- Map a number in [m, M] onto the wool palette.
+--
+-- Values outside the range are clamped to the end colours. Previously the index
+-- was taken modulo the palette size with no clamp, so a value just above M
+-- indexed past the array and returned nil - which place() then silently treated
+-- as "no block given" and built in stone - and larger values wrapped around to
+-- the low end, so a smooth input produced a discontinuous colour ramp. Three
+-- shipped examples depend on this function.
 local color
 do
     local tmp1 = niwools - 1
@@ -60,7 +73,11 @@ do
         local m = (type(m) == 'number') and m or 1
         local M = (type(M) == 'number') and M or 11
         m, M = min(m, M), max(m, M)
-        local i = round0(((v - m) / (M - m) * tmp1) % niwools) + 1
+        if not (type(v) == 'number') then return iwools[1] end
+        if M == m then return iwools[1] end
+        local i = round0((v - m) / (M - m) * tmp1) + 1
+        if i < 1 then i = 1 end
+        if i > niwools then i = niwools end
         return iwools[i]
     end
 end
@@ -69,7 +86,7 @@ local function getScriptEnv(drone)
 
     assert(drone, S("Error, drone does not exist"))
 
-    local env = {
+    local api = {
         -- movements
         move = function(x, y, z) move(drone, x, y, z) end,
         forward = function(n) forward(drone, n) end,
@@ -136,14 +153,17 @@ local function getScriptEnv(drone)
                 end
             }
         },
-        -- blocks: wools
-        wools = wools,
-        iwools = iwools,
+        -- blocks: wools. Snapshots, not the config tables themselves - a
+        -- program used to be able to assign into these and corrupt them for
+        -- every player until the server restarted.
+        wools = snapshot(wools),
+        iwools = snapshot(iwools),
         -- blocks: default
-        blocks = cubes,
-        plants = plants,
-        -- vector3 commands
-        vector = vector3,
+        blocks = snapshot(cubes),
+        plants = snapshot(plants),
+        -- vector3 commands. snapshot_module keeps the metatable so vector(x,y,z)
+        -- still resolves through its __call.
+        vector = snapshot_module(vector3),
         -- utilities
         get_block = function() return drone_get_block(drone) end,
         print = function(str) return send_message(drone, str) end,
@@ -187,12 +207,18 @@ local function getScriptEnv(drone)
         error = error
     }
 
-    env._G = {
-        print = env.print,
-        error = env.error,
+    -- The instrumenter emits `_G.use_call()`, so this is the budget counter the
+    -- program is paying into. Sealed: a program that could assign to
+    -- _G.use_call would switch its own limits off.
+    api._G = seal({
+        print = api.print,
+        error = api.error,
         use_call = function() use_call(drone) end
-    }
-    return env
+    }, '_G')
+
+    -- Reads fall through to `api`; assigning an API name raises; anything else
+    -- becomes an ordinary player global.
+    return new_env(api)
 
 end
 
