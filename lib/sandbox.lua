@@ -73,7 +73,7 @@ do
         local m = (type(m) == 'number') and m or 1
         local M = (type(M) == 'number') and M or 11
         m, M = min(m, M), max(m, M)
-        if not (type(v) == 'number') then return iwools[1] end
+        if type(v) ~= 'number' then return iwools[1] end
         if M == m then return iwools[1] end
         local i = round0((v - m) / (M - m) * tmp1) + 1
         if i < 1 then i = 1 end
