@@ -285,9 +285,12 @@ local file_editor = {
 
         local function save_editor_state()
             local stabs = table.concat(meta.tabs, ',')
-            local player = get_player_by_name(name)
-            if player then
-                local pmeta = player:get_meta()
+            -- Deliberately re-looked-up rather than reusing the `player`
+            -- argument: the formspecs mod captures a player object when the form
+            -- opens and hands the same one back later, so it can be stale.
+            local cur_player = get_player_by_name(name)
+            if cur_player then
+                local pmeta = cur_player:get_meta()
                 pmeta:set_string('codeblock:editor_state_tabs', stabs)
                 pmeta:set_string('codeblock:editor_state_active',
                                  meta.tabs[meta.active])

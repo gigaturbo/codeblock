@@ -84,7 +84,7 @@ function preprocess.is_inside_string(strings, pos)
     local low = 1;
     local high = #strings;
     if high == 0 then return false end
-    local mid = high;
+    local mid
     while high > low + 1 do
         mid = math.floor((low + high) / 2)
         if pos < strings[mid][1] then
@@ -103,6 +103,7 @@ end
 
 --- Find `pattern` in `script` at or after `pos`, skipping string literals.
 function preprocess.find_outside_string(script, pattern, pos, strings)
+    -- Must start true: it is the loop's entry condition.
     local found = true;
     local i1 = pos;
     while found do
@@ -134,9 +135,9 @@ function preprocess.preprocess_code(script)
     -- process script to insert call counter in every function
     local _use_call_code = " _G.use_call(); "
 
-    local i1 = 0;
-    local i2 = 0;
-    local found = true;
+    local i1
+    local i2
+    local found
 
     local strings = identify_strings(script);
 

@@ -7,7 +7,6 @@ codeblock.sandbox = {}
 local S = codeblock.S
 local max = math.max
 local min = math.min
-local abs = math.abs
 local floor = math.floor
 
 local move = codeblock.commands.drone_move
