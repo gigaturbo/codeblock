@@ -1,118 +1,212 @@
 --- Source-text preprocessing for player programs.
 --
+-- A player's program is instrumented before it runs so that every loop
+-- iteration and every function call pays into the budget in commands.lua. That
+-- is what makes a runaway program stop instead of freezing the server, and what
+-- lets the drone yield back to the engine between steps.
+--
+-- The instrumentation is done over a real token stream rather than by pattern
+-- matching raw text. The previous pattern-based version had four defects that
+-- all came from the same root cause - patterns cannot tell code from comments or
+-- strings - and are covered by tests/preprocess_spec.lua:
+--
+--   * it stripped comments first, with a greedy `--[[.*--]]`, which deleted
+--     every statement between a file's first and last block comment;
+--   * it only understood the `--]]` spelling, so a normal `--[[ ... ]]` comment
+--     had its opening line removed and its body left behind as bare code;
+--   * stripping ran before string literals were identified, so a `--` inside a
+--     string truncated it;
+--   * it matched `function` as a bare substring, so an identifier merely
+--     containing those letters caused a statement to be injected after the next
+--     `)` anywhere in the file.
+--
+-- Tokenising removes all four: comments are never stripped, strings are a token
+-- type, and `function` is a keyword rather than a run of characters.
+--
 -- This module is deliberately free of any Luanti or codeblock dependency so it
 -- can be exercised by tests/preprocess_spec.lua under a bare Lua interpreter.
--- It is pure string -> string; nothing in here touches the world or the player.
---
--- Extracted verbatim from lib/sandbox.lua. Behaviour is unchanged, including
--- the known defects documented in tests/preprocess_spec.lua.
---
--- Originally adapted from
--- https://github.com/ac-minetest/basic_robot/blob/master/init.lua
+-- It is pure string -> string; nothing here touches the world or the player.
 
 local preprocess = {}
+
+local sub = string.sub
+local find = string.find
+local match = string.match
+
+--------------------------------------------------------------------------------
+-- lexer
+--------------------------------------------------------------------------------
+
+local keywords = {
+    ['and'] = true, ['break'] = true, ['do'] = true, ['else'] = true,
+    ['elseif'] = true, ['end'] = true, ['false'] = true, ['for'] = true,
+    ['function'] = true, ['if'] = true, ['in'] = true, ['local'] = true,
+    ['nil'] = true, ['not'] = true, ['or'] = true, ['repeat'] = true,
+    ['return'] = true, ['then'] = true, ['true'] = true, ['until'] = true,
+    ['while'] = true,
+    -- LuaJIT / 5.2+; harmless to treat as a keyword under 5.1, where it can
+    -- only ever appear as an ordinary name that we simply never act on.
+    ['goto'] = true
+}
+
+--- If a long bracket opens at `i`, return the position just after it and its
+-- level. Handles `[[`, `[=[`, `[==[` and so on.
+local function long_bracket_open(src, i)
+    if sub(src, i, i) ~= '[' then return nil end
+    local j = i + 1
+    local level = 0
+    while sub(src, j, j) == '=' do
+        level = level + 1
+        j = j + 1
+    end
+    if sub(src, j, j) == '[' then return j + 1, level end
+    return nil
+end
+
+--- Find the end of a long bracket of `level` starting at `from`.
+-- Returns the position of the last character of the closing bracket, or the end
+-- of the string when unterminated (matching how Lua reports it as one token).
+local function long_bracket_close(src, from, level)
+    local close = ']' .. string.rep('=', level) .. ']'
+    local s, e = find(src, close, from, true)
+    if s then return e end
+    return #src
+end
+
+--- Tokenise Lua source.
+-- Returns a list of {type, i, j, value} where i..j are inclusive byte offsets
+-- into `src`. Types: 'name', 'keyword', 'string', 'number', 'comment', 'op'.
+-- The lexer is permissive: it never raises on malformed input, because invalid
+-- programs are meant to fail later in loadstring() with Lua's own message.
+function preprocess.tokenize(src)
+
+    local tokens = {}
+    local i = 1
+    local n = #src
+
+    local function push(kind, from, to, value)
+        tokens[#tokens + 1] = {type = kind, i = from, j = to, value = value}
+    end
+
+    while i <= n do
+        local c = sub(src, i, i)
+
+        if match(c, '%s') then
+            i = i + 1
+
+        elseif c == '-' and sub(src, i + 1, i + 1) == '-' then
+            -- comment: long form first, then to end of line
+            local after, level = long_bracket_open(src, i + 2)
+            if after then
+                local stop = long_bracket_close(src, after, level)
+                push('comment', i, stop)
+                i = stop + 1
+            else
+                local stop = find(src, '\n', i, true)
+                stop = stop and (stop - 1) or n
+                push('comment', i, stop)
+                i = stop + 1
+            end
+
+        elseif c == '[' and long_bracket_open(src, i) then
+            local after, level = long_bracket_open(src, i)
+            local stop = long_bracket_close(src, after, level)
+            push('string', i, stop)
+            i = stop + 1
+
+        elseif c == '"' or c == "'" then
+            local j = i + 1
+            while j <= n do
+                local d = sub(src, j, j)
+                if d == '\\' then
+                    j = j + 2
+                elseif d == c then
+                    j = j + 1
+                    break
+                elseif d == '\n' then
+                    -- unterminated; let loadstring report it
+                    break
+                else
+                    j = j + 1
+                end
+            end
+            push('string', i, j - 1)
+            i = j
+
+        elseif match(c, '%d') or
+            (c == '.' and match(sub(src, i + 1, i + 1), '%d')) then
+            local j = i
+            local hex = false
+            if c == '0' and match(sub(src, i + 1, i + 1), '[xX]') then
+                hex = true
+                j = i + 2
+            end
+            while j <= n do
+                local d = sub(src, j, j)
+                if match(d, '%x') or d == '.' then
+                    j = j + 1
+                elseif (not hex and match(d, '[eE]')) or
+                    (hex and match(d, '[pP]')) then
+                    j = j + 1
+                    if match(sub(src, j, j), '[%+%-]') then j = j + 1 end
+                elseif not hex and match(d, '[a-zA-Z_]') then
+                    -- malformed literal like 1abc; consume so we do not emit a
+                    -- spurious name token that could look like a keyword
+                    j = j + 1
+                else
+                    break
+                end
+            end
+            push('number', i, j - 1)
+            i = j
+
+        elseif match(c, '[%a_]') then
+            local s, e, word = find(src, '^([%a_][%w_]*)', i)
+            push(keywords[word] and 'keyword' or 'name', s, e, word)
+            i = e + 1
+
+        else
+            -- operators; longest match first so '...' beats '..' beats '.'
+            local three = sub(src, i, i + 2)
+            local two = sub(src, i, i + 1)
+            if three == '...' then
+                push('op', i, i + 2, three)
+                i = i + 3
+            elseif two == '==' or two == '~=' or two == '<=' or two == '>=' or
+                two == '..' or two == '::' then
+                push('op', i, i + 1, two)
+                i = i + 2
+            else
+                push('op', i, i, c)
+                i = i + 1
+            end
+        end
+    end
+
+    return tokens
+end
 
 --------------------------------------------------------------------------------
 -- forbidden constructs
 --------------------------------------------------------------------------------
 
--- Substrings refused outright. Note these are plain substring searches, so they
--- also match inside identifiers and string literals (see spec).
-local forbidden = {"repeat", "until", "_c_", "_G", "while%(", "while{"}
+-- Names a player program may not mention. This is now checked against real
+-- identifier tokens, so `"wait until done"` in a string or a variable called
+-- `repeat_count` are no longer rejected - the old substring check refused both.
+--
+-- `repeat` and `until` used to be here because the pattern-based instrumenter
+-- could not handle them. The tokeniser can, so repeat/until now works.
+local forbidden_names = {
+    -- reaching _G would let a program overwrite the injected budget counter
+    ['_G'] = true
+}
 
---- Returns the first forbidden pattern present in `code`, or nil if clean.
--- The caller is responsible for turning this into a translated message.
+--- Returns the first forbidden name a program mentions, or nil if clean.
+-- The caller turns this into a translated message.
 function preprocess.find_forbidden(code)
-    for _, v in pairs(forbidden) do
-        if string.find(code, v) then return v end
-    end
-    return nil
-end
-
---------------------------------------------------------------------------------
--- string literal detection
---------------------------------------------------------------------------------
-
---- Returns a list of {start, end} positions of literal strings in Lua code.
-function preprocess.identify_strings(code)
-
-    local i = 0;
-    local j;
-    local _;
-    local length = string.len(code);
-    local mode = 0; -- 0: not in string, 1: in '...', 2: in "...", 3: in [==[ ... ]==]
-    local modes = {
-        {"'", "'"}, -- inside ' '
-        {"\"", "\""}, -- inside " "
-        {"%[=*%[", "%]=*%]"} -- inside [=[ ]=]
-    }
-    local ret = {}
-    while i < length do
-        i = i + 1
-
-        local jmin = length + 1;
-        if mode == 0 then -- not yet inside string
-            for k = 1, #modes do
-                j = string.find(code, modes[k][1], i);
-                if j and j < jmin then -- pick closest one
-                    jmin = j
-                    mode = k
-                end
-            end
-            if mode ~= 0 then -- found something
-                j = jmin
-                ret[#ret + 1] = {jmin}
-            end
-            if not j then break end -- found nothing
-        else
-            _, j = string.find(code, modes[mode][2], i); -- search for closing pair
-            if not j then break end
-            if (mode ~= 2 or (string.sub(code, j - 1, j - 1) ~= "\\") or
-                string.sub(code, j - 2, j - 1) == "\\\\") then -- not (" and not \" - but "\\" is allowed)
-                ret[#ret][2] = j
-                mode = 0
-            end
-        end
-        i = j -- move to next position
-    end
-    if mode ~= 0 then ret[#ret][2] = length end
-    return ret
-end
-
---- Is `pos` inside one of the string ranges returned by identify_strings?
-function preprocess.is_inside_string(strings, pos)
-    local low = 1;
-    local high = #strings;
-    if high == 0 then return false end
-    local mid
-    while high > low + 1 do
-        mid = math.floor((low + high) / 2)
-        if pos < strings[mid][1] then
-            high = mid
-        else
-            low = mid
-        end
-    end
-    if pos > strings[low][2] then
-        mid = high
-    else
-        mid = low
-    end
-    return strings[mid][1] <= pos and pos <= strings[mid][2]
-end
-
---- Find `pattern` in `script` at or after `pos`, skipping string literals.
-function preprocess.find_outside_string(script, pattern, pos, strings)
-    -- Must start true: it is the loop's entry condition.
-    local found = true;
-    local i1 = pos;
-    while found do
-        found = false
-        local i2 = string.find(script, pattern, i1);
-        if i2 then
-            if not preprocess.is_inside_string(strings, i2) then return i2 end
-            found = true;
-            i1 = i2 + 1;
+    for _, t in ipairs(preprocess.tokenize(code)) do
+        if t.type == 'name' and forbidden_names[t.value] then
+            return t.value
         end
     end
     return nil
@@ -122,78 +216,88 @@ end
 -- call-counter instrumentation
 --------------------------------------------------------------------------------
 
---- Strip comments and inject `_G.use_call()` into every loop and function so
--- the call budget in commands.lua can be enforced.
-function preprocess.preprocess_code(script)
+local INJECT = ' _G.use_call(); '
 
-    local identify_strings = preprocess.identify_strings
-    local find_outside_string = preprocess.find_outside_string
+--- Byte offsets in `src` after which the counter call must be inserted.
+--
+-- Every construct that can repeat, plus every function body, has to pay in:
+--
+--   do        every loop body opens with `do`, so instrumenting each `do`
+--             covers `while ... do` and `for ... do` without having to pair a
+--             loop header with its body. A plain `do ... end` block is also
+--             matched, which costs one harmless count for a block that runs
+--             once, and is far cheaper than tracking nesting to exclude it.
+--   repeat    the one loop form whose body is not introduced by `do`.
+--   function  after the `)` closing the parameter list, so the count lands
+--             inside the body. This is what makes recursion pay in.
+--   goto      counted at the jump itself, since a backwards goto is a loop.
+--
+-- Returns a sorted list of positions.
+function preprocess.insertion_points(src)
 
-    -- strip comments
-    script = script:gsub("%-%-%[%[.*%-%-%]%]", ""):gsub("%-%-[^\n]*\n", "\n")
+    local tokens = preprocess.tokenize(src)
+    local points = {}
 
-    -- process script to insert call counter in every function
-    local _use_call_code = " _G.use_call(); "
+    for k = 1, #tokens do
+        local t = tokens[k]
 
-    local i1
-    local i2
-    local found
+        if t.type == 'keyword' and (t.value == 'do' or t.value == 'repeat') then
+            points[#points + 1] = t.j
 
-    local strings = identify_strings(script);
-
-    local inserts = {};
-
-    local constructs = {
-        {"while%s", "%sdo%s", 2, 6}, -- numbers: insertion pos = i2+2, after skip to i1 = i12+6
-        {"function", ")", 0, 8}, {"for%s", "%sdo%s", 2, 4},
-        {"goto%s", nil, -1, 5}
-    }
-
-    for i = 1, #constructs do
-        i1 = 0;
-        found = true
-        while (found) do -- PROCESS SCRIPT AND INSERT COUNTER AT PROBLEMATIC SPOTS
-
-            found = false;
-
-            i2 = find_outside_string(script, constructs[i][1], i1, strings) -- first part of construct
-            if i2 then
-                local i21 = i2;
-                if constructs[i][2] then
-                    i2 = find_outside_string(script, constructs[i][2], i2,
-                                             strings); -- second part of construct ( if any )
-                    if i2 then
-                        inserts[#inserts + 1] = i2 + constructs[i][3]; -- move to last position of construct[i][2]
-                        found = true;
+        elseif t.type == 'keyword' and t.value == 'function' then
+            -- Walk to the '(' that opens the parameter list, then to its match.
+            -- Parameter lists cannot themselves contain parentheses, but depth
+            -- is tracked anyway so a malformed program cannot mislead us.
+            local depth = 0
+            local m = k + 1
+            while m <= #tokens do
+                local u = tokens[m]
+                if u.type == 'op' and u.value == '(' then
+                    depth = depth + 1
+                elseif u.type == 'op' and u.value == ')' then
+                    depth = depth - 1
+                    if depth <= 0 then
+                        points[#points + 1] = u.j
+                        break
                     end
-                else
-                    inserts[#inserts + 1] = i2 + constructs[i][3]
-                    found = true -- 1 part construct
+                elseif depth == 0 and u.type == 'keyword' then
+                    -- ran past the header without finding a parameter list;
+                    -- malformed, leave it to loadstring
+                    break
                 end
-
-                if found then
-                    i1 = i21 + constructs[i][4]; -- skip to after constructs[i][1]
-                end
+                m = m + 1
             end
 
+        elseif t.type == 'keyword' and t.value == 'goto' then
+            local nxt = tokens[k + 1]
+            if nxt and nxt.type == 'name' then
+                points[#points + 1] = t.i - 1
+            end
         end
     end
 
-    table.sort(inserts)
+    table.sort(points)
+    return points
+end
 
-    -- add inserts
-    local ret = {};
-    i1 = 1;
-    for i = 1, #inserts do
-        i2 = inserts[i];
-        ret[#ret + 1] = string.sub(script, i1, i2);
-        i1 = i2 + 1;
+--- Insert the budget counter into every loop and function body.
+-- Comments and strings are left exactly as written: nothing is stripped.
+function preprocess.preprocess_code(src)
+
+    local points = preprocess.insertion_points(src)
+    if #points == 0 then return src end
+
+    local out = {}
+    local from = 1
+    for k = 1, #points do
+        local p = points[k]
+        out[#out + 1] = sub(src, from, p)
+        out[#out + 1] = INJECT
+        from = p + 1
     end
-    ret[#ret + 1] = string.sub(script, i1);
-    script = table.concat(ret, _use_call_code)
+    out[#out + 1] = sub(src, from)
 
-    return script;
-
+    return table.concat(out)
 end
 
 --------------------------------------------------------------------------------

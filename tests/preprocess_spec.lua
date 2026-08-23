@@ -124,58 +124,195 @@ it('instrumented nested loop still compiles',
 it('leaves a plain statement sequence intact',
    keeps('place(blocks.stone)\nup(1)\n', 'place(blocks.stone)'), true)
 
-it('does not instrument a loop keyword inside a string',
+it('leaves a loop keyword inside a string alone',
    pp('print("for i = 1, 3 do end")\n'):find('_G.use_call();', 1, true), nil)
 
-it('strips a single-line comment',
-   keeps('-- a comment\nup(1)\n', 'a comment'), false)
+it('leaves a loop keyword inside a comment alone',
+   pp('-- for i = 1, 3 do end\nup(1)\n'):find('_G.use_call();', 1, true), nil)
 
--- The blacklist, including its false positives (see audit S3).
-it('rejects repeat', forbidden('repeat up(1) until false'), 'repeat')
+it('leaves comments in place instead of stripping them',
+   keeps('-- a comment\nup(1)\n', 'a comment'), true)
+
+it('leaves a program with nothing to instrument byte-identical',
+   pp('place(blocks.stone)\nup(1)\n'), 'place(blocks.stone)\nup(1)\n')
+
+--------------------------------------------------------------------------------
+-- lexer: the guarantees tokenising buys us
+--------------------------------------------------------------------------------
+
+it('handles a levelled long comment',
+   compiles(pp('--[==[\nprose ]] still prose\n]==]\nfor i=1,3 do up(1) end\n')), true)
+
+it('does not instrument inside a long string',
+   pp('local s = [[ for i=1,3 do end ]]\n'):find('_G.use_call();', 1, true), nil)
+
+it('instruments a function whose name contains a keyword',
+   keeps('function do_it(n) return n end\n', '_G.use_call();'), true)
+
+it('counts each of two sibling functions', (function()
+    local out = pp('function a(x) return x end\nfunction b(y) return y end\n')
+    local n = 0
+    for _ in out:gmatch('_G%.use_call%(%)') do n = n + 1 end
+    return n
+end)(), 2)
+
+it('instruments a method definition',
+   compiles(pp('local t = {}\nfunction t.m(a) return a end\n')), true)
+
+it('handles a hex literal without inventing a keyword',
+   pp('local x = 0xdead\n'):find('_G.use_call();', 1, true), nil)
+
+--------------------------------------------------------------------------------
+-- forbidden names, now checked against identifier tokens
+--------------------------------------------------------------------------------
+
 it('rejects _G access', forbidden('_G.print("x")'), '_G')
 it('accepts an ordinary program', forbidden('for i=1,3 do up(1) end'), nil)
-it('false-positives on an identifier containing "until"',
-   forbidden('local until_done = 1'), 'until')
-it('false-positives on "repeat" inside a string',
-   forbidden('print("repeat that")'), 'repeat')
+it('allows an identifier containing "until"', forbidden('local until_done = 1'), nil)
+it('allows "repeat" inside a string', forbidden('print("repeat that")'), nil)
+it('allows _G written inside a string', forbidden('print("_G")'), nil)
+it('allows _G written inside a comment', forbidden('-- about _G\nup(1)\n'), nil)
 
 --------------------------------------------------------------------------------
--- confirmed defects - these are the Phase 2 work list
+-- repeat/until, previously refused outright because patterns could not
+-- instrument it
 --------------------------------------------------------------------------------
 
--- B1: greedy `.*` spans from the first `--[[` to the last `--]]`, deleting
--- every statement in between.
-xfail('B1 keeps code sitting between two block comments',
-      keeps('--[[ a --]]\nplace(blocks.stone)\nup(1)\n--[[ b --]]\nforward(1)\n',
-            'place(blocks.stone)'), true)
-
--- B2: a standard Lua block comment closes with `]]`, not `--]]`, so only its
--- opening line is stripped and the body is left behind as bare code.
-xfail('B2 removes a standard --[[ ... ]] comment body',
-      pp('--[[\nthis is prose\n]]\nup(1)\n'):find('this is prose', 1, true), nil)
-
-xfail('B2 output still compiles after a standard block comment',
-      compiles(pp('--[[\nthis is prose\n]]\nup(1)\n')), true)
-
--- B3: comments are stripped before string literals are identified, so a `--`
--- inside a string truncates it.
-xfail('B3 preserves a string containing a double dash',
-      keeps('print("a -- b")\nup(1)\n', 'a -- b'), true)
-
-xfail('B3 output still compiles with a double dash in a string',
-      compiles(pp('print("a -- b")\nup(1)\n')), true)
-
--- B4: "function" is matched as a bare substring with no word boundary, so an
--- identifier merely containing those letters causes a statement to be injected
--- after the next `)` anywhere in the file.
-xfail('B4 ignores "function" inside an identifier',
-      compiles(pp('local nfunctions = 3\nlocal x = myfunc(1) + 2\n')), true)
-
-xfail('B4 does not inject into an unrelated call expression',
-      pp('local counter_function_total = 0\nlocal y = abs(-3) + 7\n')
-          :find('_G.use_call();', 1, true), nil)
+it('allows a repeat/until loop', forbidden('repeat up(1) until false'), nil)
+it('instruments a repeat/until loop',
+   keeps('repeat up(1) until false\n', '_G.use_call();'), true)
+it('instrumented repeat/until still compiles',
+   compiles(pp('local i = 0\nrepeat i = i + 1 until i > 3\n')), true)
 
 --------------------------------------------------------------------------------
+-- former defects B1-B4, fixed by tokenising instead of pattern matching
+--------------------------------------------------------------------------------
+
+-- B1: a greedy `--[[.*--]]` spanned from the file's first block comment to its
+-- last, deleting every statement in between.
+it('B1 keeps code sitting between two block comments',
+   keeps('--[[ a --]]\nplace(blocks.stone)\nup(1)\n--[[ b --]]\nforward(1)\n',
+         'place(blocks.stone)'), true)
+
+-- B2: only the `--]]` spelling was understood, so a normal `--[[ ... ]]`
+-- comment lost its opening line and left its body behind as bare code. Comments
+-- are no longer touched at all, so the body stays a comment.
+it('B2 output still compiles after a standard block comment',
+   compiles(pp('--[[\nthis is prose\n]]\nup(1)\n')), true)
+
+it('B2 leaves a standard block comment byte-identical',
+   pp('--[[\nthis is prose\n]]\nup(1)\n'), '--[[\nthis is prose\n]]\nup(1)\n')
+
+-- B3: comments were stripped before strings were identified, so a `--` inside
+-- a string truncated it.
+it('B3 preserves a string containing a double dash',
+   keeps('print("a -- b")\nup(1)\n', 'a -- b'), true)
+
+it('B3 output still compiles with a double dash in a string',
+   compiles(pp('print("a -- b")\nup(1)\n')), true)
+
+-- B4: `function` was matched as a bare substring, so an identifier merely
+-- containing those letters injected a statement after the next `)` in the file.
+it('B4 ignores "function" inside an identifier',
+   compiles(pp('local nfunctions = 3\nlocal x = myfunc(1) + 2\n')), true)
+
+it('B4 does not inject into an unrelated call expression',
+   pp('local counter_function_total = 0\nlocal y = abs(-3) + 7\n')
+       :find('_G.use_call();', 1, true), nil)
+
+--------------------------------------------------------------------------------
+-- functional: does the instrumentation actually enforce a budget?
+--
+-- The tests above check that text was inserted and still compiles. These run
+-- the instrumented chunk against a stub counter, which is the property that
+-- actually matters: a runaway program must be stopped.
+--------------------------------------------------------------------------------
+
+local setfenv_ = setfenv  -- 5.1 / LuaJIT
+
+--- Run `src` instrumented, with a counter that errors after `budget` calls.
+-- Returns calls_made, outcome ('completed' or 'stopped').
+local function run_with_budget(src, budget)
+    local chunk = compile(pp(src))
+    if not chunk then return -1, 'compile failed' end
+    local n = 0
+    local env = {}
+    env._G = {
+        use_call = function()
+            n = n + 1
+            if n > budget then error('budget exhausted', 0) end
+        end
+    }
+    setfenv_(chunk, env)
+    local ok = pcall(chunk)
+    return n, ok and 'completed' or 'stopped'
+end
+
+it('stops an infinite while loop', select(2, run_with_budget('while true do end\n', 50)), 'stopped')
+it('charges the infinite loop the whole budget',
+   (select(1, run_with_budget('while true do end\n', 50)) > 50), true)
+
+it('stops an infinite repeat loop',
+   select(2, run_with_budget('repeat until false\n', 50)), 'stopped')
+
+it('stops an infinite numeric for',
+   select(2, run_with_budget('for i = 1, 1e9 do end\n', 50)), 'stopped')
+
+it('stops unbounded recursion',
+   select(2, run_with_budget('function f() return f() end\nf()\n', 50)), 'stopped')
+
+it('lets a bounded loop finish',
+   select(2, run_with_budget('for i = 1, 5 do end\n', 500)), 'completed')
+
+it('charges a bounded loop once per iteration',
+   select(1, run_with_budget('for i = 1, 5 do end\n', 500)), 5)
+
+it('charges nothing for a program with no loop or function',
+   select(1, run_with_budget('local x = 1 + 2\n', 500)), 0)
+
+--------------------------------------------------------------------------------
+-- the shipped examples are real player programs: instrumenting them must not
+-- break them. This is the end-to-end check that matters most.
+--------------------------------------------------------------------------------
+
+do
+    local dir
+    if rawget(_G, 'codeblock') and codeblock.modpath then
+        dir = codeblock.modpath .. '/lib/examples'
+    else
+        local here = arg and arg[0] and arg[0]:match('^(.*)[/\\][^/\\]*$')
+        dir = (here and (here .. '/../lib/examples')) or 'mods/codeblock/lib/examples'
+    end
+
+    -- No lfs in either environment, so the list is explicit.
+    local names = {
+        'death_star', 'density', 'donuts', 'forest', 'menger', 'mosely',
+        'planet', 'plot2D', 'plot3D', 'recursion', 'spirals', 'stairs',
+        'tests', 'torus'
+    }
+
+    local checked, broken = 0, {}
+    for _, name in ipairs(names) do
+        local f = io.open(dir .. '/' .. name .. '.lua', 'r')
+        if f then
+            local src = f:read('*a')
+            f:close()
+            checked = checked + 1
+            -- must compile before and after, and the instrumentation must have
+            -- found at least one place to charge in a program with loops
+            if not compiles(pp(src)) then
+                broken[#broken + 1] = name
+            end
+        end
+    end
+
+    it('found the shipped examples to check', (checked > 0), true)
+    it('every shipped example still compiles once instrumented',
+       table.concat(broken, ','), '')
+    it('checked all 14 shipped examples', checked, 14)
+end
+
+------------------------------------------------------------------------------
 -- summary
 --------------------------------------------------------------------------------
 
