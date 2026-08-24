@@ -19,6 +19,7 @@ local read_file = codeblock.filesystem.read_file
 local exists = codeblock.filesystem.exists
 
 local get_safe_coroutine = codeblock.sandbox.get_safe_coroutine
+local show_form = codeblock.forms.show
 
 local tmp1 = 2 / pi
 local tmp2 = 2 * pi
@@ -254,7 +255,8 @@ local drone_mt = {
 
             local meta = {name = name, selectedIndex = 0}
             local fs = codeblock.formspecs.file_chooser
-            minetest.create_form(meta, name, fs.get_form(meta), fs.on_close)
+            show_form(name, 'codeblock:file_chooser', meta, fs.get_form(meta),
+                      fs.on_close)
 
         end,
 
@@ -320,7 +322,8 @@ local drone_mt = {
                 newfile = ''
             }
             local fe = codeblock.formspecs.file_editor
-            minetest.create_form(meta, name, fe.get_form(meta), fe.on_close)
+            show_form(name, 'codeblock:file_editor', meta, fe.get_form(meta),
+                      fe.on_close)
         end
 
     },

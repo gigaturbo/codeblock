@@ -11,8 +11,8 @@ local scroll_max = codeblock.utils.scroll_max
 
 local formspec_escape = minetest.formspec_escape
 local chat_send_player = minetest.chat_send_player
-local destroy_form = minetest.destroy_form
-local update_form = minetest.update_form
+local close_form = codeblock.forms.close
+local update_form = codeblock.forms.update
 local explode_textlist_event = minetest.explode_textlist_event
 local get_player_by_name = minetest.get_player_by_name
 
@@ -196,7 +196,7 @@ local file_editor = {
         end
 
         local function exit()
-            destroy_form(name, minetest.FORMSPEC_SIGEXIT)
+            close_form(name)
         end
 
         local function load_active()
@@ -413,12 +413,12 @@ local file_chooser = {
         local name = player:get_player_name()
 
         local function cancel()
-            destroy_form(name, minetest.FORMSPEC_SIGEXIT)
+            close_form(name)
         end
 
         local function choose(i)
             set_file(name, get_itf(name, i))
-            destroy_form(name, minetest.FORMSPEC_SIGEXIT)
+            close_form(name)
         end
 
         if fields.choose then
