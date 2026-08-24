@@ -13,6 +13,7 @@ Drone capacities depends on the user's _codelevel_ which can be set with the `/c
 | calls_before_yield    |           1 |       100 |            250 |         600 | number of function/loop calls before releasing control to Minetest   |
 | max_memory_kb         |       65536 |    131072 |         262144 |      524288 | max Lua heap growth (kB) one program run may cause                   |
 | max_string_bytes      |     1048576 |   4194304 |       16777216 |    67108864 | max size (bytes) of a string a single call may produce               |
+| step_budget_us        |        1000 |      2000 |           4000 |        8000 | max time (µs) one drone may spend advancing per server step          |
 
 Codelevel definitions can be modified by editing `lib/config.lua`.
 
@@ -31,6 +32,17 @@ two digits of field width, so `%100d` is already rejected by the language.)
 
 Neither limit can stop a pathological Lua pattern from burning CPU inside a
 single `find` or `match` call. That is a known gap.
+
+`step_budget_us` is how long a drone may spend running its program during one
+server step. It advances repeatedly until the budget is spent, so a program goes
+as fast as the server has room for rather than being pinned to the tick rate.
+`commands_before_yield` and `calls_before_yield` therefore control *granularity* —
+how finely the work is chopped, and so how precisely the budget can be honoured —
+not throughput.
+
+Two limits worth knowing: the budget is checked between yields and never inside
+one, so a single long call (a large shape, for instance) overshoots it; and each
+drone has its own allowance, so several drones cost several budgets per step.
 
 # Chat commands
 

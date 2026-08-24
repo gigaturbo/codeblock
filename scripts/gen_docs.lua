@@ -90,6 +90,44 @@ if not wanted then
 end
 
 --------------------------------------------------------------------------------
+-- the hand-written part still has to cover every per-codelevel limit
+--
+-- This generator only owns the section from "# Lua api" onward. The codelevel
+-- table above it is hand-written prose, so nothing here regenerates it - and
+-- when scripts/check_docs.sh was replaced by this script, the check that every
+-- limit in config.lua has a row in that table went with it. step_budget_us was
+-- added and undocumented before anyone noticed. Checked here instead, since this
+-- is the tool that survived.
+--------------------------------------------------------------------------------
+
+do
+    local cfg = io.open(root .. '/lib/config.lua'):read('*a')
+    local missing = {}
+    for name in cfg:gmatch('codeblock%.config%.(max_%w+)%s*=%s*{') do
+        if not current:find('\n| ' .. name .. ' ', 1, true) then
+            missing[#missing + 1] = name
+        end
+    end
+    for name in cfg:gmatch('codeblock%.config%.(%w+_before_yield)%s*=%s*{') do
+        if not current:find('\n| ' .. name .. ' ', 1, true) then
+            missing[#missing + 1] = name
+        end
+    end
+    for name in cfg:gmatch('codeblock%.config%.(step_budget_us)%s*=%s*{') do
+        if not current:find('\n| ' .. name .. ' ', 1, true) then
+            missing[#missing + 1] = name
+        end
+    end
+    if #missing > 0 then
+        table.sort(missing)
+        io.stderr:write(('doc/api.md: the codelevel table has no row for: %s\n')
+                            :format(table.concat(missing, ', ')))
+        io.stderr:write('That table is hand-written; add the rows yourself.\n')
+        os.exit(1)
+    end
+end
+
+--------------------------------------------------------------------------------
 -- write or check
 --------------------------------------------------------------------------------
 
