@@ -79,7 +79,7 @@ function stepper.advance(drone, budget_us, guard_bytes)
 
     local now = deps.now
     local started = now()
-    local resumes, outcome, err = 0, 'yielded', nil
+    local resumes, outcome, err = 0, nil, nil
 
     deps.guard_enter(guard_bytes)
 
@@ -109,17 +109,18 @@ function stepper.advance(drone, budget_us, guard_bytes)
             break
         end
 
-        if now() - started >= budget_us then
-            outcome = 'yielded'
-            break
-        end
+        -- Budget spent: leave the loop without setting an outcome, so the
+        -- default below applies. Expressing 'yielded' once at the return rather
+        -- than as an initialiser keeps it from being a dead assignment, and
+        -- means a break added here later still gets a safe answer instead of nil.
+        if now() - started >= budget_us then break end
     end
 
     -- Single exit point for the guard: one left armed would apply the string
     -- limit to every other mod on the server.
     deps.guard_leave()
 
-    return resumes, outcome, err
+    return resumes, outcome or 'yielded', err
 end
 
 return stepper
