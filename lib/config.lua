@@ -16,6 +16,16 @@ codeblock.config.max_dimension = {15, 30, 70, 150}
 codeblock.config.commands_before_yield = {1, 10, 20, 40}
 codeblock.config.calls_before_yield = {1, 100, 250, 600}
 
+-- How long, in microseconds, one drone may spend advancing its program during a
+-- single server step. See lib/stepper.lua: the drone used to get exactly one
+-- coroutine resume per step, which pinned throughput to the tick rate whatever
+-- the server had spare.
+--
+-- A dedicated server steps every ~90ms by default, so 8ms is under a tenth of a
+-- step at the top codelevel. Checked between resumes, so one long call can
+-- overshoot; and each drone has its own allowance, so N drones cost N budgets.
+codeblock.config.step_budget_us = {1000, 2000, 4000, 8000}
+
 -- How much Lua heap growth, in kB, one program run may be responsible for
 -- before it is stopped. Checked at yield points, so it catches a program that
 -- accumulates - appending to a table in a loop, building an ever-longer string.

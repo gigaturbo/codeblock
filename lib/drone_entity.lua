@@ -10,9 +10,9 @@ local chat_send_player = minetest.chat_send_player
 local drone_get = codeblock.Drone.get
 local drone_rmv = codeblock.Drone.remove
 
-local strguard_enter = codeblock.strguard.enter
-local strguard_leave = codeblock.strguard.leave
+local advance = codeblock.stepper.advance
 local max_string_bytes = codeblock.config.max_string_bytes
+local step_budget_us = codeblock.config.step_budget_us
 
 --------------------------------------------------------------------------------
 -- private
@@ -42,32 +42,40 @@ local entity_mt = {
         on_step = function(self, dtime, moveresult)
 
             local drone = self._data -- ok as long as entity is removed
+            if drone == nil or drone.cor == nil then return end
 
-            if drone ~= nil then
-                if drone.cor ~= nil then
-                    local status = coroutine.status(drone.cor)
-                    if status == 'suspended' then
-                        -- Arm the string guards for exactly the span in which
-                        -- player code runs. Luanti runs mods on one thread, so
-                        -- no other mod executes inside this window - and leave()
-                        -- runs unconditionally afterwards, because a guard left
-                        -- armed would apply the limit to the whole server.
-                        strguard_enter(max_string_bytes[drone.auth_level])
-                        local success, ret = coroutine.resume(drone.cor)
-                        strguard_leave()
-                        if not success then
-                            chat_send_player(drone.name, S(
-                                                 'Runtime error in @1:',
-                                                 drone.file) .. '\n' .. ret)
-                        end
-                    elseif status == 'dead' then
-                        chat_send_player(drone.name, S(
-                                             "Program '@1' completed: @2",
-                                             drone.file, tostring(drone)))
-                        drone_rmv(drone.name)
-                    end
-                end
+            local al = drone.auth_level
 
+            -- Advance for up to this codelevel's slice of the step rather than
+            -- exactly one resume; see lib/stepper.lua for why. The string
+            -- guards are armed for the span in which player code runs and
+            -- released inside advance().
+            local _, outcome, err = advance(drone, step_budget_us[al],
+                                            max_string_bytes[al])
+
+            if outcome == 'error' then
+                chat_send_player(drone.name,
+                                 S('Runtime error in @1:', drone.file) .. '\n' ..
+                                     tostring(err))
+                -- Remove the drone here. Previously the error was reported and
+                -- drone.cor left in place, so the next step found a dead
+                -- coroutine and announced the program had "completed" as well -
+                -- the player got both messages for one failure.
+                drone_rmv(drone.name)
+
+            elseif outcome == 'completed' then
+                chat_send_player(drone.name,
+                                 S("Program '@1' completed: @2", drone.file,
+                                   tostring(drone)))
+                drone_rmv(drone.name)
+
+            elseif outcome == 'blocked' then
+                -- Should not be reachable: a coroutine is suspended or dead
+                -- while a drone holds it. Reported rather than spun on.
+                minetest.log('warning', '[codeblock] drone ' ..
+                                 tostring(drone.name) ..
+                                 ' coroutine is neither suspended nor dead')
+                drone_rmv(drone.name)
             end
 
         end,

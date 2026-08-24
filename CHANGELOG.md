@@ -28,6 +28,8 @@ items below change behaviour you may be relying on.
 - [x] Added a test suite (`tests/`), runnable standalone or via `codeblock_run_tests`
 - [x] Added luacheck and CI for this repository, which had none of its own
 - [x] Dropped the `formspecs` dependency: formspec sessions are now `lib/forms.lua` on `core.show_formspec`
+- [x] The drone now advances for a time budget each server step instead of exactly one coroutine resume (new `step_budget_us`)
+- [x] Fixed a runtime error reporting twice and leaving the coroutine attached
 - [x] Generated `doc/api.md` and the in-game help from `lib/api.lua`, which also builds the sandbox environment
 - [x] **BREAKING** fixed `round(x, decimals)`, whose arguments were the reverse of what was documented
 - [ ] Known: `max_memory_kb` cannot stop one huge allocation; a pathological Lua pattern can still burn CPU
