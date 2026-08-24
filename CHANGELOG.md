@@ -25,7 +25,7 @@ items below change behaviour you may be relying on.
 - [x] Fixed `/codegenerate` having no privilege check and ignoring its playername
 - [x] Removed `worldedit.lua()` / `worldedit.luatransform()` from the bundled fork
 - [x] Documented `color()`, and corrected block lists that had drifted from the config
-- [x] Added a test suite (`tests/`), runnable standalone or via `codeblock_run_tests`
+- [x] Added a test suite (`tests/`): four specs run standalone under Lua 5.1, all seven via `codeblock_run_tests`
 - [x] Added luacheck and CI for this repository, which had none of its own
 - [x] Dropped the `formspecs` dependency: formspec sessions are now `lib/forms.lua` on `core.show_formspec`
 - [x] The drone now advances for a time budget each server step instead of exactly one coroutine resume (new `step_budget_us`)
@@ -33,8 +33,6 @@ items below change behaviour you may be relying on.
 - [x] Generated `doc/api.md` and the in-game help from `lib/api.lua`, which also builds the sandbox environment
 - [x] **BREAKING** fixed `round(x, decimals)`, whose arguments were the reverse of what was documented
 - [ ] Known: `max_memory_kb` cannot stop one huge allocation; a pathological Lua pattern can still burn CPU
-- [ ] Known: the API is still described in three places; a generator is in progress
-- [ ] Known: the editor still depends on the unmaintained `formspecs` mod
 
 # v0.7.0
 

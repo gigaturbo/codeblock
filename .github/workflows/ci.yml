@@ -72,6 +72,15 @@ jobs:
           # the game is started with codeblock_run_tests = true.
           luaVersion: "5.1"
 
+      # api_spec pins every name the sandbox environment exposes. It is the
+      # regression guard for the change most likely to break saved player
+      # programs - a renamed or dropped API name - so it belongs here above
+      # all the others. It was hooked into the in-engine runner when it was
+      # written and never added here, which meant an API rename would have
+      # passed CI.
+      - name: Run API spec
+        run: lua tests/api_spec.lua
+
       - name: Run preprocessor spec
         run: lua tests/preprocess_spec.lua
 
