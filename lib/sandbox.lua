@@ -52,13 +52,7 @@ local build_api = codeblock.api.build
 -- private
 --------------------------------------------------------------------------------
 
--- round(value, decimals). The arguments used to be the other way round, which
--- contradicted both doc/api.md and the in-game help - each documented
--- `round(x, num)` with the value first, and described round0(x) as "short for
--- round(x, 0)", which only holds in this order. Calling it the documented way
--- silently returned nonsense rather than erroring: round(3.14159, 2) computed
--- 10^3.14159 as the multiplier and gave ~2. No bundled example used it, so
--- nothing depended on the old order.
+-- round(value, decimals), value first - round0(x) is short for round(x, 0).
 local function round(num, dec)
     local mult = 10 ^ (dec or 0)
     return floor(num * mult + 0.5) / mult
@@ -66,14 +60,8 @@ end
 
 local function round0(num) return floor(num + 0.5) end
 
--- Map a number in [m, M] onto the wool palette.
---
--- Values outside the range are clamped to the end colours. Previously the index
--- was taken modulo the palette size with no clamp, so a value just above M
--- indexed past the array and returned nil - which place() then silently treated
--- as "no block given" and built in stone - and larger values wrapped around to
--- the low end, so a smooth input produced a discontinuous colour ramp. Three
--- shipped examples depend on this function.
+-- Map a number in [m, M] onto the wool palette, clamping out-of-range values
+-- to the end colours.
 local color
 do
     local tmp1 = niwools - 1
@@ -95,10 +83,8 @@ local function getScriptEnv(drone)
     assert(drone, S("Error, drone does not exist"))
 
     -- Every name a program may use, paired with what it does. The names come
-    -- from lib/api.lua so the environment, the in-game help and doc/api.md all
-    -- describe one thing; build_api below refuses to start if this table and
-    -- that description disagree, which is what makes the docs trustworthy
-    -- rather than merely checked.
+    -- from lib/api.lua, and build_api below refuses to start if this table and
+    -- that description disagree.
     local impls = {
         -- movement
         ['move'] = function(x, y, z) move(drone, x, y, z) end,

@@ -79,7 +79,7 @@ local file_editor = {
                  formspec_escape(meta.newfile) .. ']'
         fs = fs .. 'button[2.25, 9.20;1, 1;create;+]'
 
-        -- buttons
+        -- file buttons
         if meta.active ~= 0 then
             fs = fs .. 'button[3.25 ,0 ;2 ,0.75;save;' .. S('Save') .. ']'
             fs = fs .. 'button[5.25 ,0 ;3 ,0.75;load;' .. S('Load and close') ..
@@ -88,13 +88,15 @@ local file_editor = {
                      ']'
             fs = fs .. 'button[11.25,0;2.83, 0.75;close;' .. S('Close file') ..
                      ']'
-
-            fs = fs .. 'button[14,0;1.5, 0.75;help_cubes;' .. S('Blocks') .. ']'
-            fs = fs .. 'button[15.5,0;1.5, 0.75;help_plants;' .. S('Plants') ..
-                     ']'
-            fs = fs .. 'button[17,0;1.5, 0.75;help_wools;' .. S('Wools') .. ']'
-            fs = fs .. 'button[18.5,0;1.5, 0.75;help_cmds;' .. S('API') .. ']'
         end
+
+        -- help panel switches. Outside the block above on purpose: the panel is
+        -- drawn with no file open, so without these it opens on the block list
+        -- with no way to reach the others.
+        fs = fs .. 'button[14,0;1.5, 0.75;help_cubes;' .. S('Blocks') .. ']'
+        fs = fs .. 'button[15.5,0;1.5, 0.75;help_plants;' .. S('Plants') .. ']'
+        fs = fs .. 'button[17,0;1.5, 0.75;help_wools;' .. S('Wools') .. ']'
+        fs = fs .. 'button[18.5,0;1.5, 0.75;help_cmds;' .. S('API') .. ']'
 
         -- checkboxes
         -- fs = fs .. 'checkbox[0,10;soe;Save on exit;' ..

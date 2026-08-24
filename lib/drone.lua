@@ -315,7 +315,6 @@ local drone_mt = {
                 scroll_c = 0,
                 scroll_p = 0,
                 scroll_w = 0,
-                scroll_a = 0,
                 soe = soe,
                 loe = loe,
                 sos = sos,

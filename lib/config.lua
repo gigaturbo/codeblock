@@ -16,38 +16,29 @@ codeblock.config.max_dimension = {15, 30, 70, 150}
 codeblock.config.commands_before_yield = {1, 10, 20, 40}
 codeblock.config.calls_before_yield = {1, 100, 250, 600}
 
--- How long, in microseconds, one drone may spend advancing its program during a
--- single server step. See lib/stepper.lua: the drone used to get exactly one
--- coroutine resume per step, which pinned throughput to the tick rate whatever
--- the server had spare.
+-- How long, in microseconds, one drone may spend advancing its program during
+-- a single server step. See lib/stepper.lua.
 --
--- A dedicated server steps every ~90ms by default, so 8ms is under a tenth of a
--- step at the top codelevel. Checked between resumes, so one long call can
--- overshoot; and each drone has its own allowance, so N drones cost N budgets.
+-- A dedicated server steps every ~90ms by default, so 8ms is under a tenth of
+-- a step at the top codelevel. Checked between resumes, so one long call can
+-- overshoot, and each drone has its own allowance.
 codeblock.config.step_budget_us = {1000, 2000, 4000, 8000}
 
 -- How much Lua heap growth, in kB, one program run may be responsible for
 -- before it is stopped. Checked at yield points, so it catches a program that
 -- accumulates - appending to a table in a loop, building an ever-longer string.
---
--- What it deliberately does NOT catch: a single enormous allocation such as
--- ("x"):rep(1e9). That returns before any check can run, so the memory is
--- already gone. Nothing inside Lua 5.1 can prevent it either, because the string
--- metatable is reachable from any literal regardless of the sandbox
--- environment. Treat these as a guard against runaway accumulation, not as a
--- hard memory cap.
+-- A single enormous allocation returns before any check can run; that case is
+-- covered by max_string_bytes below instead.
 --
 -- Generous on purpose: collectgarbage('count') reports the whole server's heap,
--- so the figure is a delta from program start and other mods' allocations show
--- up in it. Only genuine runaway growth should trip these.
+-- so the figure is a delta from program start and other mods show up in it.
 codeblock.config.max_memory_kb = {64 * 1024, 128 * 1024, 256 * 1024, 512 * 1024}
 
--- Largest string a single call may produce, in bytes. This is the companion to
--- max_memory_kb and covers what that cannot: one call that allocates everything
--- at once, such as ("x"):rep(1e9). See lib/strguard.lua - only rep, format and
--- gsub can turn a small input into a large output, and they are bounded rather
--- than removed, because Lua 5.1 shares one string metatable across every string
--- and it cannot be hidden from the sandbox.
+-- Largest string a single call may produce, in bytes. The companion to
+-- max_memory_kb, covering the one call that allocates everything at once. See
+-- lib/strguard.lua: only rep and gsub can amplify, and they are bounded rather
+-- than removed, because Lua 5.1 shares one string metatable across every
+-- string and it cannot be hidden from the sandbox.
 codeblock.config.max_string_bytes = {1024 * 1024, 4 * 1024 * 1024,
                                      16 * 1024 * 1024, 64 * 1024 * 1024}
 

@@ -1,32 +1,16 @@
 --- The single description of the player-facing API.
 --
--- Audit finding A2: this API used to be defined in three places with nothing
--- connecting them - the environment table in lib/sandbox.lua, a hand-written
--- 98-line hypertext string in lib/utils.lua for the in-game help, and
--- doc/api.md. They had drifted: doc/api.md advertised blocks the config no
--- longer had, omitted others, never mentioned color(), and documented round()
--- with its arguments in the opposite order to the implementation.
---
--- This file is the source. The environment, the in-game help and the Markdown
--- reference are all derived from it:
---
---   lib/sandbox.lua      pairs each entry with an implementation and builds
---                        the environment, refusing to start if the two sets
---                        disagree
---   api.to_hypertext()   the in-game help panel
---   api.to_markdown()    the "Lua api" section of doc/api.md
---
--- Deliberately pure data: no closures, no upvalues, no dependency on the mod
--- being loaded. That is what lets scripts/gen_docs.lua load it under a bare Lua
--- interpreter, and what lets the parity test compare names without having to
--- construct a drone.
+-- This file is the source. The sandbox environment, the in-game help panel
+-- (api.to_hypertext) and doc/api.md (api.to_markdown) are all derived from it,
+-- so they cannot drift apart. Pure data - no closures, no dependency on the mod
+-- being loaded - so scripts/gen_docs.lua can read it under a bare interpreter.
 --
 -- Entry fields:
 --   name     the name a program uses, dotted for nested tables
 --   params   parameter names, in order, for the signature line
 --   doc      one line for the reference; keep it to what a player needs
 --   kind     'fn' (default) or 'value' for a table or constant
---   note     optional extra paragraph for the Markdown only
+--   note     optional extra paragraph, for the Markdown only
 
 local api = {}
 
@@ -330,16 +314,13 @@ end
 --- Turn a flat map of name -> implementation into the nested table a program
 -- sees, checking it against the description above.
 --
--- Names are dotted, so 'centered.vertical.cylinder' becomes
--- api.centered.vertical.cylinder. A name that is both a leaf and a parent -
--- `random` is callable *and* carries random.block - becomes a table with a
--- __call metamethod.
+-- Names are dotted, so 'centered.vertical.cylinder' becomes a nested table. A
+-- name that is both a leaf and a parent - `random` is callable and also carries
+-- random.block - gets a __call metamethod.
 --
--- Raises if the two sets differ in either direction. That is the point: it is
--- what makes the generated documentation a description of the real environment
--- rather than a separate thing that has to be kept in step. A missing
--- implementation, or one nobody documented, stops the mod loading instead of
--- shipping a reference that lies.
+-- Raises if the two sets differ in either direction, so a missing or an
+-- undocumented implementation stops the mod loading rather than shipping a
+-- reference that lies.
 function api.build(impls)
 
     local missing, undocumented = {}, {}
@@ -525,13 +506,9 @@ end
 
 --- Splice a freshly rendered reference into an existing doc/api.md.
 --
--- Everything before the "# Lua api" heading is hand-written prose about
--- behaviour - the codelevel table, the chat commands - and is preserved exactly.
--- Everything from that heading onward is replaced.
---
--- Pure string in, string out, so the standalone generator and the in-game one
--- share it instead of each having their own idea of the file's shape. Returns
--- nil plus a reason if the marker is missing, rather than guessing.
+-- Everything before the "# Lua api" heading is hand-written prose and is kept
+-- exactly; everything from that heading onward is replaced. Returns nil and a
+-- reason if the marker is missing, rather than guessing.
 api.GENERATED_FROM = '# Lua api'
 
 function api.compose_markdown(current, block_tables)

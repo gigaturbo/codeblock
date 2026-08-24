@@ -1,37 +1,17 @@
 --- Advancing a running program, one server step at a time.
 --
--- Audit finding A5. The drone used to resume its coroutine exactly once per
--- server step. The program then ran until its next yield, which the budget in
--- commands.lua places every `calls_before_yield` calls - 600 at codelevel 4 -
--- and then stopped until the next step, whatever the server was doing. Two
--- consequences:
+-- A step resumes the drone's coroutine repeatedly until a time budget is spent,
+-- rather than exactly once. Throughput then follows the headroom the server has
+-- spare instead of the tick rate, and `calls_before_yield` goes back to meaning
+-- how finely the work is chopped.
 --
---   Throughput was pinned to the tick rate. A step finishing in 200us waited out
---   the rest of its ~90ms tick exactly like one that took 40ms, so a large build
---   crawled on an idle server.
+-- The budget is checked between resumes, so one long resume overshoots it: a
+-- large worldedit shape is a single call and cannot be interrupted. It bounds
+-- how much work is started, not the length of any one piece. Each drone gets
+-- its own budget.
 --
---   `calls_before_yield` had to double as a throughput dial, which is not what it
---   is for. Raising it to speed the drone up made each resume longer and the
---   server less responsive; lowering it did the reverse. There was no setting
---   that meant "go faster but stay responsive".
---
--- Now a step resumes repeatedly until a time budget is spent. Throughput follows
--- available headroom, and `calls_before_yield` becomes what it should be: how
--- finely the work is chopped, and therefore how precisely the budget can be
--- honoured.
---
--- The budget is checked *between* resumes, so a single resume that runs long
--- overshoots it - one large worldedit shape is one call and cannot be
--- interrupted. The budget bounds how much work is *started*, not the length of
--- any one piece.
---
--- Each drone gets its own budget, so N drones cost N budgets per step. Fine for
--- the singleplayer case this game is built around; a busy server would want a
--- shared allowance.
---
--- Kept separate from lib/drone_entity.lua so it can be driven by a test with an
--- injected clock. Measuring "does this actually resume more than once" needs
--- control of time, which an entity callback does not give you.
+-- Kept out of lib/drone_entity.lua so a test can drive it with an injected
+-- clock.
 
 codeblock.stepper = {}
 
@@ -41,8 +21,7 @@ local stepper = codeblock.stepper
 -- dependencies
 --
 -- Module-level rather than passed per call: on_step runs for every drone on
--- every server step, and allocating a table or a closure there would be waste.
--- Tests swap them out, the same way lib/forms.lua does.
+-- every server step. Tests swap them out, as in lib/forms.lua.
 --------------------------------------------------------------------------------
 
 local deps = {
@@ -68,13 +47,12 @@ end
 --   'yielded'    still running, budget spent - resume again next step
 --   'completed'  the program finished
 --   'error'      it raised; `err` is the message
---   'blocked'    the coroutine is neither suspended nor dead, which should not
---                happen and is reported rather than looped on
+--   'blocked'    neither suspended nor dead, which should not happen and is
+--                reported rather than looped on
 --
--- `guard_bytes` is the per-run string ceiling handed to strguard for the span in
--- which player code executes. The guards wrap the whole loop rather than each
--- resume: Luanti runs mods on one thread, so nothing else can execute inside it,
--- and one enter/leave pair per step is cheaper than one per resume.
+-- `guard_bytes` is the per-run string ceiling handed to strguard. The guards
+-- wrap the whole loop rather than each resume: Luanti runs mods on one thread,
+-- so nothing else can execute inside it.
 function stepper.advance(drone, budget_us, guard_bytes)
 
     local now = deps.now

@@ -1,25 +1,9 @@
 --- Showing a formspec and routing what comes back.
 --
--- Replaces the `formspecs` mod (ActiveFormspecs v2.4, sorcerykid), which the
--- audit records as finding A1. That mod was last touched in February 2018, lives
--- on Bitbucket, and installs itself into the engine namespace: it defines
--- minetest.create_form, update_form, destroy_form and six FORMSPEC_SIG*
--- constants, and - the part that actually mattered - it *replaces*
--- minetest.register_node and minetest.override_item for every mod loaded after
--- it, with an override_item wrapper that silently drops the del_fields argument
--- added in 5.9.
+-- A per-player form session: state that survives a redraw, field routing, and
+-- cleanup when the player leaves. One form per player at a time.
 --
--- Everything codeblock used it for was four names across eight call sites. What
--- it really provided was a per-player session: state that survives a redraw,
--- routing fields to the right handler, and cleanup when a player leaves. That is
--- what this file is, in about a tenth of the size and with no engine namespace
--- touched.
---
--- One form per player at a time, which is what the old mod allowed and what the
--- editor assumes.
---
--- Handler contract, kept identical to ActiveFormspecs so lib/formspecs.lua did
--- not have to be rewritten alongside this:
+-- Handler contract:
 --
 --     handler(meta, player, fields)
 --
@@ -61,9 +45,6 @@ local counter = 0
 --
 -- `prefix` names the form for the engine; a counter is appended so a late event
 -- from a form the player has already closed cannot be mistaken for a live one.
--- ActiveFormspecs used minetest.get_password_hash for this, which is an odd tool
--- for a nonce - a counter is enough, since the session table is what actually
--- decides whether an event is accepted.
 function forms.show(player_name, prefix, meta, formspec, handler)
 
     assert(type(player_name) == 'string', 'forms.show needs a player name')
@@ -94,10 +75,8 @@ end
 
 --- Close the form from the mod's side.
 --
--- Deliberately does NOT call the handler. ActiveFormspecs did, passing
--- quit = FORMSPEC_SIGPROC, but no branch in lib/formspecs.lua matched that value
--- so nothing ran - and it is the behaviour we want either way: a programmatic
--- close should not re-run the quit path that a player pressing Escape triggers.
+-- Deliberately does not call the handler: a programmatic close should not
+-- re-run the quit path that a player pressing Escape triggers.
 function forms.close(player_name)
     local s = sessions[player_name]
     if not s then return false end
@@ -135,9 +114,9 @@ end
 
 --- Handle one fields event. Returns true if it was ours.
 --
--- Events are ignored unless this player has a form open and the name matches,
--- which is what stops a crafted or stale submission reaching a handler that
--- would act on the player's files.
+-- Ignored unless this player has a form open and the name matches, which is
+-- what stops a stale or crafted submission reaching a handler that would act
+-- on the player's files.
 function forms.on_receive_fields(player, formname, fields)
 
     if not player then return false end

@@ -1,41 +1,19 @@
 --- Bounding the string methods that can allocate more than they are handed.
 --
--- The sandbox environment does not contain `string`, but that is not enough: in
--- Lua 5.1 every string shares one metatable, so `("x"):rep(1e9)` reaches
--- string.rep from any literal no matter what the environment holds. It is a
--- single call, so it costs one unit against the call budget, and it allocates a
--- gigabyte before returning - which is why the heap check at yield points cannot
--- catch it. The memory is gone before any counter runs.
+-- Leaving `string` out of the sandbox is not enough: in Lua 5.1 every string
+-- shares one metatable, so `("x"):rep(1e9)` reaches string.rep from any
+-- literal, costs a single call against the budget, and allocates a gigabyte
+-- before any counter runs.
 --
--- Nothing inside Lua can hide that metatable. What it *can* do is make the few
--- methods that amplify refuse an absurd result before computing it. After
--- checking each of them, only two can turn a small input into an arbitrarily
--- large output:
+-- The metatable cannot be hidden, so `getmetatable('').__index` is replaced at
+-- load with a copy in which the two methods that can turn a small input into a
+-- large output - rep and gsub - refuse an absurd result before computing it.
+-- Indexing costs the same, and the wrappers are inert unless a program is
+-- running; lib/stepper.lua opens that window around coroutine.resume.
 --
---   rep     output = #s * n                  - the one that matters
---   gsub    output is bounded by #s * #replacement
---
--- `format` looked like a third - ("%1000000000d"):format(1) would allocate a
--- gigabyte of padding - but Lua rejects it on its own: the format-spec scanner
--- accepts at most two digits of width, so `%100d` already raises "invalid
--- option". It needs no guard, and an early version of this module carried a dead
--- one. tests/strguard_spec.lua records that boundary so the assumption is
--- checked rather than trusted.
---
--- Everything else (sub, upper, reverse, byte, find, ...) returns something no
--- larger than its input, or a number.
---
--- How the window works, and why it is safe: `getmetatable('').__index` is
--- replaced once, at load, with a copy of the string table in which those two
--- entries are wrapped. Indexing cost is unchanged - it is still one table lookup,
--- not a metamethod call - and the wrappers do nothing at all unless a player
--- program is currently running. That window is opened around
--- `coroutine.resume` in drone_entity, and Luanti runs mods on one thread, so no
--- other mod's code can execute inside it.
---
--- What this does NOT cover: a pathological Lua pattern can burn CPU inside a
--- single find/match call, which the call counter cannot see either. That is a
--- separate problem and is not addressed here.
+-- `format` needs no guard: its width field takes at most two digits, so
+-- `%100d` already raises. tests/strguard_spec.lua pins that. Not covered: the
+-- CPU a pathological Lua pattern can burn inside one find or match call.
 
 local strguard = {}
 

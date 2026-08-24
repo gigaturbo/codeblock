@@ -21,6 +21,7 @@ items below change behaviour you may be relying on.
 - [x] Bounded `("x"):rep(1e9)` and amplifying `gsub` (new `max_string_bytes`)
 - [x] Added `max_memory_kb` against runaway accumulation, checked at yield points
 - [x] Fixed the editor's two checkboxes doing nothing (0 is truthy in Lua)
+- [x] Fixed the editor's help panel opening on Blocks with no way to reach Plants, Wools or API until a file was open
 - [x] Fixed `/codelevel` being unusable in singleplayer
 - [x] Fixed `/codegenerate` having no privilege check and ignoring its playername
 - [x] Removed `worldedit.lua()` / `worldedit.luatransform()` from the bundled fork

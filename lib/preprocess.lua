@@ -1,31 +1,15 @@
 --- Source-text preprocessing for player programs.
 --
--- A player's program is instrumented before it runs so that every loop
--- iteration and every function call pays into the budget in commands.lua. That
--- is what makes a runaway program stop instead of freezing the server, and what
--- lets the drone yield back to the engine between steps.
+-- Instruments a program so that every loop iteration and every function call
+-- pays into the budget in commands.lua. That is what stops a runaway program
+-- instead of freezing the server.
 --
--- The instrumentation is done over a real token stream rather than by pattern
--- matching raw text. The previous pattern-based version had four defects that
--- all came from the same root cause - patterns cannot tell code from comments or
--- strings - and are covered by tests/preprocess_spec.lua:
+-- Done over a token stream rather than by pattern matching: patterns cannot
+-- tell code from comments or strings, which cost the previous version four
+-- separate bugs. tests/preprocess_spec.lua covers them.
 --
---   * it stripped comments first, with a greedy `--[[.*--]]`, which deleted
---     every statement between a file's first and last block comment;
---   * it only understood the `--]]` spelling, so a normal `--[[ ... ]]` comment
---     had its opening line removed and its body left behind as bare code;
---   * stripping ran before string literals were identified, so a `--` inside a
---     string truncated it;
---   * it matched `function` as a bare substring, so an identifier merely
---     containing those letters caused a statement to be injected after the next
---     `)` anywhere in the file.
---
--- Tokenising removes all four: comments are never stripped, strings are a token
--- type, and `function` is a keyword rather than a run of characters.
---
--- This module is deliberately free of any Luanti or codeblock dependency so it
--- can be exercised by tests/preprocess_spec.lua under a bare Lua interpreter.
--- It is pure string -> string; nothing here touches the world or the player.
+-- Pure string -> string, with no Luanti or codeblock dependency, so the spec
+-- runs under a bare interpreter.
 
 local preprocess = {}
 
@@ -190,25 +174,20 @@ end
 -- forbidden constructs
 --------------------------------------------------------------------------------
 
--- What this list is *not*: a security boundary. The boundary is the environment
--- table in lib/sandbox.lua, which simply does not contain these names, plus the
--- read-only API surface in lib/env.lua. This list exists to turn an obscure
--- runtime failure into a useful message: a program calling os.time() would
--- otherwise die with "attempt to index a nil value (global 'os')" on some later
--- line, which tells a beginner nothing.
---
--- The old list was a blacklist doing security work it could not do, and it
--- produced false positives because it matched raw substrings: `local
--- until_done`, `print("repeat that")` and the word `_G` inside a comment were
--- all refused. Matching identifier tokens fixes that.
---
--- `repeat` and `until` are gone from it because the pattern-based instrumenter
--- could not handle those loops; the tokeniser can, so they simply work now.
---
--- `_G` is gone too: the injected counter is sealed (lib/env.lua) and the
--- environment refuses to have API names reassigned, so `_G.use_call = ...` and
--- `_G = {}` both fail on their own. Blocking the name is no longer what makes
--- that safe.
+--------------------------------------------------------------------------------
+-- forbidden constructs
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- forbidden constructs
+--------------------------------------------------------------------------------
+
+-- Not a security boundary - that is the environment table in lib/sandbox.lua,
+-- which simply does not contain these names. This list exists to turn an
+-- obscure runtime failure into a useful message: without it a program calling
+-- os.time() dies with an attempt-to-index-nil error on some later line, which
+-- tells a beginner nothing. Matched as identifier tokens, so `local until_done`
+-- and the word `_G` inside a comment are not hits.
 local unavailable = {
     -- loading code at runtime would sidestep instrumentation entirely
     ['load'] = true, ['loadstring'] = true, ['loadfile'] = true,
@@ -255,15 +234,14 @@ local INJECT = ' _G.use_call(); '
 --
 -- Every construct that can repeat, plus every function body, has to pay in:
 --
---   do        every loop body opens with `do`, so instrumenting each `do`
---             covers `while ... do` and `for ... do` without having to pair a
---             loop header with its body. A plain `do ... end` block is also
---             matched, which costs one harmless count for a block that runs
---             once, and is far cheaper than tracking nesting to exclude it.
+--   do        opens every while and for body, so instrumenting each `do`
+--             covers both without pairing a loop header with its body. A plain
+--             `do ... end` block is matched too, which costs one harmless
+--             count and is cheaper than tracking nesting to exclude it.
 --   repeat    the one loop form whose body is not introduced by `do`.
 --   function  after the `)` closing the parameter list, so the count lands
 --             inside the body. This is what makes recursion pay in.
---   goto      counted at the jump itself, since a backwards goto is a loop.
+--   goto      counted at the jump, since a backwards goto is a loop.
 --
 -- Returns a sorted list of positions.
 function preprocess.insertion_points(src)

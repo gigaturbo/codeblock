@@ -1,29 +1,15 @@
 --- Building the environment a player program runs in.
 --
--- Two jobs, both about isolation:
+-- `snapshot` gives each run its own copy of the tables the API exposes, so a
+-- program assigning into `blocks` or `vector` cannot corrupt them for every
+-- other player until the server restarts. Copies rather than read-only proxies:
+-- Lua 5.1 has no __pairs or __len, so a proxy would break pairs(blocks) and
+-- #iwools for player code.
 --
--- 1. `snapshot` gives each program run its own copy of the tables the API
---    exposes. They used to be handed out by reference: `blocks`, `plants`,
---    `wools`, `iwools` are the real entries of codeblock.config, and `vector`
---    was the real vector3 module. A program could therefore assign into them,
---    and the damage was global and lasted until the server restarted -
---    overwriting `vector.new` corrupted every player's programs and any other
---    mod using vector3; mutating `iwools` changed what color() returned for
---    everyone.
+-- `new_env` makes the API names unassignable, so a program cannot replace
+-- `place` or reach the injected budget counter. Player globals still work.
 --
---    A copy rather than a read-only proxy, deliberately: Lua 5.1 has no
---    __pairs and no __len for tables, so a proxy would silently break
---    `pairs(blocks)`, `ipairs(iwools)` and `#iwools` for player code. Copying
---    ~150 small entries once per program start is not worth optimising.
---
--- 2. `new_env` makes the API surface itself unassignable, so a program cannot
---    replace `place` with its own function, and - the reason this matters -
---    cannot reach the injected budget counter to disable it. Player globals
---    still work normally, which matters because several shipped examples
---    declare top-level helper functions.
---
--- Dependency-free so tests/env_spec.lua can exercise it under a bare Lua
--- interpreter.
+-- Dependency-free, so tests/env_spec.lua can run it under a bare interpreter.
 
 local env = {}
 
@@ -64,14 +50,10 @@ end
 
 --- Build the environment table handed to setfenv.
 --
--- `api` holds everything the program may read. The returned table starts empty,
--- so:
---   * reading an API name falls through __index to `api`;
---   * assigning an API name raises, rather than silently shadowing it - note
---     this needs `api` to be a separate table, because __newindex is only
---     consulted for keys absent from the target;
---   * assigning anything else lands in the environment as a normal player
---     global.
+-- Starts empty, so reading an API name falls through to `api` and assigning
+-- anything else lands as a normal player global, while assigning an API name
+-- raises. `api` has to be a separate table for that: __newindex is only
+-- consulted for keys absent from the target.
 function env.new_env(api)
     return setmetatable({}, {
         __index = api,
