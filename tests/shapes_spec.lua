@@ -33,13 +33,15 @@ local area -- area of the last read_from_map
 
 local function align(v, dir) return math.floor(v / 16) * 16 + (dir > 0 and 15 or 0) end
 
-VoxelArea = {}
-function VoxelArea:new(t)
+-- Local, not the global the engine provides: the module reaches it through the
+-- environment it is loaded into, so nothing here needs to shadow the real one.
+local fake_area = {}
+function fake_area.new(_, t)
     local a = {MinEdge = t.MinEdge, MaxEdge = t.MaxEdge}
     a.ystride = t.MaxEdge.x - t.MinEdge.x + 1
     a.zstride = a.ystride * (t.MaxEdge.y - t.MinEdge.y + 1)
-    a.getVolume = function(self)
-        return self.zstride * (self.MaxEdge.z - self.MinEdge.z + 1)
+    a.getVolume = function()
+        return a.zstride * (a.MaxEdge.z - a.MinEdge.z + 1)
     end
     return a
 end
@@ -48,7 +50,7 @@ local manip = {}
 function manip:read_from_map(p1, p2)
     local emin = {x = align(p1.x, -1), y = align(p1.y, -1), z = align(p1.z, -1)}
     local emax = {x = align(p2.x, 1), y = align(p2.y, 1), z = align(p2.z, 1)}
-    area = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
+    area = fake_area:new({MinEdge = emin, MaxEdge = emax})
     return emin, emax
 end
 function manip:set_data(d) written = d end
@@ -69,16 +71,22 @@ do
                 return name == 'ignore' and IGNORE or NODE
             end
         },
-        VoxelArea = VoxelArea
+        VoxelArea = fake_area
     }
 
+    -- Built with insert rather than as a literal: a nil first element leaves a
+    -- hole that ipairs stops at, which is exactly what happens standalone, where
+    -- there is no codeblock.modpath.
+    local candidates = {}
     local existing = rawget(_G, 'codeblock')
+    if existing and existing.modpath then
+        candidates[#candidates + 1] = existing.modpath .. '/lib/shapes.lua'
+    end
     local here = arg and arg[0] and arg[0]:match('^(.*)[/\\][^/\\]*$')
-    local candidates = {
-        existing and existing.modpath and (existing.modpath .. '/lib/shapes.lua') or
-            nil, here and (here .. '/../lib/shapes.lua') or nil,
-        'mods/codeblock/lib/shapes.lua', '../lib/shapes.lua', 'lib/shapes.lua'
-    }
+    if here then candidates[#candidates + 1] = here .. '/../lib/shapes.lua' end
+    candidates[#candidates + 1] = 'mods/codeblock/lib/shapes.lua'
+    candidates[#candidates + 1] = '../lib/shapes.lua'
+    candidates[#candidates + 1] = 'lib/shapes.lua'
 
     for _, path in ipairs(candidates) do
         local chunk = loadfile(path)
