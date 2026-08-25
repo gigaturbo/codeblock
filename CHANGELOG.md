@@ -24,6 +24,7 @@ items below change behaviour you may be relying on.
 - [x] Fixed the editor's help panel opening on Blocks with no way to reach Plants, Wools or API until a file was open
 - [x] Fixed `/codelevel` being unusable in singleplayer
 - [x] Fixed `/codegenerate` having no privilege check and ignoring its playername
+- [x] Fixed `place()` silently doing nothing where the mapblock was not in memory, which left holes in builds away from spawn
 - [x] **BREAKING** dropped the `worldedit` dependency: cube, sphere, dome and cylinder are now `lib/shapes.lua`, one VoxelManip pass each
 - [x] Removed `worldedit.lua()` / `worldedit.luatransform()` from the bundled fork before dropping it
 - [x] Documented `color()`, and corrected block lists that had drifted from the config

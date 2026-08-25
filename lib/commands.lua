@@ -14,6 +14,7 @@ local sqrt = math.sqrt
 local chat_send_player = minetest.chat_send_player
 local set_node = minetest.set_node
 local get_node = minetest.get_node
+local load_area = minetest.load_area
 
 local build = codeblock.shapes.build
 
@@ -43,8 +44,17 @@ local rev_blocks = table_reverse(blocks)
 
 local function round0(x) return floor(x + .5) end
 
+--- Place one node.
+--
+-- load_area first: set_node into a mapblock that is not in memory silently does
+-- nothing, so a program that flew out and built left holes with no error at all.
+-- Called on every place because an already-loaded block makes it cheap, and
+-- because the drone crosses into a new block often enough that guessing when to
+-- skip it costs more than it saves.
 local function place_block(x, y, z, block)
-    set_node({x = x, y = y, z = z}, {name = block})
+    local pos = {x = x, y = y, z = z}
+    load_area(pos)
+    set_node(pos, {name = block})
 end
 
 local function use_volume(drone, v_used)
