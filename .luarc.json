@@ -4,7 +4,6 @@
         "enable": true,
         "globals": [
             "minetest",
-            "worldedit",
             "ItemStack",
             "vector3"
         ]

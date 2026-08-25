@@ -87,6 +87,12 @@ jobs:
       - name: Run env spec
         run: lua tests/env_spec.lua
 
+      # The shapes were ported by hand out of the WorldEdit fork, so this spec
+      # restates each one in world coordinates and compares the index sets. It
+      # fakes VoxelArea and VoxelManip, which is why it needs no engine.
+      - name: Run shapes spec
+        run: lua tests/shapes_spec.lua
+
       - name: Run string-guard spec
         run: lua tests/strguard_spec.lua
 

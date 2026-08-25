@@ -24,9 +24,10 @@ items below change behaviour you may be relying on.
 - [x] Fixed the editor's help panel opening on Blocks with no way to reach Plants, Wools or API until a file was open
 - [x] Fixed `/codelevel` being unusable in singleplayer
 - [x] Fixed `/codegenerate` having no privilege check and ignoring its playername
-- [x] Removed `worldedit.lua()` / `worldedit.luatransform()` from the bundled fork
+- [x] **BREAKING** dropped the `worldedit` dependency: cube, sphere, dome and cylinder are now `lib/shapes.lua`, one VoxelManip pass each
+- [x] Removed `worldedit.lua()` / `worldedit.luatransform()` from the bundled fork before dropping it
 - [x] Documented `color()`, and corrected block lists that had drifted from the config
-- [x] Added a test suite (`tests/`): four specs run standalone under Lua 5.1, all seven via `codeblock_run_tests`
+- [x] Added a test suite (`tests/`): five specs run standalone under Lua 5.1, all eight via `codeblock_run_tests`
 - [x] Added luacheck and CI for this repository, which had none of its own
 - [x] Dropped the `formspecs` dependency: formspec sessions are now `lib/forms.lua` on `core.show_formspec`
 - [x] The drone now advances for a time budget each server step instead of exactly one coroutine resume (new `step_budget_us`)

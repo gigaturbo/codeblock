@@ -187,27 +187,18 @@ do
 end
 
 --------------------------------------------------------------------------------
--- the vendored WorldEdit fork still provides what this mod depends on
+-- the shapes are this mod's own, and WorldEdit is gone
 --
--- That fork has had modules removed from it (code.lua, which loadstring'd
--- arbitrary Lua). These four are the entire surface codeblock uses, so if a
--- future trim goes too far this catches it at load time rather than the first
--- time a player asks for a sphere.
+-- The four shapes moved into lib/shapes.lua (A15), which is what let the
+-- vendored fork be deleted. tests/shapes_spec.lua checks the geometry; this
+-- checks that the mod is wired to its own implementation and no longer reaches
+-- for a global that is no longer there.
 --------------------------------------------------------------------------------
 
 do
-    it('worldedit.cube is available', type(worldedit and worldedit.cube),
-       'function')
-    it('worldedit.sphere is available', type(worldedit and worldedit.sphere),
-       'function')
-    it('worldedit.dome is available', type(worldedit and worldedit.dome),
-       'function')
-    it('worldedit.cylinder is available', type(worldedit and worldedit.cylinder),
-       'function')
-    it('the removed arbitrary-execution entry point is gone',
-       (worldedit and worldedit.lua), nil)
-    it('and so is its per-node variant', (worldedit and worldedit.luatransform),
-       nil)
+    it('shapes.build is available', type(codeblock.shapes and
+                                             codeblock.shapes.build), 'function')
+    it('nothing provides a worldedit global', rawget(_G, 'worldedit'), nil)
 end
 
 --------------------------------------------------------------------------------

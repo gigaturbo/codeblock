@@ -15,6 +15,8 @@ local chat_send_player = minetest.chat_send_player
 local set_node = minetest.set_node
 local get_node = minetest.get_node
 
+local build = codeblock.shapes.build
+
 local S = codeblock.S
 local table_reverse = codeblock.utils.table_reverse
 
@@ -456,7 +458,15 @@ local function drone_place_cube(drone, w, h, l, block, hollow)
 
     local pos = {x = x, y = y, z = z}
 
-    worldedit.cube(pos, w, h, l, real_block, hollow)
+    build {
+        kind = 'cube',
+        pos = pos,
+        w = w,
+        h = h,
+        l = l,
+        node = real_block,
+        hollow = hollow
+    }
     check_drone_yield(drone, 2)
 
 end
@@ -490,7 +500,15 @@ local function drone_place_ccube(drone, w, h, l, block, hollow)
 
     local pos = {x = drone.x, y = drone.y - floor(0.5 * (h - 1)), z = drone.z}
 
-    worldedit.cube(pos, w, h, l, real_block, hollow)
+    build {
+        kind = 'cube',
+        pos = pos,
+        w = w,
+        h = h,
+        l = l,
+        node = real_block,
+        hollow = hollow
+    }
     check_drone_yield(drone, 2)
 
 end
@@ -529,7 +547,13 @@ local function drone_place_sphere(drone, r, block, hollow)
 
     local pos = {x = x, y = y, z = z}
 
-    worldedit.sphere(pos, r, real_block, hollow)
+    build {
+        kind = 'sphere',
+        pos = pos,
+        r = r,
+        node = real_block,
+        hollow = hollow
+    }
     check_drone_yield(drone, 2)
 
 end
@@ -549,7 +573,13 @@ local function drone_place_csphere(drone, r, block, hollow)
     check_dimensions(drone, r * 2)
     use_volume(drone, round0(tmp3 * (r + 0.514) ^ 3))
 
-    worldedit.sphere(pos, r, real_block, hollow)
+    build {
+        kind = 'sphere',
+        pos = pos,
+        r = r,
+        node = real_block,
+        hollow = hollow
+    }
     check_drone_yield(drone, 2)
 
 end
@@ -588,7 +618,13 @@ local function drone_place_dome(drone, r, block, hollow)
 
     local pos = {x = x, y = y, z = z}
 
-    worldedit.dome(pos, r, real_block, hollow)
+    build {
+        kind = 'dome',
+        pos = pos,
+        r = r,
+        node = real_block,
+        hollow = hollow
+    }
     check_drone_yield(drone, 2)
 
 end
@@ -608,7 +644,13 @@ local function drone_place_cdome(drone, r, block, hollow)
     check_dimensions(drone, r * 2)
     use_volume(drone, round0(tmp4 * (r + 0.514) ^ 3))
 
-    worldedit.dome(pos, r, real_block, hollow)
+    build {
+        kind = 'dome',
+        pos = pos,
+        r = r,
+        node = real_block,
+        hollow = hollow
+    }
     check_drone_yield(drone, 2)
 
 end
@@ -674,7 +716,15 @@ local function drone_place_cylinder(drone, o, l, r, block, hollow)
 
     local pos = {x = x, y = y, z = z}
 
-    worldedit.cylinder(pos, axis, l, r, r, real_block, hollow)
+    build {
+        kind = 'cylinder',
+        pos = pos,
+        axis = axis,
+        l = l,
+        r = r,
+        node = real_block,
+        hollow = hollow
+    }
     check_drone_yield(drone, 2)
 
 end
@@ -728,7 +778,15 @@ local function drone_place_ccylinder(drone, o, l, r, block, hollow)
 
     local pos = {x = x, y = y, z = z}
 
-    worldedit.cylinder(pos, axis, l, r, r, real_block, hollow)
+    build {
+        kind = 'cylinder',
+        pos = pos,
+        axis = axis,
+        l = l,
+        r = r,
+        node = real_block,
+        hollow = hollow
+    }
     check_drone_yield(drone, 2)
 
 end
