@@ -1,6 +1,6 @@
 # Codelevel
 
-Drone capacities depends on the user's _codelevel_ which can be set with the `/codelevel` [command](https://github.com/gigaturbo/codeblock#chat-commands) (see below). High codelevels should be given carefully to users as program could overload the server and crash it. Default codelevel is `4`, use with care and change this if you don't trust users!
+Drone capacities depends on the user's _codelevel_ which can be set with the `/codelevel` [command](https://github.com/gigaturbo/codeblock#chat-commands) (see below). High codelevels should be given carefully to users as program could overload the server and crash it. A new player starts at codelevel `4` in singleplayer, where the player is the administrator, and at `2` on a server — set `codeblock_default_auth_level` to override either.
 
 | codelevel             | 1 (limited) | 2 (basic) | 3 (privileged) | 4 (trusted) | description                                                          |
 |-----------------------|-------------|-----------|----------------|-------------|----------------------------------------------------------------------|
@@ -11,11 +11,27 @@ Drone capacities depends on the user's _codelevel_ which can be set with the `/c
 | max_dimension         |          15 |        30 |             70 |         150 | max dimension of shapes (either width, length, height or radius)     |
 | commands_before_yield |           1 |        10 |             20 |          40 | number of codeblock commands before releasing control to Minetest    |
 | calls_before_yield    |           1 |       100 |            250 |         600 | number of function/loop calls before releasing control to Minetest   |
+| max_mapblocks         |        1024 |      4096 |          16384 |       65536 | max mapblocks one program may load into server memory                |
 | max_memory_kb         |       65536 |    131072 |         262144 |      524288 | max Lua heap growth (kB) one program run may cause                   |
 | max_string_bytes      |     1048576 |   4194304 |       16777216 |    67108864 | max size (bytes) of a string a single call may produce               |
 | step_budget_us        |        1000 |      2000 |           4000 |        8000 | max time (µs) one drone may spend advancing per server step          |
 
-Codelevel definitions can be modified by editing `lib/config.lua`.
+Every limit above can be changed from the settings menu, under Mods → codeblock,
+or by setting it in `minetest.conf` — the names and formats are in
+`settingtypes.txt`. Each takes four numbers, one per codelevel. They are read
+when the mod loads, so a change needs a restart, and the defaults in
+`lib/config.lua` apply to anything left unset.
+
+`max_mapblocks` bounds the one resource none of the others can see. Writing a
+node needs the mapblock containing it to be in memory, so `place()` loads it
+first — without that the write silently does nothing and the build has holes.
+Loading pins a 16×16×16 block in the server's memory, and may read it from disk
+to do so. `max_memory_kb` below cannot see that, because it measures the Lua
+heap and a mapblock is not on it; `max_volume` cannot either, because a program
+that places one node per mapblock scores the minimum on volume and the maximum
+here. The count is of loads, not distinct blocks: repeated crossings are charged
+again, and a program that stays inside one block pays once. Shapes are charged
+too, for the region their single VoxelManip pass emerges.
 
 `max_memory_kb` stops a program that *accumulates* memory — appending to a table
 in a loop, building an ever-longer string. It is checked when the drone yields, so
@@ -40,9 +56,14 @@ as fast as the server has room for rather than being pinned to the tick rate.
 how finely the work is chopped, and so how precisely the budget can be honoured —
 not throughput.
 
-Two limits worth knowing: the budget is checked between yields and never inside
-one, so a single long call (a large shape, for instance) overshoots it; and each
-drone has its own allowance, so several drones cost several budgets per step.
+`step_budget_us` is a cap rather than an allowance. What a drone actually gets is
+the smaller of it and an equal share of `codeblock_server_step_budget_us`,
+16000 µs by default, divided among the drones currently running. So the server's
+cost does not grow with the number of players: a second drone halves the share
+rather than doubling the bill.
+
+One limit worth knowing: the budget is checked between drone commands and never
+inside one, so a single long call — a large shape, for instance — overshoots it.
 
 # Chat commands
 

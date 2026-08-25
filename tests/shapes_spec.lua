@@ -381,6 +381,55 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- what the caller is charged (S5)
+--
+-- build returns the mapblocks the pass emerged, and commands.lua charges them
+-- against max_mapblocks. The fake VoxelManip aligns outward to 16 exactly as the
+-- engine aligns to mapblocks, so the count is checkable here: it is the emerged
+-- box measured in blocks, not the shape's own size.
+--------------------------------------------------------------------------------
+
+do
+    -- A 1x1x1 cube at the origin: pos1 == pos2 == one node, and the emerged
+    -- region is the single mapblock containing it.
+    local one = shapes.build({
+        kind = 'cube',
+        pos = {x = 0, y = 0, z = 0},
+        w = 1,
+        h = 1,
+        l = 1,
+        node = 'x',
+        hollow = false
+    })
+    it('a one-node shape is charged one mapblock', one, 1)
+
+    -- A radius-20 sphere spans -20..20 on every axis, which aligns out to
+    -- -32..31 - four mapblocks per axis, not two, because the shape crosses a
+    -- boundary in both directions.
+    local big = shapes.build({
+        kind = 'sphere',
+        pos = {x = 0, y = 0, z = 0},
+        r = 20,
+        node = 'x',
+        hollow = false
+    })
+    it('a radius-20 sphere is charged 4x4x4', big, 64)
+
+    -- Straddling a boundary costs more than sitting inside one, which is the
+    -- property that makes the charge track what was actually pinned.
+    local across = shapes.build({
+        kind = 'cube',
+        pos = {x = 15, y = 15, z = 15},
+        w = 2,
+        h = 2,
+        l = 2,
+        node = 'x',
+        hollow = false
+    })
+    it('a shape across a boundary is charged for both sides', across, 8)
+end
+
+--------------------------------------------------------------------------------
 -- summary
 --------------------------------------------------------------------------------
 

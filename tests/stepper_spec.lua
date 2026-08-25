@@ -108,6 +108,29 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- one pool, shared (S5)
+--
+-- stepper.budget is arithmetic and nothing else, which is the point: the claim
+-- "N drones no longer cost N budgets per step" is checkable without a server.
+--------------------------------------------------------------------------------
+
+do
+    local budget = stepper.budget
+
+    it('one drone gets its whole codelevel cap', budget(8000, 16000, 1), 8000)
+    it('two drones still fit under the cap', budget(8000, 16000, 2), 8000)
+    it('four drones share the pool', budget(8000, 16000, 4), 4000)
+    it('sixteen drones share it further', budget(8000, 16000, 16), 1000)
+
+    -- The old behaviour, for comparison: 16 drones at 8000 each was 128000us of
+    -- a 90000us step. The share keeps the total at the pool.
+    it('the total never exceeds the pool', 16 * budget(8000, 16000, 16), 16000)
+
+    it('a low codelevel keeps its own smaller cap', budget(1000, 16000, 2), 1000)
+    it('a count of zero is treated as one', budget(8000, 16000, 0), 8000)
+end
+
+--------------------------------------------------------------------------------
 -- outcomes
 --------------------------------------------------------------------------------
 

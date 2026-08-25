@@ -5,10 +5,12 @@
 -- spare instead of the tick rate, and `calls_before_yield` goes back to meaning
 -- how finely the work is chopped.
 --
--- The budget is checked between resumes, so one long resume overshoots it: a
--- large shape is a single call and cannot be interrupted. It bounds how much
--- work is started, not the length of any one piece. Each drone gets its own
--- budget.
+-- The budget is checked between resumes, and again at each drone command
+-- through the deadline this module publishes. What still overshoots it is a
+-- single call: a large shape is one command and cannot be interrupted. It
+-- bounds how much work is started, not the length of any one piece.
+--
+-- The budget itself is a share rather than an allowance - see stepper.budget.
 --
 -- Kept out of lib/drone_entity.lua so a test can drive it with an injected
 -- clock.
@@ -38,6 +40,21 @@ function stepper.set_deps(t)
 end
 
 --------------------------------------------------------------------------------
+-- how much of a step one drone gets
+--------------------------------------------------------------------------------
+
+--- The smaller of a drone's codelevel cap and an equal share of the pool.
+--
+-- Without the pool, every drone gets its own allowance and the server's cost
+-- grows with the number of players: N drones cost N budgets per step. With it,
+-- the total is bounded and adding a player slows everyone equally instead of
+-- charging the server more. Arithmetic only, so it can be tested. (S5)
+function stepper.budget(cap, pool, running)
+    local share = pool / (running > 1 and running or 1)
+    return share < cap and share or cap
+end
+
+--------------------------------------------------------------------------------
 -- advancing
 --------------------------------------------------------------------------------
 
@@ -58,6 +75,15 @@ function stepper.advance(drone, budget_us, guard_bytes)
     local now = deps.now
     local started = now()
     local resumes, outcome, err = 0, nil, nil
+
+    -- Published so check_drone_yield in lib/commands.lua can cut a resume short
+    -- when the slice is gone, instead of running to its command count. Cleared
+    -- below, because outside this loop there is no deadline to be past. (S5)
+    --
+    -- It is in this module's clock, and commands.lua reads the engine's. The
+    -- same clock in production; a test that injects one here *and* runs real
+    -- drone commands would have to inject both.
+    drone.deadline = started + budget_us
 
     deps.guard_enter(guard_bytes)
 
@@ -97,6 +123,7 @@ function stepper.advance(drone, budget_us, guard_bytes)
     -- Single exit point for the guard: one left armed would apply the string
     -- limit to every other mod on the server.
     deps.guard_leave()
+    drone.deadline = nil
 
     return resumes, outcome or 'yielded', err
 end

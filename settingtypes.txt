@@ -1,0 +1,70 @@
+#    Settings for the codeblock mod, shown under Mods in the advanced settings.
+#
+#    Every limit here bounds what one player program may do. They are read once,
+#    when the mod loads, so a change needs a server restart.
+#
+#    The per-codelevel limits take four numbers separated by commas, one for each
+#    codelevel from 1 (limited) to 4 (trusted). A value that is empty, or that is
+#    not four numbers, is ignored with a warning in the log and the built-in
+#    default is used instead. doc/api.md describes what each one does.
+
+[Codelevel]
+
+#    Codelevel a player is given on first join. 1 to 4.
+#    Leave empty for the built-in default, which is 4 in singleplayer - where the
+#    player is the administrator - and 2 on a server, where an unvetted joiner
+#    would otherwise arrive holding every limit below at its widest.
+codeblock_default_auth_level (Default codelevel) string
+
+[Work limits]
+
+#    Function calls and loop iterations one program may execute.
+codeblock_max_calls (Maximum calls) string 1e6,1e7,1e8,1e9
+
+#    Drone commands - moves, places, shapes, checkpoints - one program may issue.
+codeblock_max_commands (Maximum commands) string 1e4,1e5,1e6,1e7
+
+#    Nodes one program may write, counted as volume.
+codeblock_max_volume (Maximum volume) string 1e5,1e6,1e7,1e8
+
+#    How far, in nodes, the drone may travel from where it was placed.
+codeblock_max_distance (Maximum distance) string 150,300,700,1500
+
+#    Largest single shape, as width, length, height or radius, in nodes.
+codeblock_max_dimension (Maximum shape dimension) string 15,30,70,150
+
+[Memory limits]
+
+#    Mapblocks one program may load. Writing to a mapblock pins it in the
+#    server's memory, and this is the only limit that can see that: the heap
+#    limit below measures Lua memory, and a mapblock is not on the Lua heap.
+codeblock_max_mapblocks (Maximum mapblocks loaded) string 1024,4096,16384,65536
+
+#    Lua heap growth, in kB, one program run may cause. Checked when the drone
+#    yields, so it catches a program that accumulates rather than one that
+#    allocates everything in a single call.
+codeblock_max_memory_kb (Maximum heap growth) string 65536,131072,262144,524288
+
+#    Largest string, in bytes, a single call may produce. Covers the single
+#    allocation the heap limit cannot see.
+codeblock_max_string_bytes (Maximum string size) string 1048576,4194304,16777216,67108864
+
+[Pacing]
+
+#    Microseconds one drone may spend advancing its program per server step.
+#    A cap, not an allowance: a drone gets the smaller of this and its share of
+#    the server budget below.
+codeblock_step_budget_us (Step budget per drone) string 1000,2000,4000,8000
+
+#    Microseconds per server step for all running drones together, divided
+#    equally among them. Without it, each new drone costs the server another
+#    full budget. A dedicated server steps roughly every 90000 microseconds.
+codeblock_server_step_budget_us (Step budget for all drones) int 16000 1000 90000
+
+#    Commands between yields. Controls how finely the work is chopped, and so
+#    how precisely the step budget can be honoured - not how fast a program runs.
+codeblock_commands_before_yield (Commands before yielding) string 1,10,20,40
+
+#    Calls and loop iterations between yields. The same, for the instrumentation
+#    counter rather than drone commands.
+codeblock_calls_before_yield (Calls before yielding) string 1,100,250,600

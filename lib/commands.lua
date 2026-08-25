@@ -15,6 +15,7 @@ local chat_send_player = minetest.chat_send_player
 local set_node = minetest.set_node
 local get_node = minetest.get_node
 local load_area = minetest.load_area
+local get_us_time = minetest.get_us_time
 
 local build = codeblock.shapes.build
 
@@ -31,6 +32,7 @@ local max_dimension = codeblock.config.max_dimension
 local commands_before_yield = codeblock.config.commands_before_yield
 local calls_before_yield = codeblock.config.calls_before_yield
 local max_memory_kb = codeblock.config.max_memory_kb
+local max_mapblocks = codeblock.config.max_mapblocks
 
 local tmp1 = 2 * pi
 local tmp2 = pi / 2
@@ -44,17 +46,45 @@ local rev_blocks = table_reverse(blocks)
 
 local function round0(x) return floor(x + .5) end
 
+--- Charge `n` mapblock loads to the run. See max_mapblocks in lib/config.lua
+-- for what this bounds and why nothing else can see it. (S5)
+local function use_mapblocks(drone, n)
+
+    local al = drone.auth_level
+
+    local mapblocks = drone.mapblocks + n
+    if mapblocks <= max_mapblocks[al] then
+        drone.mapblocks = mapblocks
+    else
+        error(S('Maximum number of mapblocks loaded (@1)', max_mapblocks[al]), 4)
+    end
+
+end
+
 --- Place one node.
 --
 -- load_area first: set_node into a mapblock that is not in memory silently does
 -- nothing, so a program that flew out and built left holes with no error at all.
--- Called on every place because an already-loaded block makes it cheap, and
--- because the drone crosses into a new block often enough that guessing when to
--- skip it costs more than it saves.
-local function place_block(x, y, z, block)
+--
+-- Once per mapblock the drone crosses into rather than once per node. Comparing
+-- floor(x/16) against the last block written is an exact test, not a guess, and
+-- it turns a per-node cost into a per-block one. The memo is dropped at every
+-- yield (see check_drone_yield): the engine may unload a block after
+-- server_unload_unused_data_timeout, 29s by default, so a memo that outlived a
+-- yield could skip a load that had become necessary again and lose the write.
+local function place_block(drone, x, y, z, block)
+
     local pos = {x = x, y = y, z = z}
-    load_area(pos)
+    local bx, by, bz = floor(x / 16), floor(y / 16), floor(z / 16)
+
+    if bx ~= drone.bx or by ~= drone.by or bz ~= drone.bz then
+        use_mapblocks(drone, 1)
+        drone.bx, drone.by, drone.bz = bx, by, bz
+        load_area(pos)
+    end
+
     set_node(pos, {name = block})
+
 end
 
 local function use_volume(drone, v_used)
@@ -97,39 +127,39 @@ local function use_call(drone)
 
 end
 
-local function check_drone_yield(drone, op_level)
+-- Which commands release control at which codelevel. op_level is 0 for moves,
+-- 1 for place, 2 for shapes; a codelevel yields on anything above its threshold
+-- here, and otherwise every commands_before_yield commands. So level 1 yields on
+-- every command and level 4 on none of them, going by the count alone.
+local yield_above = {-1, 0, 1, 3}
 
-    -- op_level = 0  -> moves
-    -- op_level = 1  -> place
-    -- op_level = 2  -> shapes
+local function check_drone_yield(drone, op_level)
 
     local al = drone.auth_level
     local commands = drone.commands + 1;
 
-    if commands <= max_commands[al] then
-        if al == 1 then -- yield every command
-            coroutine.yield()
-        elseif al == 2 then -- don't yield moves
-            if op_level > 0 or (commands % commands_before_yield[al] == 0) then
-                coroutine.yield()
-            end
-        elseif al == 3 then -- don't yield moves and place
-            if op_level > 1 or (commands % commands_before_yield[al] == 0) then
-                coroutine.yield()
-            end
-        elseif al == 4 then -- only yield every n commands
-            if commands % commands_before_yield[al] == 0 then
-                coroutine.yield()
-            end
-        else
-            coroutine.yield()
-        end
-
-        drone.commands = commands
-
-    else
+    if commands > max_commands[al] then
         error(S('Maximum number of commands reached (@1)', max_commands[al]), 4);
     end
+
+    -- The step budget is spent between resumes, so without this a single resume
+    -- runs to its command count however long that takes - up to 40 commands at
+    -- codelevel 4, and a command that loads a mapblock can reach the disk.
+    -- Yielding when the drone's slice of the step is gone makes the budget bound
+    -- work rather than resumes. lib/stepper.lua sets it; nil outside a step.
+    local spent = drone.deadline ~= nil and get_us_time() >= drone.deadline
+
+    local threshold = yield_above[al] or -1
+    local counted = commands % commands_before_yield[al] == 0
+
+    if spent or op_level > threshold or counted then
+        -- The mapblock memo in place_block cannot outlive a yield: the engine
+        -- may unload the block while the drone is not running.
+        drone.bx, drone.by, drone.bz = nil, nil, nil
+        coroutine.yield()
+    end
+
+    drone.commands = commands
 
 end
 
@@ -151,7 +181,11 @@ local function check_distance(drone, x, y, z)
     local dy = y - s[2]
     local dz = z - s[3]
     local d = dx * dx + dy * dy + dz * dz
-    if d > max_distance[drone.auth_level] then
+    -- Squared here rather than in config.lua, so the limit reads in nodes there
+    -- and in doc/api.md, and an administrator setting it gives a distance rather
+    -- than its square.
+    local m = max_distance[drone.auth_level]
+    if d > m * m then
         error(S('The drone is too far away (@1)', sqrt(d)), 4)
     end
 
@@ -368,7 +402,7 @@ local function drone_place_block(drone, block)
 
     use_volume(drone, 1)
 
-    place_block(drone.x, drone.y, drone.z, real_block)
+    place_block(drone, drone.x, drone.y, drone.z, real_block)
     check_drone_yield(drone, 1)
 
 end
@@ -419,7 +453,7 @@ local function drone_place_relative(drone, x, y, z, block, chkpt)
     check_distance(drone, drone.x, drone.y, drone.z)
 
     drone:update_entity()
-    place_block(drone.x, drone.y, drone.z, real_block)
+    place_block(drone, drone.x, drone.y, drone.z, real_block)
     check_drone_yield(drone, 1)
 
 end
@@ -468,7 +502,7 @@ local function drone_place_cube(drone, w, h, l, block, hollow)
 
     local pos = {x = x, y = y, z = z}
 
-    build {
+    use_mapblocks(drone, build {
         kind = 'cube',
         pos = pos,
         w = w,
@@ -476,7 +510,7 @@ local function drone_place_cube(drone, w, h, l, block, hollow)
         l = l,
         node = real_block,
         hollow = hollow
-    }
+    })
     check_drone_yield(drone, 2)
 
 end
@@ -510,7 +544,7 @@ local function drone_place_ccube(drone, w, h, l, block, hollow)
 
     local pos = {x = drone.x, y = drone.y - floor(0.5 * (h - 1)), z = drone.z}
 
-    build {
+    use_mapblocks(drone, build {
         kind = 'cube',
         pos = pos,
         w = w,
@@ -518,7 +552,7 @@ local function drone_place_ccube(drone, w, h, l, block, hollow)
         l = l,
         node = real_block,
         hollow = hollow
-    }
+    })
     check_drone_yield(drone, 2)
 
 end
@@ -557,13 +591,13 @@ local function drone_place_sphere(drone, r, block, hollow)
 
     local pos = {x = x, y = y, z = z}
 
-    build {
+    use_mapblocks(drone, build {
         kind = 'sphere',
         pos = pos,
         r = r,
         node = real_block,
         hollow = hollow
-    }
+    })
     check_drone_yield(drone, 2)
 
 end
@@ -583,13 +617,13 @@ local function drone_place_csphere(drone, r, block, hollow)
     check_dimensions(drone, r * 2)
     use_volume(drone, round0(tmp3 * (r + 0.514) ^ 3))
 
-    build {
+    use_mapblocks(drone, build {
         kind = 'sphere',
         pos = pos,
         r = r,
         node = real_block,
         hollow = hollow
-    }
+    })
     check_drone_yield(drone, 2)
 
 end
@@ -628,13 +662,13 @@ local function drone_place_dome(drone, r, block, hollow)
 
     local pos = {x = x, y = y, z = z}
 
-    build {
+    use_mapblocks(drone, build {
         kind = 'dome',
         pos = pos,
         r = r,
         node = real_block,
         hollow = hollow
-    }
+    })
     check_drone_yield(drone, 2)
 
 end
@@ -654,13 +688,13 @@ local function drone_place_cdome(drone, r, block, hollow)
     check_dimensions(drone, r * 2)
     use_volume(drone, round0(tmp4 * (r + 0.514) ^ 3))
 
-    build {
+    use_mapblocks(drone, build {
         kind = 'dome',
         pos = pos,
         r = r,
         node = real_block,
         hollow = hollow
-    }
+    })
     check_drone_yield(drone, 2)
 
 end
@@ -726,7 +760,7 @@ local function drone_place_cylinder(drone, o, l, r, block, hollow)
 
     local pos = {x = x, y = y, z = z}
 
-    build {
+    use_mapblocks(drone, build {
         kind = 'cylinder',
         pos = pos,
         axis = axis,
@@ -734,7 +768,7 @@ local function drone_place_cylinder(drone, o, l, r, block, hollow)
         r = r,
         node = real_block,
         hollow = hollow
-    }
+    })
     check_drone_yield(drone, 2)
 
 end
@@ -788,7 +822,7 @@ local function drone_place_ccylinder(drone, o, l, r, block, hollow)
 
     local pos = {x = x, y = y, z = z}
 
-    build {
+    use_mapblocks(drone, build {
         kind = 'cylinder',
         pos = pos,
         axis = axis,
@@ -796,7 +830,7 @@ local function drone_place_ccylinder(drone, o, l, r, block, hollow)
         r = r,
         node = real_block,
         hollow = hollow
-    }
+    })
     check_drone_yield(drone, 2)
 
 end

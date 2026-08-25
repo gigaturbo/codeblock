@@ -91,6 +91,7 @@ local drone_mt = {
                 volume = 0,
                 calls = 0,
                 commands = 0,
+                mapblocks = 0,
                 tstart = nil,
                 file = nil,
                 cor = nil,

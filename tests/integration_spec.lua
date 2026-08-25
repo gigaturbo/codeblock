@@ -202,6 +202,95 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- the limits survive the settings layer (C7)
+--
+-- lib/config.lua now reads settingtypes.txt over its defaults, applying the
+-- per-codelevel overrides in one loop rather than at each literal. A parser or
+-- loop that mangled a table would do it at mod load, silently, so the shape of
+-- every limit is asserted here with the real settings in effect.
+--------------------------------------------------------------------------------
+
+do
+    local cfg = codeblock.config
+    local names = {
+        'max_calls', 'max_volume', 'max_commands', 'max_distance',
+        'max_dimension', 'max_mapblocks', 'max_memory_kb', 'max_string_bytes',
+        'commands_before_yield', 'calls_before_yield', 'step_budget_us'
+    }
+    local wrong = {}
+    for _, name in ipairs(names) do
+        local t = cfg[name]
+        if type(t) ~= 'table' or #t ~= 4 then
+            wrong[#wrong + 1] = name
+        else
+            for i = 1, 4 do
+                if type(t[i]) ~= 'number' then wrong[#wrong + 1] = name end
+            end
+        end
+    end
+    it('every codelevel limit is four numbers', table.concat(wrong, ','), '')
+
+    it('auth_levels was left alone by the override loop',
+       table.concat(cfg.auth_levels, ','), '1,2,3,4')
+    it('the default codelevel is a level that exists',
+       (cfg.auth_levels[cfg.default_auth_level] ~= nil), true)
+    it('the server step budget is a number', type(cfg.server_step_budget_us),
+       'number')
+end
+
+--------------------------------------------------------------------------------
+-- the yield cadence, and the step deadline that cuts a resume short (S5)
+--
+-- check_drone_yield decides when a program hands control back. It used to be a
+-- chain of per-codelevel branches; it is now a threshold table plus a deadline,
+-- so the cadence is asserted rather than assumed. A move is op_level 0, which is
+-- the case the codelevels disagree about.
+--
+-- turn_left is used because it touches nothing but the drone record: place and
+-- the shapes write to the map, and these specs run at mod load, before there is
+-- a map.
+--------------------------------------------------------------------------------
+
+do
+    local turn_left = codeblock.commands.drone_turn_left
+
+    --- Yields counted while `n` moves run at `auth_level`, with `deadline` set.
+    local function moves(n, auth_level, deadline)
+        local drone = stub_drone(auth_level)
+        drone.dir = 0
+        drone.deadline = deadline
+        drone.update_entity = function() end
+
+        local co = coroutine.create(function()
+            for _ = 1, n do turn_left(drone) end
+        end)
+
+        local yields = 0
+        while coroutine.status(co) ~= 'dead' do
+            local ok, err = coroutine.resume(co)
+            if not ok then return nil, tostring(err) end
+            if coroutine.status(co) ~= 'dead' then yields = yields + 1 end
+        end
+        return yields
+    end
+
+    it('codelevel 1 yields on every command', moves(6, 1), 6)
+    it('codelevel 2 does not yield moves', moves(6, 2), 0)
+    it('codelevel 3 does not yield moves', moves(6, 3), 0)
+    it('codelevel 4 does not yield moves', moves(6, 4), 0)
+
+    -- commands_before_yield is {1, 10, 20, 40}, so 20 moves at codelevel 2 pass
+    -- the count twice and nothing else.
+    it('but the command count still yields at codelevel 2', moves(20, 2), 2)
+
+    -- A deadline already past: every command yields whatever the codelevel says,
+    -- which is what makes the step budget bound work rather than resumes.
+    it('a spent deadline yields at codelevel 4', moves(5, 4, 1), 5)
+    it('a deadline in the future changes nothing',
+       moves(5, 4, minetest.get_us_time() + 1e9), 0)
+end
+
+--------------------------------------------------------------------------------
 -- the string guards apply to real player code (S2)
 --
 -- strguard_spec checks the guards in isolation. This checks that a program

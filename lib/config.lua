@@ -4,25 +4,136 @@ codeblock.config = {}
 -- General config
 --------------------------------------------------------------------------------
 
+--------------------------------------------------------------------------------
+-- Reading the settings
+--
+-- Every limit here can be overridden from settingtypes.txt, so an administrator
+-- changes them in the settings menu or minetest.conf rather than patching this
+-- file and losing the change on update.
+--
+-- Both reads are guarded, because this file is also dofile'd by
+-- scripts/gen_docs.lua under a bare interpreter where there is no `minetest`
+-- global at all. The values below stay plain literals for a second reason:
+-- gen_docs.lua reads this source to check that every `max_*` table has a row in
+-- doc/api.md's codelevel table, and a computed value would switch that check
+-- off without saying so.
+--------------------------------------------------------------------------------
+
+local engine = rawget(_G, 'minetest')
+local settings = engine and engine.settings
+
+local function warn(name, why)
+    if engine then
+        engine.log('warning', ('[codeblock] setting codeblock_%s %s'):format(
+                       name, why))
+    end
+end
+
+--- One number from `codeblock_<name>`, or `default` when unset or unreadable.
+local function number(name, default)
+    local raw = settings and settings:get('codeblock_' .. name)
+    if raw == nil or raw == '' then return default end
+    local n = tonumber(raw)
+    if not n then
+        warn(name, 'is not a number; using the default')
+        return default
+    end
+    return n
+end
+
+--- Four numbers from `codeblock_<name>`, one per codelevel: "1,2,3,4".
+--
+-- Every limit here is a count or a size, so anything below 1 is rejected rather
+-- than trusted. A zero would be worse than a small number: commands_before_yield
+-- is used as a divisor, and `commands % 0` is nan in Lua, which compares false
+-- against everything - so a zero there would silently stop a codelevel yielding
+-- on its command count at all.
+local function per_level(name, default)
+    local raw = settings and settings:get('codeblock_' .. name)
+    if raw == nil or raw == '' then return default end
+    local t = {}
+    for n in raw:gmatch('[^,%s]+') do t[#t + 1] = tonumber(n) end
+    if #t ~= 4 then
+        warn(name, 'needs four numbers separated by commas; using the defaults')
+        return default
+    end
+    for i = 1, 4 do
+        if t[i] < 1 then
+            warn(name, 'has a value below 1; using the defaults')
+            return default
+        end
+    end
+    return t
+end
+
 ----------------------- 1:limited 2:standard 3:privileged 4:trusted
 codeblock.config.lua_dir = 'codeblock_files'
-codeblock.config.default_auth_level = 4
+
 codeblock.config.auth_levels = {1, 2, 3, 4}
+
+-- The codelevel a player gets on first join. Level 4 is right for singleplayer,
+-- where the player is the administrator and a lower level would only be an
+-- annoyance; on a server it would hand an unvetted joiner every ceiling below
+-- at its widest. So the default depends on which one this is, and either can be
+-- overridden by the setting. (S6)
+--
+-- Checked against auth_levels rather than trusted: every limit below is indexed
+-- by this, so a level that does not exist would not be a wide limit but a nil
+-- one, and the first command a program ran would fail on arithmetic.
+local singleplayer = engine and engine.is_singleplayer()
+local wanted = singleplayer and 4 or 2
+local asked = number('default_auth_level', wanted)
+if codeblock.config.auth_levels[asked] then
+    wanted = asked
+else
+    warn('default_auth_level', 'is not a codelevel from 1 to 4; ignored')
+end
+codeblock.config.default_auth_level = wanted
 codeblock.config.max_calls = {1e6, 1e7, 1e8, 1e9}
 codeblock.config.max_volume = {1e5, 1e6, 1e7, 1e8}
 codeblock.config.max_commands = {1e4, 1e5, 1e6, 1e7}
-codeblock.config.max_distance = {150 ^ 2, 300 ^ 2, 700 ^ 2, 1500 ^ 2}
+codeblock.config.max_distance = {150, 300, 700, 1500}
 codeblock.config.max_dimension = {15, 30, 70, 150}
 codeblock.config.commands_before_yield = {1, 10, 20, 40}
 codeblock.config.calls_before_yield = {1, 100, 250, 600}
+
+-- How many mapblocks one program run may load.
+--
+-- The limit that tracks a resource rather than a proxy for one. `place()` has to
+-- call core.load_area before writing, or the node silently never lands (A4);
+-- that call pins a 16x16x16 MapBlock in the server's memory and may read it from
+-- disk to do so, and no other limit here can see it - max_memory_kb is the Lua
+-- heap and a MapBlock is not on it, while max_volume counts nodes written, which
+-- a program placing one node per mapblock scores the minimum on. (S5)
+--
+-- Counted as loads rather than distinct blocks: a load is what costs, and
+-- counting them needs no set of every block the run has seen.
+--
+-- Precisely what this does and does not bound. It bounds the whole run, so it is
+-- only a loose ceiling on what is resident at any moment - the engine unloads a
+-- block it is not using after server_unload_unused_data_timeout, 29s by default,
+-- so the resident set is really throughput times that window, and throughput is
+-- what step_budget_us and server_step_budget_us bound. The two limits work
+-- together; neither is sufficient alone.
+--
+-- Generous on purpose: a legitimate build at codelevel 4 spends thousands of
+-- these. A solid radius-75 sphere, the largest that codelevel allows, emerges a
+-- thousand mapblocks on its own.
+codeblock.config.max_mapblocks = {1024, 4096, 16384, 65536}
 
 -- How long, in microseconds, one drone may spend advancing its program during
 -- a single server step. See lib/stepper.lua.
 --
 -- A dedicated server steps every ~90ms by default, so 8ms is under a tenth of
--- a step at the top codelevel. Checked between resumes, so one long call can
--- overshoot, and each drone has its own allowance.
+-- a step at the top codelevel. It is a cap per drone, not an allowance: what a
+-- drone actually gets is the smaller of this and its share of
+-- server_step_budget_us below.
 codeblock.config.step_budget_us = {1000, 2000, 4000, 8000}
+
+-- The whole mod's slice of one server step, in microseconds, divided equally
+-- among the drones currently running. Without it, N drones cost N budgets per
+-- step and the server's cost grows with the number of players. (S5)
+codeblock.config.server_step_budget_us = number('server_step_budget_us', 16000)
 
 -- How much Lua heap growth, in kB, one program run may be responsible for
 -- before it is stopped. Checked at yield points, so it catches a program that
@@ -41,6 +152,17 @@ codeblock.config.max_memory_kb = {64 * 1024, 128 * 1024, 256 * 1024, 512 * 1024}
 -- string and it cannot be hidden from the sandbox.
 codeblock.config.max_string_bytes = {1024 * 1024, 4 * 1024 * 1024,
                                      16 * 1024 * 1024, 64 * 1024 * 1024}
+
+-- Apply the per-codelevel overrides in one place, rather than wrapping each
+-- literal above and losing gen_docs.lua's check on them. Every four-number table
+-- in the config is a codelevel limit and takes one setting; auth_levels is the
+-- list of levels themselves, not a limit, so it keeps its values. The block
+-- tables are not assigned yet, which is why this runs here and not at the end.
+for name, default in pairs(codeblock.config) do
+    if name ~= 'auth_levels' and type(default) == 'table' and #default == 4 then
+        codeblock.config[name] = per_level(name, default)
+    end
+end
 
 --------------------------------------------------------------------------------
 -- Allowed blocks with their names

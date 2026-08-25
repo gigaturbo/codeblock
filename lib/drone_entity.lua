@@ -9,10 +9,13 @@ local chat_send_player = minetest.chat_send_player
 
 local drone_get = codeblock.Drone.get
 local drone_rmv = codeblock.Drone.remove
+local drones = codeblock.Drone.instances
 
 local advance = codeblock.stepper.advance
+local budget_of = codeblock.stepper.budget
 local max_string_bytes = codeblock.config.max_string_bytes
 local step_budget_us = codeblock.config.step_budget_us
+local server_step_budget_us = codeblock.config.server_step_budget_us
 
 --------------------------------------------------------------------------------
 -- private
@@ -46,12 +49,21 @@ local entity_mt = {
 
             local al = drone.auth_level
 
-            -- Advance for up to this codelevel's slice of the step rather than
-            -- exactly one resume; see lib/stepper.lua for why. The string
-            -- guards are armed for the span in which player code runs and
-            -- released inside advance().
-            local _, outcome, err = advance(drone, step_budget_us[al],
-                                            max_string_bytes[al])
+            -- Counted here rather than kept as a running total, because a drone
+            -- can stop for reasons that never pass through this file. Few
+            -- players, once per drone per step.
+            local running = 0
+            for _, d in pairs(drones) do
+                if d.cor ~= nil then running = running + 1 end
+            end
+
+            -- Advance for up to this drone's slice of the step rather than
+            -- exactly one resume; see lib/stepper.lua for why, and for why the
+            -- slice shrinks as more drones run. The string guards are armed for
+            -- the span in which player code runs and released inside advance().
+            local budget = budget_of(step_budget_us[al], server_step_budget_us,
+                                     running)
+            local _, outcome, err = advance(drone, budget, max_string_bytes[al])
 
             if outcome == 'error' then
                 chat_send_player(drone.name,

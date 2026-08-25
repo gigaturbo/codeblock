@@ -6,7 +6,8 @@
 - [x] Allow to set drone's file with in-game interface + remember last program started
 - [x] Control drone operating speed
 - [x] In-game lua code editor
-- [ ] limits that reflect real load (audit S5)
+- [x] limits that reflect real load (audit S5)
+- [ ] measure place() in a live world at codelevel 4: loaded blocks and RSS (audit S5)
 - [ ] show the program's budget while it runs, not just its totals at the end (audit S5)
 - [ ] Blockly web-based editor
 
@@ -17,8 +18,8 @@
 - [ ] option to pause the drone a certain time?
 - [ ] Make the UI show drone info : running or not, blocks placed, allow pause, start, cancel, etc
 - [ ] Bug ? Remember last opened file and reopen with editor
-- [ ] make mod configurable (see https://github.com/AntumMT/mod-hovercraft/) (audit C7)
-- [ ] one default codelevel for singleplayer, a lower one for servers (audit S6)
+- [x] make mod configurable (see https://github.com/AntumMT/mod-hovercraft/) (audit C7)
+- [x] one default codelevel for singleplayer, a lower one for servers (audit S6)
 - [x] fix place() in non-loaded chunks (audit A4): load_area before set_node
 - [ ] batch place() into core.bulk_set_node (audit A4) - decided against for 1.0.0
 - [x] fix color(v,m,M) function (or remove)

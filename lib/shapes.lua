@@ -172,6 +172,11 @@ local fillers = {
 --   r       radius, for sphere, dome and cylinder
 --   axis    'x', 'y' or 'z', for cylinder
 --   l       length, for cylinder
+--
+-- Returns how many mapblocks the pass emerged. read_from_map aligns the region
+-- outward to mapblock boundaries, so this is exact rather than an estimate, and
+-- it is what the caller charges against max_mapblocks - a shape pins blocks in
+-- server memory just as place() does. (S5)
 function shapes.build(spec)
 
     local origin, pos1, pos2 = bounds[spec.kind](spec)
@@ -186,5 +191,8 @@ function shapes.build(spec)
 
     manip:set_data(data)
     manip:write_to_map()
+
+    return ((emax.x - emin.x + 1) / 16) * ((emax.y - emin.y + 1) / 16) *
+               ((emax.z - emin.z + 1) / 16)
 
 end
