@@ -1,0 +1,51 @@
+# Lua formatting, read by the sumneko.lua extension's formatter
+# (EmmyLuaCodeStyle) and by anything else that speaks EditorConfig.
+#
+# The values reproduce the style already in the tree, which came from lua-format:
+# four-space indent, 80 columns, no space inside table braces, no column
+# alignment of consecutive assignments. Without this file the formatter's own
+# defaults reformat every file it touches, which is how lib/config.lua once
+# acquired a whitespace-only diff nobody asked for.
+#
+# detect_end_of_line is the important one: this tree is a mix of LF and CRLF,
+# and forcing either produces a diff of every line in half the files.
+#
+# Duplicated from the codecube game repository rather than inherited from it:
+# this mod is cloned on its own as often as it is cloned inside the game, and
+# root = true here stops the search at the mod so the two cannot disagree.
+
+root = true
+
+[*.lua]
+indent_style = space
+indent_size = 4
+continuation_indent = 4
+max_line_length = 80
+detect_end_of_line = true
+insert_final_newline = true
+
+# Leave the author's choices alone: the tree mixes ' and ", carries some
+# trailing semicolons, and calls shapes.build{...} without parentheses.
+quote_style = none
+end_statement_with_semicolon = keep
+call_arg_parentheses = keep
+
+space_around_table_field_list = false
+align_continuous_assign_statement = false
+align_continuous_rect_table_field = false
+align_continuous_inline_comment = false
+
+# Blank lines are the author's. Left to itself the formatter strips the one after
+# a `function` line and the one before its `end`, and inserts one between
+# consecutive function definitions.
+line_space_around_block = keep
+line_space_after_function_statement = keep
+
+# Wrapped arguments hang by continuation_indent instead of aligning under the
+# open paren. The tree aligns them, from lua-format, but this formatter cannot
+# reproduce that without also pushing a table constructor passed to a call out
+# to the paren column. So the tree drifts to the hanging indent, one file at a
+# time, as files get saved.
+align_call_args = false
+align_function_params = false
+align_array_table = false

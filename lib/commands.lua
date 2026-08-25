@@ -101,7 +101,7 @@ local function check_drone_yield(drone, op_level)
 
     -- op_level = 0  -> moves
     -- op_level = 1  -> place
-    -- op_level = 2  -> world_edit
+    -- op_level = 2  -> shapes
 
     local al = drone.auth_level
     local commands = drone.commands + 1;
@@ -425,7 +425,7 @@ local function drone_place_relative(drone, x, y, z, block, chkpt)
 end
 
 -------------------------------------------------------------------------------
--- WorldEdit
+-- shapes
 -------------------------------------------------------------------------------
 
 local function drone_place_cube(drone, w, h, l, block, hollow)
@@ -918,7 +918,7 @@ codeblock.commands.drone_place_block = drone_place_block
 codeblock.commands.drone_place_relative = drone_place_relative
 codeblock.commands.drone_save_checkpoint = drone_save_checkpoint
 codeblock.commands.drone_goto_checkpoint = drone_goto_checkpoint
--- worldedit
+-- shapes
 codeblock.commands.drone_place_cube = drone_place_cube
 codeblock.commands.drone_place_ccube = drone_place_ccube
 codeblock.commands.drone_place_sphere = drone_place_sphere

@@ -1,13 +1,15 @@
 # v1.0.0 (unreleased)
 
-Breaking for existing player programs and for redistributors - the first six
+Breaking for existing player programs and for redistributors - the first eight
 items below change behaviour you may be relying on.
 
 - [x] **BREAKING** wool names lost their prefix: `wools.wool_red` is now `wools.red`
 - [x] **BREAKING** `color(v, min, max)` clamps instead of wrapping past the palette
+- [x] **BREAKING** fixed `round(x, decimals)`, whose arguments were the reverse of what was documented
 - [x] **BREAKING** API names are read-only: assigning to `place`, `blocks`, etc. now raises
 - [x] **BREAKING** unavailable names (`os`, `io`, `pcall`, ...) fail immediately, naming what you asked for
 - [x] **BREAKING** `/codegenerate` no longer overwrites existing files
+- [x] **BREAKING** dropped the `worldedit` dependency: cube, sphere, dome and cylinder are now `lib/shapes.lua`, one VoxelManip pass each
 - [x] **BREAKING** relicensed GPL-3.0-only to AGPL-3.0-only, matching the Codecube game
 - [x] Removed `max_minetest_version`; raised `min_minetest_version` 5.3 to 5.4 (`formspec_version[4]`)
 - [x] `repeat ... until` now works - it was refused outright before
@@ -25,7 +27,6 @@ items below change behaviour you may be relying on.
 - [x] Fixed `/codelevel` being unusable in singleplayer
 - [x] Fixed `/codegenerate` having no privilege check and ignoring its playername
 - [x] Fixed `place()` silently doing nothing where the mapblock was not in memory, which left holes in builds away from spawn
-- [x] **BREAKING** dropped the `worldedit` dependency: cube, sphere, dome and cylinder are now `lib/shapes.lua`, one VoxelManip pass each
 - [x] Removed `worldedit.lua()` / `worldedit.luatransform()` from the bundled fork before dropping it
 - [x] Documented `color()`, and corrected block lists that had drifted from the config
 - [x] Added a test suite (`tests/`): five specs run standalone under Lua 5.1, all eight via `codeblock_run_tests`
@@ -34,8 +35,8 @@ items below change behaviour you may be relying on.
 - [x] The drone now advances for a time budget each server step instead of exactly one coroutine resume (new `step_budget_us`)
 - [x] Fixed a runtime error reporting twice and leaving the coroutine attached
 - [x] Generated `doc/api.md` and the in-game help from `lib/api.lua`, which also builds the sandbox environment
-- [x] **BREAKING** fixed `round(x, decimals)`, whose arguments were the reverse of what was documented
 - [ ] Known: `max_memory_kb` cannot stop one huge allocation; a pathological Lua pattern can still burn CPU
+- [ ] Known: `place()` still writes one node per call and is not batched, unlike the four bulk shapes - a run is at most 40 nodes, so batching would buy the engine's 1.3x for five flush points
 
 # v0.7.0
 

@@ -6,9 +6,9 @@
 -- how finely the work is chopped.
 --
 -- The budget is checked between resumes, so one long resume overshoots it: a
--- large worldedit shape is a single call and cannot be interrupted. It bounds
--- how much work is started, not the length of any one piece. Each drone gets
--- its own budget.
+-- large shape is a single call and cannot be interrupted. It bounds how much
+-- work is started, not the length of any one piece. Each drone gets its own
+-- budget.
 --
 -- Kept out of lib/drone_entity.lua so a test can drive it with an injected
 -- clock.

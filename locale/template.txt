@@ -55,5 +55,4 @@ Usage: codelevel <playername> <level> OR codelevel <level>=
 vector3 mod is not enabled=
 wool mod is not enabled=
 Wools=
-WorldEdit mod is not enabled=
 You don't have any files=

@@ -6,6 +6,8 @@
 - [x] Allow to set drone's file with in-game interface + remember last program started
 - [x] Control drone operating speed
 - [x] In-game lua code editor
+- [ ] limits that reflect real load (audit S5)
+- [ ] show the program's budget while it runs, not just its totals at the end (audit S5)
 - [ ] Blockly web-based editor
 
 # maybe
@@ -13,26 +15,16 @@
 - [ ] option to set drone default block to place
 - [ ] open copy of program
 - [ ] option to pause the drone a certain time?
-- [ ] make mod configurable (see https://github.com/AntumMT/mod-hovercraft/)
+- [ ] Make the UI show drone info : running or not, blocks placed, allow pause, start, cancel, etc
+- [ ] Bug ? Remember last opened file and reopen with editor
+- [ ] make mod configurable (see https://github.com/AntumMT/mod-hovercraft/) (audit C7)
+- [ ] one default codelevel for singleplayer, a lower one for servers (audit S6)
 - [x] fix place() in non-loaded chunks (audit A4): load_area before set_node
-    - verified in a live world: without it the write silently vanishes and the
-      node stays `ignore`; with it the node is written even where terrain was
-      never generated, and is still there on recheck
-    - not verified: whether mapgen can later overwrite a block written that way,
-      when a player finally visits and the area generates
-- [ ] batch place() into core.bulk_set_node
-    - worth 1.3x by the engine's own figure, and needs a pending-writes buffer
-      flushed before every world read, at each yield, and on program end, error
-      and abort. Deferred on that ratio, not forgotten. The 20x case was the
-      bulk shapes, and those are VoxelManip already (lib/shapes.lua).
+- [ ] batch place() into core.bulk_set_node (audit A4) - decided against for 1.0.0
 - [x] fix color(v,m,M) function (or remove)
 - [ ] rebuild construction when re-running code (save previous area) 
-- [ ] Update Vector3 package (min, max version, bugs, etc)
+- [ ] Update Vector3 package (min, max version, bugs, etc) (audit C1)
 - [ ] unify drone.lua and drone_entity.lua (audit A11)
-    - one owner for drone state: the instance table, entity holds a name not `_data`
-    - move show_set_file_form / show_file_editor_form out to formspecs.lua
-    - report "Program completed" from one place, not three
-    - removes the re-entrancy dance between Drone.remove and on_deactivate
 
 # Other ideas
 
@@ -52,3 +44,4 @@
 - [x] generate flat clean world https://github.com/srifqi/superflat (cc_mapgen)
 - [ ] teleport function?
 - [x] always day, etc (cc_day)
+- [ ] fog distance

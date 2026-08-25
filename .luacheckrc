@@ -55,7 +55,7 @@ read_globals = {
     "ValueNoise", "ValueNoiseMap", "SecureRandom", "Settings", "AreaStore",
     "Raycast", "ItemStackMetaRef", "DEFAULT_ALLOW_MOVE", "INIT",
     -- declared dependencies (see mod.conf)
-    "worldedit", "vector3", "default", "dye", "wool",
+    "vector3", "default", "dye", "wool",
     -- Lua 5.1 / LuaJIT builtins that luacheck's lua51 std can miss
     "jit"
 }
