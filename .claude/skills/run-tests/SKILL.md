@@ -89,7 +89,7 @@ A healthy run prints one summary per spec, and `none` under errors:
   limits_spec           36 passed   0 failed
   forms_spec            35 passed   0 failed
   stepper_spec          35 passed   0 failed
-  integration_spec      59 passed   0 failed
+  integration_spec      80 passed   0 failed
 ```
 
 What each column means:
@@ -118,6 +118,13 @@ whole mod.
 - `0 failed` and `0 xpass` everywhere.
 - The setting is gone from `minetest.conf` — check, do not assume:
   `grep -n codeblock_run_tests "$APPDATA/Minetest/minetest.conf"`.
+- **That grep is currently not enough**, because the script damages the file in
+  two ways it cannot see (audit B31, B32). Also check the first bytes for a BOM:
+  `head -c 3 "$APPDATA/Minetest/minetest.conf" | od -An -tx1` must not be
+  `ef bb bf`, or the file's first setting is silently dead. And if a spec printed
+  nothing at all, check that the enable line was on a line of its own rather than
+  glued to the previous setting. Both are open findings against
+  `scripts/run_tests.ps1`, not hazards of running it correctly.
 
 ## Related
 

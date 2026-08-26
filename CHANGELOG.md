@@ -53,6 +53,17 @@ relying on.
 - [x] Removed `doc/api.html` and `scripts/gen_doc_html.sh` as well, the second half of that pipeline. Nothing referenced either, and the README sends the reader to `doc/api.md`
 - [x] The ContentDB release archive now holds only what the mod needs at runtime, plus the `README.md` and `doc/api.md` a player is told to read. Excluded: hidden files, `tests/`, `scripts/`, the project record, the 8.9 MB screenshot gallery, `doc/*.png` and the GIMP sources - `textures/*.xcf` were shipping inside the archive and no longer do. 1.60 MB down to 1.42 MB. `screenshot.png` is kept deliberately: Luanti shows it in the main menu's Mods tab
 - [x] This mod is now versioned and released on its own cadence: the Codecube game adopts a tagged release rather than following every commit here. Added `ROADMAP.md` alongside `TODO.md` and `CHANGELOG.md`, so the mod's plan is readable without the game
+- [x] Fixed logging in wiping your entire inventory. It was cleared on every single join; it is now cleared only when one of the drone tools has actually gone missing
+- [x] Fixed a crash when saving or deleting a program after reconnecting: the file cache was emptied on disconnect and not rebuilt
+- [x] Fixed placing a drone somewhere the server has not loaded - it now says "Cannot place the drone there, move closer" instead of raising an error
+- [x] A failed program read now names the file it could not read, instead of printing an internal file handle
+- [x] Fixed an unreadable example file taking the whole mod down at load; it is now skipped with a warning
+- [x] Fixed an example whose name contains `.lua` anywhere losing that text from its title
+- [x] Fixed the editor storing no open tab as a missing value, and storing a number where it reads a string
+- [x] The drone record now has a single owner: the entity holds only its owner's name, and a program's outcome is reported from one place instead of three. Removing or unloading a drone can no longer act on a stale copy of it
+- [x] `lib/commands.lua` went from 971 to 608 lines, with a new `lib/cost.lua` holding what a command spends and when it yields. No player-facing command changed name, arguments or behaviour
+- [x] Removed a dead branch in the centred cylinder that could produce a shape with no coordinates
+- [ ] Known: the file manager, the code editor and drone placement have no automated tests - the suite runs before a map or a player exists, so those paths are checked by review only
 - [ ] Known: `heap_mb` cannot stop one huge allocation; a pathological Lua pattern can still burn CPU inside a single `find` or `match`
 - [ ] Known: the step budget is checked between drone commands and between the slabs of a shape, never inside one, so a single slab - a few thousand nodes, around 10 ms - still overshoots it
 - [ ] Known: the map footprint decays linearly over the unload window rather than tracking each block, so it is an estimate of what is resident, not a measurement

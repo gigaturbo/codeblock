@@ -192,10 +192,14 @@ that is what lets a shape be any size at all. Every filler clips itself to the
 area it is handed rather than to a range passed in, which keeps the clip equal to
 the extent the data array covers.
 
-Single-node `place()` lives in `lib/commands.lua` and must call `core.load_area`
-first: `set_node` into a mapblock that is not in memory silently does nothing,
-which used to leave holes in builds far from spawn. Bulk shapes need no such
-call — `read_from_map` emerges the region itself.
+Single-node `place()` lives in `lib/cost.lua` as `place_block`, and must call
+`core.load_area` first: `set_node` into a mapblock that is not in memory silently
+does nothing, which used to leave holes in builds far from spawn. Bulk shapes
+need no such call — `read_from_map` emerges the region itself.
+
+`lib/cost.lua` holds what a command spends and when it gives the server its step
+back — `use_nodes`, `slabs`, `use_call`, `end_command`, `place_block` — and
+`lib/commands.lua` holds the geometry that calls them.
 
 `place_block` makes that call only when the drone crosses into a new mapblock,
 comparing `floor(x/16)` on three axes against the last write, and takes footprint
@@ -204,8 +208,8 @@ not trigger mapgen, so what a load costs is a resident MapBlock plus a disk read
 and `heap_mb` cannot see it (`collectgarbage('count')` is the Lua heap; a MapBlock
 is C++ side), which is why `map_memory_mb` exists. And the memo is **per-resume,
 not per-run**: `release` clears `drone.bx/by/bz` before every yield, and it is the
-only yield in the file for exactly that reason. Widening its lifetime brings back
-the silent lost write the `load_area` call was added to fix.
+only `coroutine.yield` in `lib/cost.lua` for exactly that reason. Widening its
+lifetime brings back the silent lost write the `load_area` call was added to fix.
 
 Bulk shapes are charged too, per slab, through the `slabs(drone)` callback.
 Without it, `cube(1,1,1)` in a loop bypasses the ceiling exactly.
@@ -224,9 +228,18 @@ survives a redraw, field routing, cleanup on leave, one form per player.
 
 ### `drone.lua` vs `drone_entity.lua`
 
-These do not divide by responsibility, and the drone record has no single owner
-(audit A11, tracked in `TODO.md`). Expect to re-derive the invariant when
-touching either.
+They divide by direction of dependency (audit A11). `lib/drone_entity.lua` is 55
+lines: it holds the owner's **name**, arriving as `core.add_entity` staticdata,
+and routes two engine events onto the record. It owns nothing and caches nothing,
+so a name that names no drone simply reads nil. `lib/drone.lua` owns the record,
+the lifecycle, and `Drone.finish` — the single place a run's outcome is
+announced. It does not know forms exist: `Drone.on_place` returns whether the
+player still needs to pick a file, and `lib/register.lua` shows the chooser.
+
+Teardown is still shaped around re-entrancy: `Drone.remove` clears the record
+*before* `obj:remove()`, because that fires `on_deactivate`, which looks the
+drone up. Whether that ordering actually holds is open (audit B29) — two reviews
+disagree and it needs one check in a running world.
 
 ## Environment notes
 

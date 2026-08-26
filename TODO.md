@@ -22,9 +22,19 @@ Finding ids are shared between the two audits and are never renumbered.
 - [x] delete the superseded doc pipeline: doc/commands.md, scripts/gen_api_html.sh
 - [x] delete the second dead pair too: doc/api.html, scripts/gen_doc_html.sh - both READMEs link to doc/api.md
 - [x] .gitattributes: keep the release archive to what the mod needs, and stop textures/*.xcf shipping (audit C10)
-- [ ] add a .gitignore containing .audit/ - the mod has none, so its audit shows as untracked
+- [x] add a .gitignore containing .audit/ - it exists and contains it; the entry was wrong
+- [x] unify drone.lua and drone_entity.lua (audit A11)
+- [x] split lib/commands.lua and remove its repetition (audit A3)
+- [x] one record per file in the filesystem layer (audit A9)
+- [ ] round or normalise the rotation key so a turn() cannot crash the next move (audit B27)
+- [ ] place a drone twice in a running world and record whether on_lost kills it (audit B29)
+- [ ] stop run_tests.ps1 writing a BOM into minetest.conf, and repair the damaged config (audit B31)
+- [ ] guard the spec dofiles in init.lua against a ContentDB install (audit C16)
+- [ ] fix check_inside_world's error level on the move_by path (audit B28)
+- [ ] add a separator when run_tests.ps1 appends the enable line (audit B32)
+- [ ] check drone.cor in on_lost before announcing a program ended (audit B30)
+- [ ] playtest the editor and drone placement by hand - no spec can reach them
 - [ ] show the program's budget while it runs, not just its totals at the end (Phase 8, no finding)
-- [ ] unify drone.lua and drone_entity.lua (audit A11)
 - [ ] option to set drone default block to place
 - [ ] open copy of program
 - [ ] option to pause the drone a certain time?
