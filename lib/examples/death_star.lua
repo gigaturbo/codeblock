@@ -16,4 +16,4 @@ go('center')
 for i = 1, 2 * R1 + R2, 1 do
     centered.sphere(2, blocks.meselamp)
     move(mvt.x, mvt.y, mvt.z)
-end    
+end

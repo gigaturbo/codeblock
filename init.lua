@@ -12,6 +12,7 @@ dofile(codeblock.modpath .. "/lib/examples.lua")
 --
 dofile(codeblock.modpath .. "/lib/limits.lua")
 dofile(codeblock.modpath .. "/lib/shapes.lua")
+dofile(codeblock.modpath .. "/lib/cost.lua")
 dofile(codeblock.modpath .. "/lib/commands.lua")
 dofile(codeblock.modpath .. "/lib/preprocess.lua")
 dofile(codeblock.modpath .. "/lib/env.lua")

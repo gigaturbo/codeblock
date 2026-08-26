@@ -20,4 +20,4 @@ end
 
 fun = function(x, z) return cos(x + pi / 2) * sin(z) end
 
-plot2D(-2 * pi, 2 * pi, -2 * pi, 2 * pi, -1, 1, 101, 100, fun)       
+plot2D(-2 * pi, 2 * pi, -2 * pi, 2 * pi, -1, 1, 101, 100, fun)

@@ -18,4 +18,4 @@ for i = 1, round0(R * R / 3) do
     v = vector.prandom(round0(R * 2), round0(R * 3)):rotate_around(vector.xz, pi / 6)
     go('center', v.x, v.y, v.z)
     centered.sphere(random(1, 2), blocks.obsidian)
-end    
+end

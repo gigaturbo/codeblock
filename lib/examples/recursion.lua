@@ -27,4 +27,4 @@ end
 
 save('origin')
 local mblocks = {blocks.stone, blocks.dirt, blocks.obsidian, blocks.sandstone}
-recursion('origin', mblocks, #mblocks)    
+recursion('origin', mblocks, #mblocks)

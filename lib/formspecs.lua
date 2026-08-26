@@ -110,7 +110,7 @@ local file_editor = {
         local ud = get_user_data(meta.name)
         local fs = "size[20,10.5]"
 
-        -- styles 
+        -- styles
         fs = fs .. 'style[remove;bgcolor=red]'
         fs = fs .. 'style[content;font=mono;font_size=-2;textcolor=#115555]'
         fs = fs .. 'style[create;bgcolor=green]'

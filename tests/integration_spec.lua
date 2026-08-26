@@ -372,6 +372,94 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- movement, in all four facings (A3)
+--
+-- The seven movement commands were seven copies of the same quarter-turn table,
+-- one axis each; they are now one rotation applied to a drone-relative offset.
+-- That is arithmetic with no map behind it, so unlike place() it is reachable
+-- from here - and it is worth reaching, because nothing else would notice a
+-- rotation row transcribed the wrong way round.
+--
+-- Codelevel 4 has no pace and no deadline is set, so no command yields and
+-- these can be called outside a coroutine.
+--------------------------------------------------------------------------------
+
+do
+    local cmd = codeblock.commands
+    local half_pi = math.pi / 2
+
+    --- A drone at the origin, facing `quarter` quarter-turns round.
+    local function at(quarter)
+        local drone = stub_drone(4)
+        drone.x, drone.y, drone.z = 0, 0, 0
+        drone.dir = quarter * half_pi
+        drone.update_entity = function() end
+        -- Mirrors the angle() method on the real record in lib/drone.lua.
+        drone.angle = function(self)
+            return (2 / math.pi) * (self.dir % (2 * math.pi))
+        end
+        return drone
+    end
+
+    --- Runs one command in each facing and reports the four end positions.
+    local function each_facing(run)
+        local out = {}
+        for quarter = 0, 3 do
+            local drone = at(quarter)
+            run(drone)
+            out[#out + 1] = ('%d,%d,%d'):format(drone.x, drone.y, drone.z)
+        end
+        return table.concat(out, ' ')
+    end
+
+    it('forward goes the way the drone faces',
+       each_facing(function(d) cmd.drone_forward(d, 1) end),
+       '0,0,1 -1,0,0 0,0,-1 1,0,0')
+    it('back is its opposite', each_facing(function(d) cmd.drone_back(d, 1) end),
+       '0,0,-1 1,0,0 0,0,1 -1,0,0')
+    it('right is a quarter-turn from forward',
+       each_facing(function(d) cmd.drone_right(d, 1) end),
+       '1,0,0 0,0,1 -1,0,0 0,0,-1')
+    it('left is its opposite', each_facing(function(d) cmd.drone_left(d, 1) end),
+       '-1,0,0 0,0,-1 1,0,0 0,0,1')
+    it('up ignores the facing', each_facing(function(d) cmd.drone_up(d, 2) end),
+       '0,2,0 0,2,0 0,2,0 0,2,0')
+    it('and so does down', each_facing(function(d) cmd.drone_down(d, 2) end),
+       '0,-2,0 0,-2,0 0,-2,0 0,-2,0')
+
+    -- move() takes all three at once, and rotates them together.
+    it('move rotates the whole offset',
+       each_facing(function(d) cmd.drone_move(d, 1, 2, 3) end),
+       '1,2,3 -3,2,1 -1,2,-3 3,2,-1')
+
+    -- Distances default to 1 for the one-axis moves and to 0 for move().
+    it('a one-axis move defaults to one node',
+       each_facing(function(d) cmd.drone_forward(d) end),
+       '0,0,1 -1,0,0 0,0,-1 1,0,0')
+    it('move defaults to standing still',
+       each_facing(function(d) cmd.drone_move(d) end), '0,0,0 0,0,0 0,0,0 0,0,0')
+
+    -- A negative distance is the opposite direction, not an error.
+    it('back with a negative distance goes forward',
+       each_facing(function(d) cmd.drone_back(d, -1) end),
+       '0,0,1 -1,0,0 0,0,-1 1,0,0')
+
+    -- Turning is counted in quarters; turn_left and turn_right are ±1.
+    local turned = at(0)
+    cmd.drone_turn_left(turned)
+    it('turn_left is a quarter-turn', turned:angle(), 1)
+    cmd.drone_turn_right(turned)
+    cmd.drone_turn_right(turned)
+    it('turn_right goes the other way', turned:angle(), 3)
+    cmd.drone_turn(turned, 2)
+    it('turn takes whole quarters and wraps', turned:angle(), 1)
+
+    -- Every command counts, however it was spelled.
+    it('the one-axis moves are counted like any other command', turned.commands,
+       4)
+end
+
+--------------------------------------------------------------------------------
 -- the budget itself
 --
 -- lib/limits.lua is tested on its own arithmetic in tests/limits_spec.lua. What
