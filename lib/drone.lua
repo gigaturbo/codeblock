@@ -2,9 +2,11 @@
 --
 -- One drone per player, in Drone.instances, keyed by player name. This file
 -- owns that table and everything in it. Nothing else may hold a drone across a
--- server step: lib/drone_entity.lua holds the owner's *name* and looks the
--- record up, so a drone taken away mid-step cannot come back through a stale
--- reference. (A11)
+-- server step: lib/drone_entity.lua holds the owner's *name* and a serial, and
+-- looks the record up, so a drone taken away mid-step cannot come back through
+-- a stale reference. The serial is what tells a drone from the one that
+-- replaced it, since removal only takes effect at the end of the step. (A11,
+-- B29)
 --
 -- The entity is the record's, not the other way round. Drone.new spawns it,
 -- update_entity pushes position, facing and nametag into it, and Drone.remove
@@ -49,6 +51,11 @@ local tmp3 = pi / 2
 local tmp4 = pi / 4
 
 local function dirtocardinal(dir) return floor((dir + tmp4) * tmp1) * tmp3 end
+
+-- Counts drones spawned this session, so each one can be told from the one it
+-- replaced. Compared as a value rather than by comparing ObjectRefs, which the
+-- engine nowhere promises are the same userdata twice. (B29)
+local serial = 0
 
 --------------------------------------------------------------------------------
 -- private
@@ -112,16 +119,21 @@ local drone_mt = {
             local px, py, pz = floor(pos.x), floor(pos.y), floor(pos.z)
             local dir = (type(dir) == 'number' and dir % tmp3 == 0) and dir or 0
 
-            -- The owner's name travels as staticdata, which is how the engine
-            -- hands an entity its initial state - nothing reaches into the
-            -- luaentity from here. static_save is false, so it is never written
-            -- to disk. (A11)
+            -- The owner's name and this drone's serial travel as staticdata,
+            -- which is how the engine hands an entity its initial state -
+            -- nothing reaches into the luaentity from here. static_save is
+            -- false, so it is never written to disk. (A11)
+            --
+            -- Serial first and name last, split on the first space: a player
+            -- name cannot contain one, so the two never run together.
             --
             -- add_entity returns nil when the target area is not loaded, and
             -- the placer tool reaches 128 nodes, so a player can comfortably
             -- point past loaded ground. Without an entity nothing would ever
             -- step the program, so no record is created either. (B10)
-            local obj = core.add_entity(pos, 'codeblock:drone', name)
+            serial = serial + 1
+            local tag = serial .. ' ' .. name
+            local obj = core.add_entity(pos, 'codeblock:drone', tag)
             if obj == nil then
                 return nil, S('Cannot place the drone there, move closer')
             end
@@ -133,6 +145,7 @@ local drone_mt = {
                 z = pz,
                 spawn = {px, py, pz},
                 dir = dir,
+                serial = tostring(serial),
                 auth_level = auth_level,
                 checkpoints = {},
                 calls = 0,
@@ -292,11 +305,16 @@ local drone_mt = {
         -- Driven by the entity, which is why it is per-drone rather than one
         -- globalstep: an entity that has been unloaded stops being stepped, and
         -- so does the program it carries.
-        on_step = function(name)
+        on_step = function(name, serial)
 
             local drone = Drone.get(name)
 
-            if drone == nil or drone.cor == nil then return end
+            -- Same reason on_lost checks it: an entity on its way out can
+            -- still be stepped once, and must not spend the budget of the
+            -- drone that replaced it. (B29)
+            if drone == nil or drone.serial ~= serial or drone.cor == nil then
+                return
+            end
 
             -- Counted here rather than kept as a running total, because a drone
             -- can stop for reasons that never pass through this function. Few
@@ -323,17 +341,16 @@ local drone_mt = {
         --- The entity went away: unloaded, or removed by anything other than
         -- Drone.remove, which clears the record first.
         --
-        -- `obj` is the object that went, and the record is only the one it
-        -- belongs to if they match. ObjectRef:remove() takes effect at the end
-        -- of the step, so an entity taken away can fire this after a
+        -- `serial` says which drone went. ObjectRef:remove() takes effect at
+        -- the end of the step, so an entity taken away can fire this after a
         -- replacement drone has already been installed under the same name -
         -- and without the check, replacing a drone would destroy the new one.
         -- (B29)
-        on_lost = function(name, obj)
+        on_lost = function(name, serial)
 
             local drone = Drone.get(name)
 
-            if drone == nil or drone.obj ~= obj then return end
+            if drone == nil or drone.serial ~= serial then return end
 
             -- Nothing was running, so there is nothing to announce the end of:
             -- a drone parked in a mapblock the player walked away from would

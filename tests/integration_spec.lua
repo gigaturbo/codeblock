@@ -214,8 +214,8 @@ end
 -- name across it is looked up by string at load time and a rename would go
 -- unnoticed until a player clicked something.
 --
--- The entity holds the owner's *name*, never the record: a cached table is what
--- B11 was, and what made teardown depend on two files agreeing.
+-- The entity holds the owner's *name* and a serial, never the record: a cached
+-- table is what B11 was, and what made teardown depend on two files agreeing.
 --------------------------------------------------------------------------------
 
 do
@@ -249,6 +249,35 @@ do
     it('and is told its owner on activation',
        type(rawget(entity, 'on_activate')), 'function')
     it('the entity caches no drone', rawget(entity, '_data'), nil)
+
+    -- ObjectRef:remove() takes effect at the end of the step, so the entity of
+    -- a drone that has been replaced fires on_deactivate once the new drone is
+    -- already installed under the same name. It is told which drone it belongs
+    -- to and must leave any other alone. (B29)
+    --
+    -- A serial rather than the ObjectRef, because nothing in the engine's
+    -- documentation says the same object yields the same userdata twice.
+    local spec_player = '!spec_player'
+    Drone.instances[spec_player] = {name = spec_player, serial = '2'}
+
+    Drone.on_lost(spec_player, '1')
+    it('a replaced drone does not take away the one that replaced it',
+       Drone.instances[spec_player] ~= nil, true)
+
+    -- Nothing was running, so there is nothing to report the end of - only the
+    -- record goes. (B30)
+    Drone.on_lost(spec_player, '2')
+    it('and its own entity going does take it away',
+       Drone.instances[spec_player], nil)
+
+    -- The same guard on the stepping side: a drone on its way out must not
+    -- spend the budget of its replacement.
+    -- pcall because without the guard this walks into the replacement's budget
+    -- and raises, which would take the rest of the file with it.
+    Drone.instances[spec_player] = {name = spec_player, serial = '2', cor = 1}
+    it('nor is it stepped in the place of its replacement',
+       pcall(Drone.on_step, spec_player, '1'), true)
+    Drone.instances[spec_player] = nil
 end
 
 --------------------------------------------------------------------------------
@@ -396,7 +425,7 @@ do
         drone.update_entity = function() end
         -- Mirrors the angle() method on the real record in lib/drone.lua.
         drone.angle = function(self)
-            return (2 / math.pi) * (self.dir % (2 * math.pi))
+            return math.floor(self.dir / half_pi + .5) % 4
         end
         return drone
     end
@@ -426,6 +455,25 @@ do
        '0,2,0 0,2,0 0,2,0 0,2,0')
     it('and so does down', each_facing(function(d) cmd.drone_down(d, 2) end),
        '0,-2,0 0,-2,0 0,-2,0 0,-2,0')
+
+    -- Turning has to leave dir somewhere the rotation table can be indexed by,
+    -- however many quarters were asked for. Adding radians and wrapping did
+    -- not: turn(1000) left dir a hair under 2*pi, the wrap did not happen and
+    -- the index came out 4, which is no row at all. (B27)
+    local function facing_after(quarters)
+        local drone = at(0)
+        cmd.drone_turn(drone, quarters)
+        return drone:angle()
+    end
+
+    it('one turn faces a quarter round', facing_after(1), 1)
+    it('four come back to the start', facing_after(4), 0)
+    it('an awkward count still lands on a quarter', facing_after(11), 3)
+    it('and a thousand of them', facing_after(1000), 0)
+    it('and a count far past what a float can step through',
+       facing_after(12345678901), 1)
+    it('turning the other way wraps round', facing_after(-1), 3)
+    it('and keeps wrapping', facing_after(-7), 1)
 
     -- move() takes all three at once, and rotates them together.
     it('move rotates the whole offset',
