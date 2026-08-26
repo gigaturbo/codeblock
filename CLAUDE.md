@@ -1,80 +1,83 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with
-code in the `codeblock` repository.
+code in the `codeblock` repository. The response, editing, coding and helper
+conventions are in `~/.claude/CLAUDE.md` and are not repeated here.
 
 ## What this is
 
 CodeBlock is a Luanti (formerly Minetest) **mod** that adds programming to the
 game: a Lua sandbox, a drone that builds what the program says, an in-game
-editor, and the player-facing API those three share. It is the main project —
-essentially all the logic lives here. It has its own ContentDB package, its own
-CI, its own tests, its own documentation and its own release path, and it
-depends on `vector3`, another package by the same author.
+editor, and the player-facing API those three share. Essentially all the logic
+lives here. Its own ContentDB package, its own CI, its own tests, its own
+documentation and its own release path, branch `master`.
 
-The `codecube` game embeds this mod as a submodule and makes it pleasant to
-play. It is a *consumer* of releases, not a co-branch: see the root
-`CLAUDE.md` two directories up for the relationship, the submodule policy, the
-shared response style, the shared editing, coding and helper rules, and the
-`.gitattributes` hazard that applies to both packages. Nothing in this file
-repeats them.
+It depends on `vector3`, another ContentDB package by the same author, vendored
+here as a submodule under `tests/game/mods/` so the specs have a game to boot in.
 
-One thing is not separable, and it is worth knowing before you plan a test run:
-the in-engine specs boot the **game**. `run-tests` launches
-`luanti.exe --server --gameid codecube`, so the mod cannot exercise its
-in-engine specs without `codecube` installed. That is why the tooling and the
-`.claude/` directory live in the game's tree rather than here.
+A game called `codecube` embeds this mod and presents it to players. It is a
+**downstream consumer of releases, maintained by the same author** — it pins a
+release, adopts a new one on its own schedule, and keeps a wholly separate
+record. It is developed in its own checkout and nothing here depends on it. Do
+not read it, report on it, or change it from here.
 
-## The mod's record
+## The record
 
-Four documents, all in this directory. This is the main project, so this is the
-main record; the game keeps its own four, of the same shape, and neither restates
-the other.
+Four documents, all in this directory, plus the `.claude/` definitions:
 
-- `ROADMAP.md` — the one to read first, in either repository. What is left to
-  do, fix or change in this mod, in order.
+- `ROADMAP.md` — the one to read first. What is left to do, fix or change, in
+  order.
 - `TODO.md` — intentions that are not findings. One line per item, a finding id
   where there is one.
-- `CHANGELOG.md` — what shipped, for someone using the mod in any game.
-- `.audit/audit.html` — **this mod's own audit, and the main one of the two.**
-  Every finding with its id, severity, state and, once fixed, how, plus the
-  reasoning `ROADMAP.md` leaves out. Its phases (`Phase 0`–`Phase 8`) are the
-  numbers commit messages quote and are never renumbered.
+- `CHANGELOG.md` — what shipped, for someone using this mod in any game.
+- `.audit/audit.html` — every finding with its id, severity, state and, once
+  fixed, how, plus the reasoning `ROADMAP.md` leaves out. Its phases
+  (`Phase 0`–`Phase 8`) are the numbers commit messages quote and are never
+  renumbered. Gitignored, so it never travels with a commit.
 
-Finding ids are allocated once across both audits, so a number never means two
-things and is never renumbered; a gap in the sequence here is a finding whose
-work is the game's. The game orders its own work as `G1`–`G5` and never says
-"Phase N".
+Finding ids — `B` bugs, `S` sandbox and security, `C` compliance and packaging,
+`A` architecture — are **never renumbered**, because commit messages cite them. A
+gap in a sequence is a finding that was routed to the game's own audit back when
+the two projects shared one record.
 
-`.audit/` must not be committed. **This repository has no `.gitignore` yet**, so
-the audit currently shows up as untracked — adding one containing `.audit/` is on
-`TODO.md`. `.gitattributes` already keeps it out of the release archive via
-`.*  export-ignore`.
-
-The `project-manager` agent owns all four; edit one by hand only for something
-that agent cannot know.
+The `project-manager` agent owns all four and the `.claude/` definitions beside
+them; edit one by hand only for something that agent cannot know.
 
 ## Commands
 
-The full test suite runs **inside Luanti**. Use the `run-tests` skill — it owns
-the procedure. The one thing to know without reading it: enabling the suite
-writes `codeblock_run_tests = true` into the player's real config, and it must
-be removed afterwards or every ordinary launch runs the tests.
+The full suite runs **inside Luanti**, against the fixture game in `tests/game`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/run_tests.ps1
+```
+
+All nine specs run this way. The `run-tests` skill owns the procedure and the
+detail; the one thing to know without reading it is that enabling the suite
+writes `codeblock_run_tests = true` into the player's real config, and it must be
+removed afterwards or every ordinary launch runs the tests. The script strips it
+in a `finally` block.
+
+**`tests/game` exists because Luanti will not load a mod whose `depends` are
+unmet.** `mod.conf` names `default`, `wool` and `vector3`, but this mod calls no
+function from `default` or `wool` and borrows no asset from them — the only use is
+the node names in the palette tables of `lib/config.lua`. So the stubs there
+register nothing but the three mapgen aliases the engine validates at startup. If
+a spec ever needs a real node, register that one node and no more.
 
 Six specs also run standalone under a Lua 5.1 interpreter, which is how CI runs
 them and the only way to catch behaviour differing between plain 5.1 and the
-LuaJIT the game uses:
+LuaJIT the engine uses:
 
 ```bash
-lua tests/api_spec.lua    # also preprocess_spec, env_spec, shapes_spec, strguard_spec, limits_spec
+wsl bash -lc 'cd /mnt/c/Users/lacba/PRogrammation/codeblock && for s in api preprocess env shapes strguard limits; do lua5.1 tests/${s}_spec.lua; done'
 ```
 
-`forms_spec`, `stepper_spec` and `integration_spec` are in-engine only — they
-need `codeblock.forms`, the real command budget and `codeblock.commands`. Faking
-those would mean testing the fake. Running a single spec in-engine means editing
-the `dofile` list in `init.lua`.
+`forms_spec`, `stepper_spec` and `integration_spec` are in-engine only — they need
+`codeblock.forms`, the real command budget and `codeblock.commands`. Faking those
+would mean testing the fake. Running a single spec in-engine means editing the
+`dofile` list in `init.lua`.
 
-The rest, all run by **this repository's** CI and none of them by the game's:
+The rest, all run by this repository's CI:
 
 ```bash
 luacheck . --formatter plain --codes
@@ -83,8 +86,7 @@ bash scripts/gen_cdb_json.sh        # regenerate after a README edit
 ```
 
 `LUACHECK_STRICT=1` reports what the baseline exemptions hide. `gen_cdb_json.sh`
-is the one script here nothing verifies — the game's copy is checked by
-`check_game.sh`, this one by nobody.
+is the one script here that nothing verifies.
 
 Reading a result: `failed` must be 0, and so must `xpass`. An `xfail` that now
 passes either means a defect was fixed and the test should be promoted, or the
@@ -142,7 +144,7 @@ the mod refuses to load rather than ship a reference that lies, and
 
 Changing a player-facing name means editing `lib/api.lua`, the `impls` table in
 `lib/sandbox.lua`, and regenerating `doc/api.md`. Such a change breaks saved
-player programs, which are data the game cannot migrate — that is a major version
+player programs, which are data no game can migrate — that is a major version
 bump.
 
 ### Per-codelevel limits
@@ -177,8 +179,8 @@ megabytes, milliseconds. `limits.new` converts them once, and nothing else does
 the arithmetic. A retired setting name still in someone's `minetest.conf` warns
 at load and names its replacement, from the `replaced` table.
 
-Every setting here is the mod's, not the game's. The game contributes its own
-settings — mapgen, daylight, build restrictions — and the two do not mix.
+Every setting here is this mod's. A game that embeds it contributes its own —
+mapgen, daylight, build restrictions — and the two do not mix.
 
 ### Writing to the world
 
@@ -227,8 +229,6 @@ These do not divide by responsibility, and the drone record has no single owner
 touching either.
 
 ## Environment notes
-
-These bite in any Luanti Lua, so they hold for the game's own mods too.
 
 - `minetest` is a permanent alias for `core` and is **not** deprecated.
 - Lua 5.1 / LuaJIT: `loadstring`, `setfenv`, `math.pow`, `math.atan2` all exist;
