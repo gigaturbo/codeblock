@@ -96,6 +96,12 @@ jobs:
       - name: Run string-guard spec
         run: lua tests/strguard_spec.lua
 
+      # The budget arithmetic: ceilings, unit conversions, and the decay of the
+      # map footprint over the engine's unload window. Pure arithmetic with an
+      # injected clock, so it needs no engine.
+      - name: Run limits spec
+        run: lua tests/limits_spec.lua
+
   docs:
     name: docs are generated from the code
     runs-on: ubuntu-latest

@@ -13,8 +13,8 @@ local drones = codeblock.Drone.instances
 
 local advance = codeblock.stepper.advance
 local budget_of = codeblock.stepper.budget
-local max_string_bytes = codeblock.config.max_string_bytes
-local step_budget_us = codeblock.config.step_budget_us
+local awake = codeblock.stepper.awake
+local max_runtime_s = codeblock.config.max_runtime_s
 local server_step_budget_us = codeblock.config.server_step_budget_us
 
 --------------------------------------------------------------------------------
@@ -51,19 +51,21 @@ local entity_mt = {
 
             -- Counted here rather than kept as a running total, because a drone
             -- can stop for reasons that never pass through this file. Few
-            -- players, once per drone per step.
+            -- players, once per drone per step. Sleeping drones are left out:
+            -- they are not going to spend anything this step, so they must not
+            -- take a share either.
             local running = 0
             for _, d in pairs(drones) do
-                if d.cor ~= nil then running = running + 1 end
+                if d.cor ~= nil and awake(d) then running = running + 1 end
             end
 
             -- Advance for up to this drone's slice of the step rather than
             -- exactly one resume; see lib/stepper.lua for why, and for why the
             -- slice shrinks as more drones run. The string guards are armed for
             -- the span in which player code runs and released inside advance().
-            local budget = budget_of(step_budget_us[al], server_step_budget_us,
-                                     running)
-            local _, outcome, err = advance(drone, budget, max_string_bytes[al])
+            local budget = budget_of(drone.budget.caps.step,
+                                     server_step_budget_us, running)
+            local _, outcome, err = advance(drone, budget)
 
             if outcome == 'error' then
                 chat_send_player(drone.name,
@@ -73,6 +75,14 @@ local entity_mt = {
                 -- drone.cor left in place, so the next step found a dead
                 -- coroutine and announced the program had "completed" as well -
                 -- the player got both messages for one failure.
+                drone_rmv(drone.name)
+
+            elseif outcome == 'timeout' then
+                -- Out of running time: the bound on a program that never
+                -- finishes. Named as time, because that is what it spent.
+                chat_send_player(drone.name, S(
+                                     "Program '@1' stopped: it used all @2 s of running time",
+                                     drone.file, max_runtime_s[al]))
                 drone_rmv(drone.name)
 
             elseif outcome == 'completed' then

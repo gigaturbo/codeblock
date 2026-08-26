@@ -7,12 +7,11 @@
 - [x] Control drone operating speed
 - [x] In-game lua code editor
 - [x] limits that reflect real load (audit S5)
-- [ ] measure place() in a live world at codelevel 4: loaded blocks and RSS (audit S5)
+- [x] measure place() in a live world at codelevel 4: loaded blocks and RSS (audit S5)
+- [x] pace the low codelevels so a beginner can watch the loop (audit S5)
+- [x] slice bulk shapes so a large one is slow, not a server freeze (audit A5)
 - [ ] show the program's budget while it runs, not just its totals at the end (audit S5)
 - [ ] Blockly web-based editor
-
-# maybe
-
 - [ ] option to set drone default block to place
 - [ ] open copy of program
 - [ ] option to pause the drone a certain time?
@@ -26,6 +25,8 @@
 - [ ] rebuild construction when re-running code (save previous area) 
 - [ ] Update Vector3 package (min, max version, bugs, etc) (audit C1)
 - [ ] unify drone.lua and drone_entity.lua (audit A11)
+- [ ] Make possible to change codelevel while running a program
+
 
 # Other ideas
 

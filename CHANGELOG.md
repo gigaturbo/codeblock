@@ -1,8 +1,8 @@
 # v1.0.0 (unreleased)
 
 Breaking for existing player programs, for server operators and for
-redistributors - the first ten items below change behaviour you may be relying
-on.
+redistributors - the first thirteen items below change behaviour you may be
+relying on.
 
 - [x] **BREAKING** wool names lost their prefix: `wools.wool_red` is now `wools.red`
 - [x] **BREAKING** `color(v, min, max)` clamps instead of wrapping past the palette
@@ -12,13 +12,16 @@ on.
 - [x] **BREAKING** `/codegenerate` no longer overwrites existing files
 - [x] **BREAKING** dropped the `worldedit` dependency: cube, sphere, dome and cylinder are now `lib/shapes.lua`, one VoxelManip pass each
 - [x] **BREAKING** relicensed GPL-3.0-only to AGPL-3.0-only, matching the Codecube game
-- [x] **BREAKING** new per-codelevel `max_mapblocks` limit: a program that spreads its build over many mapblocks can now stop with "Maximum number of mapblocks loaded" where it used to finish. Loading a mapblock keeps it in the server's memory and no other limit could see it. Raise `codeblock_max_mapblocks` if a legitimate program hits it
+- [x] **BREAKING** the per-codelevel limits were rewritten around the resources a program actually spends. `max_calls`, `max_commands`, `max_volume`, `max_distance`, `max_dimension`, `max_mapblocks`, `commands_before_yield` and `calls_before_yield` are gone; `max_runtime_s`, `max_nodes_written`, `map_memory_mb` and `pace_ms` replace them, and `max_memory_kb`/`max_string_bytes` became `heap_mb`/`max_string_mb`. Programs are unaffected - no API name changed - but a `minetest.conf` setting an old name now warns in the log and does nothing, naming its replacement
+- [x] **BREAKING** codelevels 1 and 2 are paced: the drone now waits 250 ms (level 1) or 15 ms (level 2) after every command, so a beginner can watch the loop happen. Levels 3 and 4 do not wait at all. Set `codeblock_pace_ms` to change it
+- [x] **BREAKING** a program is now limited in how much of the world it holds at once (`map_memory_mb`) rather than how many mapblocks it loads in total. Over the ceiling it is slowed down rather than stopped, because the engine frees idle mapblocks by itself
+- [x] **BREAKING** nothing limits a shape's dimensions or the drone's distance from home any more. What bounds a shape is `max_nodes_written`, and a large one is written in slabs with a pause between them, so it no longer freezes the server - a 150-node cube stalled it for 0.44 s
 - [x] **BREAKING** the default codelevel for a **new** player is now 4 in singleplayer and 2 on a server, instead of 4 everywhere. Existing players keep the level already stored in their meta, so upgrading a server does not demote anyone - and does not tighten anyone either. Set `codeblock_default_auth_level` to override
 - [x] Added `settingtypes.txt`: every codelevel limit is now settable from the settings menu under Mods, or in `minetest.conf`, instead of only by editing `lib/config.lua`. Read at load, so a change needs a restart; a malformed value warns in the log and falls back to the default
-- [x] Added `server_step_budget_us`: all running drones now share one slice of each server step instead of each having its own, so sixteen drones no longer cost sixteen budgets. `step_budget_us` became a per-drone cap on that share
-- [x] The step budget is now honoured at every drone command rather than only between resumes, so a long run of commands can no longer overshoot it
+- [x] Added `server_step_budget_us`: all running drones now share one slice of each server step instead of each having its own, so sixteen drones no longer cost sixteen budgets. `step_budget_us` became a per-drone cap on that share, and a waiting drone takes no share at all
+- [x] The step budget is now honoured at every drone command and before every slab of a bulk shape, rather than only between resumes, so a long run of commands can no longer overshoot it
 - [x] `place()` calls `core.load_area` once per mapblock the drone crosses into instead of once per node
-- [x] `max_distance` is configured in nodes, as `doc/api.md` always documented it, rather than as its square. The effective limit is unchanged
+- [x] The drone is kept inside the world edge (`mapgen_limit`) instead of within a distance of its spawn point: past that edge a write silently does nothing, which is the failure the distance limit was standing in for
 - [x] Removed `max_minetest_version`; raised `min_minetest_version` 5.3 to 5.4 (`formspec_version[4]`)
 - [x] `repeat ... until` now works - it was refused outright before
 - [x] Fixed the preprocessor deleting code between two block comments
@@ -28,25 +31,28 @@ on.
 - [x] Instrumentation now runs over a token stream instead of pattern-matched text
 - [x] Programs can no longer corrupt `blocks`/`plants`/`wools`/`iwools`/`vector` for every player
 - [x] The injected call counter can no longer be disabled from player code
-- [x] Bounded `("x"):rep(1e9)` and amplifying `gsub` (new `max_string_bytes`)
-- [x] Added `max_memory_kb` against runaway accumulation, checked at yield points
+- [x] Bounded `("x"):rep(1e9)` and amplifying `gsub` (new `max_string_mb`)
+- [x] Added `heap_mb` against runaway accumulation, checked where the drone yields
 - [x] Fixed the editor's two checkboxes doing nothing (0 is truthy in Lua)
 - [x] Fixed the editor's help panel opening on Blocks with no way to reach Plants, Wools or API until a file was open
 - [x] Fixed `/codelevel` being unusable in singleplayer
 - [x] Fixed `/codegenerate` having no privilege check and ignoring its playername
 - [x] Fixed `place()` silently doing nothing where the mapblock was not in memory, which left holes in builds away from spawn
+- [x] Fixed the same lost write returning through the call path: a program whose pauses came from loops and function calls rather than drone commands could skip a mapblock load it needed, and lose a node with no error
+- [x] Fixed the reported duration of a program: on a Linux server it was the whole server's CPU time, not how long the program took. The completion line now reads `commands:N nodes:N duration:X.XXs`
+- [x] Fixed the check that every codelevel limit has a documented row, which matched by name and so never checked `pace_ms`, `heap_mb` or `map_memory_mb`
 - [x] Removed `worldedit.lua()` / `worldedit.luatransform()` from the bundled fork before dropping it
 - [x] Documented `color()`, and corrected block lists that had drifted from the config
-- [x] Added a test suite (`tests/`): five specs run standalone under Lua 5.1, all eight via `codeblock_run_tests`
+- [x] Added a test suite (`tests/`): six specs run standalone under Lua 5.1, all nine via `codeblock_run_tests`
 - [x] Added luacheck and CI for this repository, which had none of its own
 - [x] Dropped the `formspecs` dependency: formspec sessions are now `lib/forms.lua` on `core.show_formspec`
 - [x] The drone now advances for a time budget each server step instead of exactly one coroutine resume (new `step_budget_us`)
 - [x] Fixed a runtime error reporting twice and leaving the coroutine attached
 - [x] Generated `doc/api.md` and the in-game help from `lib/api.lua`, which also builds the sandbox environment
-- [ ] Known: `max_memory_kb` cannot stop one huge allocation; a pathological Lua pattern can still burn CPU
-- [ ] Known: the step budget is checked between drone commands and never inside one, so a single large shape still overshoots it
-- [ ] Known: `max_mapblocks` counts loads rather than distinct mapblocks, so repeated crossings are charged again, and it bounds a whole run rather than what is resident at any moment. A shape is charged after its pass, so one shape can overshoot the ceiling by its own size
-- [ ] Known: `place()` still writes one node per call and is not batched, unlike the four bulk shapes - a run is at most 40 nodes, so batching would buy the engine's 1.3x for five flush points
+- [ ] Known: `heap_mb` cannot stop one huge allocation; a pathological Lua pattern can still burn CPU inside a single `find` or `match`
+- [ ] Known: the step budget is checked between drone commands and between the slabs of a shape, never inside one, so a single slab - a few thousand nodes, around 10 ms - still overshoots it
+- [ ] Known: the map footprint decays linearly over the unload window rather than tracking each block, so it is an estimate of what is resident, not a measurement
+- [ ] Known: `place()` still writes one node per call and is not batched, unlike the four bulk shapes
 
 # v0.7.0
 

@@ -30,6 +30,8 @@ local NODE = 7
 
 local written -- data array from the last set_data
 local area -- area of the last read_from_map
+local passes = 0 -- set_data calls, ie. how many slabs the shape was cut into
+local world = {} -- every node written, in world coordinates, across all passes
 
 local function align(v, dir) return math.floor(v / 16) * 16 + (dir > 0 and 15 or 0) end
 
@@ -53,7 +55,25 @@ function manip:read_from_map(p1, p2)
     area = fake_area:new({MinEdge = emin, MaxEdge = emax})
     return emin, emax
 end
-function manip:set_data(d) written = d end
+-- Also accumulates what was written in world coordinates. build() cuts a large
+-- shape into slabs, one set_data each, and every slab has its own index space,
+-- so the only way to see the whole shape is to convert as it goes.
+function manip:set_data(d)
+    written = d
+    passes = passes + 1
+    local mn, mx = area.MinEdge, area.MaxEdge
+    for z = mn.z, mx.z do
+        local iz = (z - mn.z) * area.zstride + 1
+        for y = mn.y, mx.y do
+            local iy = iz + (y - mn.y) * area.ystride
+            for x = mn.x, mx.x do
+                if d[iy + (x - mn.x)] == NODE then
+                    world[x .. ',' .. y .. ',' .. z] = true
+                end
+            end
+        end
+    end
+end
 function manip:write_to_map() end
 
 -- The module is loaded into a private environment holding those fakes, in-engine
@@ -427,6 +447,134 @@ do
         hollow = false
     })
     it('a shape across a boundary is charged for both sides', across, 8)
+end
+
+--------------------------------------------------------------------------------
+-- slicing
+--
+-- A shape wider than SLICE_BLOCKS mapblocks is written in several passes, so
+-- that no single uninterruptible pass stalls the server - a 150-node cube took
+-- 0.44s as one pass. Each filler then has to write only the slab it was handed
+-- and still, across every slab, exactly the shape it would have written in one
+-- go. That clipping arithmetic is what these cases pin: they compare in world
+-- coordinates, which is the only space the slabs share.
+--------------------------------------------------------------------------------
+
+do
+    --- Every node a shape wrote across all its passes, and how many passes.
+    local function sliced(spec)
+        world, passes = {}, 0
+        local charged = {}
+        spec.charge = function(n) charged[#charged + 1] = n end
+        local total = shapes.build(spec)
+        return world, passes, total, charged
+    end
+
+    --- The same set, stated by walking a box in world coordinates.
+    local function box(p1, p2, inside)
+        local set = {}
+        for x = p1.x, p2.x do
+            for y = p1.y, p2.y do
+                for z = p1.z, p2.z do
+                    if inside(x, y, z) then
+                        set[x .. ',' .. y .. ',' .. z] = true
+                    end
+                end
+            end
+        end
+        return set
+    end
+
+    local o = {x = 0, y = 0, z = 0}
+
+    -- 48 nodes on a side, emerging 4x4x4 mapblocks: 16 across, so one z layer
+    -- per pass and four passes.
+    local got, n, total, charged = sliced({
+        kind = 'cube',
+        pos = o,
+        w = 48,
+        h = 48,
+        l = 48,
+        node = 'x',
+        hollow = false
+    })
+    it('a large cube is cut into slabs', n, 4)
+    it('and writes every node it should', same(got, box({
+        x = -24,
+        y = 0,
+        z = -24
+    }, {x = 23, y = 47, z = 23}, function() return true end)), 'ok')
+    it('the whole charge is the emerged box', total, 64)
+    it('charged once per pass', #charged, 4)
+    it('and per pass for what that pass emerged', charged[1], 16)
+
+    -- The sphere clips its outer loop the same way, over a radius rather than
+    -- an extent, and the radius test must still be the asymmetric one.
+    local ball = sliced({
+        kind = 'sphere',
+        pos = o,
+        r = 20,
+        node = 'x',
+        hollow = false
+    })
+    it('a large sphere survives being sliced', same(ball, box({
+        x = -20,
+        y = -20,
+        z = -20
+    }, {x = 20, y = 20, z = 20}, function(x, y, z)
+        return x * x + y * y + z * z <= 20 * 21
+    end)), 'ok')
+
+    -- A cylinder reaches its axes through a lookup table, so the slab clip
+    -- lands on a different one of its three loops depending on which way it
+    -- lies: along the length for z, across a radius for x.
+    local along = sliced({
+        kind = 'cylinder',
+        pos = o,
+        axis = 'z',
+        l = 40,
+        r = 20,
+        node = 'x',
+        hollow = false
+    })
+    it('a cylinder sliced along its length', same(along, box({
+        x = -20,
+        y = -20,
+        z = 0
+    }, {x = 20, y = 20, z = 39}, function(x, y)
+        return x * x + y * y <= 20 * 21
+    end)), 'ok')
+
+    local across = sliced({
+        kind = 'cylinder',
+        pos = o,
+        axis = 'x',
+        l = 40,
+        r = 20,
+        node = 'x',
+        hollow = true
+    })
+    it('a hollow cylinder sliced across it', same(across, box({
+        x = 0,
+        y = -20,
+        z = -20
+    }, {x = 39, y = 20, z = 20}, function(_, y, z)
+        local sq = y * y + z * z
+        return sq <= 20 * 21 and sq >= 20 * 19
+    end)), 'ok')
+
+    -- Nothing small is sliced: a shape inside the slab budget stays one pass,
+    -- which is what keeps the common case as cheap as it was.
+    local _, one = sliced({
+        kind = 'cube',
+        pos = o,
+        w = 4,
+        h = 4,
+        l = 4,
+        node = 'x',
+        hollow = false
+    })
+    it('a small shape is still a single pass', one, 1)
 end
 
 --------------------------------------------------------------------------------

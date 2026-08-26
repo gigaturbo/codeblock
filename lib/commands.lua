@@ -8,8 +8,6 @@ local floor = math.floor
 local abs = math.abs
 local pi = math.pi
 local upper = string.upper
-local max = math.max
-local sqrt = math.sqrt
 
 local chat_send_player = minetest.chat_send_player
 local set_node = minetest.set_node
@@ -24,15 +22,24 @@ local table_reverse = codeblock.utils.table_reverse
 
 local cubes_names = codeblock.config.allowed_blocks.cubes
 local blocks = codeblock.config.allowed_blocks.all
-local max_calls = codeblock.config.max_calls
-local max_volume = codeblock.config.max_volume
-local max_commands = codeblock.config.max_commands
-local max_distance = codeblock.config.max_distance
-local max_dimension = codeblock.config.max_dimension
-local commands_before_yield = codeblock.config.commands_before_yield
-local calls_before_yield = codeblock.config.calls_before_yield
-local max_memory_kb = codeblock.config.max_memory_kb
-local max_mapblocks = codeblock.config.max_mapblocks
+local charge = codeblock.limits.charge
+local hold = codeblock.limits.hold
+
+-- Calls between checks. The instrumented counter runs on every loop iteration
+-- and every function call, so this is how finely a program that issues no drone
+-- command at all can be interrupted. A few hundred iterations of player code is
+-- a handful of microseconds; reading the clock on each one would cost more than
+-- the work being measured.
+local CALLS_PER_CHECK = 256
+
+-- The engine's own edge of the world, from mapgen_limit. Past it a write
+-- silently does nothing, which is the lost write load_area was added to stop, so
+-- the drone is kept inside it.
+--
+-- What replaced max_distance. Distance from spawn was never the resource - the
+-- map footprint is, and that is charged where it is taken - and as a rule it
+-- confused players, who could see a build they were not allowed to fly to.
+local world_edge = tonumber(minetest.settings:get('mapgen_limit')) or 31000
 
 local tmp1 = 2 * pi
 local tmp2 = pi / 2
@@ -46,19 +53,65 @@ local rev_blocks = table_reverse(blocks)
 
 local function round0(x) return floor(x + .5) end
 
---- Charge `n` mapblock loads to the run. See max_mapblocks in lib/config.lua
--- for what this bounds and why nothing else can see it. (S5)
-local function use_mapblocks(drone, n)
+--- Hand control back to the stepper.
+--
+-- Also the only place the mapblock memo below is dropped. The engine may unload
+-- a block while the drone is not running (server_unload_unused_data_timeout,
+-- 29s), so a memo that outlived a yield could skip a load that had become
+-- necessary again, and the write would be lost with no error at all. (A4)
+local function release(drone)
+    drone.bx, drone.by, drone.bz = nil, nil, nil
+    coroutine.yield()
+end
 
-    local al = drone.auth_level
+--- Release control if this drone's slice of the server step is gone.
+--
+-- Checked at every command and before every slab of a bulk shape, which is what
+-- makes the step budget bound work rather than resumes. lib/stepper.lua sets the
+-- deadline; it is nil outside a step.
+local function yield_if_spent(drone)
+    if drone.deadline and get_us_time() >= drone.deadline then release(drone) end
+end
 
-    local mapblocks = drone.mapblocks + n
-    if mapblocks <= max_mapblocks[al] then
-        drone.mapblocks = mapblocks
-    else
-        error(S('Maximum number of mapblocks loaded (@1)', max_mapblocks[al]), 4)
+--- Charge `n` nodes written to the run.
+local function use_nodes(drone, n)
+    if not charge(drone.budget, 'nodes', n) then
+        error(S('Maximum number of nodes written (@1)', drone.budget.caps.nodes),
+              4)
+    end
+end
+
+--- Take `n` mapblocks of map footprint, waiting for room when there is none.
+--
+-- The one ceiling a program is not stopped for reaching: the engine frees idle
+-- mapblocks by itself, so the honest answer to a program holding too much of the
+-- map is to slow it down until it drains. See map_memory_mb in lib/config.lua
+-- and limits.hold. A single request larger than the whole ceiling can never be
+-- granted, and is the one case that raises.
+local function use_map(drone, n)
+
+    while true do
+        local wait = hold(drone.budget, n, get_us_time())
+        if wait == 0 then return end
+        if not wait then
+            error(S('Maximum map footprint exceeded (@1 MB)',
+                    drone.budget.caps.map / 64), 4)
+        end
+        drone.wake_at = get_us_time() + wait
+        release(drone)
     end
 
+end
+
+--- What lib/shapes.lua calls before each of its VoxelManip passes: take the
+-- footprint that pass will pin, and start it on a fresh slice if this one is
+-- already spent. A slab is around 10ms, so a large shape becomes many steps of
+-- work rather than one long stall.
+local function slabs(drone)
+    return function(n)
+        use_map(drone, n)
+        yield_if_spent(drone)
+    end
 end
 
 --- Place one node.
@@ -69,16 +122,16 @@ end
 -- Once per mapblock the drone crosses into rather than once per node. Comparing
 -- floor(x/16) against the last block written is an exact test, not a guess, and
 -- it turns a per-node cost into a per-block one. The memo is dropped at every
--- yield (see check_drone_yield): the engine may unload a block after
--- server_unload_unused_data_timeout, 29s by default, so a memo that outlived a
--- yield could skip a load that had become necessary again and lose the write.
+-- yield - see release() - because the engine may unload a block while the drone
+-- is not running, so a memo that outlived a yield could skip a load that had
+-- become necessary again and lose the write.
 local function place_block(drone, x, y, z, block)
 
     local pos = {x = x, y = y, z = z}
     local bx, by, bz = floor(x / 16), floor(y / 16), floor(z / 16)
 
     if bx ~= drone.bx or by ~= drone.by or bz ~= drone.bz then
-        use_mapblocks(drone, 1)
+        use_map(drone, 1)
         drone.bx, drone.by, drone.bz = bx, by, bz
         load_area(pos)
     end
@@ -87,108 +140,59 @@ local function place_block(drone, x, y, z, block)
 
 end
 
-local function use_volume(drone, v_used)
-
-    local al = drone.auth_level
-
-    local volume = drone.volume + v_used;
-    if volume <= max_volume[al] then
-        drone.volume = volume
-    else
-        error(S('Maximum volume of blocks exceeded (@1)', max_volume[al]), 4);
-    end
-
-end
-
+--- Charge one instrumented call: every loop iteration and every function call in
+-- the player's program passes through here.
+--
+-- Nothing bounds the count any more - a program that loops for ever is stopped
+-- by max_runtime_s, which is the resource it actually spends. What is left is
+-- the cadence: releasing control every CALLS_PER_CHECK calls is what makes a
+-- program containing no drone command interruptible at all, and that same point
+-- is where heap growth is sampled. See heap_mb in config.lua for what the sample
+-- does and does not catch - it stops a program that accumulates, not one that
+-- allocates everything in a single call.
 local function use_call(drone)
 
-    local al = drone.auth_level
+    local calls = drone.calls + 1
+    drone.calls = calls
+    if calls % CALLS_PER_CHECK ~= 0 then return end
 
-    local calls = drone.calls + 1;
-    if calls <= max_calls[al] then
-        if (calls % calls_before_yield[al] == 0) then
-            -- Yield points are also where heap growth is checked. See
-            -- max_memory_kb in config.lua for what this does and does not catch:
-            -- it stops a program that accumulates, not one that makes a single
-            -- enormous allocation.
-            if drone.mem0 then
-                local grown = collectgarbage('count') - drone.mem0
-                if grown > max_memory_kb[al] then
-                    error(S('Memory limit exceeded (@1 kB)', max_memory_kb[al]),
-                          4)
-                end
-            end
-            coroutine.yield()
+    if drone.mem0 then
+        local grown = collectgarbage('count') - drone.mem0
+        if grown > drone.budget.caps.heap_kb then
+            error(S('Memory limit exceeded (@1 MB)',
+                    drone.budget.caps.heap_kb / 1024), 4)
         end
-        drone.calls = calls
+    end
+
+    release(drone)
+
+end
+
+--- Finish a drone command: count it, then release control.
+--
+-- After the pace, at a codelevel that has one. That pace is what makes the
+-- novice levels slow enough to watch, and it is what replaced the per-codelevel
+-- yield cadence entirely: a paced drone yields on every command by construction,
+-- and an unpaced one yields when its slice of the step runs out.
+local function end_command(drone)
+
+    drone.commands = drone.commands + 1
+
+    local pace = drone.budget.caps.pace
+    if pace > 0 then
+        drone.wake_at = get_us_time() + pace
+        release(drone)
     else
-        error(S('Call limit exeeded (@1)', max_calls[al]), 4);
+        yield_if_spent(drone)
     end
 
 end
 
--- Which commands release control at which codelevel. op_level is 0 for moves,
--- 1 for place, 2 for shapes; a codelevel yields on anything above its threshold
--- here, and otherwise every commands_before_yield commands. So level 1 yields on
--- every command and level 4 on none of them, going by the count alone.
-local yield_above = {-1, 0, 1, 3}
-
-local function check_drone_yield(drone, op_level)
-
-    local al = drone.auth_level
-    local commands = drone.commands + 1;
-
-    if commands > max_commands[al] then
-        error(S('Maximum number of commands reached (@1)', max_commands[al]), 4);
+--- Keep the drone inside the world; see world_edge above.
+local function check_inside_world(x, y, z)
+    if abs(x) > world_edge or abs(y) > world_edge or abs(z) > world_edge then
+        error(S('The drone cannot leave the world (@1 nodes)', world_edge), 4)
     end
-
-    -- The step budget is spent between resumes, so without this a single resume
-    -- runs to its command count however long that takes - up to 40 commands at
-    -- codelevel 4, and a command that loads a mapblock can reach the disk.
-    -- Yielding when the drone's slice of the step is gone makes the budget bound
-    -- work rather than resumes. lib/stepper.lua sets it; nil outside a step.
-    local spent = drone.deadline ~= nil and get_us_time() >= drone.deadline
-
-    local threshold = yield_above[al] or -1
-    local counted = commands % commands_before_yield[al] == 0
-
-    if spent or op_level > threshold or counted then
-        -- The mapblock memo in place_block cannot outlive a yield: the engine
-        -- may unload the block while the drone is not running.
-        drone.bx, drone.by, drone.bz = nil, nil, nil
-        coroutine.yield()
-    end
-
-    drone.commands = commands
-
-end
-
-local function check_dimensions(drone, ...)
-
-    local al = drone.auth_level
-
-    local M = max(...)
-    if M > max_dimension[al] then
-        error(S('Maximum dimension exceeded (@1)', max_dimension[al]), 4)
-    end
-
-end
-
-local function check_distance(drone, x, y, z)
-
-    local s = drone.spawn
-    local dx = x - s[1]
-    local dy = y - s[2]
-    local dz = z - s[3]
-    local d = dx * dx + dy * dy + dz * dz
-    -- Squared here rather than in config.lua, so the limit reads in nodes there
-    -- and in doc/api.md, and an administrator setting it gives a distance rather
-    -- than its square.
-    local m = max_distance[drone.auth_level]
-    if d > m * m then
-        error(S('The drone is too far away (@1)', sqrt(d)), 4)
-    end
-
 end
 
 -------------------------------------------------------------------------------
@@ -223,9 +227,9 @@ local function drone_move(drone, x, y, z)
         drone.z = drone.z - x
     end
 
-    check_distance(drone, drone.x, drone.y, drone.z)
+    check_inside_world(drone.x, drone.y, drone.z)
     drone:update_entity()
-    check_drone_yield(drone, 0)
+    end_command(drone)
 
 end
 
@@ -247,9 +251,9 @@ local function drone_forward(drone, n)
         drone.x = drone.x + n
     end
 
-    check_distance(drone, drone.x, drone.y, drone.z)
+    check_inside_world(drone.x, drone.y, drone.z)
     drone:update_entity()
-    check_drone_yield(drone, 0)
+    end_command(drone)
 
 end
 
@@ -271,9 +275,9 @@ local function drone_back(drone, n)
         drone.x = drone.x - n
     end
 
-    check_distance(drone, drone.x, drone.y, drone.z)
+    check_inside_world(drone.x, drone.y, drone.z)
     drone:update_entity()
-    check_drone_yield(drone, 0)
+    end_command(drone)
 
 end
 
@@ -295,9 +299,9 @@ local function drone_right(drone, n)
         drone.z = drone.z - n
     end
 
-    check_distance(drone, drone.x, drone.y, drone.z)
+    check_inside_world(drone.x, drone.y, drone.z)
     drone:update_entity()
-    check_drone_yield(drone, 0)
+    end_command(drone)
 
 end
 
@@ -319,9 +323,9 @@ local function drone_left(drone, n)
         drone.z = drone.z + n
     end
 
-    check_distance(drone, drone.x, drone.y, drone.z)
+    check_inside_world(drone.x, drone.y, drone.z)
     drone:update_entity()
-    check_drone_yield(drone, 0)
+    end_command(drone)
 
 end
 
@@ -333,9 +337,9 @@ local function drone_up(drone, n)
 
     drone.y = drone.y + n
 
-    check_distance(drone, drone.x, drone.y, drone.z)
+    check_inside_world(drone.x, drone.y, drone.z)
     drone:update_entity()
-    check_drone_yield(drone, 0)
+    end_command(drone)
 
 end
 
@@ -347,9 +351,9 @@ local function drone_down(drone, n)
 
     drone.y = drone.y - n
 
-    check_distance(drone, drone.x, drone.y, drone.z)
+    check_inside_world(drone.x, drone.y, drone.z)
     drone:update_entity()
-    check_drone_yield(drone, 0)
+    end_command(drone)
 
 end
 
@@ -360,7 +364,7 @@ local function drone_turn_left(drone)
     drone.dir = (drone.dir + tmp2) % tmp1
 
     drone:update_entity()
-    check_drone_yield(drone, 0)
+    end_command(drone)
 
 end
 
@@ -371,7 +375,7 @@ local function drone_turn_right(drone)
     drone.dir = (drone.dir - tmp2) % tmp1
 
     drone:update_entity()
-    check_drone_yield(drone, 0)
+    end_command(drone)
 
 end
 
@@ -384,7 +388,7 @@ local function drone_turn(drone, quarters)
     drone.dir = (drone.dir + quarters * tmp2) % tmp1
 
     drone:update_entity()
-    check_drone_yield(drone, 0)
+    end_command(drone)
 
 end
 
@@ -400,10 +404,10 @@ local function drone_place_block(drone, block)
     local real_block = blocks[block]
     if not real_block then error(S('Cannot place this block'), 3) end
 
-    use_volume(drone, 1)
+    use_nodes(drone, 1)
 
     place_block(drone, drone.x, drone.y, drone.z, real_block)
-    check_drone_yield(drone, 1)
+    end_command(drone)
 
 end
 
@@ -425,7 +429,7 @@ local function drone_place_relative(drone, x, y, z, block, chkpt)
     end
     local cp = drone.checkpoints[chkpt]
 
-    use_volume(drone, 1)
+    use_nodes(drone, 1)
 
     local angle = drone:angle()
     if angle == 0 then
@@ -450,11 +454,11 @@ local function drone_place_relative(drone, x, y, z, block, chkpt)
         drone.dir = cp.dir
     end
 
-    check_distance(drone, drone.x, drone.y, drone.z)
+    check_inside_world(drone.x, drone.y, drone.z)
 
     drone:update_entity()
     place_block(drone, drone.x, drone.y, drone.z, real_block)
-    check_drone_yield(drone, 1)
+    end_command(drone)
 
 end
 
@@ -478,8 +482,7 @@ local function drone_place_cube(drone, w, h, l, block, hollow)
     local y = drone.y
     local z
 
-    check_dimensions(drone, w, h, l)
-    use_volume(drone, w * h * l)
+    use_nodes(drone, w * h * l)
 
     local angle = drone:angle()
     if angle == 0 then
@@ -502,7 +505,8 @@ local function drone_place_cube(drone, w, h, l, block, hollow)
 
     local pos = {x = x, y = y, z = z}
 
-    use_mapblocks(drone, build {
+    build {
+        charge = slabs(drone),
         kind = 'cube',
         pos = pos,
         w = w,
@@ -510,8 +514,8 @@ local function drone_place_cube(drone, w, h, l, block, hollow)
         l = l,
         node = real_block,
         hollow = hollow
-    })
-    check_drone_yield(drone, 2)
+    }
+    end_command(drone)
 
 end
 
@@ -528,8 +532,7 @@ local function drone_place_ccube(drone, w, h, l, block, hollow)
     local h = (type(h) == 'number') and round0(abs(h)) or 10
     local l = (type(l) == 'number') and round0(abs(l)) or 10
 
-    check_dimensions(drone, w, h, l)
-    use_volume(drone, w * h * l)
+    use_nodes(drone, w * h * l)
 
     local angle = drone:angle()
     if angle == 0 then
@@ -544,7 +547,8 @@ local function drone_place_ccube(drone, w, h, l, block, hollow)
 
     local pos = {x = drone.x, y = drone.y - floor(0.5 * (h - 1)), z = drone.z}
 
-    use_mapblocks(drone, build {
+    build {
+        charge = slabs(drone),
         kind = 'cube',
         pos = pos,
         w = w,
@@ -552,8 +556,8 @@ local function drone_place_ccube(drone, w, h, l, block, hollow)
         l = l,
         node = real_block,
         hollow = hollow
-    })
-    check_drone_yield(drone, 2)
+    }
+    end_command(drone)
 
 end
 
@@ -571,8 +575,7 @@ local function drone_place_sphere(drone, r, block, hollow)
     local y = drone.y + r
     local z
 
-    check_dimensions(drone, r * 2)
-    use_volume(drone, round0(tmp3 * (r + 0.514) ^ 3))
+    use_nodes(drone, round0(tmp3 * (r + 0.514) ^ 3))
 
     local angle = drone:angle()
     if angle == 0 then
@@ -591,14 +594,15 @@ local function drone_place_sphere(drone, r, block, hollow)
 
     local pos = {x = x, y = y, z = z}
 
-    use_mapblocks(drone, build {
+    build {
+        charge = slabs(drone),
         kind = 'sphere',
         pos = pos,
         r = r,
         node = real_block,
         hollow = hollow
-    })
-    check_drone_yield(drone, 2)
+    }
+    end_command(drone)
 
 end
 
@@ -614,17 +618,17 @@ local function drone_place_csphere(drone, r, block, hollow)
     local r = (type(r) == 'number') and round0(abs(r)) or 5
     local pos = {x = round0(drone.x), y = round0(drone.y), z = round0(drone.z)}
 
-    check_dimensions(drone, r * 2)
-    use_volume(drone, round0(tmp3 * (r + 0.514) ^ 3))
+    use_nodes(drone, round0(tmp3 * (r + 0.514) ^ 3))
 
-    use_mapblocks(drone, build {
+    build {
+        charge = slabs(drone),
         kind = 'sphere',
         pos = pos,
         r = r,
         node = real_block,
         hollow = hollow
-    })
-    check_drone_yield(drone, 2)
+    }
+    end_command(drone)
 
 end
 
@@ -642,8 +646,7 @@ local function drone_place_dome(drone, r, block, hollow)
     local y = drone.y
     local z
 
-    check_dimensions(drone, r * 2)
-    use_volume(drone, round0(tmp4 * (r + 0.514) ^ 3))
+    use_nodes(drone, round0(tmp4 * (r + 0.514) ^ 3))
 
     local angle = drone:angle()
     if angle == 0 then
@@ -662,14 +665,15 @@ local function drone_place_dome(drone, r, block, hollow)
 
     local pos = {x = x, y = y, z = z}
 
-    use_mapblocks(drone, build {
+    build {
+        charge = slabs(drone),
         kind = 'dome',
         pos = pos,
         r = r,
         node = real_block,
         hollow = hollow
-    })
-    check_drone_yield(drone, 2)
+    }
+    end_command(drone)
 
 end
 
@@ -685,17 +689,17 @@ local function drone_place_cdome(drone, r, block, hollow)
     local r = (type(r) == 'number') and round0(abs(r)) or 5
     local pos = {x = drone.x, y = drone.y, z = drone.z}
 
-    check_dimensions(drone, r * 2)
-    use_volume(drone, round0(tmp4 * (r + 0.514) ^ 3))
+    use_nodes(drone, round0(tmp4 * (r + 0.514) ^ 3))
 
-    use_mapblocks(drone, build {
+    build {
+        charge = slabs(drone),
         kind = 'dome',
         pos = pos,
         r = r,
         node = real_block,
         hollow = hollow
-    })
-    check_drone_yield(drone, 2)
+    }
+    end_command(drone)
 
 end
 
@@ -712,8 +716,7 @@ local function drone_place_cylinder(drone, o, l, r, block, hollow)
     local l = (type(l) == 'number') and round0(abs(l)) or 10
     local r = (type(r) == 'number') and round0(abs(r)) or 5
 
-    check_dimensions(drone, l, r * 2)
-    use_volume(drone, round0((pi * l * (r + 0.514) ^ 2)))
+    use_nodes(drone, round0((pi * l * (r + 0.514) ^ 2)))
 
     local axis
     local angle = drone:angle()
@@ -760,7 +763,8 @@ local function drone_place_cylinder(drone, o, l, r, block, hollow)
 
     local pos = {x = x, y = y, z = z}
 
-    use_mapblocks(drone, build {
+    build {
+        charge = slabs(drone),
         kind = 'cylinder',
         pos = pos,
         axis = axis,
@@ -768,8 +772,8 @@ local function drone_place_cylinder(drone, o, l, r, block, hollow)
         r = r,
         node = real_block,
         hollow = hollow
-    })
-    check_drone_yield(drone, 2)
+    }
+    end_command(drone)
 
 end
 
@@ -786,8 +790,7 @@ local function drone_place_ccylinder(drone, o, l, r, block, hollow)
     local l = (type(l) == 'number') and round0(abs(l)) or 10
     local r = (type(r) == 'number') and round0(abs(r)) or 5
 
-    check_dimensions(drone, l, r * 2)
-    use_volume(drone, round0((pi * l * (r + 0.514) ^ 2)))
+    use_nodes(drone, round0((pi * l * (r + 0.514) ^ 2)))
 
     local axis
     local x, y, z
@@ -822,7 +825,8 @@ local function drone_place_ccylinder(drone, o, l, r, block, hollow)
 
     local pos = {x = x, y = y, z = z}
 
-    use_mapblocks(drone, build {
+    build {
+        charge = slabs(drone),
         kind = 'cylinder',
         pos = pos,
         axis = axis,
@@ -830,8 +834,8 @@ local function drone_place_ccylinder(drone, o, l, r, block, hollow)
         r = r,
         node = real_block,
         hollow = hollow
-    })
-    check_drone_yield(drone, 2)
+    }
+    end_command(drone)
 
 end
 
@@ -852,7 +856,7 @@ local function drone_save_checkpoint(drone, chkpt)
         dir = drone.dir
     }
 
-    check_drone_yield(drone, 0)
+    end_command(drone)
 
 end
 
@@ -890,9 +894,9 @@ local function drone_goto_checkpoint(drone, chkpt, x, y, z)
         drone.z = cp.z - x
     end
 
-    check_distance(drone, drone.x, drone.y, drone.z)
+    check_inside_world(drone.x, drone.y, drone.z)
     drone:update_entity()
-    check_drone_yield(drone, 0)
+    end_command(drone)
 
 end
 
@@ -907,10 +911,10 @@ local function drone_get_block(drone)
     local block_name = get_node({x = drone.x, y = drone.y, z = drone.z}).name
 
     if block_name == 'ignore' then
-        check_drone_yield(drone, 0)
+        end_command(drone)
         return nil
     else
-        check_drone_yield(drone, 0)
+        end_command(drone)
         local rblock = rev_blocks[block_name]
         if rblock then
             return rblock
@@ -930,7 +934,7 @@ local function drone_send_message(drone, string)
     assert(drone, S("Error, drone does not exist"))
 
     chat_send_player(drone.name, '> ' .. tostring(string))
-    check_drone_yield(drone, 1)
+    end_command(drone)
 end
 
 -------------------------------------------------------------------------------

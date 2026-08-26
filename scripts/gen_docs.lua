@@ -103,18 +103,14 @@ end
 do
     local cfg = io.open(root .. '/lib/config.lua'):read('*a')
     local missing = {}
-    for name in cfg:gmatch('codeblock%.config%.(max_%w+)%s*=%s*{') do
-        if not current:find('\n| ' .. name .. ' ', 1, true) then
-            missing[#missing + 1] = name
-        end
-    end
-    for name in cfg:gmatch('codeblock%.config%.(%w+_before_yield)%s*=%s*{') do
-        if not current:find('\n| ' .. name .. ' ', 1, true) then
-            missing[#missing + 1] = name
-        end
-    end
-    for name in cfg:gmatch('codeblock%.config%.(step_budget_us)%s*=%s*{') do
-        if not current:find('\n| ' .. name .. ' ', 1, true) then
+    -- Matched by shape rather than by name: every per-codelevel limit is a
+    -- table whose first element is a number. Three name prefixes were listed
+    -- here instead, and a limit called pace_ms or heap_mb matched none of them,
+    -- which turned the check off for exactly the limits being added.
+    -- auth_levels is the list of levels itself, not a limit.
+    for name in cfg:gmatch('codeblock%.config%.(%w+)%s*=%s*{%s*%d') do
+        if name ~= 'auth_levels' and
+            not current:find('\n| ' .. name .. ' ', 1, true) then
             missing[#missing + 1] = name
         end
     end

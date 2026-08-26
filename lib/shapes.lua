@@ -1,17 +1,25 @@
 --- The four bulk shapes a program can place.
 --
--- One VoxelManip pass each: read the area, write node ids into the flat data
--- array, write it back. Ported from the WorldEdit fork this mod used to depend
--- on, keeping only cube, sphere, dome and cylinder.
+-- A VoxelManip pass per slab of the shape: read the area, write node ids into
+-- the flat data array, write it back. Ported from the WorldEdit fork this mod
+-- used to depend on, keeping only cube, sphere, dome and cylinder.
 --
 -- The data array is filled with `ignore` first, which set_data leaves untouched
 -- on write, so only the voxels the shape claims are changed.
+--
+-- Sliced rather than written in one pass, because a pass cannot be interrupted:
+-- a 150-node cube is 3.4M nodes and froze the server for 0.44s, against the
+-- 16ms the whole mod is allowed per step. See SLICE_BLOCKS below. Every filler
+-- clips itself to the area it is handed, which is what makes a slab correct
+-- without narrowing the shape.
 
 codeblock.shapes = {}
 
 local shapes = codeblock.shapes
 
 local floor = math.floor
+local max = math.max
+local min = math.min
 local get_voxel_manip = minetest.get_voxel_manip
 local get_content_id = minetest.get_content_id
 
@@ -21,11 +29,26 @@ local c_ignore
 
 local others = {x = {'y', 'z'}, y = {'x', 'z'}, z = {'x', 'y'}}
 
--- One scratch buffer for the whole mod, refilled per shape rather than
--- reallocated: a radius-20 sphere emerges around 100k voxels, and Luanti runs
--- mods on one thread so no two shapes are ever in flight at once. It keeps the
--- largest size it has been asked for.
+-- One scratch buffer for the whole mod, refilled per pass rather than
+-- reallocated. It keeps the largest size it has been asked for.
+--
+-- Shared safely even though build() yields between passes: a pass fills the
+-- buffer and hands it to set_data before anything else can run, so nothing in
+-- it has to survive the yield. Only its length does.
 local data = {}
+
+-- How many mapblocks one VoxelManip pass may emerge.
+--
+-- A pass cannot be interrupted, so this is the longest stall the mod can cause:
+-- at the measured 7.7M nodes a second, 16 mapblocks is 65k nodes and under
+-- 10ms - about what the whole mod is allowed for one server step. It is also
+-- why nothing limits a shape's dimensions any more, since a large shape is many
+-- passes and so is slow rather than a freeze. Bigger slabs are slightly cheaper
+-- per node and stall the server for proportionally longer.
+local SLICE_BLOCKS = 16
+
+--- How many mapblocks a span of nodes covers, aligned outward like the engine.
+local function span(lo, hi) return floor(hi / 16) - floor(lo / 16) + 1 end
 
 -------------------------------------------------------------------------------
 -- bounds
@@ -71,6 +94,11 @@ local bounds = {
 
 -------------------------------------------------------------------------------
 -- fillers
+--
+-- Each writes only the part of the shape inside the area it is handed, which is
+-- one z slab of it. The clip comes from the area rather than from a range passed
+-- in, so it is exactly the extent `data` covers - the invariant that has to hold
+-- whatever build() slices the shape into.
 -------------------------------------------------------------------------------
 
 --- A sphere between `ymin` and `r`. A dome is the half of one above its centre.
@@ -86,7 +114,7 @@ local function ball(s, area, id, o, ymin)
     -- give a shell one voxel thick with no gaps.
     local rmin, rmax = r * (r - 1), r * (r + 1)
 
-    for z = -r, r do
+    for z = max(-r, mn.z - o.z), min(r, area.MaxEdge.z - o.z) do
         local iz = (z + oz) * zstride + 1
         for y = ymin, r do
             local iy = iz + (y + oy) * ystride
@@ -110,7 +138,7 @@ local fillers = {
         local mn = area.MinEdge
         local ox, oy, oz = o.x - mn.x, o.y - mn.y, o.z - mn.z
 
-        for z = 0, l - 1 do
+        for z = max(0, mn.z - o.z), min(l - 1, area.MaxEdge.z - o.z) do
             local iz = (oz + z) * zstride + 1
             for y = 0, h - 1 do
                 local iy = iz + (oy + y) * ystride
@@ -140,11 +168,19 @@ local fillers = {
         local oa, oo1, oo2 = off[a], off[o1], off[o2]
         local rmin, rmax = r * (r - 1), r * (r + 1)
 
-        for i = 0, s.l - 1 do
+        -- Ranges by axis, so the z clip lands on whichever of the three loops
+        -- runs along z - the length for a cylinder lying that way, a radius for
+        -- one lying across it.
+        local lo = {[a] = 0, [o1] = -r, [o2] = -r}
+        local hi = {[a] = s.l - 1, [o1] = r, [o2] = r}
+        lo.z = max(lo.z, mn.z - o.z)
+        hi.z = min(hi.z, area.MaxEdge.z - o.z)
+
+        for i = lo[a], hi[a] do
             local ia = (oa + i) * sa
-            for u = -r, r do
+            for u = lo[o1], hi[o1] do
                 local iu = ia + (u + oo1) * s1 + 1
-                for v = -r, r do
+                for v = lo[o2], hi[o2] do
                     local sq = u * u + v * v
                     if sq <= rmax and (not hollow or sq >= rmin) then
                         data[iu + (v + oo2) * s2] = id
@@ -172,27 +208,59 @@ local fillers = {
 --   r       radius, for sphere, dome and cylinder
 --   axis    'x', 'y' or 'z', for cylinder
 --   l       length, for cylinder
+--   charge  optional, called before each pass with the mapblocks that pass will
+--           emerge. It may yield, which is how a large shape is spread over
+--           several server steps instead of stalling one.
 --
--- Returns how many mapblocks the pass emerged. read_from_map aligns the region
--- outward to mapblock boundaries, so this is exact rather than an estimate, and
--- it is what the caller charges against max_mapblocks - a shape pins blocks in
--- server memory just as place() does. (S5)
+-- Returns how many mapblocks were emerged in all. read_from_map aligns the
+-- region outward to mapblock boundaries, so this is exact rather than an
+-- estimate, and it is what the caller charges against its map footprint - a
+-- shape pins blocks in server memory just as place() does. (S5)
 function shapes.build(spec)
 
     local origin, pos1, pos2 = bounds[spec.kind](spec)
 
-    local manip = get_voxel_manip()
-    local emin, emax = manip:read_from_map(pos1, pos2)
-    local area = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
+    -- Slabs of whole mapblocks along z. Whole blocks because the engine emerges
+    -- them whole anyway: a slab boundary inside a block would emerge and charge
+    -- that block twice. Along z because it is the outermost loop of every
+    -- filler, so a slab stays one contiguous run of the data array.
+    local across = span(pos1.x, pos2.x) * span(pos1.y, pos2.y)
+    local layers = floor(SLICE_BLOCKS / across)
+    if layers < 1 then layers = 1 end
 
     c_ignore = c_ignore or get_content_id('ignore')
-    for i = 1, area:getVolume() do data[i] = c_ignore end
-    fillers[spec.kind](spec, area, get_content_id(spec.node), origin)
+    local id = get_content_id(spec.node)
+    local total = 0
+    local z = pos1.z
 
-    manip:set_data(data)
-    manip:write_to_map()
+    while z <= pos2.z do
 
-    return ((emax.x - emin.x + 1) / 16) * ((emax.y - emin.y + 1) / 16) *
-               ((emax.z - emin.z + 1) / 16)
+        -- Last node of the last whole mapblock in this slab.
+        local zend = min((floor(z / 16) + layers) * 16 - 1, pos2.z)
+        local emerged = across * span(z, zend)
+
+        -- Before the pass, not after: the caller pays for the memory before it
+        -- is pinned, and can make the drone wait for room first.
+        if spec.charge then spec.charge(emerged) end
+        total = total + emerged
+
+        local manip = get_voxel_manip()
+        local emin, emax = manip:read_from_map({
+            x = pos1.x,
+            y = pos1.y,
+            z = z
+        }, {x = pos2.x, y = pos2.y, z = zend})
+        local area = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
+
+        for i = 1, area:getVolume() do data[i] = c_ignore end
+        fillers[spec.kind](spec, area, id, origin)
+
+        manip:set_data(data)
+        manip:write_to_map()
+
+        z = zend + 1
+    end
+
+    return total
 
 end

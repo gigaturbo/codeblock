@@ -10,6 +10,7 @@ dofile(codeblock.modpath .. "/lib/examples.lua")
 --
 -- codeblock.examples.load_examples() -- read at init time
 --
+dofile(codeblock.modpath .. "/lib/limits.lua")
 dofile(codeblock.modpath .. "/lib/shapes.lua")
 dofile(codeblock.modpath .. "/lib/commands.lua")
 dofile(codeblock.modpath .. "/lib/preprocess.lua")
@@ -93,6 +94,7 @@ if minetest.settings:get_bool("codeblock_run_tests") then
     dofile(codeblock.modpath .. "/tests/env_spec.lua")
     dofile(codeblock.modpath .. "/tests/shapes_spec.lua")
     dofile(codeblock.modpath .. "/tests/strguard_spec.lua")
+    dofile(codeblock.modpath .. "/tests/limits_spec.lua")
     dofile(codeblock.modpath .. "/tests/forms_spec.lua")
     dofile(codeblock.modpath .. "/tests/stepper_spec.lua")
     dofile(codeblock.modpath .. "/tests/integration_spec.lua")

@@ -53,10 +53,16 @@ local instance_mt = {
 
     },
 
+    -- What the player gets when a program finishes: what it built and how long
+    -- it took. Not the runtime it was charged - against a ceiling of minutes
+    -- that reads as 0.01s, which says nothing to anyone. It belongs in the
+    -- budget display, as a share of the budget.
     __tostring = function(self)
-        return S('commands:@1 volume:@2m³ calls:@3 duration:@4s',
-                 self.commands, self.volume, self.calls,
-                 (os.clock() - (self.tstart or os.clock())))
+        local used = self.budget and self.budget.used or {}
+        local started = self.tstart or minetest.get_us_time()
+        return S('commands:@1 nodes:@2 duration:@3s', self.commands,
+                 used.nodes or 0, ('%.2f'):format(
+                     (minetest.get_us_time() - started) / 1e6))
     end
 }
 
@@ -88,10 +94,12 @@ local drone_mt = {
                 dir = dir,
                 auth_level = auth_level,
                 checkpoints = {},
-                volume = 0,
                 calls = 0,
                 commands = 0,
-                mapblocks = 0,
+                -- The run's resource budget, built at start rather than here:
+                -- it needs a clock reading and the codelevel the run will
+                -- actually use. See lib/limits.lua.
+                budget = nil,
                 tstart = nil,
                 file = nil,
                 cor = nil,
@@ -198,11 +206,21 @@ local drone_mt = {
                 return
             end
 
-            drone.tstart = os.clock()
+            -- get_us_time, not os.clock: os.clock is the server process's CPU
+            -- time on POSIX, so on a real server it counts everything the
+            -- server does and is not the wall clock the player is watching.
+            drone.tstart = minetest.get_us_time()
             -- Baseline for the heap-growth guard in commands.use_call.
             -- collectgarbage('count') is server-wide, so only the delta from
             -- here is meaningful, and even that is approximate.
             drone.mem0 = collectgarbage('count')
+            -- Every ceiling the run will be held to, in one table, counters
+            -- included. Fresh per run, so nothing carries over from the last.
+            drone.budget = codeblock.limits.new(codeblock.config,
+                                                drone.auth_level,
+                                                minetest.get_us_time())
+            drone.calls, drone.commands = 0, 0
+            drone.wake_at = nil
             drone.cor = res
 
         end,

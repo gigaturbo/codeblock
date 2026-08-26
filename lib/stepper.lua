@@ -2,15 +2,20 @@
 --
 -- A step resumes the drone's coroutine repeatedly until a time budget is spent,
 -- rather than exactly once. Throughput then follows the headroom the server has
--- spare instead of the tick rate, and `calls_before_yield` goes back to meaning
--- how finely the work is chopped.
+-- spare instead of the tick rate.
 --
--- The budget is checked between resumes, and again at each drone command
--- through the deadline this module publishes. What still overshoots it is a
--- single call: a large shape is one command and cannot be interrupted. It
--- bounds how much work is started, not the length of any one piece.
+-- The budget is checked between resumes, and again at each drone command and
+-- each slab of a bulk shape through the deadline this module publishes. What
+-- still overshoots it is one slab, which is bounded by lib/shapes.lua rather
+-- than by anything here.
 --
 -- The budget itself is a share rather than an allowance - see stepper.budget.
+--
+-- Two things make a drone stop early. It can go to sleep: a paced codelevel and
+-- a program waiting for map memory both set drone.wake_at, and until then the
+-- drone is not resumed and takes no share of the pool. And the time it does
+-- spend is charged against its runtime budget, which is what stops a program
+-- that never finishes - reported as the 'timeout' outcome.
 --
 -- Kept out of lib/drone_entity.lua so a test can drive it with an injected
 -- clock.
@@ -18,6 +23,7 @@
 codeblock.stepper = {}
 
 local stepper = codeblock.stepper
+local charge = codeblock.limits.charge
 
 --------------------------------------------------------------------------------
 -- dependencies
@@ -55,6 +61,19 @@ function stepper.budget(cap, pool, running)
 end
 
 --------------------------------------------------------------------------------
+-- sleeping
+--------------------------------------------------------------------------------
+
+--- Is this drone due to run at all?
+--
+-- A paced or throttled drone sleeps until drone.wake_at, and a sleeping drone
+-- must not take a share of the step pool either - otherwise a classroom of paced
+-- novices would shrink the slice of the one drone actually working.
+function stepper.awake(drone)
+    return drone.wake_at == nil or deps.now() >= drone.wake_at
+end
+
+--------------------------------------------------------------------------------
 -- advancing
 --------------------------------------------------------------------------------
 
@@ -64,15 +83,21 @@ end
 --   'yielded'    still running, budget spent - resume again next step
 --   'completed'  the program finished
 --   'error'      it raised; `err` is the message
+--   'timeout'    it used all the running time its codelevel allows
 --   'blocked'    neither suspended nor dead, which should not happen and is
 --                reported rather than looped on
 --
--- `guard_bytes` is the per-run string ceiling handed to strguard. The guards
--- wrap the whole loop rather than each resume: Luanti runs mods on one thread,
--- so nothing else can execute inside it.
-function stepper.advance(drone, budget_us, guard_bytes)
+-- The string ceiling comes from the drone's own budget. The guards wrap the
+-- whole loop rather than each resume: Luanti runs mods on one thread, so nothing
+-- else can execute inside it.
+function stepper.advance(drone, budget_us)
 
     local now = deps.now
+
+    -- Asleep: nothing to do this step, and no time charged for finding out.
+    if not stepper.awake(drone) then return 0, 'yielded' end
+    drone.wake_at = nil
+
     local started = now()
     local resumes, outcome, err = 0, nil, nil
 
@@ -85,7 +110,7 @@ function stepper.advance(drone, budget_us, guard_bytes)
     -- drone commands would have to inject both.
     drone.deadline = started + budget_us
 
-    deps.guard_enter(guard_bytes)
+    deps.guard_enter(drone.budget.caps.string_bytes)
 
     while true do
         local status = coroutine.status(drone.cor)
@@ -113,6 +138,10 @@ function stepper.advance(drone, budget_us, guard_bytes)
             break
         end
 
+        -- It went to sleep as it yielded - for its pace, or waiting for map
+        -- memory - so this step is over for it however much slice is left.
+        if not stepper.awake(drone) then break end
+
         -- Budget spent: leave the loop without setting an outcome, so the
         -- default below applies. Expressing 'yielded' once at the return rather
         -- than as an initialiser keeps it from being a dead assignment, and
@@ -125,7 +154,13 @@ function stepper.advance(drone, budget_us, guard_bytes)
     deps.guard_leave()
     drone.deadline = nil
 
-    return resumes, outcome or 'yielded', err
+    -- Only the time actually spent advancing, which is the point of charging it
+    -- here: a drone that waited, or one on a busy server, is not charged for
+    -- being slow. A run out of time reports it, unless it has already finished
+    -- or failed for a better reason.
+    local within = charge(drone.budget, 'runtime', now() - started)
+
+    return resumes, outcome or (within and 'yielded' or 'timeout'), err
 end
 
 return stepper

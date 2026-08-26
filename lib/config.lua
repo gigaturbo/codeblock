@@ -25,7 +25,7 @@ local settings = engine and engine.settings
 local function warn(name, why)
     if engine then
         engine.log('warning', ('[codeblock] setting codeblock_%s %s'):format(
-                       name, why))
+            name, why))
     end
 end
 
@@ -43,11 +43,9 @@ end
 
 --- Four numbers from `codeblock_<name>`, one per codelevel: "1,2,3,4".
 --
--- Every limit here is a count or a size, so anything below 1 is rejected rather
--- than trusted. A zero would be worse than a small number: commands_before_yield
--- is used as a divisor, and `commands % 0` is nan in Lua, which compares false
--- against everything - so a zero there would silently stop a codelevel yielding
--- on its command count at all.
+-- Negative values are rejected rather than trusted; zero is allowed, because
+-- pace_ms uses it to mean "do not pace at all". Nothing here is a divisor any
+-- more, which is what made a zero dangerous before.
 local function per_level(name, default)
     local raw = settings and settings:get('codeblock_' .. name)
     if raw == nil or raw == '' then return default end
@@ -58,8 +56,8 @@ local function per_level(name, default)
         return default
     end
     for i = 1, 4 do
-        if t[i] < 1 then
-            warn(name, 'has a value below 1; using the defaults')
+        if t[i] < 0 then
+            warn(name, 'has a negative value; using the defaults')
             return default
         end
     end
@@ -89,37 +87,52 @@ else
     warn('default_auth_level', 'is not a codelevel from 1 to 4; ignored')
 end
 codeblock.config.default_auth_level = wanted
-codeblock.config.max_calls = {1e6, 1e7, 1e8, 1e9}
-codeblock.config.max_volume = {1e5, 1e6, 1e7, 1e8}
-codeblock.config.max_commands = {1e4, 1e5, 1e6, 1e7}
-codeblock.config.max_distance = {150, 300, 700, 1500}
-codeblock.config.max_dimension = {15, 30, 70, 150}
-codeblock.config.commands_before_yield = {1, 10, 20, 40}
-codeblock.config.calls_before_yield = {1, 100, 250, 600}
+-- How long the drone waits after each command, in milliseconds; zero is no
+-- wait, and the drone then runs as fast as its share of the server step allows.
+--
+-- The one setting here that is not about resources. The lower codelevels exist
+-- to be watched: a program that places a block and moves on inside a
+-- millisecond teaches nothing to someone finding out what a loop does, so level
+-- 1 is deliberately slow and level 2 merely brisk. A paced drone costs the
+-- server almost nothing, which is why the novice levels are cheap to host as
+-- well as easy to follow.
+codeblock.config.pace_ms = {250, 15, 0, 0}
 
--- How many mapblocks one program run may load.
+-- How long one program may run in total, in seconds - the bound on a program
+-- that never finishes. Counted as time the drone was actually advanced, not
+-- wall clock, so pacing and a busy server do not eat into it.
+--
+-- This replaced max_calls, which bounded the same thing in units nobody could
+-- reason about: a call was neither a second nor a node, and its ceiling had to
+-- be guessed.
+codeblock.config.max_runtime_s = {300, 300, 600, 1800}
+
+-- The map footprint one program may hold, in megabytes.
 --
 -- The limit that tracks a resource rather than a proxy for one. `place()` has to
--- call core.load_area before writing, or the node silently never lands (A4);
--- that call pins a 16x16x16 MapBlock in the server's memory and may read it from
--- disk to do so, and no other limit here can see it - max_memory_kb is the Lua
--- heap and a MapBlock is not on it, while max_volume counts nodes written, which
--- a program placing one node per mapblock scores the minimum on. (S5)
+-- call core.load_area before writing, or the node silently never lands (A4), and
+-- a bulk shape emerges the region it writes; either way the server holds a
+-- 16 KiB MapBlock per 16x16x16 nodes touched - measured at 16.3 kB over a
+-- 400-block sweep - and no other limit here can see it. heap_mb is the Lua heap
+-- and a MapBlock is not on it, while max_nodes_written counts nodes written,
+-- which a program placing one node per mapblock scores the minimum on. (S5)
 --
--- Counted as loads rather than distinct blocks: a load is what costs, and
--- counting them needs no set of every block the run has seen.
+-- A rate, not a total: the engine unloads a block nothing has touched for
+-- server_unload_unused_data_timeout, so the footprint drains by itself and a
+-- program over this ceiling is made to wait rather than stopped. The ceiling
+-- divided by that window is the load rate it settles at - 128 MB over 29s is
+-- some 280 mapblocks a second, against the 1700 a second the engine can
+-- actually serve. See lib/limits.lua.
+codeblock.config.map_memory_mb = {8, 16, 64, 128}
+
+-- How many nodes one program may write.
 --
--- Precisely what this does and does not bound. It bounds the whole run, so it is
--- only a loose ceiling on what is resident at any moment - the engine unloads a
--- block it is not using after server_unload_unused_data_timeout, 29s by default,
--- so the resident set is really throughput times that window, and throughput is
--- what step_budget_us and server_step_budget_us bound. The two limits work
--- together; neither is sufficient alone.
---
--- Generous on purpose: a legitimate build at codelevel 4 spends thousands of
--- these. A solid radius-75 sphere, the largest that codelevel allows, emerges a
--- thousand mapblocks on its own.
-codeblock.config.max_mapblocks = {1024, 4096, 16384, 65536}
+-- The ceiling on a single shape as much as on the run, now that neither a
+-- dimension nor a distance is bounded: 2e5 nodes is a 58-node cube or a
+-- radius-36 sphere, 1e8 a 464-node cube. Bulk shapes are written in slices, so
+-- a large one is slow rather than a freeze, which is what made bounding their
+-- dimensions unnecessary.
+codeblock.config.max_nodes_written = {2e5, 1e6, 1e7, 1e8}
 
 -- How long, in microseconds, one drone may spend advancing its program during
 -- a single server step. See lib/stepper.lua.
@@ -135,23 +148,30 @@ codeblock.config.step_budget_us = {1000, 2000, 4000, 8000}
 -- step and the server's cost grows with the number of players. (S5)
 codeblock.config.server_step_budget_us = number('server_step_budget_us', 16000)
 
--- How much Lua heap growth, in kB, one program run may be responsible for
--- before it is stopped. Checked at yield points, so it catches a program that
--- accumulates - appending to a table in a loop, building an ever-longer string.
--- A single enormous allocation returns before any check can run; that case is
--- covered by max_string_bytes below instead.
+-- How much Lua heap growth, in megabytes, one program run may be responsible
+-- for before it is stopped. Checked where the drone yields, so it catches a
+-- program that accumulates - appending to a table in a loop, building an
+-- ever-longer string. A single enormous allocation returns before any check can
+-- run; that case is covered by max_string_mb below instead.
 --
 -- Generous on purpose: collectgarbage('count') reports the whole server's heap,
 -- so the figure is a delta from program start and other mods show up in it.
-codeblock.config.max_memory_kb = {64 * 1024, 128 * 1024, 256 * 1024, 512 * 1024}
+codeblock.config.heap_mb = {16, 64, 128, 512}
 
--- Largest string a single call may produce, in bytes. The companion to
--- max_memory_kb, covering the one call that allocates everything at once. See
+-- Largest string a single call may produce, in megabytes. The companion to
+-- heap_mb, covering the one call that allocates everything at once. See
 -- lib/strguard.lua: only rep and gsub can amplify, and they are bounded rather
 -- than removed, because Lua 5.1 shares one string metatable across every
 -- string and it cannot be hidden from the sandbox.
-codeblock.config.max_string_bytes = {1024 * 1024, 4 * 1024 * 1024,
-                                     16 * 1024 * 1024, 64 * 1024 * 1024}
+codeblock.config.max_string_mb = {1, 4, 16, 64}
+
+-- The engine's own unload timer, in seconds: how long a mapblock nothing has
+-- touched stays resident. Read from the engine rather than restated, because
+-- map_memory_mb decays over exactly this window and a disagreement would make
+-- the budget describe a footprint the server does not have.
+codeblock.config.map_window_s =
+    tonumber(settings and settings:get('server_unload_unused_data_timeout')) or
+    29
 
 -- Apply the per-codelevel overrides in one place, rather than wrapping each
 -- literal above and losing gen_docs.lua's check on them. Every four-number table
@@ -161,6 +181,28 @@ codeblock.config.max_string_bytes = {1024 * 1024, 4 * 1024 * 1024,
 for name, default in pairs(codeblock.config) do
     if name ~= 'auth_levels' and type(default) == 'table' and #default == 4 then
         codeblock.config[name] = per_level(name, default)
+    end
+end
+
+-- Settings that no longer exist, and what took over from each. An
+-- administrator's minetest.conf outlives a rewrite, and a limit that is silently
+-- ignored is worse than one that is rejected: it reads as being in force.
+local replaced = {
+    max_calls = 'max_runtime_s',
+    max_commands = 'max_runtime_s',
+    max_volume = 'max_nodes_written',
+    max_dimension = 'max_nodes_written',
+    max_distance = 'nothing; distance is no longer limited',
+    max_mapblocks = 'map_memory_mb',
+    max_memory_kb = 'heap_mb',
+    max_string_bytes = 'max_string_mb',
+    commands_before_yield = 'pace_ms',
+    calls_before_yield = 'pace_ms'
+}
+for old, new in pairs(replaced) do
+    local raw = settings and settings:get('codeblock_' .. old)
+    if raw ~= nil and raw ~= '' then
+        warn(old, 'no longer exists; use codeblock_' .. new)
     end
 end
 

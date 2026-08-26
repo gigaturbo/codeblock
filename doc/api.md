@@ -2,19 +2,15 @@
 
 Drone capacities depends on the user's _codelevel_ which can be set with the `/codelevel` [command](https://github.com/gigaturbo/codeblock#chat-commands) (see below). High codelevels should be given carefully to users as program could overload the server and crash it. A new player starts at codelevel `4` in singleplayer, where the player is the administrator, and at `2` on a server — set `codeblock_default_auth_level` to override either.
 
-| codelevel             | 1 (limited) | 2 (basic) | 3 (privileged) | 4 (trusted) | description                                                          |
-|-----------------------|-------------|-----------|----------------|-------------|----------------------------------------------------------------------|
-| max_calls             |         1e6 |       1e7 |            1e8 |         1e9 | max number of calls (function calls and loops)                       |
-| max_volume            |         1e5 |       1e6 |            1e7 |         1e8 | max build volume (1 block = 1m³)                                     |
-| max_commands          |         1e4 |       1e5 |            1e6 |         1e7 | max drone commands (movements, constructions, checkpoints, etc)      |
-| max_distance          |         150 |       300 |            700 |        1500 | max drone distance from drone spawn-point                            |
-| max_dimension         |          15 |        30 |             70 |         150 | max dimension of shapes (either width, length, height or radius)     |
-| commands_before_yield |           1 |        10 |             20 |          40 | number of codeblock commands before releasing control to Minetest    |
-| calls_before_yield    |           1 |       100 |            250 |         600 | number of function/loop calls before releasing control to Minetest   |
-| max_mapblocks         |        1024 |      4096 |          16384 |       65536 | max mapblocks one program may load into server memory                |
-| max_memory_kb         |       65536 |    131072 |         262144 |      524288 | max Lua heap growth (kB) one program run may cause                   |
-| max_string_bytes      |     1048576 |   4194304 |       16777216 |    67108864 | max size (bytes) of a string a single call may produce               |
-| step_budget_us        |        1000 |      2000 |           4000 |        8000 | max time (µs) one drone may spend advancing per server step          |
+| codelevel         | 1 (novice) | 2 (intermediate) | 3 (advanced) | 4 (poweruser) | description                                                    |
+|-------------------|------------|------------------|--------------|---------------|----------------------------------------------------------------|
+| pace_ms           |        250 |               15 |            0 |             0 | wait after each drone command, in milliseconds (0 = no wait)   |
+| step_budget_us    |       1000 |             2000 |         4000 |          8000 | time (µs) one drone may spend running per server step          |
+| max_runtime_s     |        300 |              300 |          600 |          1800 | total running time (s) one program gets                        |
+| max_nodes_written |        2e5 |              1e6 |          1e7 |           1e8 | nodes one program may write, and so the size of a single shape |
+| map_memory_mb     |          8 |               16 |           64 |           128 | map footprint (MB) one program may hold at once                |
+| heap_mb           |         16 |               64 |          128 |           512 | Lua heap growth (MB) one program run may cause                 |
+| max_string_mb     |          1 |                4 |           16 |            64 | size (MB) of the largest string a single call may produce      |
 
 Every limit above can be changed from the settings menu, under Mods → codeblock,
 or by setting it in `minetest.conf` — the names and formats are in
@@ -22,48 +18,75 @@ or by setting it in `minetest.conf` — the names and formats are in
 when the mod loads, so a change needs a restart, and the defaults in
 `lib/config.lua` apply to anything left unset.
 
-`max_mapblocks` bounds the one resource none of the others can see. Writing a
+Each limit stands for a resource the server actually spends: time, nodes written,
+map memory, Lua memory. Raising a codelevel buys more of each — and less waiting.
+
+`pace_ms` is the only one that is not a ceiling. The drone waits that long after
+every command, which is what makes the lower codelevels slow enough to watch a
+loop happen: a beginner sees the drone step and place, one block at a time. It
+costs the server nothing — a waiting drone is not running, and does not take a
+share of the step budget either. From codelevel 3 up it is zero and the drone
+runs as fast as the server has room for.
+
+`max_runtime_s` is the bound on a program that never finishes. It counts time the
+drone was actually advanced, not wall-clock time, so waiting for its pace and
+sharing a busy server do not eat into it. A program that runs out is stopped with
+a message. Nothing limits how many calls or commands a program makes any more:
+those were proxies for this.
+
+`max_nodes_written` is the build budget, and doubles as the largest shape a
+codelevel can place — 2e5 nodes is a 58-node cube or a radius-36 sphere, 1e8 a
+464-node cube. Neither a shape's dimensions nor the drone's distance from home is
+limited: a big shape is written in slabs of a few thousand nodes with a pause
+between them, so it is slow rather than a frozen server, and flying away costs
+map memory, which is charged below.
+
+`map_memory_mb` bounds the one resource none of the others can see. Writing a
 node needs the mapblock containing it to be in memory, so `place()` loads it
 first — without that the write silently does nothing and the build has holes.
-Loading pins a 16×16×16 block in the server's memory, and may read it from disk
-to do so. `max_memory_kb` below cannot see that, because it measures the Lua
-heap and a mapblock is not on it; `max_volume` cannot either, because a program
-that places one node per mapblock scores the minimum on volume and the maximum
-here. The count is of loads, not distinct blocks: repeated crossings are charged
-again, and a program that stays inside one block pays once. Shapes are charged
-too, for the region their single VoxelManip pass emerges.
+Loading pins a 16×16×16 block, 16 KiB, in the server's memory, and may read it
+from disk to do so. `heap_mb` cannot see that, because it measures the Lua heap
+and a mapblock is not on it; `max_nodes_written` cannot either, because a program
+that places one node per mapblock scores the minimum on nodes and the maximum
+here.
 
-`max_memory_kb` stops a program that *accumulates* memory — appending to a table
-in a loop, building an ever-longer string. It is checked when the drone yields, so
-it cannot see inside a single call. The figures are generous because the
-underlying measurement covers the whole server's Lua heap, so it is a delta from
-program start and other mods' allocations appear in it.
+It is also the one limit a program is not stopped for reaching. The engine
+unloads a mapblock nothing has touched for `server_unload_unused_data_timeout`
+(29 s by default), so the footprint drains by itself: a program over its ceiling
+is made to wait for room instead of being killed. What that bounds in practice is
+the rate — 128 MB over 29 s is about 280 mapblocks a second, against the 1700 a
+second the engine can serve — so a build spread thinly over the world slows down
+rather than failing.
 
-`max_string_bytes` covers what that cannot: one call that allocates everything at
-once. `("x"):rep(1e9)` is a single call, costs one unit against `max_calls`, and
-would allocate a gigabyte before any yield happened. Only two string methods can
-turn a small input into a large output — `rep` and `gsub` — and both refuse a
-result over this size before computing it. (`format` cannot: Lua accepts at most
-two digits of field width, so `%100d` is already rejected by the language.)
+`heap_mb` stops a program that *accumulates* memory — appending to a table in a
+loop, building an ever-longer string. It is checked when the drone yields, so it
+cannot see inside a single call. The figures are generous because the underlying
+measurement covers the whole server's Lua heap, so it is a delta from program
+start and other mods' allocations appear in it.
+
+`max_string_mb` covers what that cannot: one call that allocates everything at
+once. `("x"):rep(1e9)` is a single call and would allocate a gigabyte before any
+yield happened. Only two string methods can turn a small input into a large
+output — `rep` and `gsub` — and both refuse a result over this size before
+computing it. (`format` cannot: Lua accepts at most two digits of field width, so
+`%100d` is already rejected by the language.)
 
 Neither limit can stop a pathological Lua pattern from burning CPU inside a
 single `find` or `match` call. That is a known gap.
 
 `step_budget_us` is how long a drone may spend running its program during one
-server step. It advances repeatedly until the budget is spent, so a program goes
-as fast as the server has room for rather than being pinned to the tick rate.
-`commands_before_yield` and `calls_before_yield` therefore control *granularity* —
-how finely the work is chopped, and so how precisely the budget can be honoured —
-not throughput.
+server step. It advances repeatedly until the budget is spent, so throughput
+follows the headroom the server has spare rather than the tick rate.
 
-`step_budget_us` is a cap rather than an allowance. What a drone actually gets is
-the smaller of it and an equal share of `codeblock_server_step_budget_us`,
-16000 µs by default, divided among the drones currently running. So the server's
-cost does not grow with the number of players: a second drone halves the share
-rather than doubling the bill.
+It is a cap rather than an allowance. What a drone actually gets is the smaller of
+it and an equal share of `codeblock_server_step_budget_us`, 16000 µs by default,
+divided among the drones currently running. So the server's cost does not grow
+with the number of players: a second drone halves the share rather than doubling
+the bill.
 
-One limit worth knowing: the budget is checked between drone commands and never
-inside one, so a single long call — a large shape, for instance — overshoots it.
+One limit worth knowing: the budget is checked between drone commands and between
+the slabs of a shape, never inside one, so a single slab — a few thousand nodes,
+around 10 ms — overshoots it.
 
 # Chat commands
 

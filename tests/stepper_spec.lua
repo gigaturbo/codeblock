@@ -35,8 +35,13 @@ end
 --------------------------------------------------------------------------------
 
 local clock = 0
-local cost_per_resume = 100 -- microseconds of pretend work
+local cost_per_call = 4 -- microseconds of pretend work per instrumented call
 local guard_enters, guard_leaves = 0, 0
+
+--- A real budget for `auth_level`, as lib/drone.lua builds one per run.
+local function new_budget(auth_level)
+    return codeblock.limits.new(codeblock.config, auth_level, clock)
+end
 
 local real_deps = stepper.set_deps({
     now = function() return clock end,
@@ -44,8 +49,8 @@ local real_deps = stepper.set_deps({
     guard_leave = function() guard_leaves = guard_leaves + 1 end
 })
 
--- The clock only moves when a resume happens, so advance() sees time pass
--- exactly as if each resume took cost_per_resume.
+-- The clock only moves when the program makes an instrumented call, so advance()
+-- sees time pass exactly as if each call took cost_per_call.
 local function make_drone(src, auth_level)
     local drone = {
         name = 'stepper_test',
@@ -53,8 +58,8 @@ local function make_drone(src, auth_level)
         auth_level = auth_level or 4,
         calls = 0,
         commands = 0,
-        volume = 0,
-        checkpoints = {}
+        checkpoints = {},
+        budget = new_budget(auth_level or 4)
     }
 
     local chunk = assert(loadstring(preprocess.preprocess_code(src)),
@@ -65,7 +70,7 @@ local function make_drone(src, auth_level)
         print = api.print,
         error = api.error,
         use_call = function()
-            clock = clock + cost_per_resume
+            clock = clock + cost_per_call
             use_call(drone)
         end
     }, '_G')
@@ -80,30 +85,34 @@ end
 --------------------------------------------------------------------------------
 
 do
-    -- Codelevel 1 deliberately, because calls_before_yield is 1 there: every
-    -- injected counter call yields, so one resume costs exactly one
-    -- cost_per_resume and the arithmetic below is checkable. At codelevel 4 the
-    -- budget yields every 600th call, so a single resume charges 600 units and
-    -- overruns any sensible budget on its own - which is a real property worth
-    -- knowing, and is asserted separately further down.
-    local drone = make_drone('for i = 1, 100000 do end\n', 1)
+    local drone = make_drone('for i = 1, 100000 do end\n', 4)
+
+    -- What one resume costs is measured rather than assumed: the counter yields
+    -- every so many calls, and that cadence is a constant inside
+    -- lib/commands.lua. A budget of 1 buys exactly one resume, so the clock says
+    -- what a resume is worth, whatever the constant becomes.
+    clock = 0
+    stepper.advance(drone, 1)
+    local per_resume = clock
+    it('a resume is a run of instrumented calls', (per_resume > cost_per_call),
+       true)
 
     clock = 0
-    local resumes = stepper.advance(drone, 1000, 1024 * 1024)
+    local resumes = stepper.advance(drone, per_resume * 10)
     it('one step does more than a single resume', (resumes > 1), true)
 
-    -- The old behaviour was exactly one. With 100us per resume and a 1000us
-    -- budget, ten resumes fit; the eleventh check sees the budget spent.
+    -- The old behaviour was exactly one resume per step, however long the step
+    -- had left.
     it('and about as many as the budget pays for', resumes, 10)
 
     -- Twice the budget, twice the work: throughput follows the allowance rather
     -- than the tick rate, which is the whole claim of A5.
     clock = 0
-    local more = stepper.advance(drone, 2000, 1024 * 1024)
+    local more = stepper.advance(drone, per_resume * 20)
     it('doubling the budget doubles the work', more, 20)
 
     clock = 0
-    local less = stepper.advance(drone, 300, 1024 * 1024)
+    local less = stepper.advance(drone, per_resume * 3)
     it('a small budget does proportionally less', less, 3)
 end
 
@@ -137,18 +146,18 @@ end
 do
     local drone = make_drone('for i = 1, 100000 do end\n', 1)
     clock = 0
-    local _, outcome = stepper.advance(drone, 500, 1024 * 1024)
+    local _, outcome = stepper.advance(drone, 500)
     it('an unfinished program yields', outcome, 'yielded')
 end
 
--- The budget is checked between resumes, never inside one, so a resume that
--- runs long overshoots it. At codelevel 4 that is the normal case rather than an
--- edge one: 600 calls pass before the program yields. Asserted so the limitation
--- is recorded rather than discovered later.
+-- The budget is checked between resumes, never inside one, so a resume that runs
+-- long overshoots it - a run of instrumented calls happens before the program
+-- yields, whatever is left of the slice. Asserted so the limitation is recorded
+-- rather than discovered later.
 do
     local drone = make_drone('for i = 1, 100000 do end\n', 4)
     clock = 0
-    local resumes = stepper.advance(drone, 100, 1024 * 1024)
+    local resumes = stepper.advance(drone, 100)
     it('a long resume still runs to its own yield point', resumes, 1)
     it('overshooting the budget rather than interrupting it', (clock > 100), true)
 end
@@ -157,14 +166,14 @@ do
     -- short enough to finish inside one step
     local drone = make_drone('local x = 0\nfor i = 1, 3 do x = x + 1 end\n', 4)
     clock = 0
-    local _, outcome = stepper.advance(drone, 1000000, 1024 * 1024)
+    local _, outcome = stepper.advance(drone, 1000000)
     it('a finished program reports completed', outcome, 'completed')
 end
 
 do
     local drone = make_drone('for i = 1, 10 do end\nerror("boom")\n', 4)
     clock = 0
-    local _, outcome, err = stepper.advance(drone, 1000000, 1024 * 1024)
+    local _, outcome, err = stepper.advance(drone, 1000000)
     it('a failing program reports error', outcome, 'error')
     it('and carries the message',
        (err ~= nil and tostring(err):find('boom', 1, true) ~= nil), true)
@@ -174,11 +183,77 @@ do
     -- a completed coroutine, advanced again
     local drone = make_drone('local x = 1\n', 4)
     clock = 0
-    stepper.advance(drone, 1000000, 1024 * 1024)
+    stepper.advance(drone, 1000000)
     clock = 0
-    local resumes, outcome = stepper.advance(drone, 1000, 1024 * 1024)
+    local resumes, outcome = stepper.advance(drone, 1000)
     it('advancing a finished program resumes nothing', resumes, 0)
     it('and still reports completed', outcome, 'completed')
+end
+
+--------------------------------------------------------------------------------
+-- sleeping: the pace, and waiting for map memory
+--
+-- Both work the same way - the drone says when it wants to run again as it
+-- yields - so both are covered by driving wake_at directly.
+--------------------------------------------------------------------------------
+
+do
+    local drone = make_drone('for i = 1, 100000 do end\n', 4)
+
+    -- Sleeps for 5ms every time it is resumed.
+    drone.cor = coroutine.create(function()
+        while true do
+            drone.wake_at = clock + 5000
+            coroutine.yield()
+        end
+    end)
+
+    clock = 0
+    local resumes = stepper.advance(drone, 1000000)
+    it('a drone that sleeps ends the step there', resumes, 1)
+    it('however much of the slice was left', (clock < 1000000), true)
+
+    local asleep = stepper.advance(drone, 1000000)
+    it('and is not resumed while it sleeps', asleep, 0)
+    it('nor charged for the step', drone.budget.used.runtime, 0)
+
+    clock = 5000
+    it('but runs again once it is due', (stepper.advance(drone, 1) == 1), true)
+    it('a drone with no wake-up time is always due',
+       stepper.awake(make_drone('local x = 1\n', 4)), true)
+end
+
+--------------------------------------------------------------------------------
+-- running time: the bound on a program that never finishes
+--
+-- Nothing limits how many calls or commands a program makes any more. What it
+-- spends is time, charged here as time actually advanced - so a drone that slept,
+-- or one on a server too busy to run it, is not charged for being slow.
+--------------------------------------------------------------------------------
+
+do
+    local drone = make_drone('for i = 1, 1e9 do end\n', 4)
+    clock = 0
+
+    stepper.advance(drone, 1000)
+    local first = drone.budget.used.runtime
+    it('a step charges the time it spent', (first > 0), true)
+
+    stepper.advance(drone, 1000)
+    it('and the next one adds to it', (drone.budget.used.runtime > first), true)
+
+    -- An endless program against a ceiling it has nearly reached: the next step
+    -- takes it over and it is stopped rather than yielding again.
+    drone.budget.caps.runtime = drone.budget.used.runtime + 1
+    local _, outcome = stepper.advance(drone, 1000)
+    it('a program out of running time reports timeout', outcome, 'timeout')
+
+    -- A program that finishes on the step that runs it out is reported as having
+    -- finished: it did.
+    local short = make_drone('local x = 1\n', 4)
+    short.budget.caps.runtime = 1
+    local _, done = stepper.advance(short, 1000)
+    it('but finishing wins over running out', done, 'completed')
 end
 
 --------------------------------------------------------------------------------
@@ -192,7 +267,7 @@ do
     local drone = make_drone('for i = 1, 100000 do end\n', 4)
     guard_enters, guard_leaves = 0, 0
     clock = 0
-    stepper.advance(drone, 1000, 1024 * 1024)
+    stepper.advance(drone, 1000)
     it('armed once for the whole step', guard_enters, 1)
     it('released once', guard_leaves, 1)
 
@@ -200,7 +275,7 @@ do
     local bad = make_drone('error("boom")\n', 4)
     guard_enters, guard_leaves = 0, 0
     clock = 0
-    stepper.advance(bad, 1000, 1024 * 1024)
+    stepper.advance(bad, 1000)
     it('released even when the program raises', guard_leaves, 1)
     it('armed exactly once on that path too', guard_enters, 1)
 end
