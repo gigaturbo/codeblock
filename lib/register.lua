@@ -9,7 +9,9 @@ local chat_send_player = minetest.chat_send_player
 local drone_on_run = codeblock.Drone.on_run
 local drone_on_place = codeblock.Drone.on_place
 local drone_on_remove = codeblock.Drone.on_remove
-local drone_show_file_editor_form = codeblock.Drone.show_file_editor_form
+
+local show_file_editor = codeblock.formspecs.file_editor.show
+local show_file_chooser = codeblock.formspecs.file_chooser.show
 
 local check_auth_level = codeblock.utils.check_auth_level
 local parse_target = codeblock.utils.parse_target
@@ -92,7 +94,10 @@ minetest.register_tool("codeblock:poser", {
     on_place = function(itemstack, placer, pointed_thing)
         local name = placer:get_player_name()
         local pos = get_pointed_thing_position(pointed_thing)
-        drone_on_place(name, pos)
+        -- The drone decides whether a file still has to be picked; the form
+        -- layer is asked for it from here, so lib/drone.lua need not know it
+        -- exists. (A11)
+        if drone_on_place(name, pos) then show_file_chooser(name) end
         return itemstack
     end,
     on_secondary_use = function() end
@@ -111,12 +116,12 @@ minetest.register_tool("codeblock:setter", {
     end,
     on_place = function(itemstack, placer)
         local name = placer:get_player_name()
-        drone_show_file_editor_form(name)
+        show_file_editor(name)
         return itemstack
     end,
     on_secondary_use = function(itemstack, user)
         local name = user:get_player_name()
-        drone_show_file_editor_form(name)
+        show_file_editor(name)
         return itemstack
     end
 })

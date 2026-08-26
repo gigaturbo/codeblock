@@ -8,11 +8,13 @@ local S = codeblock.S
 
 local tcik = codeblock.utils.table_convert_ik
 local scroll_max = codeblock.utils.scroll_max
+local split = codeblock.utils.split
 
 local formspec_escape = minetest.formspec_escape
 local chat_send_player = minetest.chat_send_player
 local close_form = codeblock.forms.close
 local update_form = codeblock.forms.update
+local show_form = codeblock.forms.show
 local explode_textlist_event = minetest.explode_textlist_event
 local get_player_by_name = minetest.get_player_by_name
 
@@ -40,6 +42,70 @@ local set_file = codeblock.Drone.set_file
 -- file_editor
 
 local file_editor = {
+
+    --- Open the editor for `name`, restoring the tabs it was left with.
+    --
+    -- A tab whose file has since gone is dropped silently; one that fails to
+    -- read is reported and skipped, so a single bad file cannot cost the player
+    -- the rest of the session.
+    show = function(name)
+
+        local ud = get_user_data(name, true)
+
+        -- load saved state
+        local tabs = {}
+        local contents = {}
+        local active = 0
+        local soe = false
+        local loe = false
+        local sos = false
+        local player = get_player_by_name(name)
+        if player then
+            local meta = player:get_meta()
+            -- Converted to booleans here, at the persistence boundary.
+            -- These used to be carried around as the 0/1 that get_int
+            -- returns and then tested with `if meta.sos then`, which is
+            -- always true in Lua - 0 is truthy - so both checkboxes were
+            -- permanently on whatever the player ticked.
+            soe = meta:get_int('codeblock:save_on_exit') == 1
+            loe = meta:get_int('codeblock:load_on_exit') == 1
+            sos = meta:get_int('codeblock:save_on_switch') == 1
+            local saved_active =
+                meta:get_string('codeblock:editor_state_active')
+            local saved_tabs = meta:get_string('codeblock:editor_state_tabs')
+            for _, filename in ipairs(split(saved_tabs, ',')) do
+                if ud.ftp[filename] then
+                    local content, err = read_file(name, filename, true)
+                    if err then
+                        chat_send_player(name, err)
+                    else
+                        table.insert(tabs, filename)
+                        table.insert(contents, content)
+                        if filename == saved_active then active = #tabs end
+                    end
+                end
+            end
+        end
+
+        local meta = {
+            name = name,
+            tabs = tabs,
+            contents = contents,
+            active = active,
+            help = 'cubes',
+            scroll_c = 0,
+            scroll_p = 0,
+            scroll_w = 0,
+            soe = soe,
+            loe = loe,
+            sos = sos,
+            newfile = ''
+        }
+        show_form(name, 'codeblock:file_editor', meta,
+                  codeblock.formspecs.file_editor.get_form(meta),
+                  codeblock.formspecs.file_editor.on_close)
+
+    end,
 
     get_form = function(meta)
 
@@ -397,6 +463,14 @@ local file_editor = {
 -- file_chooser
 
 local file_chooser = {
+
+    --- Ask `name` which of their files the drone should run.
+    show = function(name)
+        local meta = {name = name, selectedIndex = 0}
+        show_form(name, 'codeblock:file_chooser', meta,
+                  codeblock.formspecs.file_chooser.get_form(meta),
+                  codeblock.formspecs.file_chooser.on_close)
+    end,
 
     get_form = function(meta)
         local files_txt = {}

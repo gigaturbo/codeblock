@@ -206,6 +206,52 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- the drone seam (A11)
+--
+-- Nothing here can place a drone: the specs run at mod load, before a map
+-- exists, so add_entity and everything downstream of it is unreachable. What is
+-- reachable is the shape of the seam, and that is worth pinning, because every
+-- name across it is looked up by string at load time and a rename would go
+-- unnoticed until a player clicked something.
+--
+-- The entity holds the owner's *name*, never the record: a cached table is what
+-- B11 was, and what made teardown depend on two files agreeing.
+--------------------------------------------------------------------------------
+
+do
+    local Drone = codeblock.Drone
+    local entity = codeblock.DroneEntity
+
+    local missing = {}
+    for _, name in ipairs({
+        'new', 'get', 'set', 'remove', 'on_place', 'on_run', 'on_remove',
+        'on_step', 'on_lost', 'finish', 'set_file'
+    }) do
+        if type(Drone[name]) ~= 'function' then missing[#missing + 1] = name end
+    end
+    it('the drone record owns state, lifecycle and completion',
+       table.concat(missing, ','), '')
+
+    -- Bound as locals in lib/register.lua, so a wrong name is nil there and
+    -- raises only when the tool is used.
+    it('the editor is opened through the form layer',
+       type(codeblock.formspecs.file_editor.show), 'function')
+    it('so is the file chooser',
+       type(codeblock.formspecs.file_chooser.show), 'function')
+    it('and the drone no longer builds forms',
+       Drone.show_file_editor_form or Drone.show_set_file_form, nil)
+
+    -- Directly on the prototype, not behind a metatable of this mod's own:
+    -- register_entity makes the definition the luaentity's metatable with
+    -- __index pointing at itself. (A6)
+    it('the entity defines its callbacks on the prototype',
+       type(rawget(entity, 'on_step')), 'function')
+    it('and is told its owner on activation',
+       type(rawget(entity, 'on_activate')), 'function')
+    it('the entity caches no drone', rawget(entity, '_data'), nil)
+end
+
+--------------------------------------------------------------------------------
 -- the limits survive the settings layer (C7)
 --
 -- lib/config.lua now reads settingtypes.txt over its defaults, applying the
