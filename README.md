@@ -7,6 +7,10 @@ CodeBlock
 
 **CodeBlock allows to use `lua` code in Minetest to build anything you want**
 
+A drone you program in Lua, an in-game editor, a sandbox and a documented API. It works in any game that provides the blocks it places, and it depends on [vector3](https://content.minetest.net/packages/giga-turbo/vector3/). The [Codecube](https://content.minetest.net/packages/giga-turbo/codecube/) game bundles it with a flat world and settings made for it, which is the easiest way to try it.
+
+**The reference is [`doc/api.md`](https://github.com/gigaturbo/codeblock/blob/master/doc/api.md#lua-api)**, generated from `lib/api.lua` and therefore always describing the API this mod actually has. The same source builds the help panel in the editor.
+
 **License:** AGPLv3   
 **Credits:** inspired by [Gnancraft](http://gnancraft.net/), [ComputerCraft](http://www.computercraft.info/), [Visual Bots](https://content.minetest.net/packages/Nigel/vbots/), [TurtleMiner](https://content.minetest.net/packages/BirgitLachner/turtleminer/), [basic_robot](https://github.com/ac-minetest/basic_robot)
 

@@ -49,10 +49,15 @@ relying on.
 - [x] The drone now advances for a time budget each server step instead of exactly one coroutine resume (new `step_budget_us`)
 - [x] Fixed a runtime error reporting twice and leaving the coroutine attached
 - [x] Generated `doc/api.md` and the in-game help from `lib/api.lua`, which also builds the sandbox environment
+- [x] Removed `doc/commands.md` and `scripts/gen_api_html.sh`, a superseded documentation pipeline nothing referenced. The in-game help is generated at runtime from `lib/api.lua`, and the written reference is `doc/api.md`
+- [x] Removed `doc/api.html` and `scripts/gen_doc_html.sh` as well, the second half of that pipeline. Nothing referenced either, and the README sends the reader to `doc/api.md`
+- [x] The ContentDB release archive now holds only what the mod needs at runtime, plus the `README.md` and `doc/api.md` a player is told to read. Excluded: hidden files, `tests/`, `scripts/`, the project record, the 8.9 MB screenshot gallery, `doc/*.png` and the GIMP sources - `textures/*.xcf` were shipping inside the archive and no longer do. 1.60 MB down to 1.42 MB. `screenshot.png` is kept deliberately: Luanti shows it in the main menu's Mods tab
+- [x] This mod is now versioned and released on its own cadence: the Codecube game adopts a tagged release rather than following every commit here. Added `ROADMAP.md` alongside `TODO.md` and `CHANGELOG.md`, so the mod's plan is readable without the game
 - [ ] Known: `heap_mb` cannot stop one huge allocation; a pathological Lua pattern can still burn CPU inside a single `find` or `match`
 - [ ] Known: the step budget is checked between drone commands and between the slabs of a shape, never inside one, so a single slab - a few thousand nodes, around 10 ms - still overshoots it
 - [ ] Known: the map footprint decays linearly over the unload window rather than tracking each block, so it is an estimate of what is resident, not a measurement
 - [ ] Known: `place()` still writes one node per call and is not batched, unlike the four bulk shapes
+- [ ] Known: nothing in CI checks `.gitattributes`, so a file added to this repository ships inside the release archive unless a rule excludes it, and nothing fails locally when one does
 
 # v0.7.0
 

@@ -1,5 +1,29 @@
+# Keep the ContentDB release archive to what the mod needs at runtime, plus the
+# documents a player actually reads. export-ignore is ContentDB's documented
+# exclusion mechanism for Git-created releases.
+
+# Hidden files and directories: .github, .luacheckrc, .luarc.json,
+# .editorconfig, .cdb.json. ContentDB reads .cdb.json from the repository, not
+# from the archive, so excluding it costs nothing.
 .*              export-ignore
 *.zip           export-ignore
+
+# Development only. The specs need an engine or a standalone interpreter, and
+# the scripts regenerate files that are committed.
+tests/**        export-ignore
+scripts/**      export-ignore
+CLAUDE.md       export-ignore
+ROADMAP.md      export-ignore
 TODO.md         export-ignore
+
+# 8.9 MB of gallery images, and the two icons the README pulls from GitHub by
+# absolute URL rather than from the archive. doc/api.md stays: the shipped
+# README tells the player to read it.
 screenshots/**  export-ignore
-screenshot.png
+doc/*.png       export-ignore
+
+# Shown in the main menu's Mods tab, so it must survive the rules above.
+screenshot.png  -export-ignore
+
+# GIMP sources for the textures that ship beside them as PNG.
+*.xcf           export-ignore
