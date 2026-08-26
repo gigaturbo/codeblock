@@ -4,7 +4,7 @@ codeblock.examples = {}
 -- local
 -------------------------------------------------------------------------------
 
-local get_dir_list = minetest.get_dir_list
+local get_dir_list = core.get_dir_list
 local path_join = codeblock.utils.path_join
 local examples_path = path_join(codeblock.modpath, 'lib', 'examples')
 
@@ -27,7 +27,7 @@ local function read_examples_at_init()
         local file = io.open(path_join(examples_path, filename), 'rb')
 
         if not file then
-            minetest.log('warning',
+            core.log('warning',
                          '[codeblock] cannot read example ' .. filename)
         else
             local content = file:read('*a')

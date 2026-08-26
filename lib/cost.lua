@@ -22,9 +22,9 @@ codeblock.cost = {}
 
 local floor = math.floor
 
-local set_node = minetest.set_node
-local load_area = minetest.load_area
-local get_us_time = minetest.get_us_time
+local set_node = core.set_node
+local load_area = core.load_area
+local get_us_time = core.get_us_time
 
 local S = codeblock.S
 local charge = codeblock.limits.charge

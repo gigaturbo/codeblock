@@ -27,8 +27,8 @@ local S = codeblock.S
 local pi = math.pi
 local floor = math.floor
 
-local chat_send_player = minetest.chat_send_player
-local get_player_by_name = minetest.get_player_by_name
+local chat_send_player = core.chat_send_player
+local get_player_by_name = core.get_player_by_name
 
 local check_auth_level = codeblock.utils.check_auth_level
 
@@ -81,10 +81,10 @@ local instance_mt = {
     -- budget display, as a share of the budget.
     __tostring = function(self)
         local used = self.budget and self.budget.used or {}
-        local started = self.tstart or minetest.get_us_time()
+        local started = self.tstart or core.get_us_time()
         return S('commands:@1 nodes:@2 duration:@3s', self.commands,
                  used.nodes or 0, ('%.2f'):format(
-                     (minetest.get_us_time() - started) / 1e6))
+                     (core.get_us_time() - started) / 1e6))
     end
 }
 
@@ -101,7 +101,7 @@ local drone_mt = {
                            type(pos.z) == 'number'), 'Wrong parameters')
             local suc, auth_level = check_auth_level(auth_level)
             if not suc then
-                minetest.get_player_by_name(name):get_meta():set_int(
+                get_player_by_name(name):get_meta():set_int(
                     'codeblock:auth_level', codeblock.config.default_auth_level)
             end
 
@@ -117,7 +117,7 @@ local drone_mt = {
             -- the placer tool reaches 128 nodes, so a player can comfortably
             -- point past loaded ground. Without an entity nothing would ever
             -- step the program, so no record is created either. (B10)
-            local obj = minetest.add_entity(pos, 'codeblock:drone', name)
+            local obj = core.add_entity(pos, 'codeblock:drone', name)
             if obj == nil then
                 return nil, S('Cannot place the drone there, move closer')
             end
@@ -251,7 +251,7 @@ local drone_mt = {
             -- get_us_time, not os.clock: os.clock is the server process's CPU
             -- time on POSIX, so on a real server it counts everything the
             -- server does and is not the wall clock the player is watching.
-            drone.tstart = minetest.get_us_time()
+            drone.tstart = core.get_us_time()
             -- Baseline for the heap-growth guard in commands.use_call.
             -- collectgarbage('count') is server-wide, so only the delta from
             -- here is meaningful, and even that is approximate.
@@ -260,7 +260,7 @@ local drone_mt = {
             -- included. Fresh per run, so nothing carries over from the last.
             drone.budget = codeblock.limits.new(codeblock.config,
                                                 drone.auth_level,
-                                                minetest.get_us_time())
+                                                core.get_us_time())
             drone.calls, drone.commands = 0, 0
             drone.wake_at = nil
             drone.cor = res
@@ -352,7 +352,7 @@ local drone_mt = {
             elseif outcome == 'blocked' then
                 -- Should not be reachable: a coroutine is suspended or dead
                 -- while a drone holds it. Reported rather than spun on.
-                minetest.log('warning',
+                core.log('warning',
                              '[codeblock] drone ' .. tostring(name) ..
                                  ' coroutine is neither suspended nor dead')
 

@@ -20,8 +20,8 @@ local abs = math.abs
 local pi = math.pi
 local upper = string.upper
 
-local chat_send_player = minetest.chat_send_player
-local get_node = minetest.get_node
+local chat_send_player = core.chat_send_player
+local get_node = core.get_node
 
 local build = codeblock.shapes.build
 
@@ -44,7 +44,7 @@ local blocks = codeblock.config.allowed_blocks.all
 -- What replaced max_distance. Distance from spawn was never the resource - the
 -- map footprint is, and that is charged where it is taken - and as a rule it
 -- confused players, who could see a build they were not allowed to fly to.
-local world_edge = tonumber(minetest.settings:get('mapgen_limit')) or 31000
+local world_edge = tonumber(core.settings:get('mapgen_limit')) or 31000
 
 local tmp1 = 2 * pi
 local tmp2 = pi / 2

@@ -21,11 +21,11 @@ codeblock.filesystem = {}
 
 local S = codeblock.S
 
-local get_dir_list = minetest.get_dir_list
-local safe_file_write = minetest.safe_file_write
-local mkdir = minetest.mkdir
+local get_dir_list = core.get_dir_list
+local safe_file_write = core.safe_file_write
+local mkdir = core.mkdir
 local path_join = codeblock.utils.path_join
-local data_path = path_join(minetest.get_worldpath(), codeblock.config.lua_dir)
+local data_path = path_join(core.get_worldpath(), codeblock.config.lua_dir)
 
 -------------------------------------------------------------------------------
 -- private
