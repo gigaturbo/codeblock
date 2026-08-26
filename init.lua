@@ -1,4 +1,4 @@
-﻿codeblock = {modpath = minetest.get_modpath('codeblock')}
+﻿codeblock = {modpath = core.get_modpath('codeblock')}
 
 dofile(codeblock.modpath .. "/lib/intl.lua")
 dofile(codeblock.modpath .. "/lib/config.lua")
@@ -29,11 +29,11 @@ dofile(codeblock.modpath .. "/lib/register.lua")
 -- Inert until a player program is actually running; see lib/strguard.lua.
 local ok, why = codeblock.strguard.install()
 if not ok then
-    minetest.log("warning", "[codeblock] string guards not installed: " ..
+    core.log("warning", "[codeblock] string guards not installed: " ..
                      tostring(why))
 end
 
-if not minetest.mkdir(codeblock.filesystem.data_path) then
+if not core.mkdir(codeblock.filesystem.data_path) then
     error("[editor] failed to create directory!")
 end
 
@@ -47,9 +47,9 @@ end
 -- writes are not. Copy the result over doc/api.md. Slightly manual, but it
 -- beats requiring a Lua toolchain, and CI's `gen_docs.lua --check` catches it if
 -- the copy is forgotten.
-if minetest.settings:get_bool("codeblock_gen_docs") then
+if core.settings:get_bool("codeblock_gen_docs") then
     local source = codeblock.modpath .. "/doc/api.md"
-    local path = minetest.get_worldpath() .. "/api.md"
+    local path = core.get_worldpath() .. "/api.md"
     local current = ""
     local f = io.open(source, "rb")
     if f then
@@ -89,14 +89,27 @@ end
 
 -- Run the test suite in-engine when asked. Mirrors worldedit_run_tests, and
 -- means the specs are runnable without a Lua toolchain installed.
-if minetest.settings:get_bool("codeblock_run_tests") then
-    dofile(codeblock.modpath .. "/tests/api_spec.lua")
-    dofile(codeblock.modpath .. "/tests/preprocess_spec.lua")
-    dofile(codeblock.modpath .. "/tests/env_spec.lua")
-    dofile(codeblock.modpath .. "/tests/shapes_spec.lua")
-    dofile(codeblock.modpath .. "/tests/strguard_spec.lua")
-    dofile(codeblock.modpath .. "/tests/limits_spec.lua")
-    dofile(codeblock.modpath .. "/tests/forms_spec.lua")
-    dofile(codeblock.modpath .. "/tests/stepper_spec.lua")
-    dofile(codeblock.modpath .. "/tests/integration_spec.lua")
+--
+-- Nothing is assumed to be there: `tests export-ignore` in .gitattributes keeps
+-- the specs out of the ContentDB archive, so in a release build this setting
+-- would take the whole mod down on a missing file. It says so instead. (C16)
+if core.settings:get_bool("codeblock_run_tests") then
+
+    local specs = {
+        'api', 'preprocess', 'env', 'shapes', 'strguard', 'limits', 'forms',
+        'stepper', 'integration'
+    }
+
+    local first = io.open(codeblock.modpath .. '/tests/api_spec.lua', 'r')
+
+    if not first then
+        core.log('warning', '[codeblock] codeblock_run_tests is set, but this ' ..
+                     'build ships no tests/ directory')
+    else
+        first:close()
+        for _, spec in ipairs(specs) do
+            dofile(codeblock.modpath .. '/tests/' .. spec .. '_spec.lua')
+        end
+    end
+
 end

@@ -6,8 +6,11 @@
 -- bulk shape is lib/shapes.lua's. This file is the arithmetic in between - how a
 -- drone-relative instruction becomes world coordinates.
 --
--- Errors raised here use level 3: this function, the sandbox closure, and then
--- the player's own line.
+-- Errors raised from a command use level 3: this function, the sandbox closure,
+-- and then the player's own line. A helper the commands share raises one level
+-- further for each frame it sits below them - 4 from placement() and from a
+-- command checking the world edge itself, 5 through move_by. Miscount and the
+-- player's line number vanishes from the message. (B28)
 
 codeblock.commands = {}
 
@@ -46,7 +49,6 @@ local blocks = codeblock.config.allowed_blocks.all
 -- confused players, who could see a build they were not allowed to fly to.
 local world_edge = tonumber(core.settings:get('mapgen_limit')) or 31000
 
-local tmp1 = 2 * pi
 local tmp2 = pi / 2
 local tmp3 = 4 / 3 * pi
 local tmp4 = 2 / 3 * pi
@@ -72,9 +74,16 @@ local rotate = {
 }
 
 --- Keep the drone inside the world; see world_edge above.
-local function check_inside_world(x, y, z)
+--
+-- `level` is how many frames up the player's line is, and differs by caller:
+-- 4 from a command that checks directly, 5 from one that goes through move_by,
+-- which is one frame deeper. Get it wrong and the message loses its line
+-- number, which is the only thing telling the player where they went wrong.
+-- (B28)
+local function check_inside_world(x, y, z, level)
     if abs(x) > world_edge or abs(y) > world_edge or abs(z) > world_edge then
-        error(S('The drone cannot leave the world (@1 nodes)', world_edge), 4)
+        error(S('The drone cannot leave the world (@1 nodes)', world_edge),
+              level)
     end
 end
 
@@ -117,7 +126,7 @@ local function move_by(drone, x, y, z)
     local dx, dy, dz = rotate[drone:angle()](x, y, z)
     drone.x, drone.y, drone.z = drone.x + dx, drone.y + dy, drone.z + dz
 
-    check_inside_world(drone.x, drone.y, drone.z)
+    check_inside_world(drone.x, drone.y, drone.z, 5)
     drone:update_entity()
     end_command(drone)
 
@@ -145,11 +154,16 @@ local function drone_up(drone, n) move_by(drone, 0, steps(n), 0) end
 local function drone_down(drone, n) move_by(drone, 0, -steps(n), 0) end
 
 --- Turn by whole quarter-turns, anticlockwise seen from above.
+--
+-- Counted in quarter-turns and multiplied back into radians once, rather than
+-- added in radians and wrapped: quarters * pi/2 does not land on an exact
+-- multiple of pi/2 for a large count, and the drift accumulated in dir until
+-- the wrap stopped happening. (B27)
 local function turn_by(drone, quarters)
 
     assert(drone, S("Error, drone does not exist"))
 
-    drone.dir = (drone.dir + quarters * tmp2) % tmp1
+    drone.dir = (round0(drone.dir / tmp2) + quarters) % 4 * tmp2
 
     drone:update_entity()
     end_command(drone)
@@ -195,7 +209,7 @@ local function drone_place_relative(drone, x, y, z, block, chkpt)
     drone.x, drone.y, drone.z = cp.x + dx, cp.y + dy, cp.z + dz
     drone.dir = cp.dir
 
-    check_inside_world(drone.x, drone.y, drone.z)
+    check_inside_world(drone.x, drone.y, drone.z, 4)
 
     drone:update_entity()
     place_block(drone, drone.x, drone.y, drone.z, real_block)
@@ -537,7 +551,7 @@ local function drone_goto_checkpoint(drone, chkpt, x, y, z)
     local dx, dy, dz = rotate[drone:angle()](x, y, z)
     drone.x, drone.y, drone.z = cp.x + dx, cp.y + dy, cp.z + dz
 
-    check_inside_world(drone.x, drone.y, drone.z)
+    check_inside_world(drone.x, drone.y, drone.z, 4)
     drone:update_entity()
     end_command(drone)
 

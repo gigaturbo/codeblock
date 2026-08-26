@@ -48,7 +48,20 @@ $world = Join-Path $env:TEMP ("cb_test_" + [guid]::NewGuid().ToString("N").Subst
 $out   = "$world.out"
 $err   = "$world.err"
 
-Add-Content -Path $uconf -Encoding utf8 -Value "codeblock_run_tests = true"
+# Both edits to the user's config go through .NET rather than the PowerShell
+# cmdlets. In Windows PowerShell 5.1 `-Encoding utf8` means UTF-8 *with* a BOM,
+# and Luanti's parser trims whitespace but not a BOM, so Set-Content silently
+# kills whatever setting is on the first line - which it did to a real config
+# here. Reading with ReadAllText also strips a BOM already present. (B31)
+#
+# Add-Content would join the setting onto the last line when the file does not
+# end in a newline, making it part of another setting's value. (B32)
+$utf8 = New-Object System.Text.UTF8Encoding $false
+
+$before = [IO.File]::ReadAllText($uconf)
+if ($before.Length -gt 0 -and -not $before.EndsWith("`n")) { $before += "`r`n" }
+[IO.File]::WriteAllText($uconf, $before + "codeblock_run_tests = true`r`n", $utf8)
+
 try {
     $p = Start-Process -FilePath $Exe -PassThru -NoNewWindow `
         -ArgumentList @("--server", "--gameid", "cbtest", "--world", $world) `
@@ -58,9 +71,9 @@ try {
     Start-Sleep -Seconds 2
 }
 finally {
-    (Get-Content $uconf) |
-        Where-Object { $_ -notmatch '^codeblock_run_tests' } |
-        Set-Content $uconf -Encoding utf8
+    $kept = @([IO.File]::ReadAllLines($uconf) |
+        Where-Object { $_ -notmatch '^codeblock_run_tests' })
+    [IO.File]::WriteAllLines($uconf, $kept, $utf8)
 }
 
 # --- report -------------------------------------------------------------------

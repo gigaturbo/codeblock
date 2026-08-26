@@ -45,7 +45,6 @@ local max_runtime_s = codeblock.config.max_runtime_s
 local server_step_budget_us = codeblock.config.server_step_budget_us
 
 local tmp1 = 2 / pi
-local tmp2 = 2 * pi
 local tmp3 = pi / 2
 local tmp4 = pi / 4
 
@@ -71,7 +70,12 @@ local instance_mt = {
             end
         end,
 
-        angle = function(self) return tmp1 * (self.dir % tmp2) end
+        -- Which quarter-turn the drone faces, 0 to 3, as an integer fit to
+        -- index a table with. Rounded rather than scaled, because dir is a
+        -- float and the arithmetic that produces it does not land on an exact
+        -- multiple of pi/2: turn(1000) left it a hair under 2*pi, so the wrap
+        -- did not happen and the old expression gave 4. (B27)
+        angle = function(self) return floor(self.dir / tmp3 + .5) % 4 end
 
     },
 
@@ -316,13 +320,28 @@ local drone_mt = {
 
         end,
 
-        --- The entity went away under a running program: unloaded, or removed
-        -- by anything other than Drone.remove, which clears the record first.
-        on_lost = function(name)
+        --- The entity went away: unloaded, or removed by anything other than
+        -- Drone.remove, which clears the record first.
+        --
+        -- `obj` is the object that went, and the record is only the one it
+        -- belongs to if they match. ObjectRef:remove() takes effect at the end
+        -- of the step, so an entity taken away can fire this after a
+        -- replacement drone has already been installed under the same name -
+        -- and without the check, replacing a drone would destroy the new one.
+        -- (B29)
+        on_lost = function(name, obj)
 
             local drone = Drone.get(name)
 
-            if drone == nil then return end
+            if drone == nil or drone.obj ~= obj then return end
+
+            -- Nothing was running, so there is nothing to announce the end of:
+            -- a drone parked in a mapblock the player walked away from would
+            -- otherwise report a program that never started. (B30)
+            if drone.cor == nil then
+                Drone.remove(name)
+                return
+            end
 
             chat_send_player(name,
                              S('The drone has disappeared, program stopped'))

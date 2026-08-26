@@ -43,7 +43,13 @@ codeblock.DroneEntity = {
     -- thing to a running program, and the removal flag is not needed to tell
     -- them apart: Drone.remove clears the record before it removes the object,
     -- so teardown from that side finds nothing here to report.
-    on_deactivate = function(self, removal) drone_on_lost(self.owner) end,
+    --
+    -- The object goes with the name because removal is deferred to the end of
+    -- the step, so by the time this fires the name may already belong to a
+    -- newer drone. Only the record holding this object is this object's. (B29)
+    on_deactivate = function(self, removal)
+        drone_on_lost(self.owner, self.object)
+    end,
 
     on_rightclick = function(self, clicker) end,
 
