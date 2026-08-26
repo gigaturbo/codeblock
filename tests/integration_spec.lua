@@ -47,7 +47,7 @@ local function stub_drone(auth_level)
         -- The real budget for that codelevel, as lib/drone.lua builds it: the
         -- counters and every ceiling the commands check live in here now.
         budget = codeblock.limits.new(codeblock.config, al,
-                                      minetest.get_us_time())
+                                      core.get_us_time())
     }
 end
 
@@ -350,13 +350,13 @@ do
     -- step budget bound work rather than resumes.
     it('a spent deadline yields at codelevel 4', moves(5, 4, 1), 5)
     it('a deadline in the future changes nothing',
-       moves(5, 4, minetest.get_us_time() + 1e9), 0)
+       moves(5, 4, core.get_us_time() + 1e9), 0)
 
     -- A paced drone says when it wants to run again, and the stepper leaves it
     -- alone until then. 300ms at codelevel 1.
     local _, paced = moves(1, 1)
     it('and sets a wake-up time', (paced.wake_at ~= nil and paced.wake_at >
-        minetest.get_us_time()), true)
+        core.get_us_time()), true)
     it('which the stepper honours', codeblock.stepper.awake(paced), false)
     it('an unpaced drone sleeps not at all', select(2, moves(1, 4)).wake_at, nil)
 

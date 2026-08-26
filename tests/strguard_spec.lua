@@ -168,7 +168,7 @@ out[#out + 1] = ('  %d passed   %d failed'):format(pass, fail)
 out[#out + 1] = ''
 
 local text = table.concat(out, '\n')
-if rawget(_G, 'core') or rawget(_G, 'minetest') then
+if rawget(_G, 'core') then
     print(text)
 else
     io.write(text)

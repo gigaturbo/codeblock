@@ -2,9 +2,9 @@
 -- local
 --------------------------------------------------------------------------------
 local S = codeblock.S
-local get_player_by_name = minetest.get_player_by_name
-local get_pointed_thing_position = minetest.get_pointed_thing_position
-local chat_send_player = minetest.chat_send_player
+local get_player_by_name = core.get_player_by_name
+local get_pointed_thing_position = core.get_pointed_thing_position
+local chat_send_player = core.chat_send_player
 
 local drone_on_run = codeblock.Drone.on_run
 local drone_on_place = codeblock.Drone.on_place
@@ -91,7 +91,7 @@ end
 -- tools
 --------------------------------------------------------------------------------
 
-minetest.register_tool("codeblock:poser", {
+core.register_tool("codeblock:poser", {
     description = S("Drone placer"),
     inventory_image = "drone_poser.png",
     range = 128,
@@ -115,7 +115,7 @@ minetest.register_tool("codeblock:poser", {
     on_secondary_use = function() end
 })
 
-minetest.register_tool("codeblock:setter", {
+core.register_tool("codeblock:setter", {
     description = S("Drone setter"),
     inventory_image = "drone_setter.png",
     range = 0,
@@ -142,13 +142,13 @@ minetest.register_tool("codeblock:setter", {
 -- entities
 --------------------------------------------------------------------------------
 
-minetest.register_entity("codeblock:drone", codeblock.DroneEntity)
+core.register_entity("codeblock:drone", codeblock.DroneEntity)
 
 --------------------------------------------------------------------------------
 -- players
 --------------------------------------------------------------------------------
 
-minetest.register_on_newplayer(function(player)
+core.register_on_newplayer(function(player)
 
     local name = player:get_player_name()
 
@@ -159,11 +159,11 @@ minetest.register_on_newplayer(function(player)
     generate_examples(name)
 
     -- privs
-    local privs = minetest.get_player_privs(player:get_player_name())
+    local privs = core.get_player_privs(player:get_player_name())
     privs.fly = true
     privs.fast = true
     privs.noclip = true
-    minetest.set_player_privs(player:get_player_name(), privs)
+    core.set_player_privs(player:get_player_name(), privs)
 
     -- meta
     local meta = player:get_meta()
@@ -177,7 +177,7 @@ minetest.register_on_newplayer(function(player)
 
 end)
 
-minetest.register_on_joinplayer(function(player)
+core.register_on_joinplayer(function(player)
 
     -- create lua dir and initialize user_data
     local name = player:get_player_name()
@@ -201,7 +201,7 @@ minetest.register_on_joinplayer(function(player)
 
 end)
 
-minetest.register_on_leaveplayer(function(player, timed_out)
+core.register_on_leaveplayer(function(player, timed_out)
     local name = player:get_player_name()
     drone_on_remove(name)
     remove_user_data(name)
@@ -215,13 +215,13 @@ end)
 -- setting this game is mostly played in - while the command's own body carried
 -- a dead is_singleplayer() branch trying to work around it. In singleplayer the
 -- player is the administrator, so the privilege belongs to them.
-minetest.register_privilege("codeblock", {
+core.register_privilege("codeblock", {
     description = "Player can set another player's codelevel and generate " ..
         "their example programs",
     give_to_singleplayer = true
 })
 
-minetest.register_chatcommand("codelevel", {
+core.register_chatcommand("codelevel", {
     params = "[<playername>] <1-4>",
     description = "Set a player's codelevel",
     -- Stays privileged, including for your own level. codelevel is the knob
@@ -251,7 +251,7 @@ minetest.register_chatcommand("codelevel", {
     end
 })
 
-minetest.register_chatcommand("codegenerate", {
+core.register_chatcommand("codegenerate", {
     params = "[<playername>]",
     description = "Write any missing example programs into a player's files",
     -- Same rule: your own files are yours; someone else's need the privilege.
@@ -264,7 +264,7 @@ minetest.register_chatcommand("codegenerate", {
 
         if not pname then return false, S('Usage: codegenerate [playername]') end
 
-        if pname ~= name and not minetest.check_player_privs(name, {
+        if pname ~= name and not core.check_player_privs(name, {
             codeblock = true
         }) then
             return false, S('You need the codeblock privilege to generate ' ..

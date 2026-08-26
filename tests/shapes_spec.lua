@@ -78,14 +78,14 @@ function manip:write_to_map() end
 
 -- The module is loaded into a private environment holding those fakes, in-engine
 -- as well as standalone. It cannot be tested through codeblock.shapes: the specs
--- run at mod load, when minetest.get_voxel_manip() has no map yet and returns
+-- run at mod load, when core.get_voxel_manip() has no map yet and returns
 -- nil. Loading a second copy leaves the mod's own untouched.
 local shapes
 do
     local box = {
         codeblock = {},
         math = math,
-        minetest = {
+        core = {
             get_voxel_manip = function() return manip end,
             get_content_id = function(name)
                 return name == 'ignore' and IGNORE or NODE
@@ -589,7 +589,7 @@ out[#out + 1] = ('  %d passed   %d failed'):format(pass, fail)
 out[#out + 1] = ''
 
 local text = table.concat(out, '\n')
-if rawget(_G, 'core') or rawget(_G, 'minetest') then
+if rawget(_G, 'core') then
     print(text)
 else
     io.write(text)

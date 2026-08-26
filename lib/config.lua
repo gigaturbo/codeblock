@@ -12,14 +12,14 @@ codeblock.config = {}
 -- file and losing the change on update.
 --
 -- Both reads are guarded, because this file is also dofile'd by
--- scripts/gen_docs.lua under a bare interpreter where there is no `minetest`
+-- scripts/gen_docs.lua under a bare interpreter where there is no `core`
 -- global at all. The values below stay plain literals for a second reason:
 -- gen_docs.lua reads this source to check that every `max_*` table has a row in
 -- doc/api.md's codelevel table, and a computed value would switch that check
 -- off without saying so.
 --------------------------------------------------------------------------------
 
-local engine = rawget(_G, 'minetest')
+local engine = rawget(_G, 'core')
 local settings = engine and engine.settings
 
 local function warn(name, why)

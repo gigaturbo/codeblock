@@ -12,6 +12,6 @@
 -- whatever the mapgen is, and an unset alias logs an ERROR on every run. The
 -- harness greps stderr for errors, so a permanent one there would hide a real
 -- failure. singlenode generates nothing, so what they point at is immaterial.
-minetest.register_alias('mapgen_stone', 'air')
-minetest.register_alias('mapgen_water_source', 'air')
-minetest.register_alias('mapgen_river_water_source', 'air')
+core.register_alias('mapgen_stone', 'air')
+core.register_alias('mapgen_water_source', 'air')
+core.register_alias('mapgen_river_water_source', 'air')

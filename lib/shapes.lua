@@ -20,8 +20,8 @@ local shapes = codeblock.shapes
 local floor = math.floor
 local max = math.max
 local min = math.min
-local get_voxel_manip = minetest.get_voxel_manip
-local get_content_id = minetest.get_content_id
+local get_voxel_manip = core.get_voxel_manip
+local get_content_id = core.get_content_id
 
 -- Resolved on first use rather than at load: content ids are only settled once
 -- every mod has registered its nodes.

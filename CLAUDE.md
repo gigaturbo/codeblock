@@ -170,7 +170,7 @@ not local to it, so check before changing either. The tables stay **plain
 literals** with the overrides applied in one loop afterwards, because
 `gen_docs.lua` greps this source for a name assigned a table whose first element
 is a number — a computed value turns that documentation check off without
-failing. And every settings read is guarded with `rawget(_G, 'minetest')`,
+failing. And every settings read is guarded with `rawget(_G, 'core')`,
 because `gen_docs.lua` dofiles `config.lua` under a bare interpreter with no
 engine global.
 

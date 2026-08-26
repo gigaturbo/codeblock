@@ -23,8 +23,8 @@ local forms = codeblock.forms
 --------------------------------------------------------------------------------
 
 local backend = {
-    show = function(...) return minetest.show_formspec(...) end,
-    close = function(...) return minetest.close_formspec(...) end
+    show = function(...) return core.show_formspec(...) end,
+    close = function(...) return core.close_formspec(...) end
 }
 
 --- Replace the engine calls. Returns the previous backend so a test can restore.
@@ -137,11 +137,11 @@ end
 -- engine wiring
 --------------------------------------------------------------------------------
 
-minetest.register_on_player_receive_fields(function(player, formname, fields)
+core.register_on_player_receive_fields(function(player, formname, fields)
     return forms.on_receive_fields(player, formname, fields)
 end)
 
-minetest.register_on_leaveplayer(function(player)
+core.register_on_leaveplayer(function(player)
     forms.forget(player:get_player_name())
 end)
 

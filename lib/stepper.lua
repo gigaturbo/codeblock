@@ -33,7 +33,7 @@ local charge = codeblock.limits.charge
 --------------------------------------------------------------------------------
 
 local deps = {
-    now = function() return minetest.get_us_time() end,
+    now = function() return core.get_us_time() end,
     guard_enter = function(bytes) codeblock.strguard.enter(bytes) end,
     guard_leave = function() codeblock.strguard.leave() end
 }

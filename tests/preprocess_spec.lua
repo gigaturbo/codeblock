@@ -357,14 +357,14 @@ out[#out + 1] = ''
 
 local text = table.concat(out, '\n')
 
-if rawget(_G, 'core') or rawget(_G, 'minetest') then
+if rawget(_G, 'core') then
     print(text)
 else
     io.write(text)
 end
 
 -- Non-zero exit for CI when a real test fails or an xfail starts passing.
-if not (rawget(_G, 'core') or rawget(_G, 'minetest')) then
+if not rawget(_G, 'core') then
     os.exit((fail == 0 and xpassed == 0) and 0 or 1)
 end
 

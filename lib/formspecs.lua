@@ -10,13 +10,13 @@ local tcik = codeblock.utils.table_convert_ik
 local scroll_max = codeblock.utils.scroll_max
 local split = codeblock.utils.split
 
-local formspec_escape = minetest.formspec_escape
-local chat_send_player = minetest.chat_send_player
+local formspec_escape = core.formspec_escape
+local chat_send_player = core.chat_send_player
 local close_form = codeblock.forms.close
 local update_form = codeblock.forms.update
 local show_form = codeblock.forms.show
-local explode_textlist_event = minetest.explode_textlist_event
-local get_player_by_name = minetest.get_player_by_name
+local explode_textlist_event = core.explode_textlist_event
+local get_player_by_name = core.get_player_by_name
 
 local blocks = codeblock.config.allowed_blocks.all
 local cubes = codeblock.config.allowed_blocks.cubes
@@ -441,13 +441,13 @@ local file_editor = {
             meta.help = 'commands'
             update()
         elseif fields.c_scroll then
-            meta.scroll_c = minetest.explode_scrollbar_event(fields.c_scroll)
+            meta.scroll_c = core.explode_scrollbar_event(fields.c_scroll)
                                 .value
         elseif fields.p_scroll then
-            meta.scroll_p = minetest.explode_scrollbar_event(fields.p_scroll)
+            meta.scroll_p = core.explode_scrollbar_event(fields.p_scroll)
                                 .value
         elseif fields.w_scroll then
-            meta.scroll_w = minetest.explode_scrollbar_event(fields.w_scroll)
+            meta.scroll_w = core.explode_scrollbar_event(fields.w_scroll)
                                 .value
         elseif fields.quit == 'true' then -- fields.content cannot be accessed here
             if meta.loe then load_active() end

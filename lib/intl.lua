@@ -1,1 +1,1 @@
-codeblock.S = minetest.get_translator('codeblock')
+codeblock.S = core.get_translator('codeblock')
