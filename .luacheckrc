@@ -69,7 +69,10 @@ exclude_files = {
     -- own test suite and luarocks' generated config.
     ".luarocks/**",
     ".install/**",
-    ".lua/**"
+    ".lua/**",
+    -- The vector3 dependency, vendored as a submodule so the in-engine specs
+    -- have a game to boot in. Third-party, and not ours to restyle.
+    "tests/game/mods/vector3/**"
 }
 
 files["tests/**"] = {
