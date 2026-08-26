@@ -174,14 +174,6 @@ end
 -- forbidden constructs
 --------------------------------------------------------------------------------
 
---------------------------------------------------------------------------------
--- forbidden constructs
---------------------------------------------------------------------------------
-
---------------------------------------------------------------------------------
--- forbidden constructs
---------------------------------------------------------------------------------
-
 -- Not a security boundary - that is the environment table in lib/sandbox.lua,
 -- which simply does not contain these names. This list exists to turn an
 -- obscure runtime failure into a useful message: without it a program calling

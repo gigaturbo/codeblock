@@ -533,4 +533,3 @@ local file_chooser = {
 
 codeblock.formspecs.file_chooser = file_chooser
 codeblock.formspecs.file_editor = file_editor
-
