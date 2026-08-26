@@ -1,3 +1,18 @@
+--- A player's Lua files: where they are, what order they are in, and what is in
+-- them.
+--
+-- Everything known about a file lives in one record - its name, its path, its
+-- position in the sorted listing, and its content once it has been read - held
+-- in a list and a name index onto the same tables. There is nothing to keep in
+-- step, which is what four parallel tables keyed by two naming schemes used to
+-- cost. (A9)
+--
+--   ud.list     {name = , path = , index = , content = }, sorted by name
+--   ud.byname   [name] -> the same record
+--
+-- The cache is per player and dropped on disconnect. A refresh rebuilds the
+-- records, so content read before it is read again.
+
 codeblock.filesystem = {}
 
 -------------------------------------------------------------------------------
@@ -22,162 +37,104 @@ local function get_file_path(name, filename)
     return path_join(data_path, name, filename)
 end
 
-local function get_user_files(name)
-    local path = path_join(data_path, name)
-    local files = get_dir_list(path, false)
-    table.sort(files)
-    return files
-end
-
 local function remove_user_data(name) user_data[name] = nil end
 
+--- The player's files. Built on first use, rebuilt when `forceRefresh` is set.
 local function get_user_data(name, forceRefresh)
-    local ud
-    if user_data[name] == nil or forceRefresh then
-        local itf = get_user_files(name) or {}
-        local fti = {}
-        local ftp = {}
-        local ftc = {}
-        for i, f in ipairs(itf) do
-            ftp[f] = get_file_path(name, f)
-            fti[f] = i
-            ftc[f] = nil
-        end
-        ud = {itf = itf, ftp = ftp, fti = fti, ftc = ftc}
-        user_data[name] = ud
-    else
-        ud = user_data[name]
+
+    if user_data[name] ~= nil and not forceRefresh then return user_data[name] end
+
+    local files = get_dir_list(path_join(data_path, name), false) or {}
+    table.sort(files)
+
+    local ud = {list = {}, byname = {}}
+    for i, filename in ipairs(files) do
+        local file = {
+            name = filename,
+            path = get_file_path(name, filename),
+            index = i
+        }
+        ud.list[i] = file
+        ud.byname[filename] = file
     end
+
+    user_data[name] = ud
     return ud
+
 end
 
-local function get_ftp(name, f, forceRefresh)
-    local ud = get_user_data(name, forceRefresh)
-    return ud.ftp[f]
-end
-
-local function get_itp(name, i, forceRefresh)
-    local ud = get_user_data(name, forceRefresh)
-    return ud.ftp[ud.itf[i]]
-end
-
-local function get_fti(name, f, forceRefresh)
-    local ud = get_user_data(name, forceRefresh)
-    return ud.fti[f]
-end
-
-local function get_itf(name, i, forceRefresh)
-    local ud = get_user_data(name, forceRefresh)
-    return ud.itf[i]
-end
-
-local function get_ftc(name, f, forceRefresh)
-    local ud = get_user_data(name, forceRefresh)
-    return ud.ftc[f]
-end
-
-local function get_itc(name, i, forceRefresh)
-    local ud = get_user_data(name, forceRefresh)
-    return ud.ftc[ud.itf[i]]
-end
-
+--- A file's content, or nil and a message.
+--
+-- Cached on the record, so re-reading the same file costs nothing;
+-- `forceRefresh` rebuilds the listing first, which drops every cached content
+-- with it and so always reaches the disk.
 local function read_file(name, filename, forceRefresh)
-    local ud = get_user_data(name, forceRefresh)
-    if forceRefresh then
-        -- we don't care if ftc is nil or not, we force read the file if it
-        -- *exists* in the user_data ftp
-        -- as we forceRefresh ftp/fti/idf should be up to date
-        -- but... we never know. Maybe we can read the file content
-        -- but the directory structure failed
-        if ud.ftp[filename] then
-            local path = get_file_path(name, filename)
-            local file, err = io.open(path, 'rb')
-            if err then return nil, err end
-            local content = file:read('*a')
-            file:close()
-            if content then
-                if content:byte(1) == 27 then
-                    return nil, S("Compilation error in @1: ", file) ..
-                               S('Binary bytecode prohibited')
-                end
-                user_data[name].ftc[filename] = content
-                return content
-            else
-                user_data[name].ftc[filename] = nil
-            end
-        end
-        return nil, S('Cannot read file') .. ' ' .. filename
-    else
-        -- we care if ftc is nil or not, if it is nil it means
-        -- the file exists in user_data but the content has not
-        -- been loaded yet. If content exists then ftp must exist
-        local content = ud.ftc[filename]
-        if content then
-            return content
-        else
-            -- here, content is nil but it should be because
-            -- the file has not been read yet, hence ftp/fti/idf
-            -- must exists
-            if ud.ftp[filename] then
-                local path = get_file_path(name, filename)
-                local file, err = io.open(path, 'rb')
-                if err then return nil, err end
-                local content = file:read('*a')
-                file:close()
-                if content then
-                    if content:byte(1) == 27 then
-                        return nil, S("Compilation error in @1: ", file) ..
-                                   S('Binary bytecode prohibited')
-                    end
-                    user_data[name].ftc[filename] = content
-                    return content
-                else
-                    user_data[name].ftc[filename] = nil
-                end
-            end
-            return nil, S('Cannot read file') .. ' ' .. filename
-        end
+
+    local unreadable = S('Cannot read file') .. ' ' .. filename
+
+    local file = get_user_data(name, forceRefresh).byname[filename]
+    if not file then return nil, unreadable end
+    if file.content then return file.content end
+
+    local handle, err = io.open(file.path, 'rb')
+    if not handle then return nil, err or unreadable end
+
+    local content = handle:read('*a')
+    handle:close()
+
+    if not content then return nil, unreadable end
+
+    -- Lua's signature byte for a precompiled chunk. Bytecode is not checked the
+    -- way source is, so it is refused before anything can load it.
+    if content:byte(1) == 27 then
+        return nil, S("Compilation error in @1: ", filename) ..
+                   S('Binary bytecode prohibited')
     end
+
+    file.content = content
+    return content
+
 end
 
 local function write_file(name, filename, content)
+
     local content = content or ''
-    local path = get_file_path(name, filename)
-    local success = safe_file_write(path, content)
-    if success then
-        if user_data[name].ftp[filename] then
-            user_data[name].ftc[filename] = content
-            return nil
-        else
-            get_user_data(name, true) -- the new file should exist now
-            if user_data[name].ftp[filename] then
-                user_data[name].ftc[filename] = content
-                return nil
-            end
-        end
+    local failed = S('Cannot write file') .. ' ' .. filename
+
+    if not safe_file_write(get_file_path(name, filename), content) then
+        return failed
     end
-    return S('Cannot write file') .. ' ' .. filename
+
+    -- A name the player did not have changes the listing, so it is rebuilt
+    -- rather than patched. Both lookups go through get_user_data, which creates
+    -- the entry when there is none - reaching into the cache directly was an
+    -- index of nil for anyone who had disconnected since. (B14)
+    local file = get_user_data(name).byname[filename] or
+                     get_user_data(name, true).byname[filename]
+
+    if not file then return failed end
+
+    file.content = content
+    return nil
+
 end
 
+--- nil when the file is there, a message when it is not. Note the polarity.
 local function exists(name, filename, forceRefresh)
-    local exists = get_user_data(name, forceRefresh).ftp[filename] ~= nil
-    if exists then
-        return nil
-    else
-        return S('File @1 does not exists', filename)
-    end
+    if get_user_data(name, forceRefresh).byname[filename] then return nil end
+    return S('File @1 does not exists', filename)
 end
 
 local function remove_file(name, filename)
-    if user_data[name].ftp[filename] then
-        local _, err = os.remove(get_file_path(name, filename))
-        if err then
-            return S('Failed to remove @1', filename)
-        else
-            get_user_data(name, true)
-            return nil
-        end
-    end
+
+    if not get_user_data(name).byname[filename] then return end
+
+    local _, err = os.remove(get_file_path(name, filename))
+    if err then return S('Failed to remove @1', filename) end
+
+    get_user_data(name, true)
+    return nil
+
 end
 
 local function make_user_dir(name)
@@ -196,11 +153,5 @@ codeblock.filesystem.read_file = read_file
 codeblock.filesystem.write_file = write_file
 codeblock.filesystem.remove_file = remove_file
 codeblock.filesystem.exists = exists
-codeblock.filesystem.get_ftp = get_ftp
-codeblock.filesystem.get_itp = get_itp
-codeblock.filesystem.get_fti = get_fti
-codeblock.filesystem.get_itf = get_itf
-codeblock.filesystem.get_ftc = get_ftc
-codeblock.filesystem.get_itc = get_itc
 codeblock.filesystem.make_user_dir = make_user_dir
 codeblock.filesystem.data_path = data_path

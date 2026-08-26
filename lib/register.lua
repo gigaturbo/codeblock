@@ -28,8 +28,20 @@ local examples = codeblock.examples.examples
 -- private
 --------------------------------------------------------------------------------
 
+--- Make sure the player is carrying the two drone tools.
+--
+-- The clear-out is a first-join reset, and it used to run on every single
+-- login, taking whatever the player was carrying with it. It now happens only
+-- when a tool has actually gone missing - which, since both are undroppable,
+-- is close to never after the first join. (B16)
 local function set_tools(player)
     local inv = player:get_inventory()
+    local poser = ItemStack('codeblock:poser')
+    local setter = ItemStack('codeblock:setter')
+
+    if inv:contains_item('main', poser) and inv:contains_item('main', setter) then
+        return
+    end
 
     local invs = {'main', 'craft', 'craftpreview', 'craftresult'}
     for _, inv_name in ipairs(invs) do
@@ -38,8 +50,8 @@ local function set_tools(player)
         end
     end
 
-    inv:add_item('main', ItemStack('codeblock:poser'))
-    inv:add_item('main', ItemStack('codeblock:setter'))
+    inv:add_item('main', poser)
+    inv:add_item('main', setter)
 end
 
 --- Write the bundled example programs into a player's directory.
@@ -158,7 +170,7 @@ minetest.register_on_newplayer(function(player)
     meta:set_string('codeblock:last_file', "")
     meta:set_int('codeblock:auth_level', codeblock.config.default_auth_level)
     meta:set_string('codeblock:editor_state_tabs', "")
-    meta:set_string('codeblock:editor_state_active', 0)
+    meta:set_string('codeblock:editor_state_active', "")
     meta:set_int('codeblock:save_on_exit', 0)
     meta:set_int('codeblock:load_on_exit', 0)
     meta:set_int('codeblock:save_on_switch', 0)

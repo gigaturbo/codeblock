@@ -30,8 +30,6 @@ local get_user_data = codeblock.filesystem.get_user_data
 local read_file = codeblock.filesystem.read_file
 local write_file = codeblock.filesystem.write_file
 local remove_file = codeblock.filesystem.remove_file
-local get_itf = codeblock.filesystem.get_itf
-local get_fti = codeblock.filesystem.get_fti
 
 local set_file = codeblock.Drone.set_file
 
@@ -74,7 +72,7 @@ local file_editor = {
                 meta:get_string('codeblock:editor_state_active')
             local saved_tabs = meta:get_string('codeblock:editor_state_tabs')
             for _, filename in ipairs(split(saved_tabs, ',')) do
-                if ud.ftp[filename] then
+                if ud.byname[filename] then
                     local content, err = read_file(name, filename, true)
                     if err then
                         chat_send_player(name, err)
@@ -133,11 +131,12 @@ local file_editor = {
 
         -- files
         fs = fs .. 'textlist[0, 0; 3, 8.75;files;'
-        for i, filename in ipairs(ud.itf) do
+        for i, file in ipairs(ud.list) do
             if i ~= 1 then fs = fs .. ',' end
-            fs = fs .. formspec_escape(filename)
+            fs = fs .. formspec_escape(file.name)
         end
-        fs = fs .. ';' .. (ud.fti[meta.tabs[meta.active]] or 0) .. ']'
+        local shown = ud.byname[meta.tabs[meta.active]]
+        fs = fs .. ';' .. (shown and shown.index or 0) .. ']'
 
         -- new file
         fs = fs .. 'field_close_on_enter[newfile;false]'
@@ -303,16 +302,19 @@ local file_editor = {
 
         local function select_tab(i) meta.active = i end
 
-        local function open(i)
-            local filename = get_itf(name, i)
-            local content, err = read_file(name, filename)
-            if not err then
-                table.insert(meta.tabs, filename)
-                table.insert(meta.contents, content)
-                meta.active = #meta.tabs
-            else
+        -- Takes the file record rather than a list position, so the two callers
+        -- that have a name and the one that has an index each look it up their
+        -- own way and a miss is nil here instead of an index of nil there.
+        local function open(file)
+            if not file then return end
+            local content, err = read_file(name, file.name)
+            if err then
                 chat_send_player(name, err)
+                return
             end
+            table.insert(meta.tabs, file.name)
+            table.insert(meta.contents, content)
+            meta.active = #meta.tabs
         end
 
         local function create_file(filename)
@@ -324,7 +326,7 @@ local file_editor = {
                 filename = string.sub(filename, 1, 15)
                 if #filename == 0 then return end
                 filename = filename .. '.lua'
-                if not get_user_data(name).ftp[filename] then
+                if not get_user_data(name).byname[filename] then
                     write_file(name, filename,
                                '-- ' .. filename .. '\n\n' ..
                                    "for i = 1, 10 do\n" ..
@@ -360,8 +362,12 @@ local file_editor = {
             if cur_player then
                 local pmeta = cur_player:get_meta()
                 pmeta:set_string('codeblock:editor_state_tabs', stabs)
+                -- meta.active is 0 with no tab open, which is the normal state
+                -- after closing the last file, and set_string will not take the
+                -- nil that indexes to. "" is what the reader compares against
+                -- anyway. (B13)
                 pmeta:set_string('codeblock:editor_state_active',
-                                 meta.tabs[meta.active])
+                                 meta.tabs[meta.active] or "")
                 -- booleans in memory, ints on disk
                 pmeta:set_int('codeblock:save_on_exit', meta.soe and 1 or 0)
                 pmeta:set_int('codeblock:load_on_exit', meta.loe and 1 or 0)
@@ -392,7 +398,7 @@ local file_editor = {
         elseif fields.create then
             local filename = create_file(fields.newfile)
             if filename then
-                open(get_fti(name, filename))
+                open(get_user_data(name).byname[filename])
                 update()
             end
         elseif fields.remove then
@@ -409,19 +415,17 @@ local file_editor = {
             update()
         elseif fields.files then
             local e = explode_textlist_event(fields.files)
-            local t = e.type
-            local i = e.index
-            local sfilename = get_itf(name, i)
-            if t == 'DCL' then
+            local selected = get_user_data(name).list[e.index]
+            if e.type == 'DCL' and selected then
                 for i, filename in ipairs(meta.tabs) do
-                    if filename == sfilename then
+                    if filename == selected.name then
                         update_active_content(fields.content)
                         select_tab(i)
                         update()
                         return
                     end
                 end
-                open(i)
+                open(selected)
                 update()
             end
         elseif fields.help_cubes then
@@ -451,7 +455,7 @@ local file_editor = {
         elseif fields.newfile then -- last because sent everytime
             local filename = create_file(fields.newfile)
             if filename then
-                open(get_fti(name, filename))
+                open(get_user_data(name).byname[filename])
                 update()
             end
         end
@@ -474,8 +478,8 @@ local file_chooser = {
 
     get_form = function(meta)
         local files_txt = {}
-        for i, filename in ipairs(get_user_data(meta.name).itf) do
-            table.insert(files_txt, formspec_escape(filename))
+        for _, file in ipairs(get_user_data(meta.name).list) do
+            table.insert(files_txt, formspec_escape(file.name))
         end
         files_txt = table.concat(files_txt, ',')
         return 'formspec_version[4]' .. 'size[6,6]' .. 'label[0.5,0.5;' ..
@@ -492,8 +496,10 @@ local file_chooser = {
             close_form(name)
         end
 
+        -- Nothing selected leaves selectedIndex at 0, which names no file.
         local function choose(i)
-            set_file(name, get_itf(name, i))
+            local file = get_user_data(name).list[i]
+            if file then set_file(name, file.name) end
             close_form(name)
         end
 

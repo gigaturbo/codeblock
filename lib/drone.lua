@@ -211,7 +211,7 @@ local drone_mt = {
 
             local last_file = meta:get_string('codeblock:last_file')
 
-            if last_file == "" or not get_user_data(name).ftp[last_file] then
+            if last_file == "" or not get_user_data(name).byname[last_file] then
                 return true
             end
 
