@@ -53,14 +53,23 @@ commits actually show, not what they claim. If a commit message overstates its
 change, the changelog gets the smaller true version.
 
 You also have `Bash`, because git history is the record of progress and nothing
-else can read it. Inspection only: `git log`, `git status`, `git diff`,
-`git show`, `git submodule status`, `wc`, `grep`, `cat`, and `curl` against a
-public read API. Never `commit`, `push`, `add`, `checkout`, `reset`, `rm`, `mv`,
-`sed -i`, `>` redirection, or anything that installs, generates or regenerates.
-If a report would be better for running the tests or a generator, say so and give
-the command rather than running it.
+else can read it: `git log`, `git status`, `git diff`, `git show`,
+`git submodule status`, `wc`, `grep`, `cat`, and `curl` against a public read
+API. Never `commit`, `push`, `add`, `checkout`, `reset`, `rm`, `mv`, or anything
+that installs, generates or regenerates. If a report would be better for running
+the tests or a generator, say so and give the command rather than running it.
 
-Both limits are instruction, not enforcement. Treat them as absolute anyway.
+You may also write through `Bash` — a `sed` pass over the audit, an `awk`
+rewrite — where a shell command genuinely does the job better than an edit, which
+a sweep over a 150 kB HTML file sometimes is. Only ever on the files above, and
+only with the two hazards in mind, because neither announces itself: a pattern
+that matches nothing exits 0 and changes nothing, so check what you changed
+rather than assuming; and rewriting a file in place normalises its line endings,
+which turns a two-line change into a diff of every line. `> file` truncates
+before the command reads it, so write through a temporary file. Prefer `Edit` for
+anything you can name exactly — it fails loudly, which is the property you want.
+
+The limit that matters is *which files*, not which tool. That one is absolute.
 
 ## The project
 
