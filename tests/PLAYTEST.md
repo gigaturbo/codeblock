@@ -46,10 +46,21 @@ panel button (E11, new). **E8, E9, E10 and E12 are new and unrun** — the
 disconnect and shutdown halves of B33 and the checkbox defaults are the paths
 still carrying no evidence.
 
-**E13 is new with F2**, at `dee0bc7`, and stands *partial*: its naming and
-ordering were seen while the feature was being built — which is how the first
-naming scheme came to be replaced before the commit — but the copy button's
-geometry was corrected after that and has not been looked at in-world since.
+**Third run, 2026-08-27, at `dee0bc7`**, engine Luanti 5.17.0 — five checks: **E8**
+pass, **E9** pass, **E10** fail, **E12** fail, **E13** now a full pass. (`90cfb70`,
+F3's `sleep`, landed after this run and touches nothing the editor does.) **E9 is
+the pass that mattered**: it was the one path in B33's fix resting on an assumption
+about the engine rather than on read code — that player meta written from
+`register_on_shutdown` is still saved — and it is now observed. All three of B33's
+losing paths are confirmed fixed in a running world.
+
+The two fails produced **B36** (the new-player initialiser wrote a `0` into the
+preference keys, so the ticked default was unreachable) and, from diagnosing the
+second of them, **B37** (three scroll branches shadowing four others, including
+the one that saves the tabs on ESC). Both are fixed at `1f7cd97`; **E12 is
+recorded as not reproduced rather than as fixed**, and both checks say what a
+re-run needs. **E14** and **E15** are new with `1f7cd97` and cover the two paths
+B37 had made dead — closing with ESC, and Enter in *New file*.
 
 ### E1 · Open, save and close a program [A9, B13, B17]
 
@@ -183,27 +194,35 @@ holds. Load order is load-bearing here: `forms.lua`'s leave callback must run
 before `register.lua`'s, which drops the player's file list the editor's quit path
 reads.
 
-Result: unchecked
+Result: pass — `dee0bc7` · engine 5.17.0 · 2026-08-27 — both files came back and
+the active tab was restored. Note what this path does *not* exercise: the engine
+callback hands the handler a `{quit = 'true'}` the mod builds itself, with no
+scrollbar field in it, so it was never exposed to B37 — which is why it passed at
+`dee0bc7` while closing the same editor with ESC did not (E14).
 
-### E9 · Tab state survives a server shutdown [B33 — the unverified one]
+### E9 · Tab state survives a server shutdown [B33 — now observed]
 
 Open two files with the editor open, shut the server down cleanly, restart, and
 open the editor.
 
-**Pass:** both files are open again and the active tab is restored. This is the
-weakest of the three paths by evidence: `register_on_shutdown` reaches every open
-session, but that **player meta written from `on_shutdown` is still saved** follows
-from the engine's shutdown order and **has not been observed here**. If this check
+**Pass:** both files are open again and the active tab is restored. `register_on_shutdown`
+reaches every open session through the same `close_session`. That **player meta
+written from `on_shutdown` is still saved** was an assumption about the engine's
+shutdown order rather than read code; this check is what settled it. If it ever
 fails, the finding is the write being dropped, not the callback not firing — check
 the log for the handler running at all before concluding.
 
-Result: unchecked
+Result: pass — `dee0bc7` · engine 5.17.0 · 2026-08-27 — **the significant pass.**
+The meta write from `register_on_shutdown` survives, observed rather than inferred,
+so all three of B33's losing paths are now confirmed fixed in a running world. Same
+caveat as E8: the shutdown path builds its own field table and so was not exposed
+to B37.
 
-### E10 · The checkboxes for a player who has never set them [no finding]
+### E10 · The checkboxes for a player who has never set them [B36]
 
-Join as a **new** player — one with no `codeblock:load_on_exit` or
-`codeblock:save_on_switch` in their meta — and open the editor. Then untick one,
-close the editor, and reopen it.
+Join as a player who has **never existed in this world before** — a genuinely new
+name, or a fresh world — and open the editor. Then untick one, close the editor,
+and reopen it.
 
 **Pass:** both boxes start **ticked**; the one you unticked is still unticked when
 you come back. Both keys are read with `get_string`, where an absent key is `""`
@@ -211,7 +230,22 @@ and a stored `0` reads back as `'0'` — `get_int` returned 0 for both cases and
 could not tell them apart. `soe` uses the same string read but keeps its `false`
 default and its checkbox stays commented out (E6).
 
-Result: unchecked
+**The fresh name is not optional.** Any player who joined before `1f7cd97` still
+carries the `0` that `register_on_newplayer` used to write, and reads back as a
+deliberate untick — correctly. Re-running this as an existing player will look
+like a failure and is not one. If the boxes start unticked for a name that has
+never joined, that is B36 again.
+
+Result: fail — `dee0bc7` · engine 5.17.0 · 2026-08-27 — "both boxes are unchecked
+with new player join, their state persists upon disconnect/reconnect". The first
+half is **B36**: `register_on_newplayer` wrote `set_int(..., 0)` into all three
+preference keys the moment a player was created, so the `get_string` read that
+exists to tell "never chosen" from "unticked" (B5) saw a stored `0` for every
+player who had ever existed, and the ticked default was unreachable. The second
+half is the *other* half of this check passing — a stored `0` being honoured
+across a relog. Fixed at `1f7cd97`: the three keys are no longer written at birth
+and the reader owns the default. **Re-run against `1f7cd97` with a fresh player
+name.**
 
 ### E11 · Typing survives every button that is not Save [B35]
 
@@ -228,17 +262,41 @@ Result: pass — `500dd85` content, run pre-commit · engine 5.17.0 ·
 2026-08-27 — the player's reported symptom is gone: the text survived the panel
 buttons.
 
-### E12 · Typing survives a tab switch with **Save on tab switch** off [B35]
+### E12 · **Save on tab switch** off really does not write to disk [B35]
 
 Untick **Save on tab switch**. Edit tab A without saving, switch to tab B, switch
-back to A.
+back to A — and then leave the editor **with ESC only**. Reopen it and reopen A.
 
-**Pass:** the edit to A is still there — in memory, whether or not it reached
-disk. The option now gates only `save_active()`; it used to gate the in-memory
-capture as well, so switching tabs with it off lost the edit outright. This case
-was found by reading, not reported, and has not been run.
+**Pass**, two claims, and they are not equally strong:
 
-Result: unchecked
+1. **The strong one, and what this check is for:** the edit is **absent** from
+   disk. Nothing on the tab-switch path may write. `write_file` is the only route
+   to disk and `lib/formspecs.lua` calls it from exactly three places —
+   `save_active`, `create_file`, `copy_active` — and the tab-switch branch's call
+   is gated on `meta.sos`.
+2. **The weak one:** the edit to A is still in the text area when you switch back,
+   whether or not it reached disk. The option gates only `save_active()`; it used
+   to gate the in-memory capture as well, so switching tabs with it off lost the
+   edit outright.
+
+**Leave by ESC and nothing else.** *Load and close* and *Save* both call
+`save_active()` unconditionally and by design, so the file reaches disk however
+the box is set — leaving by either and then finding the edit on disk is correct
+behaviour, not a failure of this check. And **before `1f7cd97` this check could
+not be run correctly at all**: ESC never reached its own branch (B37), so the tab
+list was not written either.
+
+Result: fail — `dee0bc7` · engine 5.17.0 · 2026-08-27 — "code is **saved** when
+box is cheched OR unchecked". **Not reproduced by reading, and not claimed fixed.**
+The three `write_file` call sites and the `meta.sos` gate were re-read at
+`1f7cd97`; with the box unticked a tab switch cannot write. Two explanations fit
+what was seen, and a re-run should choose between them: either the edit was seen
+surviving *in memory* — which the check's old wording ("whether or not it reached
+disk") invited being called a save — or the editor was left by *Load and close* or
+*Save*, both of which write by design. B37, fixed in the same commit, does not
+explain it either: its effect on this path was that ESC failed to save the **tab
+list**, not that anything extra was written. The check is reworded above to
+separate the two claims. **Re-run against `1f7cd97`, leaving by ESC.**
 
 ### E13 · **Create a copy** [F2]
 
@@ -265,12 +323,46 @@ Then copy the copy, several times. Then reopen the original.
 Not spec-reachable at all: `forms_spec` stubs `core.show_formspec` and stops at
 the session layer, never reaching `formspecs.lua`'s `on_close`.
 
-Result: partial — `dee0bc7` · engine 5.17.0 · 2026-08-27 — parts 3 and 5 confirmed
-by the author during F2's build (the first naming scheme produced
-`spirals_c__copy.lua` and was replaced before the commit). Parts 1, 2 and 4 were
-exercised incidentally, not checked deliberately. **Part 6 is outstanding** — the
-widths were corrected after the geometry was wrong twice and have not been looked
-at in-world since.
+Result: pass — `dee0bc7` · engine 5.17.0 · 2026-08-27 — all six parts, the flush
+right edge included; that was the outstanding one, corrected after the geometry
+was wrong twice and now looked at in-world. Supersedes the earlier *partial*,
+which had parts 3 and 5 from F2's build only.
+
+### E14 · Closing the editor with **ESC** saves the open tabs [B37, B33]
+
+Open two files, switch to one of them, leave the help panel on **Blocks** — the
+panel the editor opens on — and close with **ESC** or the window **X**. Reopen the
+editor.
+
+**Pass:** both files are open again and the active tab is the one you were on. The
+`quit` branch is the only place `save_editor_state()` runs on this path, and it is
+also where *Load program on exit* is honoured, so with that box ticked the drone
+should have been handed the active file as well.
+
+**This is the path that had no check, which is how B37 hid.** A scrollbar reports
+its position on *every* submit, so the three help-panel scroll branches — sitting
+above `quit` in one `elseif` chain — swallowed the quit event whenever Blocks,
+Plants or Wools was showing. E8 and E9 passed at the same commit because leave and
+shutdown build their own field table with no scrollbar in it: the two paths with
+checks were the two that worked. Run this with each of the five panels open, not
+just Blocks; **Settings** and **API** draw no scrollbar and were never affected.
+
+Result: unchecked — new with `1f7cd97`, and a fail here before that commit.
+
+### E15 · **Enter** in the New file field creates the file [B37]
+
+With the help panel on **Blocks**, type a name into the **New file** field and
+press **Enter** rather than clicking `+`.
+
+**Pass:** the file is created and opens as the active tab, exactly as `+` does.
+The branch is keyed on `fields.key_enter_field == 'newfile'`, which the engine
+sets to the field's name on `EGET_EDITBOX_ENTER`; `field_close_on_enter[newfile;false]`
+is what keeps the form open so the handler sees it. Before `1f7cd97` this branch
+was both shadowed by the panel scrollbars and keyed on the field merely being
+non-empty, so it fired on unclaimed events instead of on Enter. `+` worked
+throughout — its branch sits above the scrollbars.
+
+Result: unchecked — new with `1f7cd97`.
 
 ---
 
@@ -517,10 +609,29 @@ Then change the preference mid-run: **pass** is that the running program keeps
 building the block it started with, because the preference is read once per run
 into `drone.default_block`.
 
-Result: unchecked — both 2026-08-27 runs covered the editor group only. F1 shipped
-at `500dd85` with CI green and `integration_spec` 90 → 98, so **these two checks
-are the whole of what is outstanding for it**. Run them against that commit or
-later, and record the commit, not "current".
+Result: unchecked — the three 2026-08-27 runs covered the editor group only. F1
+shipped at `500dd85` with CI green and `integration_spec` 90 → 98, so **these two
+checks are the whole of what is outstanding for it**. Run them against that commit
+or later, and record the commit, not "current".
+
+### F3 · `sleep(seconds)` in a running world [F3]
+
+Run a program that places a node, calls `sleep(1)`, and repeats — at codelevel 3
+or 4, where `pace_ms` is 0 and the wait is therefore the only thing pacing it.
+Then run one asking for far more time than the codelevel allows, `sleep(1e9)`.
+
+**Pass:** the drone visibly builds one node a second; the server stays responsive
+and any other drone keeps building at its own rate while this one waits; and the
+unbounded ask ends the program with the same timeout message a program that never
+finishes gets, rather than parking the drone for ever. The wait is charged against
+`max_runtime_s` before it starts, which is that limit's one exception.
+
+`stepper_spec` and `integration_spec` cover the skip and the charge without a
+world; what only a world shows is the *pace* being watchable and other drones
+being unaffected.
+
+Result: unchecked — F3 shipped at `90cfb70` with its gates green (374 passed, 0
+failed) and no in-world check run.
 
 ---
 

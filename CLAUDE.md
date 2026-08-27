@@ -307,6 +307,22 @@ a boolean preference out of player meta with `get_string`, where an absent key i
 `""`, so a default of *on* is expressible and a deliberate untick still reads as
 off. This is load-bearing for two defaults (audit B5).
 
+**Which fields arrive is not what `lua_api.md` implies.** A **scrollbar is in the
+field table on every submit**, not only when it moved: `parseScrollBar` sets
+`send = true` at parse time and `acceptInput` then emits `VAL:n` unconditionally
+(`CHG:n` only when it was the element that moved). A **checkbox is absent unless
+it was the box clicked** — `lua_api.md` documents its value as `"true"`/`"false"`
+with no caveat, while saying explicitly that a button is nil when not pressed, so
+the document reads as though a checkbox always arrives. Getting either backwards
+produces a dead branch (audit B37).
+
+The rule that falls out of it: **in a single `elseif` chain, every always-sent
+field must come last, or be read before the chain entirely.** `fields.content`
+(B35), the three panel scrollbars and `newfile` (B37) are all in that class — and
+`newfile` is keyed on `fields.key_enter_field == 'newfile'`, which the engine sets
+on `EGET_EDITBOX_ENTER` and nothing else sets, rather than on the field being
+non-empty.
+
 In the editor, **every redraw re-renders the text area from
 `meta.contents[meta.active]`**, so `fields.content` is captured once by a guarded
 read *before* the branch chain in `on_close`, not inside the branches that happen
@@ -327,11 +343,17 @@ That makes **load order load-bearing**: leave callbacks run in load order,
 editor's quit path reads the player's file list, which `register.lua`'s own leave
 callback drops via `remove_user_data`. Reordering the `dofile` list in `init.lua`
 silently breaks *Load program on exit* on disconnect. The constraint is commented
-at `lib/register.lua:204`.
+on `register_on_leaveplayer` in `lib/register.lua`.
 
-Also per B33: player meta written from `register_on_shutdown` is assumed to still
-be saved. It follows from the engine's shutdown order and **has not been observed
-here** — `tests/PLAYTEST.md` check E9 is what would settle it.
+Also per B33: player meta written from `register_on_shutdown` **is** still saved.
+It follows from the engine's shutdown order, and it was an assumption until
+`tests/PLAYTEST.md` check E9 was run at `dee0bc7` on engine 5.17.0 — now observed,
+not inferred.
+
+Both of those callbacks build the `{quit = 'true'}` they pass in, so neither
+carries a scrollbar field. That is why they kept working while closing the same
+editor with ESC did not (B37): the two paths with playtest checks were the two
+that worked.
 
 ### `drone.lua` vs `drone_entity.lua`
 
