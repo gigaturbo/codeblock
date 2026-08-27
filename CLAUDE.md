@@ -23,23 +23,31 @@ not read it, report on it, or change it from here.
 
 ## The record
 
-Five documents, four in this directory and one under `tests/`, plus the
-`.claude/` definitions:
+Five documents in this directory, plus this file, the `.claude/` definitions and
+the gitignored HTML renderings:
 
-- `ROADMAP.md` — the one to read first. What is left to do, fix or change, in
-  order.
-- `TODO.md` — intentions that are not findings. One line per item, a finding id
-  where there is one.
+- `ROADMAP.md` — the one to read first. What to do next, in order; the phases
+  (`Phase 0`–`Phase 8`) and the `F` feature series; and **the log of what was
+  agreed** — a feature's shape as settled, a part argued out, a rewording, a
+  default chosen. Nothing else records those.
+- `TODO.md` — the author's inbox and wanted-features list. One line each. A
+  `FIX:` or `BUG:` line there is a hand-off: it gets a finding id in `AUDIT.md`
+  and stays in `TODO.md` until the author deletes it.
+- `AUDIT.md` — every finding with its id, severity, state and, once fixed, how,
+  plus the reasoning a future change would otherwise re-break. Findings only; no
+  roadmap and no features.
 - `CHANGELOG.md` — what shipped, for someone using this mod in any game.
-- `.audit/audit.html` — every finding with its id, severity, state and, once
-  fixed, how, plus the reasoning `ROADMAP.md` leaves out. Its phases
-  (`Phase 0`–`Phase 8`) are the numbers commit messages quote and are never
-  renumbered. Gitignored, so it never travels with a commit.
-- `tests/PLAYTEST.md` — the manual checks no spec can reach, each with what to do
+- `PLAYTEST.md` — the manual checks no spec can reach, each with what to do
   in-world, what a pass looks like, its finding id, and a result line carrying
-  the commit, engine version and date, so a stale pass reads as stale. Tracked,
-  but `tests` is `export-ignore`d so it never ships. It is a record document, not
-  a spec.
+  the commit, engine version and date, so a stale pass reads as stale. It is a
+  record document, not a spec.
+- `.reports/*.html` — browsable renderings of `ROADMAP.md`, `AUDIT.md` and
+  `PLAYTEST.md`, gitignored.
+  **Presentation only:** every fact in them is in the tracked Markdown, so a
+  deleted `.reports/` costs nothing.
+
+`AUDIT.md` and `PLAYTEST.md` each carry their own `export-ignore` line in
+`.gitattributes`, so neither ships to a player.
 
 Finding ids — `B` bugs, `S` sandbox and security, `C` compliance and packaging,
 `A` architecture — are **never renumbered**, because commit messages cite them. A
@@ -48,49 +56,22 @@ the two projects shared one record. `F` is a fifth series, features, allocated
 when `Phase 8` became the feature phase; `F` ids are this project's own, are
 quoted in commit messages the same way, and are never renumbered either.
 
-The `project-manager` agent owns all five and the `.claude/` definitions beside
+The `project-manager` agent owns all six and the `.claude/` definitions beside
 them; edit one by hand only for something that agent cannot know — recording the
 outcome of a playtest run is exactly such a thing.
 
 ## How a feature gets built here
 
-The order, which `F1` established and every `F` item should follow:
+Six steps, which `F1` established and every `F` item follows. **The procedure is
+the `build-feature` skill** (`.claude/skills/build-feature/SKILL.md`) — read it
+before starting, resuming or reviewing an `F` item. Two of its steps need the
+author in person, so it is a skill and not a subagent.
 
-1. **Shape it in prose before any code exists** — dependencies, consequences,
-   risks, feasibility, what the player experiences. F1 changed shape twice at
-   this stage and cost nothing either time.
-2. **Put a choice that is the author's to them, as a small set of options with a
-   recommendation.** Not a survey. Four such choices settled F1's scope in one
-   exchange: where the UI lives, how the player picks, who may set it, whether
-   `air` counts.
-3. **Argue out what should not be built.** F1's proposed `persist` flag was cut
-   before implementation, on four grounds recorded under `F1` in the audit. A
-   feature losing a part on argument is a normal outcome, not a failure.
-4. **Write it, then the four gates, every time** — `luacheck`,
-   `gen_docs.lua --check`, `gen_locale.lua --check`, the nine specs.
-5. **Then the author plays it in a real world.** This is not a formality: F1's
-   picker was wrong twice in ways no spec could catch, and the second diagnosis
-   came from reading the engine's formspec documentation rather than guessing at
-   the symptom. **Reach for the engine's documentation and source on the first
-   surprise, not the second.** Three findings here were the engine doing
-   something the code did not expect — B37 (a scrollbar is sent on every submit),
-   B38 (`on_secondary_use`, not `on_place`, when nothing is pointed at) and B5's
-   `get_int` trap. B38's callback *is* documented in `lua_api.md`; the cost was
-   not reading it. When `lua_api.md` is silent or misleading, as it is for B37,
-   `src/gui/guiFormSpecMenu.cpp` settles it.
-6. **Findings from that playtest get ids and go in the record before the code
-   moves on.** F1's playtest produced `B33`, `B34` and `B35`; all three were
-   recorded, then fixed or decided, before the next feature started. What gets an
-   id is a defect in **committed** code: F1's three were in pre-existing editor
-   code its playtest happened to expose. F2's naming was wrong in the same way and
-   got no id, because F2 was still uncommitted — that is the feature being wrong
-   before it ships, and the record for it is the `F` entry.
-
-Two rules, because both were nearly lost:
+Two rules from it are repeated here because both were nearly lost:
 
 - **A feature is done when it is committed with its gates green** — not when it
   works locally. Its in-world checks being run is a separate thing again, and
-  `tests/PLAYTEST.md` is where that is tracked.
+  `PLAYTEST.md` is where that is tracked.
 - **Nothing in a running world is provable by the specs.** They run at mod load,
   before a map, a player or a user directory exists. Anything touching a
   formspec, player meta, the filesystem or the world needs a playtest entry.
@@ -162,7 +143,7 @@ happened here.
 **What no spec reaches, and where it is written down.** The suite runs at mod
 load, before a map, a player or a user directory exists, so the editor, the
 filesystem, drone placement and every write into the world have no coverage and
-cannot have. Those checks are a tracked checklist in **`tests/PLAYTEST.md`**,
+cannot have. Those checks are a tracked checklist in **`PLAYTEST.md`**,
 each with a result line, the commit it was checked at and the date. Do a run
 before calling anything verified in a running world, and record the outcome
 there.
@@ -333,7 +314,7 @@ survives a redraw, field routing, one form per player.
 
 **The editor formspec is in legacy coordinates**, not
 `formspec_version` coordinate mode, and three things follow from that which are
-invisible until something is drawn in the wrong place (audit F1, F2). A `scroll_container` maps its contents into a
+invisible until something is drawn in the wrong place (roadmap F1, F2). A `scroll_container` maps its contents into a
 different space from the elements around it and clips them to its own rectangle,
 so rows drawn in one land somewhere else; and an `item_image_button` inside one
 gets a hit area that does not match where it is drawn. The three help panels get
@@ -343,7 +324,7 @@ list in the same form already does. And **a button's `W` is not a width**: the
 engine gives a `button` `W*spacing - (spacing - imgsize)` and a `textlist` plain
 `W*spacing`, with `spacing = imgsize * 5/4`, so a button is short by a fixed
 **0.2 units** whatever `W` is — the offset does not scale. That is why *Create a
-copy* is `3.2` wide against the 3-wide file list and `+` is `0.95` (audit F2). A
+copy* is `3.2` wide against the 3-wide file list and `+` is `0.95` (roadmap F2). A
 legacy button's `H` is not a height either: the height is fixed and `H` only
 shifts it down. `lua_api.md` records the spacing, the padding and the fixed
 height but **not** the width offset, so the reference cannot settle a
@@ -396,7 +377,7 @@ on `register_on_leaveplayer` in `lib/register.lua`.
 
 Also per B33: player meta written from `register_on_shutdown` **is** still saved.
 It follows from the engine's shutdown order, and it was an assumption until
-`tests/PLAYTEST.md` check E9 was run at `dee0bc7` on engine 5.17.0 — now observed,
+`PLAYTEST.md` check E9 was run at `dee0bc7` on engine 5.17.0 — now observed,
 not inferred.
 
 Both of those callbacks build the `{quit = 'true'}` they pass in, so neither

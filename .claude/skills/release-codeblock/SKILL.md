@@ -54,7 +54,7 @@ v1.0.0 is major for several of these at once.
   so any README edit needs this — and **nothing checks it for you**.
 - `ROADMAP.md` and `TODO.md` — strike what this release closed. Or ask
   `project-manager` to, which is cheaper and more honest. The reasoning behind
-  each item is in `.audit/audit.html` beside them.
+  each item is in `AUDIT.md` beside them.
 - `.gitattributes` — confirm nothing added since the last release will ship in
   the archive. Nothing in CI checks it, so check what actually ships:
   `git archive --format=tar HEAD | tar -t | awk -F/ '{print $1}' | sort -u`.

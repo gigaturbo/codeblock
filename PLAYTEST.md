@@ -5,10 +5,10 @@ load**, before a map, a player or a user directory exists, so the editor, drone
 placement, the filesystem and every write into the world have no spec coverage at
 all and cannot have. Six findings closed in Phase 7 rest on reading the code
 only. This file is where that gap is written down, so it can be reviewed rather
-than rediscovered from prose scattered across `ROADMAP.md` and the audit.
+than rediscovered from prose scattered across `ROADMAP.md` and `AUDIT.md`.
 
-`tests` is `export-ignore`d in `.gitattributes`, so this file never ships to a
-player.
+`PLAYTEST.md` has its own `export-ignore` line in `.gitattributes`, so this file
+never ships to a player.
 
 ## How to record a result
 
@@ -22,10 +22,10 @@ Result: pass — <commit> · engine <version> · <YYYY-MM-DD> — <one line of d
 `fail` and `partial` take the same shape. **Always keep the commit and the
 date**: a pass recorded three phases ago is not evidence about today's code, and
 the point of the line is that a stale pass reads as stale rather than as current.
-A `fail` is not a finding — report it and let the audit allocate or widen an id.
+A `fail` is not a finding — report it and let `AUDIT.md` allocate or widen an id.
 
 Reference the finding or feature id in brackets after the title; the reasoning is
-in `.audit/audit.html` under that id.
+in `AUDIT.md` under that id, or in `ROADMAP.md` for an `F` id.
 
 ---
 
@@ -365,7 +365,7 @@ Then copy the copy, several times. Then reopen the original.
 6. The button's **right edge sits flush** with the file list above it and with
    `+` below it. This is the part with a history: a legacy-coordinate `button` is
    0.2 units narrower than its `W` says, so the widths are `3.2` and `0.95`
-   against a 3-wide list. See `F1`'s legacy-coordinate *keep* block in the audit.
+   against a 3-wide list. See `F1`'s legacy-coordinate notes in `ROADMAP.md`.
 
 Not spec-reachable at all: `forms_spec` stubs `core.show_formspec` and stops at
 the session layer, never reaching `formspecs.lua`'s `on_close`.
@@ -770,6 +770,6 @@ failed) and no in-world check run.
 
 ---
 
-Sources: `.audit/audit.html` (per-finding reasoning) and `ROADMAP.md`'s *what
-ships broken*. When a check moves, update the audit entry too — the audit is the
-record, this is the procedure.
+Sources: `AUDIT.md` (per-finding reasoning), `ROADMAP.md` (the `F` entries and
+*what ships broken*). When a check moves, update the finding entry too — that is
+the record, this is the procedure.

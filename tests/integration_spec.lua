@@ -662,7 +662,7 @@ end
 -- these specs run at mod load, before there is one. So what is pinned is the
 -- field every placement resolves through, not a node in the world. The panel
 -- that sets the player's saved preference, and whether that survives a relog,
--- are in tests/PLAYTEST.md.
+-- are in PLAYTEST.md.
 --------------------------------------------------------------------------------
 
 do

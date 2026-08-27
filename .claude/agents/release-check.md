@@ -136,9 +136,11 @@ Each output has a different consumer, and they go stale independently:
   git archive --format=tar HEAD | tar -t | awk -F/ '{print $1}' | sort -u
   ```
 
-  Nothing a player has no use for: `.claude/`, `.audit/`, `.github/`, `tests/`,
-  `scripts/`, `screenshots/`, art sources, the project record. A new directory is
-  the thing that slips through. `screenshot.png` must survive as `-export-ignore`
+  Nothing a player has no use for: `.claude/`, `.reports/`, `.github/`, `tests/`,
+  `scripts/`, `screenshots/`, art sources, and the record — `ROADMAP.md`,
+  `TODO.md`, `AUDIT.md`, `PLAYTEST.md`, `CLAUDE.md`, each named on its own line in
+  `.gitattributes`. A new file at the root, or a new directory, is the thing that
+  slips through. `screenshot.png` must survive as `-export-ignore`
   — Luanti shows it in the main menu's Mods tab.
 - `LICENSE`, `.cdb.json`'s licence field, and the README badge agree.
 - `mod.conf`: `name`, `title`, `description`, `author` present.

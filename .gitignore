@@ -1,2 +1,5 @@
-# The audit is a working document, not a deliverable.
-.audit/
+# Browsable HTML renderings of ROADMAP.md, AUDIT.md and PLAYTEST.md, for reading
+# in a browser rather than in a diff. Presentation only: every fact in them is in
+# the tracked Markdown, so a deleted .reports/ costs nothing and project-manager
+# can rebuild all three.
+.reports/
