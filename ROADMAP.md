@@ -20,16 +20,24 @@ because several changes break saved player programs.
 
 ## Now
 
-**Fix `B41`, then push and let CI see the two fixes.** The playtest run of
-2026-08-27 at `246bb37` closed the backlog of *checking* and opened one of
-*fixing*: it took the drone, filesystem, pacing and per-feature groups, confirmed
-`B29`, `B38`, `B39`, `C17`, `F1` and `F3` in a running world — everything this
-range had committed but unproven — and found three defects no reading had. **Two
-are now fixed, committed and confirmed in a world**; `B41` is the third.
+**Fix `B41`, then `B43`.** The playtest run of 2026-08-27 at `246bb37` closed the
+backlog of *checking* and opened one of *fixing*: it took the drone, filesystem,
+pacing and per-feature groups, confirmed `B29`, `B38`, `B39`, `C17`, `F1` and
+`F3` in a running world — everything this range had committed but unproven — and
+found three defects no reading had. **Two are fixed, pushed and confirmed in a
+world, and CI is green over them at `0385099`, run 27.** A fourth came out of
+timing the re-run.
 
 - **`B41` · low** — cancelling the file chooser leaves a drone nametagged
   `?.lua` that cannot run. `Drone.new` runs before the chooser is shown and
   `cancel` only closes the form; ESC lands in the same state. Then re-run `D5`.
+- **`B43` · low** — the emerged box is one node larger than the shape on every
+  axis, so a thin shape pays for a whole extra layer of mapblocks whenever that
+  node crosses a boundary, and which way the drone faces decides whether it does.
+  `cube(2, 2, 30000)` at codelevel 2 took 78 s one way and 183 s another. The fix
+  is one subtraction per axis in `bounds`; the work is in `tests/shapes_spec.lua`,
+  where three cases encode the current numbers and must be **recomputed from the
+  geometry rather than fitted to the new output**.
 - **`B40` · high · `62cf464`, confirmed by `F-4` and `F-3` case 1** — `read_file`
   read a file whole with no bound and the editor sent it to the client; a 168 MB
   file took Luanti to ~14 GB and froze it. It now reads one byte past the ceiling
@@ -56,14 +64,13 @@ it **passed on 2026-08-28** — reachable at last because an oversized file is
 refused before the bytecode branch, which also confirmed `B7` a phase after it was
 fixed.
 
-One thing came out of `P3` that nothing explains: **when the shape becomes
-visible depends on which way the drone faces**, and at codelevel 1 it did not
-appear at all until the drone was stopped. Both orientations complete, so this is
-not `B42` returning. It is not a deferred write either — every pass calls
-`write_to_map` and nothing here touches the map when a drone stops. Either it is
-what the client drew, or `across` really is 1 one way and 2 the other, which
-doubles the work; **the duration on the completion line tells them apart**, and
-`P3` now says so. No id until that number is in.
+**One number decided `B43`, and it is worth remembering how.** `P3` turned up
+that the facing changed the run, and there were two explanations — what the
+client drew, or a real difference in the work — that no amount of watching could
+separate. Timing three facings did it in one go: 78 s and 183 s land within one
+per cent of a doubled and a quadrupled emerge. **Ask for the number the two
+explanations disagree on.** The 160 s run fits neither and is recorded as
+fitting neither, rather than rounded into the story.
 
 One thing wants an answer rather than an action: **`C18`**, the five sky
 overrides forced on every joining player. Recommended: one setting, defaulting
@@ -103,15 +110,16 @@ holds the reasoning.
 
 "Done" through Phase 7 means the findings are closed and the gates green, **not**
 that the editor and drone paths were exercised by hand. Phase 8's playtests have
-since found **eight** defects in code earlier phases called done (B36–B42, C17)
-plus one open finding (C18) — the newest three were the largest of them, and
+since found **nine** defects in code earlier phases called done (B36–B43, C17)
+plus one open finding (C18) — the newest of them were the largest, and
 `B40` and `B42` are now fixed.
 
-### 8 · Features — in progress (3/7 shipped · 10 findings closed, 2 open)
+### 8 · Features — in progress (3/7 shipped · 10 findings closed, 3 open)
 
 The last phase before v1.0.0 and the only one that adds rather than repairs.
 Ordered easiest to hardest, one at a time. **The pacing group has now been
-played**, which is what `F4` and `F5` were waiting on — and it produced `B42`.
+played**, which is what `F4` and `F5` were waiting on — and it produced `B42` and
+then `B43`.
 
 Shipped, gates green, pushed and CI-green at `b8b30e3`:
 
@@ -123,12 +131,10 @@ Shipped, gates green, pushed and CI-green at `b8b30e3`:
 
 Left in the phase:
 
-- Fix `B41`, the cancelled chooser leaving a dead drone. Then re-run `D5`. The
-  last of the three the playtests found.
-- Push `62cf464` and `febf16f` and let CI see them; it is green at `b8b30e3` and
-  has not run since.
-- Read `P3`'s duration off the completion line in both orientations — the one
-  thing that run left open. (no finding)
+- Fix `B41`, the cancelled chooser leaving a dead drone. Then re-run `D5`.
+- Fix `B43`, the emerged box a node larger than the shape. The change is one
+  subtraction per axis; the care is in recomputing three `shapes_spec` cases from
+  the geometry rather than from the new output.
 - Run `D2` case 2, which now has a recipe, and `F-3` case 2, the unreadable file —
   the last thing in the filesystem group nothing has exercised. (B10, B15)
 - Run `W2`, `W3`, `R1` and `R2` — the four that have never been run at all.
@@ -521,10 +527,9 @@ rather than necessary, which is why it comes first.
 
 ---
 
-2026-08-28 · codeblock `febf16f` (master), **not pushed** · CI green at
-`b8b30e3`, run 25, all three jobs, and it has not seen `62cf464` or `febf16f`;
-every local gate is green over both.
-Local gates green at `b5d2e40`, engine 5.17.0, reported by the author and
-read from output rather than exit codes: luacheck silent, `doc/api.md` and
-`locale/template.txt` up to date, nine in-engine specs **374 passed, 0 failed, 1
-xfail, 0 xpass**, six standalone specs green under plain Lua 5.1.
+2026-08-28 · codeblock `0385099` (master), pushed · CI green, run 27, all three
+jobs — the first run to cover `B40` and `B42`.
+Local gates green at `febf16f`, engine 5.17.0, read from output rather than exit
+codes: luacheck silent, `doc/api.md` and `locale/template.txt` up to date, nine
+in-engine specs **377 passed, 0 failed, 1 xfail, 0 xpass**, six standalone specs
+green under plain Lua 5.1.

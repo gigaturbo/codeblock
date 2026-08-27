@@ -812,11 +812,12 @@ reading alone: the pacing, the slab progression and the shared step budget.
 The throttle has now been seen throttling, which is the one thing `S5` claimed
 from reading and no run had reached: the same `cube(2, 2, 30000)` that died
 before completed in 93 s, a rate consistent with the ceiling divided by the
-engine's unload window. One thing came out of the run that nothing explains yet:
-**when the shape becomes visible depends on which way the drone faces**, and at
-codelevel 1 it did not appear at all until the drone was stopped. Both
-orientations complete, so it is not `B42` returning. It is recorded under `P3`
-with the one measurement that would settle it.
+engine's unload window. The run also turned up that **how long it takes depends
+on which way the drone faces** — every orientation completes, so not `B42`
+returning. Timing three of them settled it and opened **`B43`**: 78 s, 160 s and
+183 s for the same call from the same spot, two of the three landing on what a
+doubled or quadrupled emerge predicts. **A measurement, not a failure, is what
+found that one**, and it is the first finding here to arrive that way.
 
 ### P1 · `pace_ms` at the low codelevels [S5, B26]
 
@@ -879,25 +880,33 @@ blocks appear and then the drone pauses, in the other the drone pauses until the
 blocks appear. At codelevel 1 nothing appeared at all until the drone was
 stopped, and then part of it did.
 
-**Observed and unexplained.** It is not a deferred write: `lib/shapes.lua` calls
-`write_to_map()` in every pass, and **nothing in this mod touches the map when a
-drone stops** — `Drone.finish` sends a chat line and removes the drone. Two
-candidates, and they are told apart by a number rather than an impression:
+**What it was.** Not a deferred write: `lib/shapes.lua` calls `write_to_map()` in
+every pass, and **nothing in this mod touches the map when a drone stops** —
+`Drone.finish` sends a chat line and removes the drone. Two candidates were
+open, and a number rather than an impression told them apart:
 
 1. **What the client drew.** The shape grows along a different axis each way, so
    one run grows across the player's view and the other away from it, and the
    view distance decides how much of either is on screen. It was set to 30 for
    `D2`.
-2. **A real difference in the work.** `across` is 1 or 2 mapblocks depending on
-   whether the 2-node extent straddles a boundary, and which extent that is
-   changes with the angle, because `bounds.cube` centres `w` on x and `l` on z
-   while `drone_place_cube` swaps them at angles 1 and 3. A straddle doubles the
-   blocks emerged and so doubles the waiting.
+2. **A real difference in the work.** The emerged box covers one node more than
+   the shape on every axis, so a 2-node extent covers 3 and straddles a mapblock
+   boundary at twice as many positions; which extent is where changes with the
+   angle, because `bounds.cube` centres `w` on x and `l` on z while
+   `drone_place_cube` gives each angle its own origin.
 
-**What settles it: the duration on the completion line.** Run both orientations
-from the same spot and compare what `Program '@1' completed` reports. Equal
-durations mean it is the client and nothing is wrong; a factor of about two means
-it is the boundary straddle, which is real work and wants an id.
+**Settled, and it is the second.** Timed at three facings from one spot,
+codelevel 2, **view distance 500** so nothing was hidden: **78 s, 160 s, 183 s**.
+Codelevel 2 holds 1024 mapblocks decaying over 29 s, so it settles at 35.3 blocks
+a second; the long axis is about 1877 mapblocks and each short axis multiplies by
+1 or 2, giving predicted times of 24 s, 77 s and 184 s. **78 and 183 land on two
+of those to within one per cent**, so the work really does differ with the
+facing — that is **`B43`**, filed. The 160 s run fits none of them and is
+recorded as fitting none: the products can only be 1, 2 or 4.
+
+At view distance 500 the shape was visible as it built, so the codelevel-1 run
+above — nothing appearing until the drone was stopped — was the client and not
+the server. No id for that half.
 
 ### P4 · Several drones at once [A5]
 

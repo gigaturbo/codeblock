@@ -37,9 +37,6 @@ Decisions wanted from the author
 
 Checks left in a running world — the checklist is `PLAYTEST.md`
 
-- [ ] run P3 once more and read the duration off the completion line both ways —
-      whether the facing changes the work or only what the client draws is the
-      one thing that run left open (no finding, see PLAYTEST P3)
 - [ ] run D2 case 2 — a drone placed where the client shows a node the server has
       unloaded; the recipe is in the check (audit B10)
 - [ ] run F-3 case 2 — a file the process cannot read, denied with icacls; the

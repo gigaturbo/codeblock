@@ -25,15 +25,15 @@ nothing dropped.
 
 ## Where it stands
 
-69 findings, this project's own. **66 resolved, 2 open (`B41`, `C18`), 1 won't
-fix (`B34`).** CI is green at `b8b30e3` (run 25, all three jobs, and the first
-run to include `gen_locale.lua --check`). `B40` and `B42` are committed on top of
-it, `62cf464` and `febf16f`, with every local gate green and both confirmed in a
-running world; CI has not seen them yet.
+70 findings, this project's own. **66 resolved, 3 open (`B41`, `B43`, `C18`),
+1 won't fix (`B34`).** Everything resolved is pushed and **CI is green at
+`0385099`, run 27, all three jobs** — the run that first covered `B40`'s and
+`B42`'s fixes, `62cf464` and `febf16f`, both of which are also confirmed in a
+running world.
 
 | Category | Count | Open |
 |---|---|---|
-| B bugs | 39 | B41 (B34 won't fix) |
+| B bugs | 40 | B41, B43 (B34 won't fix) |
 | S sandbox and security | 6 | — |
 | C compliance and packaging | 12 | C18 |
 | A architecture and performance | 12 | — |
@@ -48,7 +48,11 @@ world** — `F-4`, `F-3` case 1 and `P3`. That range of runs also confirmed `B29
 `B38`, `B39`, `C17` and, a phase late, `B7`.
 
 **`S5`'s throttle measurement was made at the same time**, the one claim in this
-file that had been read from the code and never seen: `P3` at `febf16f`.
+file that had been read from the code and never seen: `P3` at `febf16f`. Timing
+that run at three facings then opened **`B43`** — the emerged box is a node
+larger than the shape on every axis, which on a thin shape doubles the mapblocks
+and makes a program's duration depend on which way the player was looking. It is
+the first finding here that came out of a *measurement* rather than a failure.
 
 32 of 36 `PLAYTEST.md` checks carry a result — 29 pass, 2 partial, 1 fail.
 
@@ -104,6 +108,59 @@ operator objects to. **Read from the source only** — that a joining player los
 the cycle is inference, and there is no playtest check for it. One should be added
 to the drone or release group when the decision is taken.
 
+### B43 · low · open — the emerged box is one node larger than the shape on every axis, and which way the drone faces decides what that costs
+
+`lib/shapes.lua`, `bounds.cube`:
+
+```lua
+return o, o, {x = o.x + s.w, y = o.y + s.h, z = o.z + s.l}
+```
+
+The cube filler writes `x = 0, w - 1` relative to `o`, so the last node it
+touches is `o.x + w - 1`. `pos2` is `o.x + w`. **One node past the shape, on all
+three axes**, and `bounds.cylinder` does the same along its length
+(`p2[a] = p[a] + s.l`, filler `i = 0, s.l - 1`). Sphere and dome are exact.
+
+`read_from_map` aligns outward to whole mapblocks, so that extra node-layer is
+free whenever it falls inside a block already being emerged, and costs an entire
+layer of mapblocks whenever it does not. **On a thin shape it is not a rounding
+error but a doubling**: a 2-node extent covers 3 nodes once the extra one is
+added, so it straddles a mapblock boundary on 2 positions in 16 rather than 1.
+
+**Measured, playtest `P3` at `febf16f`, 2026-08-28**, codelevel 2 and view
+distance 500, `cube(2, 2, 30000)` from one spot, turning 90° between runs:
+**78 s, 160 s, 183 s.** The model behind those numbers: codelevel 2 holds 16 MB,
+1024 mapblocks, decaying over the engine's 29 s window, so it settles at 35.3
+blocks a second; the long axis is about 1877 mapblocks and each short axis
+contributes a factor of 1 or 2, giving totals of 1877, 3754 or 7508 and
+predicted times of 24 s, 77 s and 184 s. **78 s and 183 s land on two of those to
+within one per cent.** So the work really does differ with the facing, and by a
+factor of two — this is not what the client drew.
+
+Why the facing changes it at all: `drone_place_cube` computes a different origin
+per angle — `drone.x + floor(w/2)` at angle 0 against `drone.x - floor((w-1)/2)`
+at angle 2 — and swaps `w` and `l` at angles 1 and 3. From one spot the four
+angles put the short extents on different absolute coordinates, so each has its
+own answer to whether they straddle a boundary.
+
+**The 160 s run is not explained by that model** and is left open rather than
+rounded into it: spans are 1 or 2, so the only products are 1, 2 and 4, and
+6674 mapblocks is none of them. A footprint left over from the previous run
+would make a run *longer* than its class, not land it between two.
+
+**The fix, and what it disturbs.** Subtract one from each axis in `bounds.cube`
+and from the length in `bounds.cylinder`. That is the whole change to the module,
+but three cases in `tests/shapes_spec.lua` encode the current behaviour and would
+have to be recomputed rather than adjusted by eye — *a shape across a boundary is
+charged for both sides* is 8 and becomes 2, and the 48-node cube's charge of 64
+becomes 48, with its slab count and per-pass charge following. **Recompute them
+from the geometry, do not fit them to the output**; that is the whole point of
+how that spec is written.
+
+Low, not medium: nothing is built wrong and nothing is lost. It spends emerge
+time and footprint the shape never asked for, and it makes how long a program
+takes depend on which way the player happened to be looking.
+
 ### B41 · low · open — cancelling the file chooser leaves a drone that cannot run
 
 Place the poser with no `codeblock:last_file` stored, and `Drone.on_place`
@@ -156,7 +213,7 @@ delete should confirm is a separate question.
 
 ## B · Bugs
 
-39 findings, 37 resolved, `B41` open (above), `B34` won't fix.
+40 findings, 37 resolved, `B41` and `B43` open (above), `B34` won't fix.
 `B19`, `B20` and `B24` are the game's.
 
 - **B1 · critical · resolved** — comment stripping deleted the code between two
@@ -626,11 +683,10 @@ delete should confirm is a separate question.
   the case is known not to be vacuous. **`P3` passed at `febf16f` on 2026-08-28**
   — the call that died facing east completed in 93 s — so this is confirmed in a
   running world, and the same run finally made `S5`'s throttle measurement.
-  One thing from those runs is unexplained and is **not** attributed here: when
-  the shape becomes visible depends on the drone's facing, and at codelevel 1 it
-  did not appear until the drone was stopped. Both orientations complete, so it is
-  not this finding returning. See `P3`, which carries the measurement that would
-  settle whether it is the client or a boundary straddle doubling the work.
+  The facing still changed how long the run took after this fix, which is **not**
+  this finding returning — every orientation completes. Timing three of them
+  turned that into `B43`: the emerged box is a node larger than the shape, which
+  a thin shape pays for in whole mapblocks.
 
 ---
 
@@ -1064,11 +1120,11 @@ Never blurred. **Verified** means a run or a reading demonstrates it,
 **committed** means the code is there and unproven, **claimed** means only a
 document says so.
 
-**Verified by machine.** CI run 25 at `b8b30e3`, all three jobs green, checked
-against the GitHub API: luacheck, the six standalone specs under plain Lua 5.1,
-`doc/api.md is up to date` **and** `locale/template.txt is up to date` — the last
-being the step `b5d2e40` added, now proven off this machine for the first time.
-CI never runs the nine in-engine specs.
+**Verified by machine.** CI run 27 at `0385099`, all three jobs green, checked
+against the GitHub API: luacheck, the six standalone specs under plain Lua 5.1
+(`B42`'s new slicing case among them), and `doc/api.md` and
+`locale/template.txt` both up to date. It is the first run to cover `B40` and
+`B42`. CI never runs the nine in-engine specs.
 
 **Verified locally, the author's report** (engine 5.17.0, read from output rather
 than exit codes — `$?` does not survive this machine's WSL layer): nine in-engine
@@ -1097,12 +1153,6 @@ whole once its field names and values total 640 kB, and that check exists from
 **5.7.0** and not before. `B40`'s reachability question, open when it was filed,
 is answered there.
 
-**Committed here, not yet seen by CI:** `B40` at `62cf464` and `B42` at
-`febf16f`. All nine specs, luacheck, `gen_docs.lua --check` and
-`gen_locale.lua --check` are green over both on this machine, and `B42` gained a
-spec case that was run against the pre-fix module and fails there. Both are
-confirmed in a running world.
-
 **Committed, CI-green, unproven in a world:** `B14`, which cannot be proven from
 the editor at all while `B34` stands. `C16`'s install guard, which needs a real
 archive (`R1`, `R2`). `B7` left this list on 2026-08-28.
@@ -1111,13 +1161,18 @@ archive (`R1`, `R2`). `B7` left this list on 2026-08-28.
 player-visible half. The footprint throttle *doing its throttling* left this list
 on 2026-08-28, having been on it since Phase 5.
 
-**Observed and unexplained:** when a shape becomes visible depends on which way
-the drone faces, `P3` at `febf16f`, and at codelevel 1 it did not appear until
-the drone was stopped. Both orientations complete, so it is not `B42` returning,
-and it is not a deferred write — nothing here touches the map when a drone stops.
-No id: either it is what the client drew, or `across` differs by a boundary
-straddle and the work really is twice as much one way. The duration on the
-completion line tells them apart; `P3` carries the procedure.
+**Measured, then explained:** the facing-dependent behaviour `P3` turned up was
+timed at three angles on 2026-08-28 — 78 s, 160 s, 183 s — and is `B43`. Two of
+the three land within one per cent of what a doubled or quadrupled emerge
+predicts, so it is the work and not what the client drew. **The 160 s run fits
+nothing** and is recorded as not fitting: the spans can only multiply to 1, 2 or
+4.
+
+**Observed and unattributed:** at codelevel 1 nothing of the shape appeared until
+the drone was stopped, `P3` at `febf16f`, view distance 30. It is not a deferred
+write — nothing here touches the map when a drone stops — and at view distance
+500 the shape was visible as it built, so this is most likely what the client
+drew. No id.
 
 **Reported, then disproved:** `E12`'s symptom, three fails and two traces. Settled
 as a pass at `246bb37`: no write was happening, and the surprise was an unmarked
@@ -1152,8 +1207,8 @@ dirty buffer, now `ROADMAP.md`'s `F7`. No finding id was ever allocated, correct
 
 ---
 
-2026-08-28 · describes codeblock `febf16f` (master), **not pushed** — CI is green
-at `b8b30e3`, run 25, and has not seen `62cf464` or `febf16f`. Restructured at
+2026-08-28 · describes codeblock `0385099` (master), **pushed**, CI green (run
+27, all three jobs) — the first run to cover `B40` and `B42`. Restructured at
 `b8b30e3`: this file is new and holds the findings that
 were in `.reports/audit.old.html`, which also held the roadmap and the `F` series
 — those are now in `ROADMAP.md`. Nothing renumbered, nothing dropped.
