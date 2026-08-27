@@ -151,18 +151,21 @@ go(name, n_right, n_up, n_forward) -- Return to a checkpoint, with an optional o
 
 ## Placing one block
 
-The default block is stone.
+Leave `block` out and the default block is used: the one chosen in the editor's Settings panel, or stone until a choice is made.
 
 ```lua
 place(block)                                                -- Place one block at the drone position.
 place_relative(n_right, n_up, n_forward, block, checkpoint) -- Place one block at an offset from a checkpoint.
+default_block(block)                                        -- Change the default block for the rest of the program.
 ```
 
 **`place_relative`** &mdash; `checkpoint` defaults to `spawn`.
 
+**`default_block`** &mdash; Affects every later call that leaves `block` out, shapes included. It lasts until the program ends and does not change the choice saved in the editor.
+
 ## Shapes
 
-The drone position is the back-bottom-left of the shape, which extends right, up and forward. `width` runs right, `height` up, `length` forward, and `radius` in the remaining directions. `hollow` defaults to false and `block` to stone.
+The drone position is the back-bottom-left of the shape, which extends right, up and forward. `width` runs right, `height` up, `length` forward, and `radius` in the remaining directions. `hollow` defaults to false and `block` to the default block.
 
 ```lua
 cube(width, height, length, block, hollow)         -- A rectangular box.

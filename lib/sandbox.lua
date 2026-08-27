@@ -21,6 +21,7 @@ local turn_right = codeblock.commands.drone_turn_right
 local turn = codeblock.commands.drone_turn
 local place_block = codeblock.commands.drone_place_block
 local place_relative = codeblock.commands.drone_place_relative
+local set_default_block = codeblock.commands.drone_set_default_block
 local place_cube = codeblock.commands.drone_place_cube
 local place_ccube = codeblock.commands.drone_place_ccube
 local place_sphere = codeblock.commands.drone_place_sphere
@@ -101,6 +102,9 @@ local function getScriptEnv(drone)
         ['place'] = function(block) place_block(drone, block) end,
         ['place_relative'] = function(x, y, z, block, chkpt)
             place_relative(drone, x, y, z, block, chkpt)
+        end,
+        ['default_block'] = function(block)
+            set_default_block(drone, block)
         end,
         -- checkpoints
         ['save'] = function(chkpt) save_checkpoint(drone, chkpt) end,

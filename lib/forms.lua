@@ -8,8 +8,11 @@
 --     handler(meta, player, fields)
 --
 -- `meta` is the same table across every redraw, so a handler can keep editor
--- state in it. `fields.quit == 'true'` means the player closed the form; the
--- engine sends that, not us.
+-- state in it. `fields.quit == 'true'` means the form is closing and nothing
+-- else in `fields` can be relied on. The engine sends it when the player closes
+-- the form; this module sends the same event when they disconnect and when the
+-- server shuts down, so a handler holding unsaved state has one path to write it
+-- on. A close from the mod's side (`forms.close`) deliberately sends nothing.
 
 codeblock.forms = {}
 
@@ -141,8 +144,38 @@ core.register_on_player_receive_fields(function(player, formname, fields)
     return forms.on_receive_fields(player, formname, fields)
 end)
 
-core.register_on_leaveplayer(function(player)
-    forms.forget(player:get_player_name())
+--- Close a player's form the way Escape does, without touching the client.
+--
+-- Dropping the session was not enough: a handler that holds unsaved state - the
+-- editor holds its open tabs and which one is active - has no other chance to
+-- write it, so leaving mid-session lost it. The session goes first so a handler
+-- calling back in sees no live form, and the event it gets is the engine's own
+-- quit event, so closing has one path however it was reached. (B33)
+local function close_session(player)
+    local name = player:get_player_name()
+    local s = sessions[name]
+    if not s then return end
+    sessions[name] = nil
+    s.handler(s.meta, player, {quit = 'true'})
+end
+
+core.register_on_leaveplayer(close_session)
+
+-- Shutdown reaches every form still open. Player meta written from here is still
+-- saved, because the callback runs before the server writes players out. The
+-- names are copied first: a handler is free to open a form, and adding a key
+-- during `pairs` is undefined. (B33)
+core.register_on_shutdown(function()
+    local names = {}
+    for name in pairs(sessions) do names[#names + 1] = name end
+    for _, name in ipairs(names) do
+        local player = core.get_player_by_name(name)
+        if player then
+            close_session(player)
+        else
+            sessions[name] = nil
+        end
+    end
 end)
 
 return forms

@@ -26,6 +26,18 @@ local cubes_ik = tcik(cubes)
 local plants_ik = tcik(plants)
 local wools_ik = tcik(wools)
 
+-- Every name the default-block picker offers, with the API path to show beside
+-- it. One list rather than a tab per table: the three share one namespace, so
+-- default_block and place() take a name from any of them. (F1)
+local pickable = {}
+for _, group in ipairs({
+    {cubes_ik, 'blocks'}, {plants_ik, 'plants'}, {wools_ik, 'wools'}
+}) do
+    for _, key in ipairs(group[1]) do
+        pickable[#pickable + 1] = {key = key, label = group[2] .. '.' .. key}
+    end
+end
+
 local get_user_data = codeblock.filesystem.get_user_data
 local read_file = codeblock.filesystem.read_file
 local write_file = codeblock.filesystem.write_file
@@ -57,17 +69,30 @@ local file_editor = {
         local soe = false
         local loe = false
         local sos = false
+        local dblock = cubes.stone
         local player = get_player_by_name(name)
         if player then
             local meta = player:get_meta()
-            -- Converted to booleans here, at the persistence boundary.
-            -- These used to be carried around as the 0/1 that get_int
-            -- returns and then tested with `if meta.sos then`, which is
-            -- always true in Lua - 0 is truthy - so both checkboxes were
-            -- permanently on whatever the player ticked.
-            soe = meta:get_int('codeblock:save_on_exit') == 1
-            loe = meta:get_int('codeblock:load_on_exit') == 1
-            sos = meta:get_int('codeblock:save_on_switch') == 1
+            -- Converted to booleans here, at the persistence boundary,
+            -- because 0 is truthy in Lua and `if meta.sos then` on the
+            -- 0/1 these are stored as is always true.
+            --
+            -- Read as strings rather than through get_int, which cannot
+            -- tell a box the player unticked from one they have never
+            -- seen: both come back 0. An absent key is "", so these two
+            -- can start ticked for a new player and still honour an
+            -- untick. set_int writes the digit as a string, so a stored
+            -- 0 reads back as '0' and stays off.
+            local s_loe = meta:get_string('codeblock:load_on_exit')
+            local s_sos = meta:get_string('codeblock:save_on_switch')
+            soe = meta:get_string('codeblock:save_on_exit') == '1'
+            loe = s_loe == '' or s_loe == '1'
+            sos = s_sos == '' or s_sos == '1'
+            -- Validated on read, the same check lib/drone.lua makes at the
+            -- start of a run: this key outlives a change to the palette, and a
+            -- player who joined before the setting existed has none. (F1)
+            local stored = meta:get_string('codeblock:default_block')
+            if blocks[stored] then dblock = stored end
             local saved_active =
                 meta:get_string('codeblock:editor_state_active')
             local saved_tabs = meta:get_string('codeblock:editor_state_tabs')
@@ -94,6 +119,8 @@ local file_editor = {
             scroll_c = 0,
             scroll_p = 0,
             scroll_w = 0,
+            default_block = dblock,
+            picking = false,
             soe = soe,
             loe = loe,
             sos = sos,
@@ -118,6 +145,7 @@ local file_editor = {
         fs = fs .. 'style[help_plants;bgcolor=blue]'
         fs = fs .. 'style[help_wools;bgcolor=blue]'
         fs = fs .. 'style[help_cmds;bgcolor=blue]'
+        fs = fs .. 'style[help_settings;bgcolor=blue]'
 
         -- tabs
         if #meta.tabs > 0 then
@@ -158,10 +186,15 @@ local file_editor = {
         -- help panel switches. Outside the block above on purpose: the panel is
         -- drawn with no file open, so without these it opens on the block list
         -- with no way to reach the others.
-        fs = fs .. 'button[14,0;1.5, 0.75;help_cubes;' .. S('Blocks') .. ']'
-        fs = fs .. 'button[15.5,0;1.5, 0.75;help_plants;' .. S('Plants') .. ']'
-        fs = fs .. 'button[17,0;1.5, 0.75;help_wools;' .. S('Wools') .. ']'
-        fs = fs .. 'button[18.5,0;1.5, 0.75;help_cmds;' .. S('API') .. ']'
+        -- Five across the same 14-to-20 span the four used, so Settings fits
+        -- without the row running off the form. It is the wider one: the word
+        -- does not fit 1.1. (F1)
+        fs = fs .. 'button[14,0;1.1, 0.75;help_cubes;' .. S('Blocks') .. ']'
+        fs = fs .. 'button[15.1,0;1.1, 0.75;help_plants;' .. S('Plants') .. ']'
+        fs = fs .. 'button[16.2,0;1.1, 0.75;help_wools;' .. S('Wools') .. ']'
+        fs = fs .. 'button[17.3,0;1.1, 0.75;help_cmds;' .. S('API') .. ']'
+        fs = fs .. 'button[18.4,0;1.6, 0.75;help_settings;' .. S('Settings') ..
+                 ']'
 
         -- checkboxes
         -- fs = fs .. 'checkbox[0,10;soe;Save on exit;' ..
@@ -249,6 +282,43 @@ local file_editor = {
             fs = fs .. 'hypertext[14.5,1;5.75,10.75;commands_html;' ..
                      codeblock.utils.html_commands .. ']'
 
+        elseif meta.help == 'settings' then
+
+            -- The block a bare place() uses, and what a program's
+            -- default_block() starts each run from. The list is only drawn
+            -- while the player is choosing; the rest of the time the setting is
+            -- one line. Selecting a row saves it at once rather than on close,
+            -- so the choice does not depend on the path that saves the editor's
+            -- own state. (F1)
+            -- The line is the button: clicking it opens the list, clicking it
+            -- again closes it. One control rather than a label and a switch
+            -- beside it.
+            fs = fs .. 'item_image[14.5,1.15;0.8,0.8;' ..
+                     blocks[meta.default_block] .. ']'
+            fs = fs .. 'button[15.3,1.15;4.4,0.8;pick_open;' ..
+                     S('Default block: @1', meta.default_block) .. ']'
+
+            -- A textlist, not the item rows the help panels draw. This form is
+            -- in legacy coordinates, where a scroll_container maps its contents
+            -- into a different space from the elements around it and clips them
+            -- to its own rectangle - which put the rows over the text area, and
+            -- left an item_image_button inside it with a hit area that never
+            -- matched where it was drawn. The three help panels get away with a
+            -- container because item_image takes no clicks. textlist is a
+            -- legacy element, scrolls by itself, and is what the file list in
+            -- this same form already uses. The price is that the rows are names
+            -- only, with the texture of the chosen one shown above. (F1)
+            if meta.picking then
+                local index = 0
+                fs = fs .. 'textlist[14.5,2.2;5.2,7.5;pick;'
+                for i, v in ipairs(pickable) do
+                    if i ~= 1 then fs = fs .. ',' end
+                    fs = fs .. formspec_escape(v.label)
+                    if v.key == meta.default_block then index = i end
+                end
+                fs = fs .. ';' .. index .. ']'
+            end
+
         end
 
         return fs
@@ -294,10 +364,6 @@ local file_editor = {
                     end
                 end
             end
-        end
-
-        local function update_active_content(content)
-            meta.contents[meta.active] = content
         end
 
         local function select_tab(i) meta.active = i end
@@ -375,24 +441,37 @@ local file_editor = {
             end
         end
 
+        -- The textarea's value arrives with every submit, and every redraw below
+        -- re-renders it from meta.contents. So it is taken once here rather than
+        -- in the branches that happened to remember: without it, any button that
+        -- was not Save - a help panel, a checkbox, a tab, the block picker -
+        -- threw away everything typed since the last one. Still the *old* active
+        -- tab at this point, which is what the tab and file branches want.
+        -- Absent from the quit event, which carries no field but `quit`. (B35)
+        if fields.content and meta.active ~= 0 then
+            meta.contents[meta.active] = fields.content
+        end
+
         -- FIELDS INPUTS
         if fields.close then
             close_active()
             update()
         elseif fields.tabs then
-            if meta.sos then
-                update_active_content(fields.content) -- old active
-                save_active()
-            end
+            -- Only the write to disk is the option's business; keeping the edit
+            -- in memory is not, and gating both on it lost the edit outright.
+            if meta.sos then save_active() end
             select_tab(tonumber(fields.tabs))
             update()
         elseif fields.load then
-            update_active_content(fields.content)
             save_active()
             load_active()
+            -- Load and close is an exit like ESC, so the editor state has to
+            -- be written on this path too. close_form sends no field table
+            -- back, so the quit branch below never runs for it, and the
+            -- active tab a player left on was lost. (B33)
+            save_editor_state()
             exit()
         elseif fields.save then
-            update_active_content(fields.content)
             save_active()
             update()
         elseif fields.create then
@@ -419,7 +498,6 @@ local file_editor = {
             if e.type == 'DCL' and selected then
                 for i, filename in ipairs(meta.tabs) do
                     if filename == selected.name then
-                        update_active_content(fields.content)
                         select_tab(i)
                         update()
                         return
@@ -440,6 +518,9 @@ local file_editor = {
         elseif fields.help_cmds then
             meta.help = 'commands'
             update()
+        elseif fields.help_settings then
+            meta.help = 'settings'
+            update()
         elseif fields.c_scroll then
             meta.scroll_c = core.explode_scrollbar_event(fields.c_scroll)
                                 .value
@@ -449,6 +530,31 @@ local file_editor = {
         elseif fields.w_scroll then
             meta.scroll_w = core.explode_scrollbar_event(fields.w_scroll)
                                 .value
+        elseif fields.pick_open then
+            meta.picking = not meta.picking
+            update()
+        elseif fields.pick then
+            -- Validated before it is stored, not merely before it is drawn: an
+            -- index arrives from the client, and what it selects ends up in
+            -- player meta. Every event on this list is consumed here either
+            -- way, so a forged one cannot fall through to the branches below.
+            local choice = pickable[explode_textlist_event(fields.pick).index]
+            if choice and blocks[choice.key] then
+                meta.default_block = choice.key
+                meta.picking = false
+                -- Written now, not with the rest of the editor's state on
+                -- close: that path only runs when the player quits the form,
+                -- and a preference must not depend on how they left. (F1, B33)
+                --
+                -- Looked up fresh for the same reason save_editor_state does:
+                -- the player object handed back with a form event can be stale.
+                local cur_player = get_player_by_name(name)
+                if cur_player then
+                    cur_player:get_meta():set_string('codeblock:default_block',
+                                                     choice.key)
+                end
+            end
+            update()
         elseif fields.quit == 'true' then -- fields.content cannot be accessed here
             if meta.loe then load_active() end
             save_editor_state()

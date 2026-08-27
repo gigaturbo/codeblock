@@ -69,7 +69,9 @@ api.groups = {
         }
     }, {
         title = 'Placing one block',
-        intro = 'The default block is stone.',
+        intro = 'Leave `block` out and the default block is used: the one ' ..
+            'chosen in the editor\'s Settings panel, or stone until a choice ' ..
+            'is made.',
         entries = {
             {
                 name = 'place',
@@ -80,6 +82,13 @@ api.groups = {
                 params = {'n_right', 'n_up', 'n_forward', 'block', 'checkpoint'},
                 doc = 'Place one block at an offset from a checkpoint.',
                 note = '`checkpoint` defaults to `spawn`.'
+            }, {
+                name = 'default_block',
+                params = {'block'},
+                doc = 'Change the default block for the rest of the program.',
+                note = 'Affects every later call that leaves `block` out, ' ..
+                    'shapes included. It lasts until the program ends and ' ..
+                    'does not change the choice saved in the editor.'
             }
         }
     }, {
@@ -87,7 +96,8 @@ api.groups = {
         intro = 'The drone position is the back-bottom-left of the shape, ' ..
             'which extends right, up and forward. `width` runs right, ' ..
             '`height` up, `length` forward, and `radius` in the remaining ' ..
-            'directions. `hollow` defaults to false and `block` to stone.',
+            'directions. `hollow` defaults to false and `block` to the ' ..
+            'default block.',
         entries = {
             {
                 name = 'cube',

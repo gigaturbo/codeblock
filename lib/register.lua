@@ -202,6 +202,10 @@ core.register_on_joinplayer(function(player)
 end)
 
 core.register_on_leaveplayer(function(player, timed_out)
+    -- Runs after lib/forms.lua's own leave callback, which closes a form still
+    -- open and lets its handler write what it holds. That handler reads the
+    -- player's file list, which this one drops, and leave callbacks run in load
+    -- order - forms.lua is loaded first, so keep it that way. (B33)
     local name = player:get_player_name()
     drone_on_remove(name)
     remove_user_data(name)

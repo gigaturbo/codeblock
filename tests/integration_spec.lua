@@ -44,6 +44,9 @@ local function stub_drone(auth_level)
         calls = 0,
         commands = 0,
         checkpoints = {},
+        -- The real record carries one from the moment it is made, because
+        -- placement() falls back to nothing further. (F1)
+        default_block = 'stone',
         -- The real budget for that codelevel, as lib/drone.lua builds it: the
         -- counters and every ceiling the commands check live in here now.
         budget = codeblock.limits.new(codeblock.config, al,
@@ -599,6 +602,53 @@ do
     -- `([%w_-]*)%s*([%d]*)` pattern got wrong, since %w matches digits.
     it('does not read a bare number as a player name', both('bob', '4', '%d+'),
        'bob|4')
+end
+
+--------------------------------------------------------------------------------
+-- the default block (F1)
+--
+-- default_block() touches nothing but the drone record, which is the only
+-- reason it is reachable here: place() and the shapes write to the map, and
+-- these specs run at mod load, before there is one. So what is pinned is the
+-- field every placement resolves through, not a node in the world. The panel
+-- that sets the player's saved preference, and whether that survives a relog,
+-- are in tests/PLAYTEST.md.
+--------------------------------------------------------------------------------
+
+do
+    local set_default = codeblock.commands.drone_set_default_block
+
+    local drone = stub_drone(4)
+
+    set_default(drone, 'glass')
+    it('default_block sets what a bare place() will use', drone.default_block,
+       'glass')
+
+    -- A wool and a plant too, not just another cube: the three tables share one
+    -- namespace, so a name from any of them is legal here exactly as it is in
+    -- place(block).
+    set_default(drone, 'red')
+    it('default_block takes a wool', drone.default_block, 'red')
+    set_default(drone, 'sapling')
+    it('default_block takes a plant', drone.default_block, 'sapling')
+
+    -- air is allowed on purpose: it is already a legal argument to place(), so
+    -- excluding it only from the default would be an inconsistency with
+    -- nothing behind it. A bare place() can therefore erase.
+    set_default(drone, 'air')
+    it('default_block takes air', drone.default_block, 'air')
+
+    local ok, err = pcall(set_default, drone, 'not_a_block')
+    it('default_block rejects a name no program may place', ok, false)
+    it('and says so rather than failing silently',
+       type(err) == 'string' and err:find('block') ~= nil, true)
+    it('a rejected name leaves the default alone', drone.default_block, 'air')
+
+    -- Charged like every other command, so a loop of them cannot run free.
+    local before = stub_drone(4)
+    local commands = before.commands
+    set_default(before, 'stone')
+    it('default_block is charged as a command', before.commands, commands + 1)
 end
 
 --------------------------------------------------------------------------------

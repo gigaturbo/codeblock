@@ -46,6 +46,11 @@ local awake = codeblock.stepper.awake
 local max_runtime_s = codeblock.config.max_runtime_s
 local server_step_budget_us = codeblock.config.server_step_budget_us
 
+local blocks = codeblock.config.allowed_blocks.all
+-- What a bare place() uses until a player chooses otherwise. Described in
+-- lib/api.lua, so the two have to agree.
+local fallback_block = codeblock.config.allowed_blocks.cubes.stone
+
 local tmp1 = 2 / pi
 local tmp3 = pi / 2
 local tmp4 = pi / 4
@@ -56,6 +61,20 @@ local function dirtocardinal(dir) return floor((dir + tmp4) * tmp1) * tmp3 end
 -- replaced. Compared as a value rather than by comparing ObjectRefs, which the
 -- engine nowhere promises are the same userdata twice. (B29)
 local serial = 0
+
+--- The block this player has chosen for a bare place(), or stone.
+--
+-- Validated on read rather than trusted from the write: a player who joined
+-- before the setting existed has no key at all, and player meta outlives a
+-- change to the palette, so a stored name can stop resolving. Either way the
+-- failure it would otherwise cause is 'Cannot place this block' raised on a
+-- line where the player passed no block. (F1)
+local function preferred_block(name)
+    local player = get_player_by_name(name)
+    if not player then return fallback_block end
+    local stored = player:get_meta():get_string('codeblock:default_block')
+    return blocks[stored] and stored or fallback_block
+end
 
 --------------------------------------------------------------------------------
 -- private
@@ -150,6 +169,11 @@ local drone_mt = {
                 checkpoints = {},
                 calls = 0,
                 commands = 0,
+                -- Always a name the drone can place, from here on: placement()
+                -- falls back to nothing further. Re-read at the start of every
+                -- run, so changing the preference takes effect on the next one
+                -- rather than splitting a build in two. (F1)
+                default_block = preferred_block(name),
                 -- The run's resource budget, built at start rather than here:
                 -- it needs a clock reading and the codelevel the run will
                 -- actually use. See lib/limits.lua.
@@ -279,6 +303,7 @@ local drone_mt = {
                                                 drone.auth_level,
                                                 core.get_us_time())
             drone.calls, drone.commands = 0, 0
+            drone.default_block = preferred_block(name)
             drone.wake_at = nil
             drone.cor = res
 

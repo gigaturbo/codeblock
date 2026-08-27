@@ -37,7 +37,6 @@ local place_block = codeblock.cost.place_block
 local S = codeblock.S
 local table_reverse = codeblock.utils.table_reverse
 
-local cubes_names = codeblock.config.allowed_blocks.cubes
 local blocks = codeblock.config.allowed_blocks.all
 
 -- The engine's own edge of the world, from mapgen_limit. Past it a write
@@ -95,7 +94,9 @@ end
 -- in here puts one more frame between the message and the player's line.
 local function placement(drone, block, hollow)
     assert(drone, S("Error, drone does not exist"))
-    local real_block = blocks[block or cubes_names.stone]
+    -- No third fallback: every record carries a valid default_block from the
+    -- moment it is made, and lib/drone.lua refreshes it once per run. (F1)
+    local real_block = blocks[block or drone.default_block]
     if not real_block then error(S('Cannot place this block'), 4) end
     return real_block, (hollow and true or false)
 end
@@ -557,6 +558,23 @@ local function drone_goto_checkpoint(drone, chkpt, x, y, z)
 
 end
 
+--- The block every later placement uses when the program names none.
+--
+-- Run-local on purpose: this does not touch the player's saved preference,
+-- which the editor's settings panel owns and which seeds the next run. Nothing
+-- else a program can call outlives its run, and a program is a file players
+-- pass around. (F1)
+local function drone_set_default_block(drone, block)
+
+    assert(drone, S("Error, drone does not exist"))
+
+    if not blocks[block] then error(S('Cannot place this block'), 3) end
+    drone.default_block = block
+
+    end_command(drone)
+
+end
+
 -------------------------------------------------------------------------------
 -- utilities
 -------------------------------------------------------------------------------
@@ -605,6 +623,7 @@ codeblock.commands.drone_turn_right = drone_turn_right
 codeblock.commands.drone_turn = drone_turn
 codeblock.commands.drone_place_block = drone_place_block
 codeblock.commands.drone_place_relative = drone_place_relative
+codeblock.commands.drone_set_default_block = drone_set_default_block
 codeblock.commands.drone_save_checkpoint = drone_save_checkpoint
 codeblock.commands.drone_goto_checkpoint = drone_goto_checkpoint
 
