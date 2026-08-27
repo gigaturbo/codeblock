@@ -38,7 +38,9 @@ Four documents, all in this directory, plus the `.claude/` definitions:
 Finding ids — `B` bugs, `S` sandbox and security, `C` compliance and packaging,
 `A` architecture — are **never renumbered**, because commit messages cite them. A
 gap in a sequence is a finding that was routed to the game's own audit back when
-the two projects shared one record.
+the two projects shared one record. `F` is a fifth series, features, allocated
+when `Phase 8` became the feature phase; `F` ids are this project's own, are
+quoted in commit messages the same way, and are never renumbered either.
 
 The `project-manager` agent owns all four and the `.claude/` definitions beside
 them; edit one by hand only for something that agent cannot know.
@@ -75,7 +77,9 @@ wsl bash -lc 'cd /mnt/c/Users/lacba/PRogrammation/codeblock && for s in api prep
 `forms_spec`, `stepper_spec` and `integration_spec` are in-engine only — they need
 `codeblock.forms`, the real command budget and `codeblock.commands`. Faking those
 would mean testing the fake. Running a single spec in-engine means editing the
-`dofile` list in `init.lua`.
+`specs` list in `init.lua`, which is guarded by a probe for `tests/api_spec.lua`
+— `tests` is `export-ignore`d, so a release build has no specs to load and says
+so rather than failing to load (C16).
 
 The rest, all run by this repository's CI:
 
@@ -228,18 +232,23 @@ survives a redraw, field routing, cleanup on leave, one form per player.
 
 ### `drone.lua` vs `drone_entity.lua`
 
-They divide by direction of dependency (audit A11). `lib/drone_entity.lua` is 55
-lines: it holds the owner's **name**, arriving as `core.add_entity` staticdata,
-and routes two engine events onto the record. It owns nothing and caches nothing,
-so a name that names no drone simply reads nil. `lib/drone.lua` owns the record,
+They divide by direction of dependency (audit A11). `lib/drone_entity.lua` is 67
+lines: it holds the owner's **name** and a **serial**, arriving together as
+`core.add_entity` staticdata in the form `<serial> <name>`, and routes two engine
+events onto the record. It owns nothing and caches nothing, so a name that names
+no drone simply reads nil. `lib/drone.lua` owns the record,
 the lifecycle, and `Drone.finish` — the single place a run's outcome is
 announced. It does not know forms exist: `Drone.on_place` returns whether the
 player still needs to pick a file, and `lib/register.lua` shows the chooser.
 
-Teardown is still shaped around re-entrancy: `Drone.remove` clears the record
-*before* `obj:remove()`, because that fires `on_deactivate`, which looks the
-drone up. Whether that ordering actually holds is open (audit B29) — two reviews
-disagree and it needs one check in a running world.
+Teardown is shaped around re-entrancy: `Drone.remove` clears the record *before*
+`obj:remove()`, because that fires `on_deactivate`, which looks the drone up.
+**That ordering is not what makes it safe.** `ObjectRef:remove()` takes effect at
+the end of the step, so `on_deactivate` can fire after a replacement drone has
+been installed under the same name. What protects the replacement is the serial:
+`on_lost` and `on_step` both ignore any record whose serial is not the one they
+were called for. Do not remove either guard on the strength of the clear-first
+ordering (audit B29).
 
 ## Environment notes
 

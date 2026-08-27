@@ -99,8 +99,11 @@ Prefer evidence over recollection, including over the previous report.
 
 Stable IDs, referenced in commit messages: **B**_n_ bugs, **S**_n_ sandbox and
 security, **C**_n_ compliance and packaging, **A**_n_ architecture and
-performance. Severities: critical, high, medium, low. Some findings are
-*cleared* — checked and found fine; never report a cleared item as outstanding.
+performance, and **F**_n_ features — the last allocated when `Phase 8` became the
+feature phase, this project's own rather than shared with the game. Severities:
+critical, high, medium, low; an `F` carries a size instead (small, medium, large).
+Some findings are *cleared* — checked and found fine; never report a cleared item
+as outstanding.
 
 Ids are **never renumbered**: an existing commit message must keep resolving. A
 gap in a sequence is a finding routed to the game's own audit back when the two
@@ -124,7 +127,7 @@ order:
    listed with its own state and an anchor link to its entry below. This is the
    spine of the document; someone should be able to read only this and know the
    plan.
-4. **Findings, grouped by category** (B, S, C, A). Each entry: ID, severity,
+4. **Findings, grouped by category** (F, B, S, C, A). Each entry: ID, severity,
    state, title, where it is, what is wrong and when it bites, and — when
    resolved — *how*, with the commit that did it. Anchors must match the roadmap
    links.
