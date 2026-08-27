@@ -6,99 +6,73 @@ Where the mod stands and what to do next. CodeBlock is the main project; the
 The reasoning behind every item lives in **this mod's own audit**,
 `.audit/audit.html` beside this file — gitignored, and the main audit of the two.
 
-Numbering conventions, so a commit message always resolves:
+Numbering, so a commit message always resolves: phases are `Phase 0`–`Phase 8`,
+never renumbered; ids are `B` bug, `S` sandbox and security, `C` compliance and
+packaging, `A` architecture — allocated once across both audits, so twelve are the
+game's (`C2`–`C5`, `A14`, `B20`, `A13`, `B19`, `B24`, `A7`, `A8`, `C15`) — and `F`
+is features, `F1`–`F6`, this project's own. Nothing is ever renumbered.
 
-- **Phases** are this project's, `Phase 0` to `Phase 8`. Never renumbered.
-- **Finding ids** — `B` bug, `S` sandbox and security, `C` compliance and
-  packaging, `A` architecture — are allocated once across both audits, so a
-  number never means two things. Twelve are the game's: `C2`–`C5`, `A14`, `B20`,
-  `A13`, `B19`, `B24`, `A7`, `A8`, plus `C15`.
-- **`F` is features**, a new series allocated when Phase 8 became the feature
-  phase. `F1`–`F6` exist, quotable in a commit message exactly like a `B` or an
-  `A`, and never renumbered either.
+The manual checks no spec can reach are in **`tests/PLAYTEST.md`** with their
+results: thirty checks, nine with one. How a feature gets built here is in
+`CLAUDE.md`.
 
 Target is **v1.0.0**, major because several changes break saved player programs.
 
 ## Now
 
-**Push, and let CI see Phase 7 for the first time.** Twelve commits sit on local
-`master`, eight of them the Phase 7 rewrite of the movement path, the drone
-record, the filesystem and the editor; the newest green run is the phase before
-it. CI is the only thing that runs six of the specs under plain Lua 5.1 rather
-than the engine's LuaJIT, which is why those six exist.
+**One more editor playtest session, then `F2`.** Six checks are open on code that
+has just shipped, all of them in the same form, so one session covers them: `E9`
+first — the editor's tab state surviving a server shutdown, the one part of
+`B33`'s fix that rests on an assumption about the engine rather than on read
+code — then `E8`, `E10`, `E12`, and `F1`'s two, the relog being the weightier.
 
-A green run at `191b533` is **the precondition for every feature below** — each
-edits a file Phase 7 rewrote, and every feature commit widens the range a red run
-would have to be bisected out of. Then `F1`, the smallest feature.
+`F1` shipped at `500dd85` with **CI green** (run 23), carrying `B33` and `B35`
+with it. Nothing is waiting on a commit, and `F2` has nothing in front of it.
 
 ## Milestones
 
-### 0. Make change safe — done (2/2)
+Phases 0–7 are closed: one line each, no reasons — the audit holds them, under
+the ids given.
 
-Run on the current engine, put the sandbox under test, restore linting. (C8, A12.)
+- **0. Make change safe** — done (2/2). (C8, A12)
+- **1. Ship the compliance fixes** — done (4/4 here, 8/8 across both). (C1, B5,
+  B8, B9)
+- **2. Rewrite the sandbox preprocessor** — done (11/11). (B1–B4, B6, B23, S1–S4,
+  A10)
+- **3. Replace ActiveFormspecs** — done (3/3 here, 5/5 across both). (A1, A2,
+  B22)
+- **4. Performance** — done (4/4). (A5, B12, A4, A15)
+- **5. Limits that track real load** — done (4/4), `43e95a8`. (S5, S6, C7, C13)
+- **6. Limits that stand for what the server spends** — done (3/3), `2647228`.
+  (B25, B26, C14)
+- **7. Clear the way for features** — done (26/26 here, 26/31 across both),
+  `742a1ca`–`191b533`, CI green at `3293a2c`. (A3, A6, A9, A11, A16, C6, C10–C12,
+  B7, B10, B11, B13–B18, B21, B27–B32, C16)
 
-### 1. Ship the compliance fixes — done (4/4 here, 8/8 across both)
+"Done" through Phase 7 means the findings are closed and the gates green, not
+that the editor and drone paths were exercised by hand.
 
-No version ceiling, licensing settled, the user-visible command and editor bugs
-fixed. (C1, B5, B8, B9.) C1's residue is still open and not fixable from here:
-`mods/vector3/mod.conf` carries a 5.5 ceiling, in a separate repository.
+### 8. Features — in progress (1/6 shipped, 3/3 findings closed)
 
-### 2. Rewrite the sandbox preprocessor — done (11/11)
+Add rather than repair, easiest to hardest, one at a time. `F4` and `F5` want the
+drone and pacing playtest groups run before they start.
 
-Stop corrupting valid programs; make the environment something a program cannot
-reach out of. (B1–B4, B6, B23, S1–S4, A10.)
+Shipped and closed:
 
-### 3. Replace ActiveFormspecs — done (3/3 here, 5/5 across both)
+- The default block: a Settings panel in the editor, plus a run-local
+  `default_block(block)`. `500dd85`, CI green. (F1)
+- The editor's tab state is written on every exit, not one branch. `500dd85`.
+  (B33)
+- The text typed since the last save survives every button. `500dd85`. (B35)
+- Both editor checkboxes start ticked for a player who never set them.
+  `500dd85`. (no finding)
 
-Last unmaintained dependency gone; docs generated from the code. (A1, A2, B22.)
+Still to do — run the open in-world checks, then the features in order:
 
-### 4. Performance — done (4/4)
-
-The drone builds at the speed the hardware allows; bulk shapes are one
-VoxelManip pass each; the WorldEdit fork is gone. (A5, B12, A4, A15.)
-
-### 5. Limits that track real load — done (4/4)
-
-`43e95a8`, CI green. (S5, S6, C7, C13.) Three of its mechanisms were superseded
-within the week by Phase 6 — read the audit, not the old wording.
-
-### 6. Limits that stand for what the server spends — done (3/3)
-
-`2647228`, CI green. Seven limits now count what the server spends, where eleven
-counted proxies. (B25, B26, C14.)
-
-### 7. Clear the way for features — done (26/26 here, 26/31 across both)
-
-Remove the duplication and dead weight that make every new feature cost more
-than it should. Eight commits, `742a1ca` through `191b533`, **none pushed and
-none seen by CI**.
-
-- Drone record with one owner, one place an outcome is announced. (A11, B10,
-  B11, A6)
-- One record per file in the filesystem layer; five editor and join fixes.
-  (A9, B7, B13–B17)
-- `lib/commands.lua` split 971 → 608 lines with a new `lib/cost.lua`. (A3, B18,
-  B21)
-- `minetest.*` → `core.*` finished; packaging and lint debt cleared.
-  (C6, C10, C11, C12, A16)
-- Seven findings from two reviews of the range, five of them regressions the
-  phase itself introduced. (B27–B32, C16)
-
-"Done" means every finding closed and every local gate green — not
-independently verified.
-
-### 8. Features — not started (0/6 features, 0/1 finding)
-
-Add rather than repair. Was "Show the budget" (0/1); widened to hold every
-feature item, which is what the `F` series is for. Ordered easiest to hardest and
-meant to be taken one at a time. **Every one has the same precondition: the
-Phase 7 range through CI.** `F4` and `F5` also want the hands-on playtest first.
-
-- Choose the block `place()` uses when a program names none — today hardcoded to
-  `default:stone` in `placement()`. Cheapest as a field on the drone record; as
-  an in-program command it is a new API name. (F1)
+- Play `E9`, `E8`, `E10`, `E12` and `F1`'s two checks. (F1, B33, B35)
 - Open a copy of a program, from the editor or the chooser. Decide the collision
-  naming before writing it. (F2)
+  naming before writing it, and keep `lib/examples.lua`'s end-anchored `.lua`
+  strip in mind. (F2)
 - Let a program pause the drone for a given time. New API name, and `wake_at`
   already exists — but bound the wait, or a program lives forever holding a
   record and is charged nothing. (F3)
@@ -109,9 +83,6 @@ Phase 7 range through CI.** `F4` and `F5` also want the hands-on playtest first.
 - Change a codelevel while a program runs. Rebuild the budget while carrying
   `used` across, or re-levelling becomes a limit bypass. Stays privileged. (F5)
 - Blockly web-based editor — **planned, out of 1.0.0**, first item after it. (F6)
-- Editor tab state is saved on only one exit path, so a disconnect loses which
-  files were open. Filed from the `BUG?` line in `TODO.md`: it is a bug, because
-  the restore is already implemented. (B33)
 
 ## What ships broken
 
@@ -122,53 +93,53 @@ Phase 7 range through CI.** `F4` and `F5` also want the hands-on playtest first.
 - The map footprint decays linearly over the unload window rather than tracking
   each block, so it estimates what is resident rather than measuring it.
 - `place()` writes one node per call; the four bulk shapes do not. (A4)
-- Pacing, slab progression and the footprint throttle have no in-world
-  verification: the specs run before a map exists. Untested, not known broken.
-- The filesystem, the editor and drone placement have no spec coverage at all,
-  for the same reason. Six findings closed in Phase 7 rest on reading only —
-  playtest before calling v1.0.0 finished, and it is what settles B33.
-- C16's fix is unproven against a real ContentDB install; it wants one
-  archive-and-install during the next release check.
-- Unknown whether mapgen can overwrite a node written into a never-generated
-  area when a player later visits and it generates.
-- `scripts/gen_cdb_json.sh` is verified by nothing, and escapes neither `"` nor
-  backslashes.
-- `.gitattributes` decides what reaches a player and **no CI checks it**. A file
-  added here ships unless a rule excludes it, and nothing local fails. (C10)
-- `README.md:14` keeps its trailing whitespace on purpose: it is a Markdown hard
-  break that `gen_cdb_json.sh` folds into the ContentDB description. (B21)
+- A file cannot be removed from the editor without opening it first — decided
+  against fixing. (B34)
+- The editor's tab state surviving a **server shutdown** is unverified: it rests
+  on `on_shutdown` meta writes still being saved, never observed here. (B33)
+- Most of what needs a running world is unverified — pacing, slabs, the footprint
+  throttle, the filesystem, drone placement, C16's install guard. Nine of thirty
+  `tests/PLAYTEST.md` checks carry a result.
+- B14's cold-cache removal is unreachable from the editor for good; only a
+  removal straight after a rejoin can settle it. (B14, B34)
+- Unknown whether mapgen can overwrite a node written into never-generated ground.
+- `mods/vector3/mod.conf` still carries a 5.5 version ceiling — separate
+  repository, not fixable from here. (C1)
+- `scripts/gen_cdb_json.sh` is verified by nothing and escapes neither `"` nor `\`.
+- `.gitattributes` decides what reaches a player and **no CI checks it**. (C10)
+- `README.md:14`'s trailing whitespace is deliberate — a Markdown hard break
+  `gen_cdb_json.sh` folds into the ContentDB description. (B21)
 
 ## Deliberately not doing
 
-- **Batching `place()` into `core.bulk_set_node`.** 1.3x by the engine's own
-  figure, against five flush sites whose omission is a silently wrong build.
-  Contingent on the yield cadence, which Phase 6 changed, so the arithmetic
-  under A4 in the audit wants redoing before the decision is quoted again.
-- **Blockly in 1.0.0.** Stays out: it needs an HTTP allowance only a server
-  administrator can grant, its assets must be served from outside the engine,
-  and no v1.0.0 goal depends on it. Not abandoned — it is `F6`, planned, and the
-  first item after the release. (The old wording, "wanted, out of scope",
-  contradicted planning it as the last feature. Confirm or overrule.)
-- **Chasing the remaining `minetest` names.** C6 is finished for engine calls;
-  what is left must stay — `minetest.conf` as a filename, the
-  forbidden-identifier list in `lib/preprocess.lua` and its spec case, which
-  have to forbid both aliases, and the `vector3` submodule, a separate package.
-  Same for `loadstring`, `setfenv`, `math.pow`, `math.atan2`: still Lua 5.1.
-- **Chasing the last `.editorconfig` difference.** `align_call_args = true`
-  fixes the wrapped-argument alignment but pushes a table constructor passed to
-  a call out to the paren column, which is worse.
-- **Computing the codelevel limits instead of overriding literals.**
-  `gen_docs.lua` reads `lib/config.lua` for a name assigned a table of numbers,
-  so a computed value would silently disable the check that every limit is
-  documented. (C7, C14)
-- **Moving the settings to the game.** Every one of them is this mod's, and this
-  mod is its own ContentDB package. (C7)
+- **Batching `place()` into `core.bulk_set_node`.** 1.3x, against five flush
+  sites whose omission is a silently wrong build; the arithmetic wants redoing
+  since Phase 6 changed the yield cadence. (A4)
+- **A persist flag on `default_block()`.** The only API call that would outlive
+  its run, and a shared program would rewrite the reader's preference. (F1)
+- **Blockly in 1.0.0.** Needs an HTTP allowance only an administrator can grant.
+  Not abandoned: `F6`, first after the release. (Confirm or overrule.)
+- **Chasing the remaining `minetest` names.** What is left must stay: the config
+  filename, the forbidden-identifier list naming both aliases, the `vector3`
+  submodule. Same for `loadstring`, `setfenv`, `math.pow`, `math.atan2`. (C6)
+- **The last `.editorconfig` difference.** `align_call_args = true` fixes wrapped
+  arguments but pushes a table constructor out to the paren column.
+- **Computing the codelevel limits instead of overriding literals.** It would
+  silently disable `gen_docs.lua`'s check that every limit is documented. (C7,
+  C14)
+- **Letting a file be removed without opening it first.** "Won't fix now, not
+  really needed" — and B14's cold path stays unreachable as a result. (B34)
+- **Resurrecting the `soe` checkbox.** Deliberately dead; what is wanted instead
+  is a warning when the editor closes with unsaved changes (in `TODO.md`).
+- **Moving the settings to the game.** They are all this mod's, and it is its own
+  ContentDB package. (C7)
 
 ---
 
-2026-08-26 · codeblock `191b533` (master), twelve commits ahead of
-`origin/master` at `2647228`. **No CI run exists for any Phase 7 commit**; the
-newest green run is `2647228`. Local gates reported green at `191b533`: luacheck,
-`gen_docs.lua --check`, six standalone specs, nine in-engine specs (0 failed,
-0 xpass, 1 xfail in `preprocess_spec`). Those results are the author's report,
-not a run made for this document.
+2026-08-27 · codeblock `500dd85` (master), pushed; `HEAD` and `origin/master`
+agree, and only the record documents are uncommitted. **CI green on `500dd85`** —
+run 23, all three jobs. **Local gates green too**, engine 5.17.0: luacheck clean,
+`gen_docs.lua --check` up to date, nine in-engine specs **365 passed, 0 failed,
+0 xpass, 1 xfail**. Those specs reach no formspec and no player meta, so the
+editor work rests on the code plus two hand checks. Local results are the
+author's report, not runs made for this document.

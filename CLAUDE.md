@@ -23,7 +23,8 @@ not read it, report on it, or change it from here.
 
 ## The record
 
-Four documents, all in this directory, plus the `.claude/` definitions:
+Five documents, four in this directory and one under `tests/`, plus the
+`.claude/` definitions:
 
 - `ROADMAP.md` — the one to read first. What is left to do, fix or change, in
   order.
@@ -34,6 +35,11 @@ Four documents, all in this directory, plus the `.claude/` definitions:
   fixed, how, plus the reasoning `ROADMAP.md` leaves out. Its phases
   (`Phase 0`–`Phase 8`) are the numbers commit messages quote and are never
   renumbered. Gitignored, so it never travels with a commit.
+- `tests/PLAYTEST.md` — the manual checks no spec can reach, each with what to do
+  in-world, what a pass looks like, its finding id, and a result line carrying
+  the commit, engine version and date, so a stale pass reads as stale. Tracked,
+  but `tests` is `export-ignore`d so it never ships. It is a record document, not
+  a spec.
 
 Finding ids — `B` bugs, `S` sandbox and security, `C` compliance and packaging,
 `A` architecture — are **never renumbered**, because commit messages cite them. A
@@ -42,8 +48,42 @@ the two projects shared one record. `F` is a fifth series, features, allocated
 when `Phase 8` became the feature phase; `F` ids are this project's own, are
 quoted in commit messages the same way, and are never renumbered either.
 
-The `project-manager` agent owns all four and the `.claude/` definitions beside
-them; edit one by hand only for something that agent cannot know.
+The `project-manager` agent owns all five and the `.claude/` definitions beside
+them; edit one by hand only for something that agent cannot know — recording the
+outcome of a playtest run is exactly such a thing.
+
+## How a feature gets built here
+
+The order, which `F1` established and every `F` item should follow:
+
+1. **Shape it in prose before any code exists** — dependencies, consequences,
+   risks, feasibility, what the player experiences. F1 changed shape twice at
+   this stage and cost nothing either time.
+2. **Put a choice that is the author's to them, as a small set of options with a
+   recommendation.** Not a survey. Four such choices settled F1's scope in one
+   exchange: where the UI lives, how the player picks, who may set it, whether
+   `air` counts.
+3. **Argue out what should not be built.** F1's proposed `persist` flag was cut
+   before implementation, on four grounds recorded under `F1` in the audit. A
+   feature losing a part on argument is a normal outcome, not a failure.
+4. **Write it, then the three gates, every time** — `luacheck`,
+   `gen_docs.lua --check`, the nine specs.
+5. **Then the author plays it in a real world.** This is not a formality: F1's
+   picker was wrong twice in ways no spec could catch, and the second diagnosis
+   came from reading the engine's formspec documentation rather than guessing at
+   the symptom. Reach for the documentation on the second failure.
+6. **Findings from that playtest get ids and go in the record before the code
+   moves on.** F1's playtest produced `B33`, `B34` and `B35`; all three were
+   recorded, then fixed or decided, before the next feature started.
+
+Two rules, because both were nearly lost:
+
+- **A feature is done when it is committed with its gates green** — not when it
+  works locally. Its in-world checks being run is a separate thing again, and
+  `tests/PLAYTEST.md` is where that is tracked.
+- **Nothing in a running world is provable by the specs.** They run at mod load,
+  before a map, a player or a user directory exists. Anything touching a
+  formspec, player meta, the filesystem or the world needs a playtest entry.
 
 ## Commands
 
@@ -96,6 +136,14 @@ Reading a result: `failed` must be 0, and so must `xpass`. An `xfail` that now
 passes either means a defect was fixed and the test should be promoted, or the
 code path stopped running and the assertion passes vacuously. The second has
 happened here.
+
+**What no spec reaches, and where it is written down.** The suite runs at mod
+load, before a map, a player or a user directory exists, so the editor, the
+filesystem, drone placement and every write into the world have no coverage and
+cannot have. Those checks are a tracked checklist in **`tests/PLAYTEST.md`**,
+each with a result line, the commit it was checked at and the date. Do a run
+before calling anything verified in a running world, and record the outcome
+there.
 
 ## Architecture
 
@@ -226,9 +274,51 @@ costs 16.3 kB resident, and the engine serves about 1700 loads a second.
 ### Formspecs
 
 `lib/forms.lua` is a per-player form session on `core.show_formspec`: state that
-survives a redraw, field routing, cleanup on leave, one form per player.
+survives a redraw, field routing, one form per player.
 `lib/formspecs.lua` builds the editor itself. Handlers are
 `handler(meta, player, fields)`, where `meta` is the same table across redraws.
+
+**The editor formspec is in legacy coordinates**, not
+`formspec_version` coordinate mode, and two things follow from that which are
+invisible until something is drawn in the wrong place (audit F1). A `scroll_container` maps its contents into a
+different space from the elements around it and clips them to its own rectangle,
+so rows drawn in one land somewhere else; and an `item_image_button` inside one
+gets a hit area that does not match where it is drawn. The three help panels get
+away with a container only because `item_image` takes no clicks. That is why the
+block picker is a `textlist` — a legacy element that scrolls itself, as the file
+list in the same form already does. Anything new in this form has to know this,
+and converting it to the new coordinate system is a change to the whole editor.
+
+**`get_int` cannot tell an unset key from a stored `0`** — both come back 0. Read
+a boolean preference out of player meta with `get_string`, where an absent key is
+`""`, so a default of *on* is expressible and a deliberate untick still reads as
+off. This is load-bearing for two defaults (audit B5).
+
+In the editor, **every redraw re-renders the text area from
+`meta.contents[meta.active]`**, so `fields.content` is captured once by a guarded
+read *before* the branch chain in `on_close`, not inside the branches that happen
+to need it (audit B35). Do not move that capture into a branch: eight of eleven
+branches used to redraw without it and threw away everything typed since the last
+save. The guard also carries the quit event, which sends no field but `quit`.
+
+**A form closes by one path however it was reached** (audit B33). Leaving and
+server shutdown both go through the local `close_session`, which drops the
+session and then hands the handler the engine's own `{quit = 'true'}`, so a
+handler holding unsaved state has one place to write it. `forms.forget` is
+unchanged and is what the specs use for cleanup; only the engine callbacks close
+a session this way. A close from the mod's side (`forms.close`) deliberately
+sends nothing.
+
+That makes **load order load-bearing**: leave callbacks run in load order,
+`forms.lua` is dofiled before `register.lua`, and it must stay that way — the
+editor's quit path reads the player's file list, which `register.lua`'s own leave
+callback drops via `remove_user_data`. Reordering the `dofile` list in `init.lua`
+silently breaks *Load program on exit* on disconnect. The constraint is commented
+at `lib/register.lua:204`.
+
+Also per B33: player meta written from `register_on_shutdown` is assumed to still
+be saved. It follows from the engine's shutdown order and **has not been observed
+here** — `tests/PLAYTEST.md` check E9 is what would settle it.
 
 ### `drone.lua` vs `drone_entity.lua`
 

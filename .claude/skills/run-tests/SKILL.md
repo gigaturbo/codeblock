@@ -92,8 +92,12 @@ A healthy run prints one summary per spec, and `none` under errors:
   limits_spec           36 passed   0 failed
   forms_spec            35 passed   0 failed
   stepper_spec          35 passed   0 failed
-  integration_spec      90 passed   0 failed
+  integration_spec      98 passed   0 failed
 ```
+
+357 assertions before F1, 365 with it — `integration_spec` went 90 → 98. Treat
+the numbers as the shape of a healthy run, not as a checksum: they rise whenever
+a spec gains a case.
 
 What each column means:
 

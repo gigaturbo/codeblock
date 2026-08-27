@@ -35,20 +35,27 @@ are features, this project's own.
 - [x] add a separator when run_tests.ps1 appends the enable line (audit B32)
 - [x] check drone.cor in on_lost before announcing a program ended (audit B30)
 - [x] finish minetest.* -> core.* across lib/, tests/ and init.lua (audit C6)
-- [ ] push master and get a green CI run on the Phase 7 range (no finding)
-- [ ] playtest the editor and drone placement by hand - no spec can reach them
+- [x] push master and get a green CI run on the Phase 7 range (no finding)
+- [ ] playtest the drone, filesystem, world-write and pacing groups - the checklist is tests/PLAYTEST.md
+- [x] playtest the editor group by hand (2026-08-27: 5 pass, E2 partial, E5 fail)
+- [ ] run F1's two playtest checks - the Settings panel and the relog (audit F1)
 - [ ] build the release archive and install it once, to prove C16's guard (audit C16)
 - [ ] drop the 5.5 ceiling in mods/vector3/mod.conf - separate repository (audit C1)
-- [ ] FEAT: option to set drone default block to place (audit F1)
+- [x] FEAT: option to set drone default block to place (audit F1)
 - [ ] FEAT: open copy of program (audit F2)
 - [ ] FEAT: option to pause the drone a certain time (audit F3)
 - [ ] FEAT: Make a UI for drone info : running or not, blocks placed, allow pause, start, cancel, etc (audit F4)
 - [ ] show the program's budget while it runs, not just its totals at the end (audit F4)
 - [ ] FEAT: Make possible to change codelevel while running a program (audit F5)
-- [ ] BUG?: Remember last opened file when reopenning the editor (audit B33)
+- [x] BUG: editor loses its open tabs on leave, on shutdown and on Load and close (audit B33)
+- [x] BUG: every editor button but Save discarded the text typed since the last save (audit B35)
+- [x] start the two editor checkboxes ticked for a player who has never set them (no finding)
+- [ ] run the three unverified editor checks: disconnect, shutdown, checkbox defaults (audit B33, B35)
+- [ ] warn when the editor is closed with unsaved changes - instead of the dead soe checkbox (no finding)
 
 Decided against for 1.0.0, kept so it is not re-litigated: batching place() into
-core.bulk_set_node (audit A4).
+core.bulk_set_node (audit A4); letting a file be removed without opening it first
+(audit B34 - "won't fix now, not really needed").
 
 
 # After 1.0.0
