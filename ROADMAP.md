@@ -13,21 +13,24 @@ game's (`C2`–`C5`, `A14`, `B20`, `A13`, `B19`, `B24`, `A7`, `A8`, `C15`) — a
 is features, `F1`–`F6`, this project's own. Nothing is ever renumbered.
 
 The manual checks no spec can reach are in **`tests/PLAYTEST.md`** with their
-results: thirty checks, nine with one. How a feature gets built here is in
-`CLAUDE.md`.
+results: thirty-one checks, ten with one, two of those partial. How a feature
+gets built here is in `CLAUDE.md`.
 
 Target is **v1.0.0**, major because several changes break saved player programs.
 
 ## Now
 
-**One more editor playtest session, then `F2`.** Six checks are open on code that
-has just shipped, all of them in the same form, so one session covers them: `E9`
-first — the editor's tab state surviving a server shutdown, the one part of
-`B33`'s fix that rests on an assumption about the engine rather than on read
-code — then `E8`, `E10`, `E12`, and `F1`'s two, the relog being the weightier.
+**Push `dee0bc7`, then one editor playtest session, then `F3`.** Seven checks are
+open on code that has shipped, all of them in the same form, so one session
+covers them: `E9` first — the editor's tab state surviving a server shutdown, the
+one part of `B33`'s fix that rests on an assumption about the engine rather than
+on read code — then `E8`, `E10`, `E12`, `F1`'s two with the relog the weightier,
+and `E13` for `F2`.
 
-`F1` shipped at `500dd85` with **CI green** (run 23), carrying `B33` and `B35`
-with it. Nothing is waiting on a commit, and `F2` has nothing in front of it.
+`F1` shipped at `500dd85` with **CI green** (run 23), carrying `B33` and `B35`;
+`F2` shipped at `dee0bc7` with its three local gates green and **no finding
+filed**. `dee0bc7` is not pushed and no CI run has seen it. Nothing is waiting on
+code, and `F3` has nothing in front of it.
 
 ## Milestones
 
@@ -52,7 +55,7 @@ the ids given.
 "Done" through Phase 7 means the findings are closed and the gates green, not
 that the editor and drone paths were exercised by hand.
 
-### 8. Features — in progress (1/6 shipped, 3/3 findings closed)
+### 8. Features — in progress (2/6 shipped, 3/3 findings closed)
 
 Add rather than repair, easiest to hardest, one at a time. `F4` and `F5` want the
 drone and pacing playtest groups run before they start.
@@ -66,13 +69,13 @@ Shipped and closed:
 - The text typed since the last save survives every button. `500dd85`. (B35)
 - Both editor checkboxes start ticked for a player who never set them.
   `500dd85`. (no finding)
+- Create a copy: the editor writes what is on screen to `<name>_N.lua` and opens
+  it, and a file list now sorts `foo_2` before `foo_10`. `dee0bc7`, unpushed. (F2)
 
-Still to do — run the open in-world checks, then the features in order:
+Still to do — push, run the open in-world checks, then the features in order:
 
-- Play `E9`, `E8`, `E10`, `E12` and `F1`'s two checks. (F1, B33, B35)
-- Open a copy of a program, from the editor or the chooser. Decide the collision
-  naming before writing it, and keep `lib/examples.lua`'s end-anchored `.lua`
-  strip in mind. (F2)
+- Push `dee0bc7` and get a CI run on it. (F2)
+- Play `E9`, `E8`, `E10`, `E12`, `E13` and `F1`'s two checks. (F1, F2, B33, B35)
 - Let a program pause the drone for a given time. New API name, and `wake_at`
   already exists — but bound the wait, or a program lives forever holding a
   record and is charged nothing. (F3)
@@ -97,9 +100,11 @@ Still to do — run the open in-world checks, then the features in order:
   against fixing. (B34)
 - The editor's tab state surviving a **server shutdown** is unverified: it rests
   on `on_shutdown` meta writes still being saved, never observed here. (B33)
+- A copy of a name already at the 15-character limit shifts base at the tenth
+  copy — fixing it would let copies past the length rule. (F2)
 - Most of what needs a running world is unverified — pacing, slabs, the footprint
-  throttle, the filesystem, drone placement, C16's install guard. Nine of thirty
-  `tests/PLAYTEST.md` checks carry a result.
+  throttle, the filesystem, drone placement, C16's install guard. Ten of
+  thirty-one `tests/PLAYTEST.md` checks carry a result.
 - B14's cold-cache removal is unreachable from the editor for good; only a
   removal straight after a rejoin can settle it. (B14, B34)
 - Unknown whether mapgen can overwrite a node written into never-generated ground.
@@ -115,6 +120,10 @@ Still to do — run the open in-world checks, then the features in order:
 - **Batching `place()` into `core.bulk_set_node`.** 1.3x, against five flush
   sites whose omission is a silently wrong build; the arithmetic wants redoing
   since Phase 6 changed the yield cadence. (A4)
+- **Saving the original before copying it.** A copy is a copy; the original is
+  left exactly as it is on disk. (F2)
+- **A `filesystem.copy_file` helper.** A copy is a derived name plus
+  `write_file`, the module's one write path; a helper would hide a write. (F2)
 - **A persist flag on `default_block()`.** The only API call that would outlive
   its run, and a shared program would rewrite the reader's preference. (F1)
 - **Blockly in 1.0.0.** Needs an HTTP allowance only an administrator can grant.
@@ -136,10 +145,11 @@ Still to do — run the open in-world checks, then the features in order:
 
 ---
 
-2026-08-27 · codeblock `500dd85` (master), pushed; `HEAD` and `origin/master`
-agree, and only the record documents are uncommitted. **CI green on `500dd85`** —
-run 23, all three jobs. **Local gates green too**, engine 5.17.0: luacheck clean,
-`gen_docs.lua --check` up to date, nine in-engine specs **365 passed, 0 failed,
-0 xpass, 1 xfail**. Those specs reach no formspec and no player meta, so the
-editor work rests on the code plus two hand checks. Local results are the
-author's report, not runs made for this document.
+2026-08-27 · codeblock `dee0bc7` (master), **not pushed** — `origin/master` is
+`98619e5`, one commit behind, and only the record documents are uncommitted. **CI
+green at `98619e5`** (run 24); no CI run has seen `dee0bc7`. **Local gates green
+at `dee0bc7`**, engine 5.17.0: luacheck exit 0, `gen_docs.lua --check` up to
+date, nine in-engine specs **365 passed, 0 failed, 1 xfail, 0 xpass**. Those
+specs reach no formspec, no filesystem and no player meta, so `F2` and the editor
+work rest on the code plus what the author played. Local results are the author's
+report, not runs made for this document.

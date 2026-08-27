@@ -74,7 +74,11 @@ The order, which `F1` established and every `F` item should follow:
    the symptom. Reach for the documentation on the second failure.
 6. **Findings from that playtest get ids and go in the record before the code
    moves on.** F1's playtest produced `B33`, `B34` and `B35`; all three were
-   recorded, then fixed or decided, before the next feature started.
+   recorded, then fixed or decided, before the next feature started. What gets an
+   id is a defect in **committed** code: F1's three were in pre-existing editor
+   code its playtest happened to expose. F2's naming was wrong in the same way and
+   got no id, because F2 was still uncommitted — that is the feature being wrong
+   before it ships, and the record for it is the `F` entry.
 
 Two rules, because both were nearly lost:
 
@@ -279,15 +283,24 @@ survives a redraw, field routing, one form per player.
 `handler(meta, player, fields)`, where `meta` is the same table across redraws.
 
 **The editor formspec is in legacy coordinates**, not
-`formspec_version` coordinate mode, and two things follow from that which are
-invisible until something is drawn in the wrong place (audit F1). A `scroll_container` maps its contents into a
+`formspec_version` coordinate mode, and three things follow from that which are
+invisible until something is drawn in the wrong place (audit F1, F2). A `scroll_container` maps its contents into a
 different space from the elements around it and clips them to its own rectangle,
 so rows drawn in one land somewhere else; and an `item_image_button` inside one
 gets a hit area that does not match where it is drawn. The three help panels get
 away with a container only because `item_image` takes no clicks. That is why the
 block picker is a `textlist` — a legacy element that scrolls itself, as the file
-list in the same form already does. Anything new in this form has to know this,
-and converting it to the new coordinate system is a change to the whole editor.
+list in the same form already does. And **a button's `W` is not a width**: the
+engine gives a `button` `W*spacing - (spacing - imgsize)` and a `textlist` plain
+`W*spacing`, with `spacing = imgsize * 5/4`, so a button is short by a fixed
+**0.2 units** whatever `W` is — the offset does not scale. That is why *Create a
+copy* is `3.2` wide against the 3-wide file list and `+` is `0.95` (audit F2). A
+legacy button's `H` is not a height either: the height is fixed and `H` only
+shifts it down. `lua_api.md` records the spacing, the padding and the fixed
+height but **not** the width offset, so the reference cannot settle a
+misalignment here — `src/gui/guiFormSpecMenu.cpp` can. Anything new in this form
+has to know all of this, and converting it to the new coordinate system is a
+change to the whole editor.
 
 **`get_int` cannot tell an unset key from a stored `0`** — both come back 0. Read
 a boolean preference out of player meta with `get_string`, where an absent key is

@@ -46,6 +46,11 @@ panel button (E11, new). **E8, E9, E10 and E12 are new and unrun** — the
 disconnect and shutdown halves of B33 and the checkbox defaults are the paths
 still carrying no evidence.
 
+**E13 is new with F2**, at `dee0bc7`, and stands *partial*: its naming and
+ordering were seen while the feature was being built — which is how the first
+naming scheme came to be replaced before the commit — but the copy button's
+geometry was corrected after that and has not been looked at in-world since.
+
 ### E1 · Open, save and close a program [A9, B13, B17]
 
 Open the editor, open a file, type, save, close with the Save button, reopen.
@@ -234,6 +239,38 @@ capture as well, so switching tabs with it off lost the edit outright. This case
 was found by reading, not reported, and has not been run.
 
 Result: unchecked
+
+### E13 · **Create a copy** [F2]
+
+Open a file in the editor, type something without saving, and click **Create a
+copy** (bottom-left, below the file list — it appears only with a file open).
+Then copy the copy, several times. Then reopen the original.
+
+**Pass**, six parts:
+
+1. The copy is named `<name>_1.lua`, and its contents are **what was on screen**,
+   including the unsaved edit.
+2. It opens as the **active tab**.
+3. Copying the copy gives `<name>_2.lua`, `<name>_3.lua` — it increments; it does
+   not nest suffixes and does not lose a character each round.
+4. The **original is unchanged on disk**: nothing is saved to it, so reopening it
+   shows the last version you saved, not what was on screen when you copied.
+5. Past ten copies the list is ordered `_2` … `_9`, `_10`, `_11` — not
+   alphabetically.
+6. The button's **right edge sits flush** with the file list above it and with
+   `+` below it. This is the part with a history: a legacy-coordinate `button` is
+   0.2 units narrower than its `W` says, so the widths are `3.2` and `0.95`
+   against a 3-wide list. See `F1`'s legacy-coordinate *keep* block in the audit.
+
+Not spec-reachable at all: `forms_spec` stubs `core.show_formspec` and stops at
+the session layer, never reaching `formspecs.lua`'s `on_close`.
+
+Result: partial — `dee0bc7` · engine 5.17.0 · 2026-08-27 — parts 3 and 5 confirmed
+by the author during F2's build (the first naming scheme produced
+`spirals_c__copy.lua` and was replaced before the commit). Parts 1, 2 and 4 were
+exercised incidentally, not checked deliberately. **Part 6 is outstanding** — the
+widths were corrected after the geometry was wrong twice and have not been looked
+at in-world since.
 
 ---
 

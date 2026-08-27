@@ -431,7 +431,7 @@ local file_editor = {
         -- It deliberately does not save the original first: what is copied is
         -- what is on screen, and the original is left exactly as it is on disk.
         -- The write goes through write_file, the module's one write path, with
-        -- a name copy_name has already validated - not through create_file,
+        -- a name derived below rather than typed - not through create_file,
         -- which exists to sanitise a name a player typed. (F2)
         local function copy_active()
 
