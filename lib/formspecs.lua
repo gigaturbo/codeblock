@@ -16,6 +16,7 @@ local close_form = codeblock.forms.close
 local update_form = codeblock.forms.update
 local show_form = codeblock.forms.show
 local explode_textlist_event = core.explode_textlist_event
+local explode_scrollbar_event = core.explode_scrollbar_event
 local get_player_by_name = core.get_player_by_name
 
 local blocks = codeblock.config.allowed_blocks.all
@@ -524,6 +525,29 @@ local file_editor = {
             meta.contents[meta.active] = fields.content
         end
 
+        -- The open help panel's scroll position, read here for the same reason,
+        -- and not a branch below. A scrollbar reports itself on *every* submit,
+        -- not only when it moved: the engine sets send = true when it parses one
+        -- and then emits 'VAL:n' unconditionally, so this is state like
+        -- fields.content and not an event. As a branch it sat above quit, the
+        -- block picker and the new-file field and swallowed all three whenever
+        -- Blocks, Plants or Wools was showing - which is the panel the editor
+        -- opens on. Closing with ESC then never saved the open tabs. (B37)
+        --
+        -- lua_api.md does not say this. It documents the two ways to read a
+        -- scrollbar and the 'CHG'/'VAL' prefixes, but not that a scrollbar is
+        -- always in the field table; guiFormSpecMenu.cpp's parseScrollBar and
+        -- acceptInput are where it is visible.
+        if fields.c_scroll then
+            meta.scroll_c = explode_scrollbar_event(fields.c_scroll).value
+        end
+        if fields.p_scroll then
+            meta.scroll_p = explode_scrollbar_event(fields.p_scroll).value
+        end
+        if fields.w_scroll then
+            meta.scroll_w = explode_scrollbar_event(fields.w_scroll).value
+        end
+
         -- FIELDS INPUTS
         if fields.close then
             close_active()
@@ -596,15 +620,6 @@ local file_editor = {
         elseif fields.help_settings then
             meta.help = 'settings'
             update()
-        elseif fields.c_scroll then
-            meta.scroll_c = core.explode_scrollbar_event(fields.c_scroll)
-                                .value
-        elseif fields.p_scroll then
-            meta.scroll_p = core.explode_scrollbar_event(fields.p_scroll)
-                                .value
-        elseif fields.w_scroll then
-            meta.scroll_w = core.explode_scrollbar_event(fields.w_scroll)
-                                .value
         elseif fields.pick_open then
             meta.picking = not meta.picking
             update()
@@ -633,7 +648,14 @@ local file_editor = {
         elseif fields.quit == 'true' then -- fields.content cannot be accessed here
             if meta.loe then load_active() end
             save_editor_state()
-        elseif fields.newfile then -- last because sent everytime
+        -- Enter in the New file field, which is what field_close_on_enter above
+        -- keeps the form open for. Keyed on key_enter_field rather than on
+        -- fields.newfile being non-empty: a field reports itself on every
+        -- submit, so the old test fired on any event no branch above claimed -
+        -- and it could not fire at all while a panel scrollbar was shadowing
+        -- it. key_enter_field names the field Enter was pressed in, and nothing
+        -- else sets it. (B37)
+        elseif fields.key_enter_field == 'newfile' then
             local filename = create_file(fields.newfile)
             if filename then
                 open(get_user_data(name).byname[filename])

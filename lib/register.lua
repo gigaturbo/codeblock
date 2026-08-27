@@ -171,9 +171,12 @@ core.register_on_newplayer(function(player)
     meta:set_int('codeblock:auth_level', codeblock.config.default_auth_level)
     meta:set_string('codeblock:editor_state_tabs', "")
     meta:set_string('codeblock:editor_state_active', "")
-    meta:set_int('codeblock:save_on_exit', 0)
-    meta:set_int('codeblock:load_on_exit', 0)
-    meta:set_int('codeblock:save_on_switch', 0)
+    -- The three editor preferences are deliberately not written here. They are
+    -- read in lib/formspecs.lua with get_string, where an absent key means "the
+    -- player has never chosen" and two of them then start ticked - the whole
+    -- reason they are not read with get_int, which cannot tell that from a
+    -- stored 0 (B5). Writing a 0 at birth made every player look like one who
+    -- had unticked both, so the default could never be seen. (B36)
 
 end)
 
