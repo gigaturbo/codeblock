@@ -46,6 +46,10 @@ v1.0.0 is major for several of these at once.
   `lua scripts/gen_docs.lua`, or boot with `codeblock_gen_docs = true` and copy
   the result out of the world directory (mod security blocks writing into the mod
   directory). `lua scripts/gen_docs.lua --check` must then exit 0.
+- Regenerate `locale/template.txt` if any message text changed:
+  `lua scripts/gen_locale.lua`. `lua scripts/gen_locale.lua --check` must then
+  say *up to date*, and its `.tr` report names any message a translation is
+  missing — advisory, since an untranslated string falls back to English.
 - Regenerate `.cdb.json`: `bash scripts/gen_cdb_json.sh`. It embeds `README.md`,
   so any README edit needs this — and **nothing checks it for you**.
 - `ROADMAP.md` and `TODO.md` — strike what this release closed. Or ask
@@ -62,8 +66,9 @@ v1.0.0 is major for several of these at once.
 ## 3. Verify
 
 - CI green on the tagged commit itself: `luacheck`, the six standalone specs and
-  `docs are generated from the code`. Check `head_sha`; a green run on an earlier
-  commit tells you nothing.
+  `docs are generated from the code`, which now checks `doc/api.md` **and**
+  `locale/template.txt`. Check `head_sha`; a green run on an earlier commit tells
+  you nothing.
 - The in-engine suite via `run-tests`, which boots the fixture game in
   `tests/game`. All nine specs reported, none skipped, `0 failed`, `0 xpass`.
 - A fresh clone, which is how a standalone install gets it — and then the suite

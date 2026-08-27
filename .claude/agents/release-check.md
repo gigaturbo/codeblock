@@ -47,11 +47,11 @@ Two exceptions, both read-only in effect and both necessary:
 
 - **Cloning to a temporary directory.** The fresh-clone check cannot be done any
   other way.
-- **Running the tests** via the `run-tests` skill, and **`gen_docs.lua --check`**.
-  These read and report. Check `git status` afterwards to prove the tree is
-  clean.
+- **Running the tests** via the `run-tests` skill, and **`gen_docs.lua --check`**
+  and **`gen_locale.lua --check`**. These read and report. Check `git status`
+  afterwards to prove the tree is clean.
 
-Never run `gen_docs.lua` without `--check`; that one writes. `run_tests.ps1`
+Never run either generator without `--check`; both write. `run_tests.ps1`
 writes `codeblock_run_tests` into the user's real config and strips it in a
 `finally` block — confirm afterwards that it is gone.
 
@@ -100,8 +100,10 @@ passing this gate.
 `doc/api.md`, and the mod refuses to load if the description and the
 implementations disagree — so a clean boot already proves part of this.
 
-- `lua scripts/gen_docs.lua --check` exits 0. If no `lua` is reachable, say so and
-  mark this unverified rather than assuming.
+- `lua scripts/gen_docs.lua --check` says *doc/api.md is up to date*, and
+  `lua scripts/gen_locale.lua --check` says the same of `locale/template.txt`.
+  Read the output, not the exit code — `$?` does not survive the WSL layer here.
+  If no `lua` is reachable, say so and mark these unverified rather than assuming.
 - Every per-codelevel limit in `lib/config.lua` has a row in the codelevel table
   in `doc/api.md`. The generator checks this; it was added because a limit was
   once shipped undocumented.
@@ -118,6 +120,10 @@ Each output has a different consumer, and they go stale independently:
   `scripts/gen_cdb_json.sh`. **Nothing verifies it**, so read the script and
   compare the embedded description against `README.md` by hand.
 - **The reference** — `doc/api.md`, covered by gate 4.
+- **Translations** — `locale/template.txt` is the translator's inventory of every
+  message the mod sends, and `locale/codeblock.fr.tr` is the only translation.
+  Both ship. `gen_locale.lua --check` covers the template; the `.tr` report it
+  prints is advisory, since an untranslated message falls back to English.
 - **Changelog** — there is an entry for this version, and it leads with anything
   breaking.
 

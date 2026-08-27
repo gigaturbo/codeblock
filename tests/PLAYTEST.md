@@ -62,6 +62,18 @@ recorded as not reproduced rather than as fixed**, and both checks say what a
 re-run needs. **E14** and **E15** are new with `1f7cd97` and cover the two paths
 B37 had made dead — closing with ESC, and Enter in *New file*.
 
+**Fourth run, 2026-08-27, at `f274245`**, engine Luanti 5.17.0 — **E14** pass,
+**E15** pass, **E10** pass with a fresh player name, **E12** fail again. B36 and
+B37 are both confirmed fixed in a running world, which closes the editor section
+except for E12. **E12 has now failed three times and been traced twice without
+finding a write**, so the check has been rewritten to ask for the file's size or
+timestamp read from outside the game — the one observation none of the three runs
+made. No id is allocated for it until there is that evidence.
+
+The same run took the **Drone** and **Filesystem** sections for the first time and
+found two real defects there, **B38** and **B39**; both are fixed at the commit
+this paragraph was added in.
+
 ### E1 · Open, save and close a program [A9, B13, B17]
 
 Open the editor, open a file, type, save, close with the Save button, reopen.
@@ -247,6 +259,10 @@ across a relog. Fixed at `1f7cd97`: the three keys are no longer written at birt
 and the reader owns the default. **Re-run against `1f7cd97` with a fresh player
 name.**
 
+Result: pass — `f274245` · engine 5.17.0 · 2026-08-27 — re-run with a fresh
+player name. Both boxes start ticked and an untick survives the relog, which is
+both halves of the check. B36 confirmed fixed in world.
+
 ### E11 · Typing survives every button that is not Save [B35]
 
 Open a file, type something, and press each of **Blocks**, **Plants**, **Wools**,
@@ -286,6 +302,19 @@ behaviour, not a failure of this check. And **before `1f7cd97` this check could
 not be run correctly at all**: ESC never reached its own branch (B37), so the tab
 list was not written either.
 
+**Look at the file itself, not at the editor.** This is the third run of this
+check and reopening the editor has not settled it, so read the file from outside
+the game:
+
+```
+<worldpath>/codeblock_files/<playername>/<file>.lua
+```
+
+Note its size or modification time before the edit and again after leaving. That
+is the only observation that distinguishes the two claims above, and it is what
+the previous two runs were missing. Type something unmistakable — `-- E12` on the
+first line — so the answer does not depend on remembering what was there.
+
 Result: fail — `dee0bc7` · engine 5.17.0 · 2026-08-27 — "code is **saved** when
 box is cheched OR unchecked". **Not reproduced by reading, and not claimed fixed.**
 The three `write_file` call sites and the `meta.sos` gate were re-read at
@@ -297,6 +326,24 @@ disk") invited being called a save — or the editor was left by *Load and close
 explain it either: its effect on this path was that ESC failed to save the **tab
 list**, not that anything extra was written. The check is reworded above to
 separate the two claims. **Re-run against `1f7cd97`, leaving by ESC.**
+
+Result: fail — `f274245` · engine 5.17.0 · 2026-08-27 — "fails, saved on both
+cases". **Still not reproduced by reading, and no finding id is allocated for
+it.** The whole write path was traced again at `f274245`, one layer wider than
+last time: `core.safe_file_write` is called from exactly one place in the mod
+(`lib/filesystem.lua`), `write_file` is called from four (`save_active`,
+`create_file`, `copy_active`, `generate_examples`), and none of them is on the
+ESC path — the `quit` branch calls `load_active` and `save_editor_state` and
+neither writes a file. `Drone.set_file` does not write. Reopening the editor does
+read the disk: `show` calls `read_file(..., true)`, which rebuilds the listing
+and so drops every cached content. `forms.on_receive_fields` drops the session on
+`quit`, so a reopened editor cannot be holding the old `meta.contents` either.
+
+So either the write is happening somewhere none of that covers, or what is being
+observed is not a write. The check above now asks for the one observation that
+tells those apart — the file's size or timestamp, read outside the game. Reading
+has now failed twice to settle this; the next step is evidence, not a third
+reading.
 
 ### E13 · **Create a copy** [F2]
 
@@ -347,7 +394,8 @@ shutdown build their own field table with no scrollbar in it: the two paths with
 checks were the two that worked. Run this with each of the five panels open, not
 just Blocks; **Settings** and **API** draw no scrollbar and were never affected.
 
-Result: unchecked — new with `1f7cd97`, and a fail here before that commit.
+Result: pass — `f274245` · engine 5.17.0 · 2026-08-27 — B37 confirmed fixed in
+world on the exit that had no check.
 
 ### E15 · **Enter** in the New file field creates the file [B37]
 
@@ -362,11 +410,18 @@ was both shadowed by the panel scrollbars and keyed on the field merely being
 non-empty, so it fired on unclaimed events instead of on Enter. `+` worked
 throughout — its branch sits above the scrollbars.
 
-Result: unchecked — new with `1f7cd97`.
+Result: pass — `f274245` · engine 5.17.0 · 2026-08-27.
 
 ---
 
 ## Drone placement and the setter tool
+
+**First run, 2026-08-27, at `f274245`**, engine Luanti 5.17.0 — one pass, two
+fails, one partial, and the partial turned out to be this document being wrong
+rather than the code. Both fails were in code nobody had exercised in a running
+world since it was written: **B38** (aiming at nothing is silently ignored,
+because the engine calls a different callback than `on_place`) and **B39** (the
+first join after installing the mod wipes the inventory).
 
 ### D1 · Place a drone and run a program [B10, A11]
 
@@ -375,44 +430,95 @@ to completion.
 
 **Pass:** one completion message, from `Drone.finish` and only there.
 
-Result: unchecked
+Result: pass — `f274245` · engine 5.17.0 · 2026-08-27.
 
-### D2 · Place a drone at nothing [B10]
+### D2 · Place a drone at nothing [B10, B38]
 
-Point past loaded ground — far out over an unloaded area or into the sky at
-range — and use the setter.
+Two cases, and they are different paths. With the **poser**:
 
-**Pass:** the chat says *"Cannot place the drone there, move closer"* and no
-record is created. This is the `add_entity`-returns-nil path; `Drone.new` must
-create no record, because a record with no object is a drone that silently never
-runs.
+1. Aim into the sky or past what the client has loaded, so there is **no node**
+   under the crosshair, and press place.
+2. Aim at a node the client is showing but the **server** has unloaded — far out
+   over ground you flew past. Harder to arrange, and mostly reachable by flying
+   away and coming back before the area is re-emerged.
 
-Result: unchecked
+**Pass:** both are refused in chat, (1) with *"Please target a node"* and (2) with
+*"Cannot place the drone there, move closer"*, and no record is created. Case 2 is
+the `add_entity`-returns-nil path; `Drone.new` must create no record, because a
+record with no object is a drone that silently never runs (B10).
+
+Case 1 is what B38 was: the engine calls `on_secondary_use` and **not** `on_place`
+when there is no node under the crosshair, and the poser's was an empty function.
+So the one gesture a player makes to find the tool's reach was the one that
+answered nothing, and B10's message could only ever be seen by arranging case 2.
+It is now routed into the same `Drone.on_place` call with no position, so there is
+one refusal and not two — and that check was moved above the busy check, because
+with no node it is the aim that failed and not the drone.
+
+Result: fail — `f274245` · engine 5.17.0 · 2026-08-27 — "no message when clicking
+far away, I think I never implemented this". Correct: case 1 had no
+implementation at all. **B38**, fixed at the commit this line was added in.
+Re-run both cases.
 
 ### D3 · Replace a drone under the same name [B29, B30]
 
-Place a drone, run a program, and place a second drone before the first has
-finished — then again after it has.
+Two things, and the first is not what this check used to say.
 
-**Pass:** the replacement keeps running and no *"program ended"* line is
-announced for the drone that was removed. `ObjectRef:remove()` takes effect at
-the end of the step, so `on_deactivate` can fire after the replacement is
-installed; the serial is what protects it, not the clear-before-remove ordering.
+1. Place a drone, run a program, and try to place a second drone **before** the
+   first has finished. **Pass:** it is refused with *"Drone is busy, please
+   wait!"* — `Drone.on_place` returns early while `drone.cor` is non-nil, so a
+   run cannot be yanked out from under itself by a stray click. Then place again
+   after it finishes: that works.
+2. The re-entrancy window B29 and B30 are actually about is reached with the
+   **setter**, which removes a drone mid-run and is allowed to. Remove a running
+   drone with the setter and immediately place a new one in the same second.
+   **Pass:** the replacement runs, and **no** *"program ended"* line is announced
+   for the one that was removed. `ObjectRef:remove()` takes effect at the end of
+   the step, so `on_deactivate` can fire after the replacement is installed under
+   the same name; the serial is what protects it, not the clear-before-remove
+   ordering.
 
-Result: unchecked
+Result: partial — `f274245` · engine 5.17.0 · 2026-08-27 — "when placing during
+run it says '... wait busy...', after a run it works". That is part 1 passing.
+**The check was wrong, not the code**: it asked for a replacement mid-run, which
+`on_place` refuses on purpose, and so pointed at a path that cannot reach B29's
+window at all. No finding id — nothing in committed code is defective here.
+Part 2 is unchecked and is the one that tests the serial guard.
 
-### D4 · Join with a full inventory [B16]
+### D4 · Join with a full inventory [B16, B39]
 
-Join with items in the hotbar and main inventory.
+Two cases, and the second is the one that was broken:
 
-**Pass:** the poser and setter are added and **nothing else is removed**. Every
-join used to wipe the inventory.
+1. Join a world that already has the mod, carrying items in the hotbar and main
+   inventory. **Pass:** nothing is removed. Every join used to wipe the inventory
+   (B16).
+2. Take a world **without** this mod, collect some items, quit, add the mod, and
+   join again. **Pass:** the poser and setter are added and **nothing else is
+   removed**.
 
-Result: unchecked
+Case 2 is B39. `set_tools` used to empty `main`, `craft`, `craftpreview` and
+`craftresult` before adding the two tools, and B16 narrowed that to "only when a
+tool is missing" — which is exactly and only the first join after an install, so
+the wipe survived in the one case where the player has something to lose. It now
+adds whichever tool is missing and clears nothing.
+
+Also worth trying with a **completely full** main inventory: there is no room for
+the tools, and the refusal is now said in chat rather than passed over, because a
+player with no drone tools and no explanation has no way in.
+
+Result: fail — `f274245` · engine 5.17.0 · 2026-08-27 — "I started a minetest
+game, added items to inventory, quit then added codeblock mod and then inventory
+was replaced with the 2 drone tools and the rest was empty". That is case 2
+exactly. **B39**, fixed at the commit this line was added in.
 
 ---
 
 ## Filesystem and example generation
+
+**First run, 2026-08-27, at `f274245`**, engine Luanti 5.17.0 — one pass, one
+partial, one that could not be run because no procedure was written for it. The
+partial is **C17**: the behaviour is right and the words are in the wrong
+language. F-3 now has two recipes, which is what it was missing.
 
 ### F-1 · `/codegenerate` on your own files [B8, B15]
 
@@ -422,29 +528,58 @@ Run `/codegenerate` as an unprivileged player, twice.
 files alone rather than overwriting them, and needs no privilege for your own
 files.
 
-Result: unchecked
+Result: pass — `f274245` · engine 5.17.0 · 2026-08-27.
 
-### F-2 · `/codegenerate <player>` [B8]
+### F-2 · `/codegenerate <player>` [B8, C17]
 
 Run it against another player's files, with and without the `codeblock`
-privilege.
+privilege. **Run it once with the game in French**, since half of what this check
+now covers is only visible there.
 
 **Pass:** refused without the privilege; with it, the files land under the named
 player, not the caller — the old argument pattern read a bare number as a player
-name.
+name. And every line it prints is in the game's language: the refusal, the
+`@1: @2 examples written, @3 already present` summary, the usage line, and the
+failure line.
 
-Result: unchecked
+Result: partial — `f274245` · engine 5.17.0 · 2026-08-27 — "test pass but text
+shown for the refusal without privilege is in EN and no FR if game in FR". The
+privilege behaviour passes; the language is **C17**. That refusal's key was built
+with `..` from two literals, so nothing reading the source for strings to
+translate could see it and it was never in `locale/template.txt` at all. It was
+one of twelve, and three of the twelve were worse — translated once, then
+unhooked by a one-character edit to the key (a trailing space, a plural, a
+capital). Fixed at the commit this line was added in, along with a
+`scripts/gen_locale.lua --check` in CI so the template cannot drift again.
+**Re-run in French.**
 
 ### F-3 · A file that cannot be read [B7, B15]
 
-Make one file in the player's directory unreadable, or an example file
-unreadable, and open the editor / run `/codegenerate`.
+`read_file` refuses in two ways and both name the file. The cheap one first:
 
-**Pass:** the error names the **filename**, not a file handle, and no handle is
-leaked. Awkward to arrange; do it opportunistically rather than blocking a
-release on it.
+1. **A precompiled chunk.** Put a file whose first byte is `0x1B` into
+   `<worldpath>/codeblock_files/<playername>/` — `luac5.1 -o bytecode.lua
+   any.lua` makes one, or any binary renamed to `.lua` — then open the editor and
+   click it in the file list. **Pass:** the chat says *"Compilation error in
+   bytecode.lua: Binary bytecode prohibited"*, naming the file, and the editor
+   carries on with the rest of the list. This is the branch that runs after
+   `handle:close()`, so it is also where a leaked handle would show.
+2. **A genuinely unreadable file**, which is the awkward one. On Windows, deny
+   yourself read on one of your `.lua` files and reopen the editor:
 
-Result: unchecked
+   ```
+   icacls "<worldpath>\codeblock_files\<playername>\test.lua" /deny "%USERNAME%":(R)
+   icacls "<worldpath>\codeblock_files\<playername>\test.lua" /remove:d "%USERNAME%"
+   ```
+
+   **Pass:** the message names `test.lua`, and no other file in the list is lost
+   with it — a single bad file must not cost the player the session.
+
+Do case 1 at least; case 2 opportunistically rather than blocking a release on it.
+
+Result: unchecked — "not sure what to do to test" at `f274245`, which is a
+procedure that was not written down rather than a defect. No finding id. The two
+recipes above are new with the commit this line was added in.
 
 ---
 

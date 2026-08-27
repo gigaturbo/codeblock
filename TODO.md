@@ -36,11 +36,12 @@ are features, this project's own.
 - [x] check drone.cor in on_lost before announcing a program ended (audit B30)
 - [x] finish minetest.* -> core.* across lib/, tests/ and init.lua (audit C6)
 - [x] push master and get a green CI run on the Phase 7 range (no finding)
-- [ ] playtest the drone, filesystem, world-write and pacing groups - the checklist is tests/PLAYTEST.md
+- [x] playtest the drone and filesystem groups (2026-08-27: D1 pass, D2/D4 fail, D3 partial, F-1 pass, F-2 partial)
+- [ ] playtest the world-write and pacing groups - the checklist is tests/PLAYTEST.md
 - [x] playtest the editor group by hand (2026-08-27: 5 pass, E2 partial, E5 fail)
 - [ ] run F1's two playtest checks - the Settings panel and the relog (audit F1)
 - [x] run F2's playtest check E13, the flush button edge included (audit F2)
-- [ ] push the four unpushed commits, dee0bc7 to 1f7cd97 - gates green, awaiting the author (no finding)
+- [ ] push the seven unpushed commits, dee0bc7 to b5d2e40 - gates green, awaiting the author (no finding)
 - [ ] build the release archive and install it once, to prove C16's guard (audit C16)
 - [ ] drop the 5.5 ceiling in mods/vector3/mod.conf - separate repository (audit C1)
 - [x] FEAT: option to set drone default block to place (audit F1)
@@ -56,9 +57,18 @@ are features, this project's own.
 - [x] run the disconnect and shutdown editor checks - both pass, shutdown now observed (audit B33)
 - [x] BUG: the new-player initialiser made the ticked checkbox default unreachable (audit B36)
 - [x] BUG: three help-panel scroll branches shadowed quit, the block picker and new file (audit B37)
-- [ ] re-run E10 with a fresh player name and E12 leaving by ESC, against 1f7cd97 (audit B36, B37)
-- [ ] run E14 and E15: ESC saves the open tabs, Enter in New file creates it (audit B37)
+- [x] re-run E10 with a fresh player name - pass, B36 confirmed in world (audit B36)
+- [x] run E14 and E15: ESC saves the open tabs, Enter in New file creates it - both pass (audit B37)
+- [ ] settle E12 by reading the file's size or mtime from outside the game - reading the code is exhausted, three fails and two traces (no finding)
 - [ ] warn when the editor is closed with unsaved changes - soe is read, written, and acted on nowhere (no finding)
+- [x] BUG: aiming the poser at nothing was silently ignored - the engine calls on_secondary_use (audit B38)
+- [x] BUG: the first join after installing the mod wiped the player's inventory (audit B39)
+- [x] BUG: locale/template.txt drifted both ways and three translations were orphaned by a key edit (audit C17)
+- [ ] re-run D2 both cases, D4 case 2, and F-2 in French, against b5d2e40 (audit B38, B39, C17)
+- [ ] run D3 part 2 - remove a running drone with the setter, place another at once (audit B29)
+- [ ] run F-3 case 1 - a precompiled chunk in the player's directory (audit B7, B15)
+- [ ] decide whether settingtypes.txt gets a generator and a --check, like doc/api.md and locale/template.txt (audit C7, C17)
+- [ ] decide what happens to the five sky overrides on join - permanent daylight, no sun, moon, stars or clouds, for every installing game (audit C18)
 
 Decided against for 1.0.0, kept so it is not re-litigated: batching place() into
 core.bulk_set_node (audit A4); letting a file be removed without opening it first

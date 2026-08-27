@@ -66,12 +66,18 @@ The order, which `F1` established and every `F` item should follow:
 3. **Argue out what should not be built.** F1's proposed `persist` flag was cut
    before implementation, on four grounds recorded under `F1` in the audit. A
    feature losing a part on argument is a normal outcome, not a failure.
-4. **Write it, then the three gates, every time** — `luacheck`,
-   `gen_docs.lua --check`, the nine specs.
+4. **Write it, then the four gates, every time** — `luacheck`,
+   `gen_docs.lua --check`, `gen_locale.lua --check`, the nine specs.
 5. **Then the author plays it in a real world.** This is not a formality: F1's
    picker was wrong twice in ways no spec could catch, and the second diagnosis
    came from reading the engine's formspec documentation rather than guessing at
-   the symptom. Reach for the documentation on the second failure.
+   the symptom. **Reach for the engine's documentation and source on the first
+   surprise, not the second.** Three findings here were the engine doing
+   something the code did not expect — B37 (a scrollbar is sent on every submit),
+   B38 (`on_secondary_use`, not `on_place`, when nothing is pointed at) and B5's
+   `get_int` trap. B38's callback *is* documented in `lua_api.md`; the cost was
+   not reading it. When `lua_api.md` is silent or misleading, as it is for B37,
+   `src/gui/guiFormSpecMenu.cpp` settles it.
 6. **Findings from that playtest get ids and go in the record before the code
    moves on.** F1's playtest produced `B33`, `B34` and `B35`; all three were
    recorded, then fixed or decided, before the next feature started. What gets an
@@ -130,11 +136,23 @@ The rest, all run by this repository's CI:
 ```bash
 luacheck . --formatter plain --codes
 lua scripts/gen_docs.lua --check    # doc/api.md matches the code
+lua scripts/gen_locale.lua --check  # locale/template.txt matches the code
 bash scripts/gen_cdb_json.sh        # regenerate after a README edit
 ```
 
 `LUACHECK_STRICT=1` reports what the baseline exemptions hide. `gen_cdb_json.sh`
-is the one script here that nothing verifies.
+is the one script here that nothing verifies. Both `--check` scripts run under a
+bare Lua 5.1 with no engine global; `gen_locale.lua` also lists `lib/` through
+`ls`, so it wants a POSIX shell rather than a hand-kept list of its own inputs —
+that being the same defect one level up. `gen_locale.lua --check` fails on
+`locale/template.txt` only: it
+also reports which `.tr` files are incomplete, but an untranslated message
+legitimately falls back to English, while a template that lies about what needs
+translating does not (C17).
+
+**Read the output, not the exit code.** `$?` does not survive this machine's WSL
+layer, so a gate is green when it *says* so — `doc/api.md is up to date`,
+`locale/template.txt is up to date`, luacheck silent.
 
 Reading a result: `failed` must be 0, and so must `xpass`. An `xfail` that now
 passes either means a defect was fixed and the test should be promoted, or the
@@ -203,6 +221,29 @@ Changing a player-facing name means editing `lib/api.lua`, the `impls` table in
 player programs, which are data no game can migrate — that is a major version
 bump.
 
+### Three hand-kept mirrors, and translatable strings
+
+Three files here restate the source, are read by a human or by ContentDB rather
+than by the code, and so **drift silently — nothing fails when they are wrong**.
+`doc/api.md` drifted and got `gen_docs.lua --check`. `locale/template.txt`
+drifted twelve messages one way and seventeen the other and now has
+`gen_locale.lua --check` (C17). **`settingtypes.txt` is the third and has
+neither**: it only *draws* the settings menu, the engine reads no defaults from
+it, and it is a hand-kept mirror of the literals in `lib/config.lua`. Whether it
+should get the same treatment is an open question in `ROADMAP.md`. The pattern to
+carry forward: a note about remembering does not hold, a `--check` in CI does.
+
+Two rules for a string a player sees, both learned from C17:
+
+- **Never build a translation key with `..`.** The literal argument to `S()` *is*
+  the key, so a concatenated one cannot be extracted, cannot be translated, and
+  nothing reports it. One line in `lib/register.lua` was in that state for the
+  whole project's life.
+- **Never edit a key in the source alone.** A trailing space, a plural or a
+  capital orphans the existing translation with no error anywhere, and it still
+  looks translated in the `.tr` file. Three messages were in that state. Only a
+  diff of the two key lists sees it, which is what the new check is.
+
 ### Per-codelevel limits
 
 Seven limits in `lib/config.lua` are four-element arrays indexed by the player's
@@ -237,6 +278,14 @@ at load and names its replacement, from the `replaced` table.
 
 Every setting here is this mod's. A game that embeds it contributes its own —
 mapgen, daylight, build restrictions — and the two do not mix.
+
+**The source currently breaks that rule in one place**, and the rule is the one
+that is right: `register_on_joinplayer` in `lib/register.lua` calls
+`override_day_night_ratio(1)` and hides the sun, moon, stars and clouds for every
+player, unguarded, under a comment reading `TODO: TEMP fix`. That is `codecube`'s
+presentation living in the mod. Open as audit **C18**, with a recommendation and
+no fix, because deleting it changes what a `codecube` player sees. Do not add
+anything else of that kind.
 
 ### Writing to the world
 
@@ -374,6 +423,32 @@ been installed under the same name. What protects the replacement is the serial:
 `on_lost` and `on_step` both ignore any record whose serial is not the one they
 were called for. Do not remove either guard on the strength of the clear-first
 ordering (audit B29).
+
+### The two tools, and the player's inventory
+
+`lib/register.lua` registers `codeblock:poser` and `codeblock:setter` and hands
+them out on join. Two things there are load-bearing and both were bugs first.
+
+**`on_place` fires only when the client has a node under the crosshair.** Aim
+into the sky, or past what the client has loaded, and the engine calls
+`on_secondary_use` instead — which is documented in `lua_api.md` and was an empty
+function here, so the one gesture a player makes to find a tool's reach answered
+nothing, and B10's *"move closer"* refusal was reachable only by pointing at a
+node the *server* had unloaded. Both now route into one `Drone.on_place` call,
+with `pos` nil for the no-node case, and that check sits **above** the busy check:
+with no node it is the aim that failed, not the drone (audit B38).
+
+**Never clear a player's inventory. Add what is missing.** `set_tools` used to
+empty `main`, `craft`, `craftpreview` and `craftresult` first; narrowing that to
+"only when a tool is missing" (B16) left it firing in exactly one case — the first
+join after the mod is installed, which is the only case where the player has
+anything to lose (audit B39). Both carrying reads must stay: `main` **or**
+`craft`, because a tool parked in the craft grid would otherwise be duplicated on
+every join, silently.
+
+Both defects were **invisible in `codecube`**, where a player carries nothing but
+the two tools and has no reason to aim at the sky. The mod ships standalone to any
+game and that is the only place either existed. *Play it outside its own game.*
 
 ## Environment notes
 

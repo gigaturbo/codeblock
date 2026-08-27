@@ -136,9 +136,15 @@ is repaired by the next run. Worth knowing if an old config still looks wrong:
 
 ## Related
 
-`scripts/gen_docs.lua --check` verifies the API reference is current, and
-`luacheck` lints. Both run in CI and neither is run by this skill:
+`scripts/gen_docs.lua --check` verifies the API reference is current,
+`scripts/gen_locale.lua --check` verifies `locale/template.txt` lists exactly the
+messages the code sends, and `luacheck` lints. All three run in CI — the two
+`--check`s in the `docs are generated from the code` job — and none is run by this
+skill:
 
 ```bash
-wsl bash -lc 'cd /mnt/c/Users/lacba/PRogrammation/codeblock && luacheck . --formatter plain --codes && lua5.1 scripts/gen_docs.lua --check'
+wsl bash -lc 'cd /mnt/c/Users/lacba/PRogrammation/codeblock && luacheck . --formatter plain --codes && lua5.1 scripts/gen_docs.lua --check && lua5.1 scripts/gen_locale.lua --check'
 ```
+
+Read what they print rather than the exit code: `$?` does not survive the WSL
+layer here, so green means luacheck silent and both checks saying *up to date*.

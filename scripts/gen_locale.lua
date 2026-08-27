@@ -7,7 +7,7 @@
 -- it is a mirror of the source the way settingtypes.txt is a mirror of
 -- lib/config.lua - and it drifted the same way, silently, because nothing
 -- compared the two. By the time anyone looked, twelve messages the code sends
--- were missing from it and eleven it listed no longer existed (C17).
+-- were missing from it and seventeen it listed no longer existed (C17).
 --
 -- Three of those twelve were worse than missing: they had been translated, and a
 -- one-character edit to the key - a trailing space, a plural, a capital - left
