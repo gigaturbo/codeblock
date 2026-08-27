@@ -227,15 +227,20 @@ local drone_mt = {
 
             if not player then return end
 
+            -- Answered before the drone is looked at all: with no position the
+            -- gesture failed, and whether a drone happens to be running is not
+            -- what the player got wrong. The poser routes its no-node case here
+            -- rather than repeating the message, so this branch is the only one
+            -- that runs for it. (B38)
+            if not pos then
+                chat_send_player(name, S("Please target a node"))
+                return
+            end
+
             local drone = Drone.get(name)
 
             if drone ~= nil and drone.cor ~= nil then
                 chat_send_player(name, S('Drone is busy, please wait!'))
-                return
-            end
-
-            if not pos then
-                chat_send_player(name, S("Please target a node"))
                 return
             end
 

@@ -257,8 +257,11 @@ function codeblock.sandbox.get_safe_coroutine(drone, filename)
     end
 
     if untrusted_code:byte(1) == 27 then
+        -- The same key lib/filesystem.lua uses for the same refusal. It was
+        -- lower-cased here, which is a second key for one message and left this
+        -- one untranslated. (C17)
         return false, S("Compilation error in @1: ", filename) ..
-                   S("binary bytecode prohibited")
+                   S('Binary bytecode prohibited')
     end
 
     -- checking forbiden things

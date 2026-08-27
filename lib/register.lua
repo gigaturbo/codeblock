@@ -30,28 +30,37 @@ local examples = codeblock.examples.examples
 
 --- Make sure the player is carrying the two drone tools.
 --
--- The clear-out is a first-join reset, and it used to run on every single
--- login, taking whatever the player was carrying with it. It now happens only
--- when a tool has actually gone missing - which, since both are undroppable,
--- is close to never after the first join. (B16)
+-- Adds whichever tool is missing and clears nothing. It used to empty main,
+-- craft, craftpreview and craftresult first - invisible in the game this mod is
+-- written for, where a player has nothing else, and destructive in any other:
+-- adding the mod to a world that already had players makes both tools missing
+-- at once, so the next join wiped the inventory. B16 stopped that happening on
+-- *every* login, which left the first join after an install still doing it.
+-- (B39)
+--
+-- No room is reported rather than passed over: a player with no drone tools and
+-- no explanation has no way into the mod at all.
 local function set_tools(player)
     local inv = player:get_inventory()
-    local poser = ItemStack('codeblock:poser')
-    local setter = ItemStack('codeblock:setter')
+    local name = player:get_player_name()
 
-    if inv:contains_item('main', poser) and inv:contains_item('main', setter) then
-        return
-    end
+    for _, itemname in ipairs({'codeblock:poser', 'codeblock:setter'}) do
 
-    local invs = {'main', 'craft', 'craftpreview', 'craftresult'}
-    for _, inv_name in ipairs(invs) do
-        for i = 1, inv:get_size(inv_name) do
-            inv:set_stack(inv_name, i, ItemStack())
+        -- The craft grid counts as carrying it. Both tools are undroppable but
+        -- nothing stops a player parking one there, and only looking in `main`
+        -- would hand them a second copy on every join - which the wipe used to
+        -- cover up.
+        local stack = ItemStack(itemname)
+        local carried = inv:contains_item('main', stack) or
+                            inv:contains_item('craft', stack)
+
+        if not carried and not inv:add_item('main', stack):is_empty() then
+            chat_send_player(name, S(
+                'No room for the drone tools, free a slot and rejoin'))
+            return
         end
-    end
 
-    inv:add_item('main', poser)
-    inv:add_item('main', setter)
+    end
 end
 
 --- Write the bundled example programs into a player's directory.
@@ -112,7 +121,17 @@ core.register_tool("codeblock:poser", {
         if drone_on_place(name, pos) then show_file_chooser(name) end
         return itemstack
     end,
-    on_secondary_use = function() end
+    -- The engine calls this instead of on_place when there is no node to point
+    -- at, which is how aiming past loaded ground or into the sky arrives: the
+    -- client cannot point at a node it does not have. An empty function meant
+    -- the one gesture a player makes to find the tool's reach was the one that
+    -- answered nothing at all - the B10 refusal below could only be seen by
+    -- pointing at a node the *server* had not loaded. Routed through the same
+    -- call with no position, so there is one refusal and not two. (B38)
+    on_secondary_use = function(itemstack, user)
+        if user then drone_on_place(user:get_player_name(), nil) end
+        return itemstack
+    end
 })
 
 core.register_tool("codeblock:setter", {
@@ -274,8 +293,12 @@ core.register_chatcommand("codegenerate", {
         if pname ~= name and not core.check_player_privs(name, {
             codeblock = true
         }) then
-            return false, S('You need the codeblock privilege to generate ' ..
-                                'examples for another player')
+            -- One literal, deliberately: the argument to S is the translation
+            -- key, so a key assembled with .. is invisible to anything that
+            -- reads the source for strings to translate - and this one was
+            -- never in locale/template.txt as a result. Shortened to fit. (C17)
+            return false,
+                   S('You need the codeblock privilege for another player')
         end
 
         if not get_player_by_name(pname) then
@@ -284,7 +307,9 @@ core.register_chatcommand("codegenerate", {
 
         local err, written, skipped = generate_examples(pname)
         if err then
-            return false, S('An error occured when generating example')
+            -- Plural, which is the key locale/ has always carried: the singular
+            -- here silently unhooked its own translation. (C17)
+            return false, S('An error occured when generating examples')
         end
         return true, S('@1: @2 examples written, @3 already present', pname,
                        written, skipped)

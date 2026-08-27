@@ -118,3 +118,12 @@ jobs:
       # describe an API that does not exist.
       - name: Check doc/api.md is up to date
         run: lua scripts/gen_docs.lua --check
+
+      # Same shape, for the other file that mirrors the source and had nothing
+      # comparing it: locale/template.txt is a translator's list of every
+      # message the mod sends, and it had drifted twelve messages out of date in
+      # each direction (C17). Fails on the template only - an untranslated
+      # string falls back to English, which is a state a translation is allowed
+      # to be in, so the .tr report is printed and does not fail the job.
+      - name: Check locale/template.txt is up to date
+        run: lua scripts/gen_locale.lua --check
