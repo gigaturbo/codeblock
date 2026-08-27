@@ -157,8 +157,10 @@ local file_editor = {
             fs = fs .. ';' .. (meta.active or 0) .. ';false;false]'
         end
 
-        -- files
-        fs = fs .. 'textlist[0, 0; 3, 8.75;files;'
+        -- files. Shortened from 8.75 to leave the row below it for Copy file;
+        -- the gap stays empty with no file open rather than the list changing
+        -- height as tabs come and go. (F2)
+        fs = fs .. 'textlist[0, 0; 3, 8.1;files;'
         for i, file in ipairs(ud.list) do
             if i ~= 1 then fs = fs .. ',' end
             fs = fs .. formspec_escape(file.name)
@@ -166,11 +168,29 @@ local file_editor = {
         local shown = ud.byname[meta.tabs[meta.active]]
         fs = fs .. ';' .. (shown and shown.index or 0) .. ']'
 
+        -- Copy file. Down here rather than with Save/Remove/Close: that row
+        -- runs to x=14.08 and the help row starts at 14, so a fifth button
+        -- means re-laying-out four that work. Drawn only with a file open, for
+        -- the same reason those four are - it acts on the open file. (F2)
+        -- 3.2 wide, not 3, to end flush with the 3-wide list above it. In
+        -- legacy coordinates a button is not as wide as its W says: the engine
+        -- computes W*spacing - (spacing - imgsize) for a button and plain
+        -- W*spacing for a textlist, and spacing is imgsize*5/4, so every button
+        -- is short by a fixed 0.2 units whatever W is. The H is decoration
+        -- too - a legacy button's height is fixed and W's partner only shifts
+        -- it down. (F2)
+        if meta.active ~= 0 then
+            fs = fs .. 'button[0, 8.3;3.2, 0.7;copy;' .. S('Create a copy') ..
+                     ']'
+        end
+
         -- new file
         fs = fs .. 'field_close_on_enter[newfile;false]'
         fs = fs .. 'field[0.27, 9.5;2.5, 1;newfile;' .. S('New file:') .. ';' ..
                  formspec_escape(meta.newfile) .. ']'
-        fs = fs .. 'button[2.25, 9.20;1, 1;create;+]'
+        -- 0.95 for the same reason 'copy' above is 3.2: at W=1 this button ran
+        -- 0.05 units past the list's right edge instead of ending on it. (F2)
+        fs = fs .. 'button[2.25, 9.20;0.95, 1;create;+]'
 
         -- file buttons
         if meta.active ~= 0 then
@@ -406,6 +426,58 @@ local file_editor = {
             return nil
         end
 
+        -- Copy the open file under a derived name and open the copy, so the
+        -- player can try a variation without touching the version that works.
+        -- It deliberately does not save the original first: what is copied is
+        -- what is on screen, and the original is left exactly as it is on disk.
+        -- The write goes through write_file, the module's one write path, with
+        -- a name copy_name has already validated - not through create_file,
+        -- which exists to sanitise a name a player typed. (F2)
+        local function copy_active()
+
+            if meta.active == 0 then return end
+            local source = meta.tabs[meta.active]
+            local content = meta.contents[meta.active]
+
+            -- foo.lua -> foo_1.lua -> foo_2.lua: a number, not a word, so the
+            -- name a player ends up with does not depend on the server's
+            -- language. Both strips are anchored to the end of the name, never
+            -- inserted before the extension (B15).
+            --
+            -- Stripping a trailing _<digits> is what makes copying a copy
+            -- stable. Without it the previous suffix became part of the next
+            -- stem, and since the stem is also what gets trimmed to
+            -- create_file's 15-character limit, each round both nested and lost
+            -- a character: _copy, _cop_copy, _co_copy2. Trimming the suffix
+            -- instead is not an option - it hands back the original name for
+            -- any stem already at the limit.
+            local base = source:gsub('%.lua$', ''):gsub('_%d+$', '')
+            local byname = get_user_data(name).byname
+            local filename
+            for i = 1, 99 do
+                local suffix = '_' .. i
+                local candidate = base:sub(1, 15 - #suffix) .. suffix .. '.lua'
+                if not byname[candidate] then
+                    filename = candidate
+                    break
+                end
+            end
+
+            if not content or not filename then
+                chat_send_player(name, S('Cannot copy @1', source))
+                return
+            end
+
+            local err = write_file(name, filename, content)
+            if err then
+                chat_send_player(name, err)
+                return
+            end
+
+            open(get_user_data(name).byname[filename])
+
+        end
+
         local function close_active()
             if meta.active == 0 then return end
             if #meta.tabs == 0 then return end
@@ -480,6 +552,9 @@ local file_editor = {
                 open(get_user_data(name).byname[filename])
                 update()
             end
+        elseif fields.copy then
+            copy_active()
+            update()
         elseif fields.remove then
             remove_active()
             update()

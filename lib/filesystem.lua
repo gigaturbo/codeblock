@@ -39,13 +39,23 @@ end
 
 local function remove_user_data(name) user_data[name] = nil end
 
+--- A sort key that orders digit runs by value, so foo_2 precedes foo_10 rather
+-- than following it. Each run is prefixed with its own length, which orders
+-- shorter numbers first without having to guess a padding width. Case is left
+-- alone, so the rest of the ordering is the byte order it has always been.
+local function sort_key(filename)
+    return (filename:gsub('%d+', function(digits)
+        return ('%03d'):format(#digits) .. digits
+    end))
+end
+
 --- The player's files. Built on first use, rebuilt when `forceRefresh` is set.
 local function get_user_data(name, forceRefresh)
 
     if user_data[name] ~= nil and not forceRefresh then return user_data[name] end
 
     local files = get_dir_list(path_join(data_path, name), false) or {}
-    table.sort(files)
+    table.sort(files, function(a, b) return sort_key(a) < sort_key(b) end)
 
     local ud = {list = {}, byname = {}}
     for i, filename in ipairs(files) do
