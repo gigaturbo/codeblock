@@ -23,6 +23,16 @@
 #    would otherwise arrive holding every limit below at its widest.
 codeblock_default_auth_level (Default codelevel) string
 
+[Files]
+
+#    Largest program file, in kilobytes, that will be read from or written to a
+#    player's directory. Not a limit on a running program: it bounds the read
+#    itself, which is paid for three times over - the file, the copy kept in
+#    memory, and the formspec the editor sends to the client. A program a person
+#    edits is kilobytes. Nothing saved from the editor can exceed 640 kB in any
+#    case, that being the engine's own ceiling on a formspec submission.
+codeblock_max_file_kb (Maximum program file size) int 128 1 640
+
 [Pacing]
 
 #    Milliseconds the drone waits after each command. Zero is no wait. This is

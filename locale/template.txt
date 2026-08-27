@@ -30,6 +30,7 @@ Drone setter=
 Error, drone does not exist=
 Failed to remove @1=
 File @1 does not exists=
+File @1 is too large: over @2 kB=
 Invalid codelevel=
 Load and close=
 Load program on exit=

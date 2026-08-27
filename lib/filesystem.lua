@@ -26,6 +26,8 @@ local safe_file_write = core.safe_file_write
 local mkdir = core.mkdir
 local path_join = codeblock.utils.path_join
 local data_path = path_join(core.get_worldpath(), codeblock.config.lua_dir)
+local max_kb = codeblock.config.max_file_kb
+local max_bytes = max_kb * 1024
 
 -------------------------------------------------------------------------------
 -- private
@@ -38,6 +40,12 @@ local function get_file_path(name, filename)
 end
 
 local function remove_user_data(name) user_data[name] = nil end
+
+--- The one refusal both the read and the write share, so the size a player is
+-- told is the same size either way, from one translatable message.
+local function too_large(filename)
+    return S('File @1 is too large: over @2 kB', filename, max_kb)
+end
 
 --- A sort key that orders digit runs by value, so foo_2 precedes foo_10 rather
 -- than following it. Each run is prefixed with its own length, which orders
@@ -89,10 +97,18 @@ local function read_file(name, filename, forceRefresh)
     local handle, err = io.open(file.path, 'rb')
     if not handle then return nil, err or unreadable end
 
-    local content = handle:read('*a')
+    -- One byte over the ceiling is all it takes to know the file is too large,
+    -- and it is the only way to find out that does not pay for the whole file
+    -- first. An unbounded read here was charged three times over - the string,
+    -- the copy cached below, and the formspec the editor sends to the client -
+    -- and a 168 MB file took the server to 14 GB. (B40)
+    --
+    -- read(n) answers nil at end of file, which for a handle that opened is an
+    -- empty file: a program created and not yet written is exactly that.
+    local content = handle:read(max_bytes + 1) or ''
     handle:close()
 
-    if not content then return nil, unreadable end
+    if #content > max_bytes then return nil, too_large(filename) end
 
     -- Lua's signature byte for a precompiled chunk. Bytecode is not checked the
     -- way source is, so it is refused before anything can load it.
@@ -110,6 +126,11 @@ local function write_file(name, filename, content)
 
     local content = content or ''
     local failed = S('Cannot write file') .. ' ' .. filename
+
+    -- Refused at the same size the read refuses, or the editor would write a
+    -- file it then declines to open. What arrives from a client is already
+    -- bounded by the engine, but only from 5.7 on and only at 640 kB. (B40)
+    if #content > max_bytes then return too_large(filename) end
 
     if not safe_file_write(get_file_path(name, filename), content) then
         return failed

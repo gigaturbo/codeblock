@@ -249,11 +249,16 @@ function codeblock.sandbox.get_safe_coroutine(drone, filename)
     local name = drone.name
 
     -- loading file
-    local untrusted_code = codeblock.filesystem.read_file(name, filename, true)
+    local untrusted_code, ferr = codeblock.filesystem.read_file(name, filename,
+                                                               true)
 
+    -- read_file's own message is a whole sentence naming the real reason - too
+    -- large, unreadable, bytecode - so it stands in for the generic one rather
+    -- than being prefixed by it. Without this, a file refused for its size ran
+    -- as "not found". (B40)
     if not untrusted_code then
-        return false, S("Compilation error in @1: ", filename) ..
-                   S('@1 not found.', filename)
+        return false, ferr or (S("Compilation error in @1: ", filename) ..
+                   S('@1 not found.', filename))
     end
 
     if untrusted_code:byte(1) == 27 then

@@ -30,6 +30,7 @@ Drone setter=Régleur de drone
 Error, drone does not exist=Erreur, le drone n'existe pas
 Failed to remove @1=Échec de la suppression du fichier @1
 File @1 does not exists=Le fichier @1 n'existe pas
+File @1 is too large: over @2 kB=Le fichier @1 est trop volumineux : plus de @2 kB
 Invalid codelevel=codelevel invalide
 Load and close=Charger et fermer
 Load program on exit=Charger le programme en quittant

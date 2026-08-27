@@ -67,6 +67,17 @@ end
 ----------------------- 1:limited 2:standard 3:privileged 4:trusted
 codeblock.config.lua_dir = 'codeblock_files'
 
+-- The largest file, in kilobytes, that will be read out of a player's directory.
+--
+-- Not a limit on a running program - it bounds the read itself, which nothing
+-- else does. A file is read whole, cached on its record, then escaped into the
+-- editor's formspec and sent to the client on every redraw, so one oversized
+-- file in the directory is paid for three times over: a 168 MB one took the
+-- server to 14 GB and froze it (B40). A program a person edits is kilobytes, and
+-- a saved one cannot exceed 640 kB anyway - that is the engine's own ceiling on
+-- a formspec submission, from 5.7 onwards.
+codeblock.config.max_file_kb = number('max_file_kb', 128)
+
 codeblock.config.auth_levels = {1, 2, 3, 4}
 
 -- The codelevel a player gets on first join. Level 4 is right for singleplayer,
