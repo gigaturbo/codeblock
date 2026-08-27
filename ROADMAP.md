@@ -11,7 +11,7 @@ Findings and their reasoning are in `AUDIT.md`. Manual checks are in
 `PLAYTEST.md`. Intentions not yet planned are in `TODO.md`.
 
 Numbering, so a commit message always resolves: phases are `Phase 0`–`Phase 8`,
-features are `F1`–`F6`, and finding ids are `B`/`S`/`C`/`A`. **Nothing is ever
+features are `F1`–`F7`, and finding ids are `B`/`S`/`C`/`A`. **Nothing is ever
 renumbered.**
 
 Target is **v1.0.0** — a correct sandbox, no unmaintained dependencies,
@@ -20,20 +20,54 @@ because several changes break saved player programs.
 
 ## Now
 
-**Play the five outstanding in-world checks.** Everything is pushed and CI is
-green at `b8b30e3` (run 25 — the first to run `gen_locale.lua --check`), so
-nothing is outstanding against code and the whole backlog is *checking*: `D2`
-both cases, `D4` case 2 and `F-2` in French are the three fixes in `b5d2e40`
-that no machine can verify; `D3` part 2 is the only route to `B29`'s serial
-window; `F-3` case 1 now has a procedure. Then the pacing group, which is the
-behaviour `F4` exists to display.
+**Fix `B41`, then push and let CI see the two fixes.** The playtest run of
+2026-08-27 at `246bb37` closed the backlog of *checking* and opened one of
+*fixing*: it took the drone, filesystem, pacing and per-feature groups, confirmed
+`B29`, `B38`, `B39`, `C17`, `F1` and `F3` in a running world — everything this
+range had committed but unproven — and found three defects no reading had. **Two
+are now fixed, committed and confirmed in a world**; `B41` is the third.
+
+- **`B41` · low** — cancelling the file chooser leaves a drone nametagged
+  `?.lua` that cannot run. `Drone.new` runs before the chooser is shown and
+  `cancel` only closes the form; ESC lands in the same state. Then re-run `D5`.
+- **`B40` · high · `62cf464`, confirmed by `F-4` and `F-3` case 1** — `read_file`
+  read a file whole with no bound and the editor sent it to the client; a 168 MB
+  file took Luanti to ~14 GB and froze it. It now reads one byte past the ceiling
+  and refuses the file by name, and `write_file` refuses at the same size so the
+  editor cannot save what it would then decline to open. The ceiling is a new
+  setting, `codeblock_max_file_kb`, **128 kB** by default. Its open question is
+  answered too: the engine drops a formspec submission whose fields total 640 kB,
+  from **5.7.0** on and not before, so a modified client's route in is real,
+  bounded, and now closed on this side as well.
+- **`B42` · medium · `febf16f`, confirmed by `P3`** — `lib/shapes.lua` sliced
+  along z only, so a shape long in x asked for more mapblocks than the whole
+  ceiling and the run *died* where the ceiling exists to make it *wait*:
+  `cube(2, 2, 30000)` at codelevel 1 worked facing north and failed facing east.
+  Slabs now follow the longest axis, and the fillers clip on all three rather
+  than on z alone — which the finding had assumed they already did. The same run
+  **measured the throttle for the first time**: 93 s for that shape, against the
+  ≈ 80 s the ceiling over the unload window predicts. `S5` had claimed that
+  behaviour from reading since Phase 5.
+
+Four checks have still never been run: `W2`, `W3`, `R1` and `R2` — and `R1`/`R2`
+are the release-archive pair nobody has ever done. `D2` case 2 is the one that was
+aimed at and missed, and it carries a recipe now; `F-3` case 1 was the other, and
+it **passed on 2026-08-28** — reachable at last because an oversized file is
+refused before the bytecode branch, which also confirmed `B7` a phase after it was
+fixed.
+
+One thing came out of `P3` that nothing explains: **when the shape becomes
+visible depends on which way the drone faces**, and at codelevel 1 it did not
+appear at all until the drone was stopped. Both orientations complete, so this is
+not `B42` returning. It is not a deferred write either — every pass calls
+`write_to_map` and nothing here touches the map when a drone stops. Either it is
+what the client drew, or `across` really is 1 one way and 2 the other, which
+doubles the work; **the duration on the completion line tells them apart**, and
+`P3` now says so. No id until that number is in.
 
 One thing wants an answer rather than an action: **`C18`**, the five sky
 overrides forced on every joining player. Recommended: one setting, defaulting
 off. It blocks nothing but should not reach v1.0.0 undecided.
-
-`E12` is not on that list: it wants the file's size or mtime read from **outside**
-the game, and reading the code is exhausted.
 
 ## Milestones
 
@@ -69,14 +103,15 @@ holds the reasoning.
 
 "Done" through Phase 7 means the findings are closed and the gates green, **not**
 that the editor and drone paths were exercised by hand. Phase 8's playtests have
-since found five defects in code earlier phases called done (B36–B39, C17) plus
-one open finding (C18).
+since found **eight** defects in code earlier phases called done (B36–B42, C17)
+plus one open finding (C18) — the newest three were the largest of them, and
+`B40` and `B42` are now fixed.
 
-### 8 · Features — in progress (3/6 shipped · 8 findings closed, 1 open)
+### 8 · Features — in progress (3/7 shipped · 10 findings closed, 2 open)
 
 The last phase before v1.0.0 and the only one that adds rather than repairs.
-Ordered easiest to hardest, one at a time. `F4` and `F5` want the pacing group
-played first, because both build on paths no spec reaches.
+Ordered easiest to hardest, one at a time. **The pacing group has now been
+played**, which is what `F4` and `F5` were waiting on — and it produced `B42`.
 
 Shipped, gates green, pushed and CI-green at `b8b30e3`:
 
@@ -88,15 +123,21 @@ Shipped, gates green, pushed and CI-green at `b8b30e3`:
 
 Left in the phase:
 
-- Run `D2` (both cases), `D4` case 2 and `F-2` in French. (B38, B39, C17)
-- Run `D3` part 2 — remove a running drone with the setter and place another at
-  once — and `F-3` case 1. (B29, B7)
-- Run `F1`'s two checks and `F3`'s `sleep` check. (F1, F3)
-- Run the pacing group before starting `F4`. (S5, A5)
+- Fix `B41`, the cancelled chooser leaving a dead drone. Then re-run `D5`. The
+  last of the three the playtests found.
+- Push `62cf464` and `febf16f` and let CI see them; it is green at `b8b30e3` and
+  has not run since.
+- Read `P3`'s duration off the completion line in both orientations — the one
+  thing that run left open. (no finding)
+- Run `D2` case 2, which now has a recipe, and `F-3` case 2, the unreadable file —
+  the last thing in the filesystem group nothing has exercised. (B10, B15)
+- Run `W2`, `W3`, `R1` and `R2` — the four that have never been run at all.
+  `R1`/`R2` belong to the release check.
 - Decide `C18`, the five sky overrides. **Open, the author's call.**
 - Decide whether `settingtypes.txt` gets a generator and a `--check`, as
   `doc/api.md` and `locale/template.txt` have. Open question. (C7, C17)
-- Settle `E12` from outside the game; reading is exhausted. (no finding)
+- Build `F7`, a marker on unsaved tabs — small, and what `E12`'s three fails
+  were really about. (F7)
 - Build `F4`, the live drone panel.
 - Build `F5`, changing a codelevel mid-run.
 - `F6`, Blockly — planned, **out of 1.0.0**, first item after it.
@@ -356,6 +397,47 @@ Why it is last, and what would have to be true first:
   *where do the assets live and who allows the HTTP call*, before any code. None of
   v1.0.0's goals depend on it.
 
+### F7 · small · planned — show which tabs are unsaved
+
+Mark a tab whose buffer differs from what is on disk, so a player can see the
+editor is holding an edit they have not saved. Nothing shows it today.
+
+**Why it exists.** `E12` failed three times and was traced twice for a write that
+was never happening. What the player was seeing each time was the unsaved edit
+surviving a tab switch — correct, and what any tabbed editor does — and then
+vanishing on ESC, which is also correct with *Save on tab switch* unticked. The
+sequence is only surprising because nothing in the form says the buffer is dirty.
+Reported as *"not really a bug but more something not expected in the user
+experience"* (2026-08-27).
+
+**The alternative was rejected, and stays rejected.** Resetting the text area to
+the file's content on a tab switch would make the state visible by throwing the
+player's typing away. That is exactly `B35`: gating the in-memory capture on
+`meta.sos` alongside the write lost the edit outright, and the comment on that
+branch in `lib/formspecs.lua` says so. **Do not gate the capture again.** Warning
+before a discard is a fair follow-up, but a marker makes the warning optional
+rather than necessary, which is why it comes first.
+
+**Constraints.**
+
+- **The marker is render-only.** `meta.tabs[i]` holds the filename `write_file`,
+  `read_file` and `remove_file` are handed; a `*` appended there would create a
+  file named `foo.lua*`. Decorate the label as the `tabheader` is built and
+  nowhere else. `fields.tabs` is an index, so no branch reads the label back.
+- **Where the flag is set is already decided by `B35`.** `fields.content` is
+  captured once, before the branch chain, and that is where a buffer becomes
+  dirty. `save_active` and `create_file` are where it becomes clean. `copy_active`
+  writes a *different* file, so it clears nothing on the source tab.
+- **A flag, not a comparison, unless the pristine text is kept.** Keeping a second
+  copy of every open file to diff against doubles the editor's memory for a
+  cosmetic mark; a set-on-edit flag costs one boolean per tab and is wrong only in
+  the harmless direction (typing a character and undoing it leaves the tab
+  marked). Pick one deliberately.
+- No API name, no new limit, no codelevel change. `forms_spec` can cover the flag
+  transitions through the handler; **the drawing cannot be spec'd**, so this needs
+  a `PLAYTEST.md` entry beside `E12` — and `E12` itself is unaffected, since the
+  behaviour it checks does not change.
+
 ## Other decisions worth not re-litigating
 
 - **Batching `place()` into `core.bulk_set_node`** — not for 1.0.0. 1.3x against
@@ -398,11 +480,21 @@ Why it is last, and what would have to be true first:
   checkboxes; the ticked default reaches new players only. (B36)
 - `save_on_exit` is read, written and acted on nowhere: the checkbox stays
   commented out.
-- Most of what needs a running world is unverified — pacing, slabs, the footprint
-  throttle, `sleep`, `C16`'s install guard. 22 of 34 `PLAYTEST.md` checks carry a
-  result.
-- `E12` is unexplained: **Save on tab switch** off is reported to write anyway, in
-  three runs, and no write has been found by reading. No finding id.
+- A file over `max_file_kb` — 128 kB by default — cannot be opened or saved at
+  all: the refusal names the file and the size, and there is no way to raise the
+  ceiling from inside the game. That is the price of not reading it whole. (B40)
+- A shape large in **two** dimensions still asks for more mapblocks than the
+  footprint ceiling in a single pass, and the run dies instead of waiting. Only
+  one axis can be sliced away, so the fix for a shape long in one dimension does
+  not reach this. (B42)
+- Cancelling the drone's file chooser leaves a drone that cannot run. **Open.**
+  (B41)
+- Nothing marks a tab whose buffer is unsaved, so an edit surviving a tab switch
+  and then vanishing on ESC reads as a lost save. It is not one — `E12` passed at
+  `246bb37`. (F7)
+- `C16`'s install guard and the archive checks are unrun. 32 of 36 `PLAYTEST.md`
+  checks carry a result — 29 pass, 2 partial, 1 fail. The footprint throttle left
+  this list on 2026-08-28, having been on it since Phase 5: `P3` measured it.
 - `settingtypes.txt` mirrors `lib/config.lua` by hand and nothing checks it — the
   third such mirror, and the only one without a `--check`. (C7, C17)
 - Joining forces permanent daylight and hides the sun, moon, stars and clouds,
@@ -429,8 +521,10 @@ Why it is last, and what would have to be true first:
 
 ---
 
-2026-08-27 · codeblock `b8b30e3` (master), pushed · CI green, run 25, all three
-jobs. Local gates green at `b5d2e40`, engine 5.17.0, reported by the author and
+2026-08-28 · codeblock `febf16f` (master), **not pushed** · CI green at
+`b8b30e3`, run 25, all three jobs, and it has not seen `62cf464` or `febf16f`;
+every local gate is green over both.
+Local gates green at `b5d2e40`, engine 5.17.0, reported by the author and
 read from output rather than exit codes: luacheck silent, `doc/api.md` and
 `locale/template.txt` up to date, nine in-engine specs **374 passed, 0 failed, 1
 xfail, 0 xpass**, six standalone specs green under plain Lua 5.1.

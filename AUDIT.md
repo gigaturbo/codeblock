@@ -25,20 +25,32 @@ nothing dropped.
 
 ## Where it stands
 
-66 findings, this project's own. **64 resolved, 1 open (`C18`), 1 won't fix
-(`B34`).** All of it is pushed and CI is green at `b8b30e3` (run 25, all three
-jobs, and the first run to include `gen_locale.lua --check`).
+69 findings, this project's own. **66 resolved, 2 open (`B41`, `C18`), 1 won't
+fix (`B34`).** CI is green at `b8b30e3` (run 25, all three jobs, and the first
+run to include `gen_locale.lua --check`). `B40` and `B42` are committed on top of
+it, `62cf464` and `febf16f`, with every local gate green and both confirmed in a
+running world; CI has not seen them yet.
 
 | Category | Count | Open |
 |---|---|---|
-| B bugs | 36 | — (B34 won't fix) |
+| B bugs | 39 | B41 (B34 won't fix) |
 | S sandbox and security | 6 | — |
 | C compliance and packaging | 12 | C18 |
 | A architecture and performance | 12 | — |
 
-What is left is **checking, not fixing**: 22 of 34 `PLAYTEST.md` checks carry a
-result — 16 pass, 3 partial, 3 fail — and three of this range's fixes (`B38`,
-`B39`, `C17`) are committed and CI-green but unproven in a running world.
+**Two of the three defects the playtests found are already closed.** The run of
+2026-08-27 at `246bb37` took the drone, filesystem, pacing and per-feature groups
+and found three things no reading had: an unbounded file read (`B40`, high), a
+shape wider than the footprint ceiling raising instead of throttling (`B42`,
+medium), and a cancelled file chooser leaving an unusable drone (`B41`, low).
+`B40` and `B42` were fixed on 2026-08-28 and **both are confirmed in a running
+world** — `F-4`, `F-3` case 1 and `P3`. That range of runs also confirmed `B29`,
+`B38`, `B39`, `C17` and, a phase late, `B7`.
+
+**`S5`'s throttle measurement was made at the same time**, the one claim in this
+file that had been read from the code and never seen: `P3` at `febf16f`.
+
+32 of 36 `PLAYTEST.md` checks carry a result — 29 pass, 2 partial, 1 fail.
 
 ---
 
@@ -92,6 +104,30 @@ operator objects to. **Read from the source only** — that a joining player los
 the cycle is inference, and there is no playtest check for it. One should be added
 to the drone or release group when the decision is taken.
 
+### B41 · low · open — cancelling the file chooser leaves a drone that cannot run
+
+Place the poser with no `codeblock:last_file` stored, and `Drone.on_place`
+returns true so `lib/register.lua` shows the chooser — but the drone has already
+been created by `Drone.new` above that return. `file_chooser.on_close`'s `cancel`
+calls `close_form` and nothing else, so the player who declines to pick a file
+gets a drone anyway: it stands in the world with the nametag `[<player>] ?.lua`
+(`lib/drone.lua`, the `self.file or '?.lua'` fallback) and answers *"Not a valid
+file"* on every use. Closing the chooser with **ESC** lands in the same state —
+that path sends no field any branch claims.
+
+Low: recoverable without help, because placing again is not refused (`drone.cor`
+is nil, so the busy check passes) and picking a file then works. It is a wrong
+state rather than a lost one.
+
+The fix is one of two, and they are not equivalent. **Remove the drone when no
+file was chosen** — `show_file_chooser` has exactly one call site, reached only
+when the drone has no file, so `Drone.remove(name)` on cancel is safe today and
+the ESC path needs the same treatment, which means handling `fields.quit` rather
+than only `fields.cancel`. Or **do not create the drone until a file is picked**,
+which is the tidier shape and a larger change: `Drone.new` currently establishes
+the position and facing that the chooser's answer is applied to, so deferring it
+means carrying those to the callback.
+
 ### B34 · low · won't fix — a file cannot be removed without opening it first
 
 `lib/formspecs.lua`, the `meta.active ~= 0` block. All four file buttons — *Save*,
@@ -120,7 +156,8 @@ delete should confirm is a separate question.
 
 ## B · Bugs
 
-36 findings, 35 resolved, `B34` won't fix. `B19`, `B20` and `B24` are the game's.
+39 findings, 37 resolved, `B41` open (above), `B34` won't fix.
+`B19`, `B20` and `B24` are the game's.
 
 - **B1 · critical · resolved** — comment stripping deleted the code between two
   block comments. `lib/sandbox.lua`, pre-Phase 2. Fixed in Phase 2 with B2–B4:
@@ -159,8 +196,10 @@ delete should confirm is a separate question.
   silently built stone. Fixed in Phase 2: clamps to the end colours.
 - **B7 · medium · resolved** — a file-read error printed a file handle instead of
   the filename. `lib/filesystem.lua`. Fixed in Phase 7, `37c416e`, once rather
-  than twice because `A9` collapsed the duplicated read path first. Committed, not
-  verified: no spec reaches `read_file` (playtest `F-3`).
+  than twice because `A9` collapsed the duplicated read path first. No spec
+  reaches `read_file`, so this waited on playtest `F-3` — which **passed case 1
+  on 2026-08-28**, a phase after the fix and only once `B40`'s size bound stopped
+  standing in front of the branch. Confirmed in a running world.
 - **B8 · high · resolved** — `/codegenerate` had no privilege check and overwrote
   the caller's files. Fixed in Phase 1: your own files need no privilege,
   another player's needs `codeblock`, the parsed name is used and existing files
@@ -318,7 +357,10 @@ delete should confirm is a separate question.
   ordering.** Three record-level assertions in `integration_spec` pin it, the
   third wrapped in `pcall` because without the guard it walks into the
   replacement's budget and raises. Anything new that reads a drone by name from a
-  callback — `F4`'s panel — is subject to this.
+  callback — `F4`'s panel — is subject to this. **Confirmed in a running world at
+  `246bb37`**, playtest `D3` part 2: a drone removed with the setter mid-run and
+  replaced in the same second announced its statistics once and the replacement
+  survived and ran. That was the last thing this finding rested on reading alone.
 - **B30 · low · resolved** — `on_lost` reported the end of a program that was
   never running. A regression from `A11`: making `Drone.finish` the single
   announcement point did not add a test for whether there was an outcome, so an
@@ -465,7 +507,9 @@ delete should confirm is a separate question.
   `drone_on_place(name, nil)`, so there is one refusal path and not two, and the
   `if not pos` check moved above the busy check — with no node it is the aim that
   failed, and whether a drone happens to be running is not what the player got
-  wrong. `D2` was rewritten into its two cases and awaits a re-run.
+  wrong. `D2` was rewritten into its two cases; **case 1 passed at `246bb37`**, so
+  this is confirmed in a running world. Case 2 — `B10`'s refusal — is still
+  unreached, and `D2` now carries a recipe for it.
   **Keep — the callback you did not expect.** `B37`'s class of fact in a different
   file, with one difference: `lua_api.md` **does** document this one —
   `on_secondary_use` runs "when the item is used without pointing at a node". So
@@ -497,8 +541,96 @@ delete should confirm is a separate question.
   tools and no explanation has no way into the mod at all.
   Severity high: irreversible loss of player data, in a world the player already
   cared about, triggered by the ordinary act of installing the mod. **The most
-  damaging defect this project has recorded against committed code.** `D4` case 2
-  awaits a re-run.
+  damaging defect this project has recorded against committed code.** **`D4` case 2
+  passed at `246bb37`** — the tools are added after the player's own items and
+  nothing is removed — so this is confirmed fixed in a running world.
+- **B40 · high · resolved** — a player's file was read whole, with no bound, and
+  then sent to the client. `lib/filesystem.lua` `read_file`. From playtest `F-3`:
+  a 168 MB file renamed `test.lua` and dropped in
+  `<worldpath>/codeblock_files/<playername>/` took **Luanti to about 14 GB
+  resident**, froze the game on exit, and froze it again the next time the editor
+  was opened. `read('*a')` was only the first of three multipliers — the content
+  was then **cached on the record** for the rest of the session, and the editor
+  escaped it into a `textarea` and pushed it down the connection on every redraw.
+  The bytecode refusal did not help: `content:byte(1) == 27` is checked *after*
+  the read, so the cheap refusal paid for the expensive one first. Fixed
+  2026-08-28 by reading `max_file_kb * 1024 + 1` bytes and refusing the file by
+  name when it comes back longer, with the same ceiling applied in `write_file`
+  so the editor cannot save a file it will then decline to open. The ceiling is
+  128 kB by default and settable as `codeblock_max_file_kb`. All nine specs,
+  luacheck and both `--check` gates are green over it.
+  **Keep — the bound belongs in `read_file`, not in the editor.** Every caller —
+  the editor, `Drone.set_file`, the sandbox — is bounded by construction there,
+  and a limit in the editor alone would have left the run path open.
+  `max_string_mb` is **not** this bound: it is per codelevel and covers strings a
+  running program builds through `lib/strguard.lua`, and a file is read long
+  before any of that exists.
+  **Keep — `read(n)` answers nil at end of file**, not `""`. A file created and
+  not yet written is exactly that, and a new program in the editor is exactly
+  that, so the read is `or ''`. Confirmed under Lua 5.1 rather than assumed.
+  **Keep — what the engine caps and from which version, read from its source.**
+  `pkt_read_formspec_fields` in `src/network/serverpackethandler.cpp` sums every
+  field name and value in one submission and **drops the whole submission** once
+  the total reaches 640 kB — *"640K ought to be enough for anyone"*. That check
+  arrives in **5.7.0**; it is absent in 5.6.0, and `mod.conf` declares
+  `min_minetest_version = 5.4`, where one field is bounded only by
+  `LONG_STRING_MAX_LEN`, 64 MB. So a modified client's route into `write_file` is
+  real but bounded, and on an old engine bounded at 64 MB — which is what the
+  write ceiling closes. This answers the question the finding was filed with, and
+  it is why this stays a `B` and is not also an `S`.
+  **Keep — the sandbox reports `read_file`'s own message now.** It discarded the
+  second return and said *"@1 not found."* for every refusal, so a file refused
+  for its size would have run as missing. `read_file`'s messages are whole
+  sentences naming the real reason, which is why they stand in rather than being
+  prefixed.
+  **`F-4` passed at this code on 2026-08-28**, so this is confirmed fixed in a
+  running world: the file that took the server to 14 GB is refused instead of
+  read. `F-3` case 1 — a real precompiled chunk — passed the same day, reachable
+  for the first time because a 168 MB file no longer gets there first, and that
+  run confirmed `B7` as well.
+- **B42 · medium · resolved** — a shape wider than the footprint ceiling raised
+  instead of throttling, and which way the drone faced decided it.
+  `lib/shapes.lua` `build`. From playtest `P3`: `cube(2, 2, 30000)` at codelevel
+  1. Slabs were cut along **z** whatever the shape, so `across` — the slab's
+  cross-section, the part no slicing reduces — was the shape's whole x-y extent.
+  `drone_place_cube` swaps `w` and `l` at angles 1 and 3, so facing east or west
+  the shape ran 30000 nodes along x: about 1877 mapblocks against codelevel 1's
+  ceiling of 512 (8 MB × 64), `limits.hold` returning nil — the case its own
+  comment says a slicing caller never reaches — and `lib/cost.lua` raising
+  *"Maximum map footprint exceeded"* on the first slab. Facing north the same
+  call completed. **A program that worked and a program that died differed only
+  by where the player was looking when they placed the drone.** A sphere or dome
+  of radius over about 180 had the same problem at codelevel 1 with no
+  orientation to escape by. Medium rather than high because the failure is clean
+  — `charge` runs *before* the pass, so nothing is written and no half-built
+  shape is left — and the message names the real ceiling; but it is the low
+  codelevels that hit it, which is the beginner. Fixed 2026-08-28: slabs follow
+  the axis with the largest span, `across` is the other two, and the same call is
+  now 16 mapblocks a slab whichever way it faces.
+  **Keep — the fillers clip on all three axes now, and that was the actual work.**
+  This finding was filed saying every filler already clips itself to the area it
+  is handed, so slicing along x or y is correct as it stands. **That was wrong.**
+  All three clipped along *z* only and relied on the area always covering the
+  full x and y extent; slicing along another axis without changing them would
+  have written outside the slab. Do not re-narrow those clips to one axis.
+  **Keep — ties go to z on purpose.** z is the outermost loop of every filler, so
+  a z slab stays one contiguous run of the data array. The tie-break leaves a
+  shape no longer in one axis than another sliced exactly where it was.
+  **Keep — what this does not fix.** A shape large in *two* dimensions still asks
+  for more than one pass should cost, because only one axis can be sliced away.
+  The honest answers there are a message naming the codelevel, or slicing in two
+  axes. Neither is done.
+  Covered by a spec, which the shape module's slicing had only in the z case:
+  `tests/shapes_spec.lua` builds a 400×2×2 cube and asserts the worst slab is 16
+  mapblocks, not 26. It was run against the pre-fix module and fails there, so
+  the case is known not to be vacuous. **`P3` passed at `febf16f` on 2026-08-28**
+  — the call that died facing east completed in 93 s — so this is confirmed in a
+  running world, and the same run finally made `S5`'s throttle measurement.
+  One thing from those runs is unexplained and is **not** attributed here: when
+  the shape becomes visible depends on the drone's facing, and at codelevel 1 it
+  did not appear until the drone was stopped. Both orientations complete, so it is
+  not this finding returning. See `P3`, which carries the measurement that would
+  settle whether it is the client or a boundary straddle doubling the work.
 
 ---
 
@@ -570,9 +702,21 @@ and `S2`'s residue is one of the things v1.0.0 ships broken.
   program, because the engine frees idle mapblocks by itself. 128 MB over 29 s is
   ~280 loads/s against the ~1700/s available. The memo is per-resume, not per-run
   — see `B25`.
-  Still unmeasured: the throttle's live behaviour under a program that exceeds the
-  ceiling (playtest `P3`), and the decay is an estimate by construction, since the
-  exact figure needs a timestamp per block ever touched. The live measurement is
+  **Measured at last, `P3` at `febf16f`, 2026-08-28.** The throttle's live
+  behaviour under a program that genuinely exceeds the ceiling was the one claim
+  here made from reading alone, and `P3` reached it only after `B42`: a
+  `cube(2, 2, 30000)` at codelevel 1 **waited and completed, in 93 s**, against a
+  predicted ≈ 80 s — 512 mapblocks of ceiling over the engine's 29 s window is
+  17.7 blocks a second, and the shape emerges about 1877 of them with the first
+  512 free. Consistent, and the gap is in the direction the estimate is coarse.
+  The decay stays an estimate by construction, since the exact figure needs a
+  timestamp per block ever touched.
+  The sentence above, *"over it, `limits.hold` returns how long to wait and
+  `use_map` sleeps the drone rather than killing the program"*, holds only while
+  every request is smaller than the whole ceiling. `B42`'s fix makes
+  `lib/shapes.lua` keep to that for a shape long in one dimension; one large in
+  two dimensions still exceeds it.
+  The live measurement is
   playtest `W1`, attributed to `43e95a8` with the engine version never written
   down, and **flagged for re-running before v1.0.0** because it predates the
   Phase 6 and Phase 7 rewrites of `lib/cost.lua`.
@@ -728,8 +872,9 @@ and `S2`'s residue is one of the things v1.0.0 ships broken.
   25 at `b8b30e3` — the first run to include it. Verified by comparing the files:
   template and `codeblock.fr.tr` hold **56 keys each, sets identical**, and every
   removed key was grepped against `lib/` and `init.lua` and none is still sent
-  (`forward` survives only as an API name, never inside `S()`). Not verified: that
-  a French client now shows the line — playtest `F-2`'s re-run.
+  (`forward` survives only as an API name, never inside `S()`). **`F-2` passed in
+  French at `246bb37`** — "everything in french" — so the client half is now
+  observed too.
   **Keep — two rules for a translatable string.** *Never build a key with `..`* —
   a computed key cannot be extracted, cannot be translated, and nothing reports
   it. *Never edit a key in the source alone* — a trailing space, a plural or a
@@ -929,33 +1074,62 @@ CI never runs the nine in-engine specs.
 than exit codes — `$?` does not survive this machine's WSL layer): nine in-engine
 specs 374 passed / 0 failed / 1 xfail / 0 xpass.
 
-**Verified in a running world** (2026-08-27, engine 5.17.0): `E1`–`E7` at
+**Verified in a running world** (2026-08-27 and 2026-08-28, engine 5.17.0):
+`F-4` and `F-3` case 1 on 2026-08-28, confirming `B40` and — a phase late,
+because `B40` stood in front of the branch — `B7`; and `P3` at `febf16f` the same
+day, confirming `B42` and making `S5`'s throttle measurement. Before that:
+`E1`–`E7` at
 `3293a2c`+F1, `E8`, `E9`, `E13` at `dee0bc7`, `E10`, `E11`, `E14`, `E15`, `D1`,
-`D3` part 1, `F-1` at `f274245`, and `W1` at `43e95a8` (due a re-run). Between
-them they confirm `A9`, `B13`, `B17`, `B33` on all three of its losing paths,
-`B5`, `B22`, `A2`, `B35`'s panel buttons, `B36`, `B37`, `B10`/`A11`'s happy path,
-`F2` and `S5`'s measurements.
+`D3` part 1, `F-1` at `f274245`, `E12`, `D2` case 1, `D3` part 2, `D4` both cases,
+`F-2`, `P1`, `P2`, `P4` and all three per-feature checks at `246bb37`, and `W1` at
+`43e95a8` (due a re-run). Between them they confirm `A9`, `B13`, `B17`, `B33` on
+all three of its losing paths, `B5`, `B22`, `A2`, `B35`, `B36`, `B37`,
+`B10`/`A11`'s happy path, `F2` and `S5`'s measurements — and, new at `246bb37`,
+**`B29`'s serial guard, `B38`, `B39`, `C17`, `F1` and `F3`**.
 
-**Verified by reading a diff or the source:** `B38` and `B39` in `b5d2e40`, with
-`set_tools` re-read in the current tree; `C17`'s key sets compared file to file;
-`C18`'s five overrides still present at `lib/register.lua:217`.
+**Verified by reading a diff or the source:** `C18`'s five overrides still present
+at `lib/register.lua:217`; `B41`'s ESC half, which was reasoned from the field
+table rather than clicked.
 
-**Committed, CI-green, unproven in a world:** `B38`, `B39` and `C17` — playtest
-`D2` (both cases), `D4` case 2, and `F-2` with the game in French. Also `B7`,
-`B10`, `B14` and `C16`'s install guard, and `B14` cannot be proven from the editor
-at all while `B34` stands.
+**Verified by reading the engine's own source** (2026-08-28, `luanti-org/luanti`
+at tags 5.6.0, 5.7.0, 5.8.0, 5.9.0 and 5.17.0): a formspec submission is dropped
+whole once its field names and values total 640 kB, and that check exists from
+**5.7.0** and not before. `B40`'s reachability question, open when it was filed,
+is answered there.
 
-**Not verified anywhere:** pacing, slab progression, the footprint throttle,
-`sleep` in a world, `A4`'s mapgen-overwrite question, and `C18`'s player-visible
-half.
+**Committed here, not yet seen by CI:** `B40` at `62cf464` and `B42` at
+`febf16f`. All nine specs, luacheck, `gen_docs.lua --check` and
+`gen_locale.lua --check` are green over both on this machine, and `B42` gained a
+spec case that was run against the pre-fix module and fails there. Both are
+confirmed in a running world.
 
-**Not reproduced, three attempts:** `E12`'s symptom. No finding id, and reading is
-declared exhausted.
+**Committed, CI-green, unproven in a world:** `B14`, which cannot be proven from
+the editor at all while `B34` stands. `C16`'s install guard, which needs a real
+archive (`R1`, `R2`). `B7` left this list on 2026-08-28.
+
+**Not verified anywhere:** `A4`'s mapgen-overwrite question, and `C18`'s
+player-visible half. The footprint throttle *doing its throttling* left this list
+on 2026-08-28, having been on it since Phase 5.
+
+**Observed and unexplained:** when a shape becomes visible depends on which way
+the drone faces, `P3` at `febf16f`, and at codelevel 1 it did not appear until
+the drone was stopped. Both orientations complete, so it is not `B42` returning,
+and it is not a deferred write — nothing here touches the map when a drone stops.
+No id: either it is what the client drew, or `across` differs by a boundary
+straddle and the work really is twice as much one way. The duration on the
+completion line tells them apart; `P3` carries the procedure.
+
+**Reported, then disproved:** `E12`'s symptom, three fails and two traces. Settled
+as a pass at `246bb37`: no write was happening, and the surprise was an unmarked
+dirty buffer, now `ROADMAP.md`'s `F7`. No finding id was ever allocated, correctly.
 
 **Claimed only:** nothing.
 
 ## Corrections kept rather than edited away
 
+- `B42` was filed saying every filler in `lib/shapes.lua` already clipped itself
+  to the area it was handed, so slicing along another axis would be correct as it
+  stood. All three clipped along **z** only. The fix had to widen them first.
 - `A11`'s resolution once said `lib/drone_entity.lua` is 55 lines; it is 67 — the
   figure predated `B29`'s serial parsing.
 - `C7`'s resolution once said every settings read is guarded with
@@ -978,7 +1152,8 @@ declared exhausted.
 
 ---
 
-2026-08-27 · describes codeblock `b8b30e3` (master), **pushed**, CI green (run
-25). Restructured at this revision: this file is new and holds the findings that
+2026-08-28 · describes codeblock `febf16f` (master), **not pushed** — CI is green
+at `b8b30e3`, run 25, and has not seen `62cf464` or `febf16f`. Restructured at
+`b8b30e3`: this file is new and holds the findings that
 were in `.reports/audit.old.html`, which also held the roadmap and the `F` series
 — those are now in `ROADMAP.md`. Nothing renumbered, nothing dropped.

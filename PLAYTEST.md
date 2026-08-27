@@ -74,6 +74,21 @@ The same run took the **Drone** and **Filesystem** sections for the first time a
 found two real defects there, **B38** and **B39**; both are fixed at the commit
 this paragraph was added in.
 
+**Fifth run, 2026-08-27, at `246bb37`**, engine Luanti 5.17.0 — **E12** at last,
+and it is a **pass**. The player ran it as written and reported the sequence
+whole: edit A, switch to B, switch back to A — the edit is still in the text area
+— then ESC, reopen, and *the edit is gone*. That last half is the observation the
+three earlier runs never made, and it settles claim 1 by itself: had the tab
+switch written, reopening would show the edit. Nothing was written. No finding is
+allocated, and the editor section is now complete.
+
+What the three fails were is claim 2 read as a save — the edit surviving a switch
+**in memory**. The player's own reading: *"not really a bug but something not
+expected in the user experience"*. Agreed and decided (2026-08-27): the retention
+stays, because discarding a player's typing on a tab switch is the loss B35 was
+filed for, and what is actually missing is any sign that a tab is unsaved. That
+is `F7`.
+
 ### E1 · Open, save and close a program [A9, B13, B17]
 
 Open the editor, open a file, type, save, close with the Save button, reopen.
@@ -290,10 +305,13 @@ back to A — and then leave the editor **with ESC only**. Reopen it and reopen 
    to disk and `lib/formspecs.lua` calls it from exactly three places —
    `save_active`, `create_file`, `copy_active` — and the tab-switch branch's call
    is gated on `meta.sos`.
-2. **The weak one:** the edit to A is still in the text area when you switch back,
-   whether or not it reached disk. The option gates only `save_active()`; it used
-   to gate the in-memory capture as well, so switching tabs with it off lost the
-   edit outright.
+2. **The weak one, and the one that reads as a failure:** the edit to A is still
+   in the text area when you switch back, whether or not it reached disk. The
+   option gates only `save_active()`; it used to gate the in-memory capture as
+   well, so switching tabs with it off lost the edit outright. **That retention
+   is intended and stays** — an unsaved tab holds its edit, as any tabbed editor
+   does. Three runs of this check called it a save, so read it as what it is: a
+   dirty buffer with no sign that it is dirty, which is `F7`'s job.
 
 **Leave by ESC and nothing else.** *Load and close* and *Save* both call
 `save_active()` unconditionally and by design, so the file reaches disk however
@@ -344,6 +362,12 @@ observed is not a write. The check above now asks for the one observation that
 tells those apart — the file's size or timestamp, read outside the game. Reading
 has now failed twice to settle this; the next step is evidence, not a third
 reading.
+
+Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — edit A, switch to B,
+switch back to A (the edit is there), ESC, reopen: **the edit is gone**. Reopening
+is the read this check wanted and it is decisive — a tab switch that had written
+would show the edit back. The three earlier fails were claim 2, the in-memory
+retention, reported as a save. Retention kept by decision; `F7` makes it visible.
 
 ### E13 · **Create a copy** [F2]
 
@@ -423,6 +447,12 @@ world since it was written: **B38** (aiming at nothing is silently ignored,
 because the engine calls a different callback than `on_place`) and **B39** (the
 first join after installing the mod wipes the inventory).
 
+**Second run, 2026-08-27, at `246bb37`** — B38 and B39 both confirmed fixed in a
+world, D3 complete at last, and the group is a pass but for D2's second case,
+which was aimed at and missed. It also turned up a defect no check was looking
+for: cancelling the file chooser leaves a drone that cannot run, now **B41** and
+**D5**.
+
 ### D1 · Place a drone and run a program [B10, A11]
 
 Point at loaded ground with the setter, place a drone, pick a file, watch it run
@@ -460,6 +490,23 @@ far away, I think I never implemented this". Correct: case 1 had no
 implementation at all. **B38**, fixed at the commit this line was added in.
 Re-run both cases.
 
+Result: partial — `246bb37` · engine 5.17.0 · 2026-08-27 — "hard to tell, the sky
+part works". **Case 1 passes and B38 is confirmed fixed in a world.** Case 2 was
+attempted with view distance set to 30 and was *not* reached: the drone placed
+and then took a moment to appear, which is the client drawing an entity in a
+mapblock it has not received yet — the server placed it, so this is the success
+path, not `add_entity` returning nil.
+
+**A recipe for case 2, since aiming far away is not it.** Lowering the *client's*
+view distance shows the client less, and this case needs the client to show
+*more* than the server holds. Set `server_unload_unused_data_timeout = 5` in
+`minetest.conf` and keep `active_block_range` small, stand still while an area you
+already have the mesh for falls outside it, wait past the timeout, and place at a
+node you can still see. **Pass:** *"Cannot place the drone there, move closer"*
+and no record created. This is the only route to B10's message and so to the
+`add_entity`-returns-nil path; case 1 gives *"Please target a node"* and is a
+different branch.
+
 ### D3 · Replace a drone under the same name [B29, B30]
 
 Two things, and the first is not what this check used to say.
@@ -472,11 +519,15 @@ Two things, and the first is not what this check used to say.
 2. The re-entrancy window B29 and B30 are actually about is reached with the
    **setter**, which removes a drone mid-run and is allowed to. Remove a running
    drone with the setter and immediately place a new one in the same second.
-   **Pass:** the replacement runs, and **no** *"program ended"* line is announced
-   for the one that was removed. `ObjectRef:remove()` takes effect at the end of
-   the step, so `on_deactivate` can fire after the replacement is installed under
-   the same name; the serial is what protects it, not the clear-before-remove
-   ordering.
+   **Pass:** the replacement survives and runs to its own end, and the removed
+   run announces its statistics **once** — `Drone.on_remove` calls
+   `Drone.finish(drone, 'completed')` on purpose, so a stats line there is the
+   design and not a fault. What must **not** appear is *"The drone has
+   disappeared, program stopped"*, and the replacement must not die. That is the
+   whole of B29: `ObjectRef:remove()` takes effect at the end of the step, so
+   `on_deactivate` fires *after* the replacement is installed under the same
+   name, and `on_lost` would then finish and remove the new drone. The serial is
+   what protects it, not the clear-before-remove ordering.
 
 Result: partial — `f274245` · engine 5.17.0 · 2026-08-27 — "when placing during
 run it says '... wait busy...', after a run it works". That is part 1 passing.
@@ -484,6 +535,17 @@ run it says '... wait busy...', after a run it works". That is part 1 passing.
 `on_place` refuses on purpose, and so pointed at a path that cannot reach B29's
 window at all. No finding id — nothing in committed code is defective here.
 Part 2 is unchecked and is the one that tests the serial guard.
+
+Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — both parts. Part 1:
+*"drone busy, wait"* during a run, and placing works once it ends. Part 2:
+removing a running drone with the setter and placing another in the same second
+worked, "just stating the stats of the program" — one statistics line, no
+*"disappeared"* message, and the replacement ran. **B29's serial guard is now
+confirmed in a running world**; this was the one path to it and the last thing
+the guard rested on reading alone. The pass wording above was corrected in the
+same edit: it demanded that *nothing* be announced for the removed run, which
+`Drone.on_remove` announces by design. **Second wrong pass condition in this
+check** — both were the record, not the code.
 
 ### D4 · Join with a full inventory [B16, B39]
 
@@ -511,6 +573,33 @@ game, added items to inventory, quit then added codeblock mod and then inventory
 was replaced with the 2 drone tools and the rest was empty". That is case 2
 exactly. **B39**, fixed at the commit this line was added in.
 
+Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — both cases. Case 1 still
+passes; case 2 now adds the two tools "after the hotbar item" and removes
+nothing. **B39 confirmed fixed in a running world.**
+
+The full-inventory question the run raised is already answered in the code, and
+the answer is the one the player expected: `set_tools` adds nothing and says *"No
+room for the drone tools, free a slot and rejoin"* in chat. It reads `add_item`'s
+leftover, so a tool is added or it is not — never half. Worth doing once as a
+check anyway, since it has never been run.
+
+### D5 · Cancelling the file chooser [B41]
+
+Place the poser with no previously loaded file — a fresh player, or one whose
+`codeblock:last_file` names a file that is gone. The chooser opens. Press
+**Cancel**. Then place again and press **ESC** instead.
+
+**Pass:** no drone is left standing. Today **neither** is: `Drone.new` runs before
+the chooser is shown, so declining leaves a drone nametagged `[<player>] ?.lua`
+that answers *"Not a valid file"* on every use. Placing again is not refused, so
+it costs the player nothing but a puzzle.
+
+Result: fail — `246bb37` · engine 5.17.0 · 2026-08-27 — reported unprompted: "when
+no program selected, try place, it opens the dialog to choose, click cancel: it
+place a drone with ?.lua and refuses to run with invalid file". **B41**, open, not
+yet fixed. The ESC half is read from the code, not observed — that path sends no
+field any branch claims, so it lands in the same state.
+
 ---
 
 ## Filesystem and example generation
@@ -519,6 +608,18 @@ exactly. **B39**, fixed at the commit this line was added in.
 partial, one that could not be run because no procedure was written for it. The
 partial is **C17**: the behaviour is right and the words are in the wrong
 language. F-3 now has two recipes, which is what it was missing.
+
+**Second run, 2026-08-27, at `246bb37`** — F-2 passes in French, and F-3's first
+recipe found the worst defect this project has recorded against committed code:
+the file is read **whole**, with no bound, and then sent to the client. **B40**,
+open. `F-4` is new and is that finding's own check.
+
+**Third run, 2026-08-28, against `246bb37` plus B40's uncommitted fix** — `F-4`
+passes: the file that took the server to 14 GB is now refused. `F-3` case 1
+passes too, at last, and only because of that fix: the size bound refuses a
+168 MB file before the bytecode branch, so a small `luac5.1` chunk is what
+reaches it. **This group is now green apart from `F-3` case 2**, the unreadable
+file, which nothing has ever exercised.
 
 ### F-1 · `/codegenerate` on your own files [B8, B15]
 
@@ -553,6 +654,10 @@ capital). Fixed at the commit this line was added in, along with a
 `scripts/gen_locale.lua --check` in CI so the template cannot drift again.
 **Re-run in French.**
 
+Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — "everything in french".
+**C17 confirmed fixed in a running world**, including the refusal whose key was
+built with `..` and so had never been translatable at all.
+
 ### F-3 · A file that cannot be read [B7, B15]
 
 `read_file` refuses in two ways and both name the file. The cheap one first:
@@ -560,7 +665,17 @@ capital). Fixed at the commit this line was added in, along with a
 1. **A precompiled chunk.** Put a file whose first byte is `0x1B` into
    `<worldpath>/codeblock_files/<playername>/` — `luac5.1 -o bytecode.lua
    any.lua` makes one, or any binary renamed to `.lua` — then open the editor and
-   click it in the file list. **Pass:** the chat says *"Compilation error in
+   click it in the file list. `luac5.1` is in WSL on this machine, with the
+   worlds under `/mnt/c/Users/lacba/AppData/Roaming/Minetest/worlds`:
+
+   ```bash
+   cd .../worlds/<world>/codeblock_files/<player>
+   echo 'place(blocks.stone)' > src.lua && luac5.1 -o bytecode.lua src.lua
+   rm src.lua && head -c 4 bytecode.lua | xxd   # 1b4c7561 - the 0x1B is the point
+   ```
+
+   It must be **small**, or `max_file_kb` refuses it first and this branch is
+   never reached (B40). **Pass:** the chat says *"Compilation error in
    bytecode.lua: Binary bytecode prohibited"*, naming the file, and the editor
    carries on with the rest of the list. This is the branch that runs after
    `handle:close()`, so it is also where a leaked handle would show.
@@ -580,6 +695,65 @@ Do case 1 at least; case 2 opportunistically rather than blocking a release on i
 Result: unchecked — "not sure what to do to test" at `f274245`, which is a
 procedure that was not written down rather than a defect. No finding id. The two
 recipes above are new with the commit this line was added in.
+
+Result: fail — `246bb37` · engine 5.17.0 · 2026-08-27 — case 1 run with a 168 MB
+executable renamed `test.lua`. Selecting it in the list is fine; **opening it read
+the whole file**, took Luanti to about 14 GB resident, froze the game on exit and
+froze it again the next time the editor was opened. The text area then showed
+`MZ` — the executable's first two bytes — because the file is not bytecode, so the
+`0x1B` refusal never fires and 168 MB went into a formspec. A `.jpg` and a `.pdf`
+renamed `.lua` were read as text and reached a compilation error, which is the
+same path one step further on.
+
+**That is B40, not a failure of the bytecode refusal.** The refusal was checked
+*after* `handle:read('*a')`, so even the case that works paid the whole read
+first. Case 1 with a genuine `luac5.1` chunk is still unrun and is the one this
+check was written for; the size defect has its own check below. Case 2 unrun.
+
+B40 was fixed on 2026-08-28: the read stops one byte past `max_file_kb`, so a
+168 MB file is now refused by name and never reaches a string. **Re-running case 1
+is the point** — a `luac5.1` chunk is small, so it goes past the size bound and
+lands on the `0x1B` refusal this check was written for, which the size defect has
+been standing in front of.
+
+Result: pass — `246bb37` + B40's and B42's fixes, uncommitted · engine 5.17.0 ·
+2026-08-28 — **case 1**, with a real `luac5.1` chunk. The bytecode refusal names
+the file and the editor carries on with the rest of the list, so the branch after
+`handle:close()` is exercised for the first time and **B7** is confirmed in a
+running world. Case 2, the unreadable file, is still unrun.
+
+### F-4 · A file too large to open [B40]
+
+Put a large file — tens of megabytes is enough, and it need not be valid Lua —
+into `<worldpath>/codeblock_files/<playername>/` with a `.lua` name, then open the
+editor and click it.
+
+**Pass:** the file is refused by name and by size — *"File @1 is too large: over
+128 kB"* at the default `codeblock_max_file_kb` — the way a bytecode file is, and
+the editor carries on with the rest of the list. **Fail is anything that reads
+it**: watch the server process's resident memory while clicking, not just the
+screen.
+
+**The bound is in `read_file`**, which is the only route from disk to a string, so
+checking it there covers the editor, `Drone.set_file` and the sandbox at once. The
+run path is a separate gesture and worth making: load the same file onto a drone
+rather than opening it in the editor, and the refusal must name the size — before
+this fix the sandbox threw away `read_file`'s message and said *"not found"* for
+every refusal.
+
+A third gesture, for the write half: with a file open, the editor must not be able
+to save more than the ceiling either. From an unmodified client this cannot be
+reached — the engine drops a formspec submission whose fields total 640 kB — so
+what is actually being checked is that an ordinary save of an ordinary program
+still works.
+
+Result: fail — `246bb37` · engine 5.17.0 · 2026-08-27 — no bound existed yet; see
+the F-3 result above for what was observed.
+
+Result: pass — `246bb37` + B40's fix, uncommitted · engine 5.17.0 · 2026-08-28 —
+the file that took the server to 14 GB is refused instead of read. Reported as a
+pass by the author; which of the three gestures were made is not recorded, so the
+run path — the same file loaded onto a drone — is worth a pass of its own.
 
 ---
 
@@ -628,8 +802,21 @@ Result: unchecked
 
 ## Pacing, slabs and the footprint throttle
 
-None of this has ever been verified in a running world. Untested, not known
-broken.
+**First run, 2026-08-27, at `246bb37`**, engine Luanti 5.17.0 — three passes and
+one fail, and the fail is **B42**: a shape wider than the footprint ceiling
+raises instead of waiting, and which way the drone is facing decides whether it
+happens. Everything else in the group behaves as the audit said it would from
+reading alone: the pacing, the slab progression and the shared step budget.
+
+**Second run, 2026-08-28, at `febf16f`** — `P3` passes, and with it the group.
+The throttle has now been seen throttling, which is the one thing `S5` claimed
+from reading and no run had reached: the same `cube(2, 2, 30000)` that died
+before completed in 93 s, a rate consistent with the ceiling divided by the
+engine's unload window. One thing came out of the run that nothing explains yet:
+**when the shape becomes visible depends on which way the drone faces**, and at
+codelevel 1 it did not appear at all until the drone was stopped. Both
+orientations complete, so it is not `B42` returning. It is recorded under `P3`
+with the one measurement that would settle it.
 
 ### P1 · `pace_ms` at the low codelevels [S5, B26]
 
@@ -638,7 +825,7 @@ Run the same loop at codelevel 1, then 2, then 4.
 **Pass:** level 1 visibly waits about 250 ms between commands and level 2 about
 15 ms, so a beginner can watch the loop happen; levels 3 and 4 do not wait.
 
-Result: unchecked
+Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27.
 
 ### P2 · Slab progression under the step budget [A5, B26]
 
@@ -648,7 +835,7 @@ Run a shape large enough to take many slabs and watch the server step time.
 The known overshoot is **one slab** — a VoxelManip pass cannot be interrupted,
 which is the deliberate trade that lets a shape be any size.
 
-Result: unchecked
+Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27.
 
 ### P3 · The footprint throttle actually throttling [S5]
 
@@ -660,7 +847,57 @@ mapblocks by itself. The audit records the throttle's live behaviour under a
 program that genuinely exceeds the ceiling as still unmeasured, and the decay as
 an estimate by construction.
 
-Result: unchecked
+Use a shape that is long in one dimension — `cube(2, 2, 30000)` at codelevel 1
+does it. **Facing does not matter any more**, and checking that it does not is
+half of this check now: the run used to die facing east or west, where the
+extents land on x and nothing sliced along it (**B42**, fixed). Run it both ways.
+
+Result: fail — `246bb37` · engine 5.17.0 · 2026-08-27 — `cube(2, 2, 30000)` at
+codelevel 1 ended with *"Empreinte mémoire maximale de la carte dépassée"*. The
+drone died where the whole point of this ceiling is that it waits. **B42**, open:
+`lib/shapes.lua` slices along z only, so with the shape running along x the
+cross-section is about 1877 mapblocks against codelevel 1's ceiling of 512, and
+`limits.hold` returns nil — the case its own comment says a slicing caller never
+reaches. Nothing was written, because `charge` runs before the pass. **The
+throttle itself is still unmeasured**: re-run facing north, where each slab is 16
+blocks and the wait is what should be observed.
+
+Result: pass — `febf16f` · engine 5.17.0 · 2026-08-28 — `cube(2, 2, 30000)` at
+codelevel 1 **completed, in 93 s**. The drone waited instead of dying, which is
+what this check is for and what no run had ever reached. **The first measurement
+of the throttle**, and it matches the design: codelevel 1 holds 8 MB, which is
+512 mapblocks, decaying over the engine's 29 s unload window, so the rate it
+should settle at is 512/29 ≈ 17.7 mapblocks a second. The shape emerges about
+1877 mapblocks, the first 512 of them free, which predicts ≈ 80 s against the
+93 s observed — consistent, with the gap in the direction the estimate is coarse
+(`limits.hold` decays linearly rather than tracking each block, and the server
+steps in between).
+
+Re-run at codelevel 2, same commit and day: **both orientations complete**, so
+`B42` is closed either way, but the *cadence differs by orientation* — in one the
+blocks appear and then the drone pauses, in the other the drone pauses until the
+blocks appear. At codelevel 1 nothing appeared at all until the drone was
+stopped, and then part of it did.
+
+**Observed and unexplained.** It is not a deferred write: `lib/shapes.lua` calls
+`write_to_map()` in every pass, and **nothing in this mod touches the map when a
+drone stops** — `Drone.finish` sends a chat line and removes the drone. Two
+candidates, and they are told apart by a number rather than an impression:
+
+1. **What the client drew.** The shape grows along a different axis each way, so
+   one run grows across the player's view and the other away from it, and the
+   view distance decides how much of either is on screen. It was set to 30 for
+   `D2`.
+2. **A real difference in the work.** `across` is 1 or 2 mapblocks depending on
+   whether the 2-node extent straddles a boundary, and which extent that is
+   changes with the angle, because `bounds.cube` centres `w` on x and `l` on z
+   while `drone_place_cube` swaps them at angles 1 and 3. A straddle doubles the
+   blocks emerged and so doubles the waiting.
+
+**What settles it: the duration on the completion line.** Run both orientations
+from the same spot and compare what `Program '@1' completed` reports. Equal
+durations mean it is the client and nothing is wrong; a factor of about two means
+it is the boundary straddle, which is real work and wants an id.
 
 ### P4 · Several drones at once [A5]
 
@@ -669,7 +906,8 @@ Run four or more drones simultaneously.
 **Pass:** they share one slice of each server step rather than taking one budget
 each, and a waiting drone takes no share.
 
-Result: unchecked
+Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — four drones shared the
+steps.
 
 ---
 
@@ -705,6 +943,9 @@ Result: unchecked
 
 Added as each feature lands, for the paths that feature puts beyond the specs.
 
+**Run of 2026-08-27, at `246bb37`** — all three pass. `F1` and `F3` are now proven
+in a running world and nothing is outstanding for either.
+
 ### F1 · The Settings panel [F1]
 
 Open the editor and click **Settings** beside Blocks / Plants / Wools / API.
@@ -726,7 +967,7 @@ and the texture beside it; `air` is offered and selectable; switching to Blocks 
 Plants / Wools / API and back leaves the panel usable. Not spec-reachable — it is
 a formspec.
 
-Result: unchecked
+Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27.
 
 ### F1 · The preference survives a relog [F1]
 
@@ -744,10 +985,8 @@ Then change the preference mid-run: **pass** is that the running program keeps
 building the block it started with, because the preference is read once per run
 into `drone.default_block`.
 
-Result: unchecked — the three 2026-08-27 runs covered the editor group only. F1
-shipped at `500dd85` with CI green and `integration_spec` 90 → 98, so **these two
-checks are the whole of what is outstanding for it**. Run them against that commit
-or later, and record the commit, not "current".
+Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — with the panel check
+above, **F1 is now proven in a running world** and nothing is outstanding for it.
 
 ### F3 · `sleep(seconds)` in a running world [F3]
 
@@ -765,8 +1004,8 @@ finishes gets, rather than parking the drone for ever. The wait is charged again
 world; what only a world shows is the *pace* being watchable and other drones
 being unaffected.
 
-Result: unchecked — F3 shipped at `90cfb70` with its gates green (374 passed, 0
-failed) and no in-world check run.
+Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — **F3 is now proven in a
+running world.**
 
 ---
 

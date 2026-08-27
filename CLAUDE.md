@@ -238,7 +238,10 @@ limit once shipped undocumented.
 
 Every one of those tables can be overridden from the settings menu or
 `minetest.conf`, as four comma-separated numbers, plus the scalars
-`default_auth_level` and `server_step_budget_us`. `settingtypes.txt` only *draws*
+`default_auth_level`, `server_step_budget_us` and `max_file_kb` — the last being
+the ceiling on a file read out of a player's directory, which is not a codelevel
+limit because it bounds the read itself rather than a running program (B40).
+`settingtypes.txt` only *draws*
 that menu — the engine does not read it for defaults, so it is a hand-kept mirror
 of the literals here and its own header says so. `map_window_s` is not a
 codeblock setting at all: it is read from the engine's

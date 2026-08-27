@@ -19,8 +19,13 @@ Features
       start, cancel, etc — includes showing the program's budget while it runs,
       not just its totals at the end (audit F4)
 - [ ] FEAT: Make possible to change codelevel while running a program (audit F5)
+- [ ] FEAT: stop forcing the two tools into every joining player's inventory —
+      a command that hands them out, or a setting so an embedding game decides.
+      Today `set_tools` adds what is missing on every join and says so in chat
+      when there is no room (no finding; from playtest D4 at `246bb37`)
 - [ ] warn when the editor is closed with unsaved changes — `soe` is read, written
-      and acted on nowhere (no finding)
+      and acted on nowhere; `F7` marks unsaved tabs first, which may be enough
+      (audit F7)
 
 Decisions wanted from the author
 
@@ -32,19 +37,18 @@ Decisions wanted from the author
 
 Checks left in a running world — the checklist is `PLAYTEST.md`
 
-- [ ] re-run D2 both cases, D4 case 2, and F-2 in French, against b5d2e40+
-      (audit B38, B39, C17)
-- [ ] run D3 part 2 — remove a running drone with the setter, place another at
-      once (audit B29)
-- [ ] run F-3 case 1 — a precompiled chunk in the player's directory (audit B7,
-      B15)
-- [ ] run F1's two checks — the Settings panel and the relog (audit F1)
-- [ ] run F3's sleep check in a world (audit F3)
-- [ ] playtest the world-write and pacing groups (audit S5, A5)
-- [ ] settle E12 by reading the file's size or mtime from outside the game —
-      reading the code is exhausted, three fails and two traces (no finding)
-- [ ] build the release archive and install it once, to prove C16's guard
-      (audit C16)
+- [ ] run P3 once more and read the duration off the completion line both ways —
+      whether the facing changes the work or only what the client draws is the
+      one thing that run left open (no finding, see PLAYTEST P3)
+- [ ] run D2 case 2 — a drone placed where the client shows a node the server has
+      unloaded; the recipe is in the check (audit B10)
+- [ ] run F-3 case 2 — a file the process cannot read, denied with icacls; the
+      last thing in the filesystem group nothing has exercised (audit B15)
+- [ ] run W2 and W3, the two world-write checks never run at all
+- [ ] re-run W1 — its pass predates the Phase 6 and 7 rewrites of lib/cost.lua
+      and never recorded an engine version (audit S5, A4)
+- [ ] build the release archive and install it once, to prove C16's guard —
+      playtest R1 and R2, never run (audit C16)
 
 Elsewhere
 
