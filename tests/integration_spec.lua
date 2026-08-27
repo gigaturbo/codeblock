@@ -404,6 +404,56 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- sleep (F3)
+--
+-- A wait costs no CPU, so what bounds it is the charge: without one, a program
+-- could hold a drone, an entity and a slot in the shared pool for ever, which
+-- is the hole max_runtime_s exists to close. So the assertion that matters is
+-- that the wait is charged, up front, and that going over the ceiling leaves
+-- the counter past it - that is what makes lib/stepper.lua report a timeout.
+--------------------------------------------------------------------------------
+
+do
+    local sleep = codeblock.cost.sleep
+
+    --- Sleep once inside a coroutine, as a run would. Returns the drone.
+    local function slept(seconds, auth_level)
+        local drone = stub_drone(auth_level)
+        local co = coroutine.create(function() sleep(drone, seconds) end)
+        coroutine.resume(co)
+        return drone, coroutine.status(co)
+    end
+
+    local drone, status = slept(2)
+    it('a sleep yields rather than blocking the step', status, 'suspended')
+    it('and charges the run for the whole wait', (drone.budget.used.runtime >=
+        2e6), true)
+    it('and asks to be run again later',
+       (drone.wake_at ~= nil and drone.wake_at > core.get_us_time()), true)
+    it('which the stepper honours', codeblock.stepper.awake(drone), false)
+
+    -- Not a command: drone.commands feeds the completion line, and a wait
+    -- placed nothing.
+    it('a sleep is not counted as a command', drone.commands, 0)
+
+    -- Coerced with a default rather than raising, as steps() does for a
+    -- distance.
+    it('no argument means one second', (slept().budget.used.runtime >= 1e6),
+       true)
+    it('so does a nonsense one', (slept('soon').budget.used.runtime >= 1e6),
+       true)
+    it('and so does a negative one', (slept(-5).budget.used.runtime >= 1e6),
+       true)
+
+    -- The whole point: an unbounded wait is refused by the runtime ceiling,
+    -- not by a clamp. Charged up front, so the counter is already past the cap
+    -- before the drone goes to sleep at all.
+    local huge = slept(1e9, 4)
+    it('a wait longer than the run may live goes over the ceiling',
+       (huge.budget.used.runtime > huge.budget.caps.runtime), true)
+end
+
+--------------------------------------------------------------------------------
 -- movement, in all four facings (A3)
 --
 -- The seven movement commands were seven copies of the same quarter-turn table,

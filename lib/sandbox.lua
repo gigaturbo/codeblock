@@ -36,6 +36,11 @@ local send_message = codeblock.commands.drone_send_message
 local use_call = codeblock.commands.drone_use_call
 local drone_get_block = codeblock.commands.drone_get_block
 
+-- The one name taken from lib/cost.lua rather than lib/commands.lua: a sleep has
+-- no geometry, so commands.lua would have nothing to add and re-exporting it
+-- there - as it does for use_call - would be two names for one function. (F3)
+local sleep = codeblock.cost.sleep
+
 local cubes = codeblock.config.allowed_blocks.cubes
 local plants = codeblock.config.allowed_blocks.plants
 local wools = codeblock.config.allowed_blocks.wools
@@ -98,6 +103,8 @@ local function getScriptEnv(drone)
         ['turn_left'] = function() turn_left(drone) end,
         ['turn_right'] = function() turn_right(drone) end,
         ['turn'] = function(quarters) turn(drone, quarters) end,
+
+        ['sleep'] = function(seconds) sleep(drone, seconds) end,
         -- placement
         ['place'] = function(block) place_block(drone, block) end,
         ['place_relative'] = function(x, y, z, block, chkpt)

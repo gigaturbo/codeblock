@@ -50,6 +50,23 @@ api.groups = {
             }
         }
     }, {
+        title = 'Waiting',
+        intro = 'A wait costs the program running time, the same budget a ' ..
+            'long program spends, so a program cannot wait for ever: asking ' ..
+            'for more than is left stops it there. Nothing else on the ' ..
+            'server waits - other drones keep building and take the time ' ..
+            'this one is not using.',
+        entries = {
+            {
+                name = 'sleep',
+                params = {'seconds'},
+                doc = 'Pause the drone for this many seconds.',
+                note = 'Defaults to one second, and fractions are allowed. ' ..
+                    'The server looks at its drones about eleven times a ' ..
+                    'second, so anything shorter than that lasts one look.'
+            }
+        }
+    }, {
         title = 'Checkpoints',
         intro = 'A checkpoint remembers a position so it can be returned to. ' ..
             'Names are strings. The checkpoint `spawn` always exists and is ' ..

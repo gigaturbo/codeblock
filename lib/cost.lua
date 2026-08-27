@@ -154,6 +154,36 @@ local function end_command(drone)
 
 end
 
+--- Put the drone to sleep for `seconds`, and charge the run for the wait.
+--
+-- Sleeping is the one thing a program can ask for that costs no CPU at all, so
+-- left uncharged it would be the way to hold a drone, an entity and a slot in
+-- the shared pool for ever - which is the hole max_runtime_s exists to close.
+-- So the wait is charged against runtime, up front. Going over does not raise
+-- here: lib/stepper.lua charges the step on its way out and reports 'timeout'
+-- once the ceiling is passed, so sleep(1e9) stops the run there and then with
+-- the message a program that never finishes already gets, instead of parking
+-- the drone for a year.
+--
+-- Deliberately not through end_command. That writes wake_at from pace_ms, and
+-- wake_at is one field where the last writer wins; a sleep is not a command, so
+-- it neither pays the pace nor is overwritten by it. The pace of the next real
+-- command still applies afterwards. (F3)
+--
+-- A wait shorter than a server step lasts one step: the stepper only looks at
+-- its drones when the engine gives it a step. Rounding it here would only hide
+-- that.
+local function sleep(drone, seconds)
+
+    local s = (type(seconds) == 'number' and seconds > 0) and seconds or 1
+    local us = s * 1e6
+
+    charge(drone.budget, 'runtime', us)
+    drone.wake_at = get_us_time() + us
+    release(drone)
+
+end
+
 -------------------------------------------------------------------------------
 -- writing
 -------------------------------------------------------------------------------
@@ -192,4 +222,5 @@ codeblock.cost.use_nodes = use_nodes
 codeblock.cost.slabs = slabs
 codeblock.cost.use_call = use_call
 codeblock.cost.end_command = end_command
+codeblock.cost.sleep = sleep
 codeblock.cost.place_block = place_block

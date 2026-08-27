@@ -102,6 +102,10 @@ codeblock.config.pace_ms = {250, 15, 0, 0}
 -- that never finishes. Counted as time the drone was actually advanced, not
 -- wall clock, so pacing and a busy server do not eat into it.
 --
+-- One exception, and it is deliberate: sleep() charges the wait it asks for.
+-- A sleeping drone spends no CPU, so nothing else here could bound it, and an
+-- unbounded wait is the same runaway program in a different disguise. (F3)
+--
 -- This replaced max_calls, which bounded the same thing in units nobody could
 -- reason about: a call was neither a second nor a node, and its ceiling had to
 -- be guessed.

@@ -34,6 +34,11 @@ sharing a busy server do not eat into it. A program that runs out is stopped wit
 a message. Nothing limits how many calls or commands a program makes any more:
 those were proxies for this.
 
+`sleep()` is the one thing that spends this budget without running: a wait is
+charged for its full length when it is asked for. A sleeping drone costs no CPU,
+so nothing else could bound it, and a program that waits for ever is the same
+runaway as one that loops for ever.
+
 `max_nodes_written` is the build budget, and doubles as the largest shape a
 codelevel can place — 2e5 nodes is a 58-node cube or a radius-36 sphere, 1e8 a
 464-node cube. Neither a shape's dimensions nor the drone's distance from home is
@@ -137,6 +142,16 @@ turn_right()                    -- Turn a quarter turn right.
 turn_left()                     -- Turn a quarter turn left.
 turn(n_quarters_anti_clockwise) -- Turn n quarter turns anti-clockwise.
 ```
+
+## Waiting
+
+A wait costs the program running time, the same budget a long program spends, so a program cannot wait for ever: asking for more than is left stops it there. Nothing else on the server waits - other drones keep building and take the time this one is not using.
+
+```lua
+sleep(seconds) -- Pause the drone for this many seconds.
+```
+
+**`sleep`** &mdash; Defaults to one second, and fractions are allowed. The server looks at its drones about eleven times a second, so anything shorter than that lasts one look.
 
 ## Checkpoints
 
