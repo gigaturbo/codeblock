@@ -563,6 +563,30 @@ do
         return sq <= 20 * 21 and sq >= 20 * 19
     end)), 'ok')
 
+    -- A shape long in x is sliced along x. It used to be sliced along z
+    -- whatever its shape, so every slab emerged the whole x extent: more than
+    -- one pass should cost, and past a low codelevel's entire footprint ceiling
+    -- the run died where the ceiling exists to make it wait. Here that is 26
+    -- mapblocks a slab against the budget of 16. (B42)
+    local long, _, ltotal, lcharged = sliced({
+        kind = 'cube',
+        pos = o,
+        w = 400,
+        h = 2,
+        l = 2,
+        node = 'x',
+        hollow = false
+    })
+    local worst = 0
+    for _, c in ipairs(lcharged) do if c > worst then worst = c end end
+    it('a cube long in x is sliced along x', worst, 16)
+    it('and writes every node of it', same(long, box({
+        x = -200,
+        y = 0,
+        z = -1
+    }, {x = 199, y = 1, z = 0}, function() return true end)), 'ok')
+    it('and the whole charge is still the emerged box', ltotal, 52)
+
     -- Nothing small is sliced: a shape inside the slab budget stays one pass,
     -- which is what keeps the common case as cheap as it was.
     local _, one = sliced({

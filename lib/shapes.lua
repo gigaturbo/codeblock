@@ -96,9 +96,12 @@ local bounds = {
 -- fillers
 --
 -- Each writes only the part of the shape inside the area it is handed, which is
--- one z slab of it. The clip comes from the area rather than from a range passed
+-- one slab of it. The clip comes from the area rather than from a range passed
 -- in, so it is exactly the extent `data` covers - the invariant that has to hold
 -- whatever build() slices the shape into.
+--
+-- Clipped on all three axes, not just the one build() happens to slice along:
+-- that is what lets it slice along whichever axis is longest. (B42)
 -------------------------------------------------------------------------------
 
 --- A sphere between `ymin` and `r`. A dome is the half of one above its centre.
@@ -106,7 +109,7 @@ local function ball(s, area, id, o, ymin)
 
     local r, hollow = s.r, s.hollow
     local ystride, zstride = area.ystride, area.zstride
-    local mn = area.MinEdge
+    local mn, mx = area.MinEdge, area.MaxEdge
     local ox, oy, oz = o.x - mn.x, o.y - mn.y, o.z - mn.z
 
     -- Squared-radius window: inside the outer surface, and for a hollow shape
@@ -114,11 +117,13 @@ local function ball(s, area, id, o, ymin)
     -- give a shell one voxel thick with no gaps.
     local rmin, rmax = r * (r - 1), r * (r + 1)
 
-    for z = max(-r, mn.z - o.z), min(r, area.MaxEdge.z - o.z) do
+    local xlo, xhi = max(-r, mn.x - o.x), min(r, mx.x - o.x)
+
+    for z = max(-r, mn.z - o.z), min(r, mx.z - o.z) do
         local iz = (z + oz) * zstride + 1
-        for y = ymin, r do
+        for y = max(ymin, mn.y - o.y), min(r, mx.y - o.y) do
             local iy = iz + (y + oy) * ystride
-            for x = -r, r do
+            for x = xlo, xhi do
                 local sq = x * x + y * y + z * z
                 if sq <= rmax and (not hollow or sq >= rmin) then
                     data[iy + ox + x] = id
@@ -135,14 +140,16 @@ local fillers = {
 
         local w, h, l, hollow = s.w, s.h, s.l, s.hollow
         local ystride, zstride = area.ystride, area.zstride
-        local mn = area.MinEdge
+        local mn, mx = area.MinEdge, area.MaxEdge
         local ox, oy, oz = o.x - mn.x, o.y - mn.y, o.z - mn.z
 
-        for z = max(0, mn.z - o.z), min(l - 1, area.MaxEdge.z - o.z) do
+        local xlo, xhi = max(0, mn.x - o.x), min(w - 1, mx.x - o.x)
+
+        for z = max(0, mn.z - o.z), min(l - 1, mx.z - o.z) do
             local iz = (oz + z) * zstride + 1
-            for y = 0, h - 1 do
+            for y = max(0, mn.y - o.y), min(h - 1, mx.y - o.y) do
                 local iy = iz + (oy + y) * ystride
-                for x = 0, w - 1 do
+                for x = xlo, xhi do
                     local wall = not hollow or x == 0 or x == w - 1 or y == 0 or
                                      y == h - 1 or z == 0 or z == l - 1
                     if wall then data[iy + ox + x] = id end
@@ -168,13 +175,15 @@ local fillers = {
         local oa, oo1, oo2 = off[a], off[o1], off[o2]
         local rmin, rmax = r * (r - 1), r * (r + 1)
 
-        -- Ranges by axis, so the z clip lands on whichever of the three loops
-        -- runs along z - the length for a cylinder lying that way, a radius for
-        -- one lying across it.
+        -- Ranges by axis, so a clip lands on whichever of the three loops runs
+        -- along that axis - the length for a cylinder lying that way, a radius
+        -- for one lying across it.
         local lo = {[a] = 0, [o1] = -r, [o2] = -r}
         local hi = {[a] = s.l - 1, [o1] = r, [o2] = r}
-        lo.z = max(lo.z, mn.z - o.z)
-        hi.z = min(hi.z, area.MaxEdge.z - o.z)
+        local mx = area.MaxEdge
+        lo.x, hi.x = max(lo.x, mn.x - o.x), min(hi.x, mx.x - o.x)
+        lo.y, hi.y = max(lo.y, mn.y - o.y), min(hi.y, mx.y - o.y)
+        lo.z, hi.z = max(lo.z, mn.z - o.z), min(hi.z, mx.z - o.z)
 
         for i = lo[a], hi[a] do
             local ia = (oa + i) * sa
@@ -220,24 +229,42 @@ function shapes.build(spec)
 
     local origin, pos1, pos2 = bounds[spec.kind](spec)
 
-    -- Slabs of whole mapblocks along z. Whole blocks because the engine emerges
-    -- them whole anyway: a slab boundary inside a block would emerge and charge
-    -- that block twice. Along z because it is the outermost loop of every
-    -- filler, so a slab stays one contiguous run of the data array.
-    local across = span(pos1.x, pos2.x) * span(pos1.y, pos2.y)
+    -- Slabs of whole mapblocks along the shape's longest axis. Whole blocks
+    -- because the engine emerges them whole anyway: a slab boundary inside a
+    -- block would emerge and charge that block twice.
+    --
+    -- The longest axis, not z, because `across` - the slab's cross-section, the
+    -- part no slicing can reduce - is what a pass costs at minimum. Slicing a
+    -- shape 30000 nodes long across its length left every slab emerging 1877
+    -- mapblocks, past a low codelevel's whole footprint ceiling, so the run died
+    -- where the ceiling exists to make it wait. Ties go to z, which is the
+    -- outermost loop of every filler and so keeps a slab contiguous in the data
+    -- array. A shape large in two dimensions is still bigger than one pass
+    -- should be, and slicing cannot fix that. (B42)
+    local sp = {
+        x = span(pos1.x, pos2.x),
+        y = span(pos1.y, pos2.y),
+        z = span(pos1.z, pos2.z)
+    }
+    local axis = 'z'
+    if sp.x > sp[axis] then axis = 'x' end
+    if sp.y > sp[axis] then axis = 'y' end
+    local o1, o2 = others[axis][1], others[axis][2]
+
+    local across = sp[o1] * sp[o2]
     local layers = floor(SLICE_BLOCKS / across)
     if layers < 1 then layers = 1 end
 
     c_ignore = c_ignore or get_content_id('ignore')
     local id = get_content_id(spec.node)
     local total = 0
-    local z = pos1.z
+    local a = pos1[axis]
 
-    while z <= pos2.z do
+    while a <= pos2[axis] do
 
         -- Last node of the last whole mapblock in this slab.
-        local zend = min((floor(z / 16) + layers) * 16 - 1, pos2.z)
-        local emerged = across * span(z, zend)
+        local aend = min((floor(a / 16) + layers) * 16 - 1, pos2[axis])
+        local emerged = across * span(a, aend)
 
         -- Before the pass, not after: the caller pays for the memory before it
         -- is pinned, and can make the drone wait for room first.
@@ -246,10 +273,10 @@ function shapes.build(spec)
 
         local manip = get_voxel_manip()
         local emin, emax = manip:read_from_map({
-            x = pos1.x,
-            y = pos1.y,
-            z = z
-        }, {x = pos2.x, y = pos2.y, z = zend})
+            [axis] = a,
+            [o1] = pos1[o1],
+            [o2] = pos1[o2]
+        }, {[axis] = aend, [o1] = pos2[o1], [o2] = pos2[o2]})
         local area = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
 
         for i = 1, area:getVolume() do data[i] = c_ignore end
@@ -258,7 +285,7 @@ function shapes.build(spec)
         manip:set_data(data)
         manip:write_to_map()
 
-        z = zend + 1
+        a = aend + 1
     end
 
     return total
