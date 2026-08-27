@@ -60,10 +60,12 @@ relying on.
 - [x] Fixed an unreadable example file taking the whole mod down at load; it is now skipped with a warning
 - [x] Fixed an example whose name contains `.lua` anywhere losing that text from its title
 - [x] Fixed the editor storing no open tab as a missing value, and storing a number where it reads a string
-- [x] The drone record now has a single owner: the entity holds only its owner's name, and a program's outcome is reported from one place instead of three. Removing or unloading a drone can no longer act on a stale copy of it
+- [x] Fixed `turn(n)` leaving the drone facing a direction the movement commands did not recognise. Turns were accumulated as radians, so counts such as `turn(11)` or `turn(1000)` drifted a fraction off a quarter-turn and the next `forward`, `move`, `go` or `place_relative` silently did nothing. Turns are now counted in whole quarter-turns
+- [x] Unloading a drone that was not running a program no longer reports "The drone has disappeared, program stopped" followed by a completion line for a program that never started
+- [x] The drone record now has a single owner: the entity holds only its owner's name and a serial, and a program's outcome is reported from one place instead of three. Removing, replacing or unloading a drone can no longer act on a stale copy of it - placing a second drone no longer risks the departing one taking the new one away with it, or spending its budget
 - [x] `lib/commands.lua` went from 971 to 608 lines, with a new `lib/cost.lua` holding what a command spends and when it yields. No player-facing command changed name, arguments or behaviour
 - [x] Removed a dead branch in the centred cylinder that could produce a shape with no coordinates
-- [ ] Known: the file manager, the code editor and drone placement have no automated tests - the suite runs before a map or a player exists, so those paths are checked by review only
+- [ ] Known: the file manager, the code editor and placing a drone in the world have no automated tests - the suite runs before a map or a player exists, so those paths are checked by review only. The drone record's own teardown and stepping are covered
 - [ ] Known: `heap_mb` cannot stop one huge allocation; a pathological Lua pattern can still burn CPU inside a single `find` or `match`
 - [ ] Known: the step budget is checked between drone commands and between the slabs of a shape, never inside one, so a single slab - a few thousand nodes, around 10 ms - still overshoots it
 - [ ] Known: the map footprint decays linearly over the unload window rather than tracking each block, so it is an estimate of what is resident, not a measurement

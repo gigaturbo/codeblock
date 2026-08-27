@@ -69,8 +69,11 @@ the junction with `rmdir` and never with `Remove-Item -Recurse`, which follows a
 junction and would delete the repository behind it. And it strips the setting in a
 `finally`, so an exception between boot and kill still cleans up.
 
-Running a single spec in-engine means editing the `dofile` list at the bottom of
-`init.lua`. Running the six standalone ones needs no engine at all:
+Running a single spec in-engine means editing the `specs` list at the bottom of
+`init.lua`. That block probes for `tests/api_spec.lua` first and only warns if it
+is missing, because `tests export-ignore` keeps the specs out of the ContentDB
+archive and an unguarded `dofile` took the mod down on a release install (audit
+C16). Running the six standalone specs needs no engine at all:
 
 ```bash
 wsl bash -lc 'cd /mnt/c/Users/lacba/PRogrammation/codeblock && for s in api preprocess env shapes strguard limits; do lua5.1 tests/${s}_spec.lua; done'
@@ -89,7 +92,7 @@ A healthy run prints one summary per spec, and `none` under errors:
   limits_spec           36 passed   0 failed
   forms_spec            35 passed   0 failed
   stepper_spec          35 passed   0 failed
-  integration_spec      80 passed   0 failed
+  integration_spec      90 passed   0 failed
 ```
 
 What each column means:
@@ -118,13 +121,14 @@ whole mod.
 - `0 failed` and `0 xpass` everywhere.
 - The setting is gone from `minetest.conf` — check, do not assume:
   `grep -n codeblock_run_tests "$APPDATA/Minetest/minetest.conf"`.
-- **That grep is currently not enough**, because the script damages the file in
-  two ways it cannot see (audit B31, B32). Also check the first bytes for a BOM:
-  `head -c 3 "$APPDATA/Minetest/minetest.conf" | od -An -tx1` must not be
-  `ef bb bf`, or the file's first setting is silently dead. And if a spec printed
-  nothing at all, check that the enable line was on a line of its own rather than
-  glued to the previous setting. Both are open findings against
-  `scripts/run_tests.ps1`, not hazards of running it correctly.
+The script used to damage that file in two ways the grep could not see: it wrote
+a UTF-8 BOM, killing the config's first setting, and it appended the enable line
+with no separator on a file lacking a trailing newline. Both are fixed (audit
+B31, B32) — the writes go through `[IO.File]` with an explicit no-BOM encoding,
+and reading with `ReadAllText` strips a mark already there, so a damaged config
+is repaired by the next run. Worth knowing if an old config still looks wrong:
+`head -c 3 "$APPDATA/Minetest/minetest.conf" | od -An -tx1` should not be
+`ef bb bf`.
 
 ## Related
 
