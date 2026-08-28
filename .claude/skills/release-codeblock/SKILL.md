@@ -50,8 +50,8 @@ v1.0.0 is major for several of these at once.
   `lua scripts/gen_locale.lua`. `lua scripts/gen_locale.lua --check` must then
   say *up to date*, and its `.tr` report names any message a translation is
   missing — advisory, since an untranslated string falls back to English.
-- Regenerate `.cdb.json`: `bash scripts/gen_cdb_json.sh`. It embeds `README.md`,
-  so any README edit needs this — and **nothing checks it for you**.
+- Regenerate `.cdb.json`: `bash scripts/gen_cdb_json.sh`. It embeds `CONTENTDB.md`,
+  so any edit to that file needs this — and **nothing checks it for you**.
 - `ROADMAP.md` and `TODO.md` — strike what this release closed. Or ask
   `project-manager` to, which is cheaper and more honest. The reasoning behind
   each item is in `AUDIT.md` beside them.
@@ -85,8 +85,16 @@ git -C /tmp/cb-check submodule status  # vector3 populated
 
 The `codeblock` package at <https://content.luanti.org>, uploaded on its own.
 
-- The long description comes from `.cdb.json`, generated from `README.md`.
+- The long description comes from `.cdb.json`, generated from `CONTENTDB.md` —
+  **not** `README.md`, which is a different document for a different reader (C19).
   Regenerate before uploading or the listing goes stale.
+- **Update `CONTENTDB.md`'s *Recent changes* section, then regenerate.** It
+  advertises the release's headline features to someone deciding whether to
+  install, so it is the one part of that file a release must touch. It is a
+  hand-kept summary of `CHANGELOG.md` and **nothing checks the two agree** — it is
+  a mirror of the same family as `doc/api.md` and `locale/template.txt`, and it
+  will drift the same way. Keep it to a handful of *new capabilities*, not a
+  changelog: someone reading it is choosing whether to install, not upgrading.
 - Screenshots load from raw GitHub URLs on `master`. GitHub currently redirects
   an old default-branch name, so a wrong branch may *look* fine — do not rely on
   that.

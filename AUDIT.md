@@ -25,10 +25,11 @@ nothing dropped.
 
 ## Where it stands
 
-73 findings, this project's own. **71 resolved, 1 open (`C19`), 1 won't fix
-(`B34`).** The open one arrived on 2026-08-28 from reading ContentDB's own page
-guidance rather than from a defect: the long description is `README.md` verbatim
-and should not be, which no gate here could have seen. The code is pushed through
+73 findings, this project's own. **72 resolved, none open, 1 won't fix
+(`B34`).** `C19` was filed and fixed on 2026-08-28, the only finding here to
+arrive from reading a published rule rather than from a defect: the long
+description was `README.md` verbatim, which no gate here could have seen. It now
+has its own source. The code is pushed through
 `afbe504` and **CI is green there, run 30, all three jobs** — the first run to
 cover `F7`; run 29 before it covered the five fixes `B41`, `C18`, `S7`, `B44`,
 `B43`. Only the record commits on top of it are unseen by CI.
@@ -37,7 +38,7 @@ cover `F7`; run 29 before it covered the five fixes `B41`, `C18`, `S7`, `B44`,
 |---|---|---|
 | B bugs | 41 | — (B34 won't fix) |
 | S sandbox and security | 7 | — |
-| C compliance and packaging | 13 | **1** (C19) |
+| C compliance and packaging | 13 | — |
 | A architecture and performance | 12 | — |
 
 **Every defect the playtests found this phase is fixed, and every one of them is
@@ -94,12 +95,11 @@ which needs a built archive. `R1` passed on 2026-08-28 and took `C10` with it;
 
 ## Open
 
-**One finding is open: `C19`**, the ContentDB long description. It is not a
-defect in the code and nothing in this repository fails because of it — it fails
-against ContentDB's published rules for a package page, which is a document no
-gate here can read. It blocks the *listing*, not the mod. The reasoning is under
-`C19` in the compliance section; `release-check` gate 9 is what stops it reaching
-a release unnoticed.
+**Nothing is open.** `C19` was filed and fixed on 2026-08-28 — the ContentDB
+long description now has its own source rather than being `README.md`. It was
+the only finding here ever raised by a published rule rather than by a defect,
+and `release-check` gate 9 is what stops the next one reaching a release
+unnoticed.
 
 `B34` below is the one won't-fix.
 
@@ -1073,7 +1073,7 @@ re-break, and `S2`'s residue is one of the things v1.0.0 ships broken.
   because inside `codecube` the flat sky is the game's own design and looks
   correct. The gap this closes is exactly the one that let the defect live.
 
-- **C19 · medium · open** — the ContentDB long description is `README.md`
+- **C19 · medium · resolved** — the ContentDB long description was `README.md`
   verbatim, and ContentDB's own guidance says most of what a good README contains
   does not belong there. `scripts/gen_cdb_json.sh` embeds the file whole into
   `long_description`. The two documents have different readers — GitHub wants
@@ -1105,9 +1105,30 @@ re-break, and `S2`'s residue is one of the things v1.0.0 ships broken.
   is: what the package contains, what distinguishes it, and how to use it once
   installed. So this is not a rewrite from nothing — it is a subtraction, plus
   keeping the parts that already comply.
-  **Not yet fixed, and deliberately not fixed here**: the replacement text is
-  player-facing copy and the author's to write. What is settled is that
-  `long_description` stops being `README.md`.
+  Fixed 2026-08-28: the long description has its own source, **`CONTENTDB.md`**,
+  and `gen_cdb_json.sh` embeds that instead. The file is `export-ignore`d —
+  ContentDB reads `.cdb.json` from the repository rather than the archive, so
+  shipping it to a player would only be a second README. The generated field now
+  carries no image, no repository or ContentDB link, no licence text and no title
+  heading, checked against the decoded JSON rather than against the source.
+  **Keep — why the shipped field is one enormous line, so nobody "fixes" it.**
+  ContentDB reads `long_description` from `.cdb.json` only, and a JSON string
+  cannot contain a newline, so the escaped one-liner **is** the required form. It
+  is an artefact, not a source. Anyone finding it unreadable and reaching for a
+  multi-line format is about to break the upload; the answer is that they should
+  be editing `CONTENTDB.md` and running the generator, which is now said at the
+  top of the script.
+  **The copy itself is a draft and revising it does not reopen this.** The
+  finding was about the *source* and the six rule breaches, both closed. What the
+  description says is the author's, and changed once already on the day it
+  landed.
+  **One thing the fix introduces, named here because it is the project's own
+  recurring defect.** `CONTENTDB.md` carries a *Recent changes* section, which is
+  a hand-kept summary of `CHANGELOG.md` that **nothing checks**. It is the same
+  family as `doc/api.md`, `locale/template.txt` and `settingtypes.txt`, and it
+  will drift the same way. The release skill names updating it as a release step;
+  that is a note about remembering, and this project's own lesson is that those
+  do not hold.
   **Keep — this is the fourth hand-kept mirror, and it is the one that is not
   even a mirror.** `doc/api.md` and `locale/template.txt` drifted and got a
   `--check`; `settingtypes.txt` is the third and is getting one (`C7`, `C17`).
@@ -1412,6 +1433,7 @@ dirty buffer, now `ROADMAP.md`'s `F7`. No finding id was ever allocated, correct
 30, all three jobs) — the first run to cover `F7`, with run 29 covering the five
 fixes before it. Only the record commits above it are unseen by CI.
 
-Restructured at `b8b30e3`: this file is new and holds the findings that
-were in `.reports/audit.old.html`, which also held the roadmap and the `F` series
-— those are now in `ROADMAP.md`. Nothing renumbered, nothing dropped.
+Restructured at `b8b30e3`: this file is new, and the findings, the roadmap and
+the `F` series were one document before it. The findings are here and the other
+two are in `ROADMAP.md`. Nothing renumbered, nothing dropped — checked
+mechanically on 2026-08-28 before the old rendering was deleted.

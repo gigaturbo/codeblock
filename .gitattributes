@@ -18,6 +18,11 @@ TODO.md         export-ignore
 AUDIT.md        export-ignore
 PLAYTEST.md     export-ignore
 
+# The ContentDB page copy. ContentDB reads it through .cdb.json, which it takes
+# from the repository rather than the archive, so shipping it to a player would
+# only be a second README they have no use for. (C19)
+CONTENTDB.md    export-ignore
+
 # 8.9 MB of gallery images, and the two icons the README pulls from GitHub by
 # absolute URL rather than from the archive. doc/api.md stays: the shipped
 # README tells the player to read it.

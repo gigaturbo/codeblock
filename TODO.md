@@ -26,10 +26,11 @@ Features
 - [ ] warn when the editor is closed with unsaved changes — `soe` is read, written
       and acted on nowhere; `F7` marks unsaved tabs first, which may be enough
       (audit F7)
-- [ ] write a ContentDB long description that is not README.md — the README
-      breaks six of ContentDB's do-not-include rules, and its nine images are not
-      visible inside Luanti — five of them inline in the instructions. Player-
-      facing copy, so it wants the author's words (audit C19)
+- [x] a ContentDB long description that is not README.md — done 2026-08-28,
+      CONTENTDB.md, with the shape you asked for. Revise the copy freely; edit
+      that file and run scripts/gen_cdb_json.sh, never .cdb.json (audit C19)
+- [ ] keep CONTENTDB.md's "Recent changes" current at each release — hand-kept
+      against CHANGELOG.md and nothing checks the two agree (audit C19)
 - [ ] configure the ContentDB release webhook — trigger "Branch or tag
       creation", not push, because this project tags. The procedure is in the
       release-codeblock skill (no finding; from the author, 2026-08-28)

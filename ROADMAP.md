@@ -33,14 +33,21 @@ which spread **78 s and 95 s** where the same shape spread 78 / 160 / 183 before
 The *gates green, unproven in a world* list is down to two entries, neither of
 them waiting on someone finding the time.
 
-**One finding is open, and it is not a defect.** `C19`, filed the same day from
-reading ContentDB's own page guidance: the package's long description is
-`README.md` verbatim and breaks six of that guidance's *do not include* rules —
-worst of them, its nine images reach nobody browsing in-game — and five are tool
-icons used *inline in the instructions*, so those sentences lose their object. It
-blocks the *listing*, not the mod, and no gate in this repository could have seen
-it, because the rules live on a page nothing here reads. `release-check` now
-carries them.
+**`C19` was filed and fixed the same day, and it is the only finding here ever
+raised by a published rule rather than by a defect.** The long description was
+`README.md` verbatim and broke six of ContentDB's *do not include* rules — worst
+of them, its nine images reach nobody browsing in-game, and five were tool icons
+used *inline in the instructions*, so those sentences lost their object. It now
+has its own source, `CONTENTDB.md`, which the generator embeds instead. **No gate
+in this repository could have caught it**, because the rules live on a page
+nothing here reads; `release-check` gate 9 now carries them, which is what would
+catch the next one.
+
+**Write `CONTENTDB.md`, never `.cdb.json`.** ContentDB reads `long_description`
+from that JSON only, and a JSON string cannot hold a newline, so the shipped
+field is one enormous escaped line. That is the artefact and not the source —
+anyone finding it unreadable and reaching for a multi-line format is about to
+break the upload.
 
 **`F7` shipped the same day and `E16` passed it the same day** — a `*` on a tab
 whose buffer differs from the file, confirmed in a running world at `afbe504`. So
@@ -281,13 +288,19 @@ Left in the phase:
   2026-08-28: it is the third hand-kept mirror and the only one without one, and
   a generator unifies a process the other two already share. (C7, C17)
 - **Rewrite the ContentDB long description so it stops being `README.md`.** The
-  README breaks six of ContentDB's own *do not include* rules at once, and the
-  worst of them is that its nine images are not visible inside Luanti — and five
-  are tool icons used *inline in the instructions*, so those sentences lose their
-  object rather than just their decoration.
-  The replacement is player-facing copy and the author's to write; what is
-  settled is that `long_description` gets its own source. Blocks nothing until
-  the release, and `release-check` fails on it until then. (C19)
+  README broke six of ContentDB's own *do not include* rules at once, and the
+  worst of them was that its nine images are not visible inside Luanti — five
+  being tool icons used *inline in the instructions*, so those sentences lost
+  their object rather than just their decoration. **Done 2026-08-28**:
+  `long_description` now comes from `CONTENTDB.md`. Its shape was the author's
+  — a short lead, main features, a quick start that reaches a visible result in
+  three steps, the limits worth warning about, and recent changes as
+  advertising. (C19)
+- **Keep `CONTENTDB.md`'s *Recent changes* current at each release.** It is a
+  hand-kept summary of `CHANGELOG.md` and nothing checks the two agree — the same
+  family as `doc/api.md` and `locale/template.txt`, and it will drift the same
+  way. The release skill names it as a step, which is a note about remembering,
+  and this project's own lesson is that those do not hold. (C19)
 - Build `F4`, the live drone panel.
 - Build `F5`, changing a codelevel mid-run.
 
