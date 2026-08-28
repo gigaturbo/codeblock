@@ -472,11 +472,6 @@ open file, which was rejected for a cosmetic mark. Report it only if the mark
 appears without any typing at all, which would mean it is being set from the
 field arriving rather than from the text differing.
 
-Result: unchecked — `F7` shipped 2026-08-28 at gates green; nothing in a world
-has seen it. `integration_spec` pins the drawn label and that `meta.tabs` is
-undecorated, so what is unproven here is what a player can see and the flag's
-transitions across tab and file operations.
-
 Result: pass — `afbe504` · engine 5.17.0 · 2026-08-28 — the marker works in a
 running world, the day it shipped. **`F7` is confirmed**, and with it the flag's
 transitions across tab and file operations, which no spec reaches: only the drawn
@@ -1248,11 +1243,27 @@ Install the built archive as a package and set `codeblock_run_tests = true` in
 
 **Pass:** the mod loads normally and logs *"codeblock_run_tests is set, but this
 build ships no tests/ directory"*. Before C16 this was nine bare `dofile`s and the
-whole mod refused to load. **Committed, not verified — nobody has built an
-archive and installed it.** Do this once as part of the next release check; the
-release path is exactly where the failure would be met.
+whole mod refused to load.
 
-Result: unchecked
+Building the archive is the same command ContentDB uses, so `.gitattributes`
+applies:
+
+```bash
+git archive --format=zip --prefix=codeblock/ -o codeblock.zip HEAD
+```
+
+Extract it where the engine will find it — **not** the junction `run_tests.ps1`
+creates, or the repository's `tests/` comes back and the check proves nothing.
+`vector3` has to be installed beside it, and the host game has to supply `default`
+and `wool`, so `minetest_game` rather than the `cbtest` fixture.
+
+Result: pass — `7c5bceb` · engine 5.17.0 · 2026-08-28 — the archive was extracted
+into `minetest_game`'s own `mods/`, beside `vector3`, and a world on that game
+started with `codeblock_run_tests = true`. The mod loaded normally, logged
+*"codeblock_run_tests is set, but this build ships no tests/ directory"* at
+`warning`, and the server came up and gave the world its `codeblock_files`
+directory. **`C16` is confirmed on the one path it was filed for**, and the
+release-archive pair is complete.
 
 ### R3 · The sky belongs to the game [C18]
 

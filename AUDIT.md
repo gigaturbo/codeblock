@@ -84,12 +84,13 @@ the file the drone held; and `S7` came out of a check that **passed on behaviour
 and failed on its message**. A pass/fail line would have buried the last of
 those.
 
-38 of 39 `PLAYTEST.md` checks carry a result — **36 pass, 2 partial, nothing
-failing**. The two partials are `E2`, permanent because `B34` is won't-fix, and
-`D2` case 2, whose recipe has failed to produce the case twice and is the suspect
-rather than the code. **Only `R2` has never been run at all** — the real install,
-which needs a built archive. `R1` passed on 2026-08-28 and took `C10` with it;
-`E16`, new the same day with `F7`, passed the day it was written.
+**All 39 `PLAYTEST.md` checks now carry a result** — **37 pass, 2 partial, nothing
+failing**, and nothing left unrun for the first time in the project's life. The
+two partials are `E2`, permanent because `B34` is won't-fix, and `D2` case 2,
+whose recipe has failed to produce the case twice and is the suspect rather than
+the code. `R1` passed on 2026-08-28 and took `C10` with it; `R2` passed the same
+day and took `C16`'s install guard; `E16`, new the same day with `F7`, passed the
+day it was written.
 
 ---
 
@@ -983,7 +984,7 @@ re-break, and `S2`'s residue is one of the things v1.0.0 ships broken.
   hand and `--check` says up to date at every gate pass, but a guard that passes
   has not been shown to fail, and deleting a row to watch it fail is the only
   thing that would show it.
-- **C16 · medium · resolved, unproven** — `codeblock_run_tests` aborted mod load
+- **C16 · medium · resolved** — `codeblock_run_tests` aborted mod load
   on a ContentDB install: nine bare `dofile`s under a setting an administrator can
   find, whose failure mode was the whole mod refusing to load. A regression from
   `C10`'s `tests` export-ignore. Fixed in Phase 7, `7d9ca47`: `init.lua` probes
@@ -991,12 +992,15 @@ re-break, and `S2`'s residue is one of the things v1.0.0 ships broken.
   "codeblock_run_tests is set, but this build ships no tests/ directory" and loads
   normally. A probe for one file rather than a directory test, because Lua 5.1 has
   no portable one.
-  **Keep — the one thing an install would prove.** Nobody has built an archive,
-  installed it and set the flag. What would settle it:
-  `git archive HEAD | tar -t | grep tests` returning nothing, then a real install
-  with `codeblock_run_tests = true`. Worth doing once in the next release check —
-  this is a mod-load failure on a player's machine and the release path is exactly
-  where it would be met. Both halves are playtest `R1` and `R2`.
+  **Proven on a real install, 2026-08-28 at `7c5bceb`.** Both halves are playtest
+  `R1` and `R2` and both passed the same day: the archive holds no `tests/`, and
+  the archive extracted into `minetest_game`'s `mods/` with
+  `codeblock_run_tests = true` loaded normally and logged the warning. That was
+  the one thing only an install could show — a mod-load failure on a player's
+  machine, met nowhere but the release path. **Keep the probe's shape**: it tests
+  for `tests/api_spec.lua` with `io.open` rather than for the directory, because
+  Lua 5.1 has no portable directory test, and a release build must answer rather
+  than fail.
 - **C17 · medium · resolved** — `locale/template.txt` had drifted in both
   directions, and three translations had been unhooked by a one-character edit to
   their key. From playtest `F-2` being partial: the behaviour passed, the words
@@ -1360,12 +1364,10 @@ whole once its field names and values total 640 kB, and that check exists from
 **5.7.0** and not before. `B40`'s reachability question, open when it was filed,
 is answered there.
 
-**Gates green, unproven in a world:** `B14`, which cannot be proven from the
-editor at all while `B34` stands, and `C16`'s install guard, which needs a real
-archive and a real install (`R2`). **That is now the whole list**, and both
-entries are blocked on something other than someone finding time: one on a
-won't-fix, one on a release. `B7`, `B41`, `C18`, `S7`, `B44`, `B43` and — through
-`R1` — `C10` all left it on 2026-08-28.
+**Gates green, unproven in a world:** `B14` alone, which cannot be proven from the
+editor at all while `B34` stands — so the one entry left is blocked on a won't-fix
+and not on anyone finding time. `B7`, `B41`, `C18`, `S7`, `B44`, `B43`, `C10`
+(through `R1`) and `C16`'s install guard (through `R2`) all left it on 2026-08-28.
 One residue, too small for an entry of its own: `S7`'s **log** line is unlooked-at
 — `F-3` case 2 confirmed what the player sees and not what the operator does.
 

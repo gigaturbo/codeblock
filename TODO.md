@@ -53,8 +53,8 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
 - [ ] run D2 case 2 — a drone placed where the client shows a node the server has
       unloaded; the recipe is in the check, and it has now been aimed at twice
       and missed twice, so the recipe is the suspect (audit B10)
-- [ ] build the release archive and install it once, to prove C16's guard —
-      playtest R1 and R2, never run (audit C16)
+- [x] build the release archive and install it once, to prove C16's guard —
+      playtest R1 and R2, both passed 2026-08-28 at `7c5bceb` (audit C16)
 
 Elsewhere
 

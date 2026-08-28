@@ -30,8 +30,9 @@ it. Six findings came out of this phase's playtests, **all six are fixed**, and
 on 2026-08-28 at `6fea453` the last three were confirmed in a world by their own
 checks — `D6` for `B44`, `F-3` case 2 for `S7`, and a re-timed `P3` for `B43`,
 which spread **78 s and 95 s** where the same shape spread 78 / 160 / 183 before.
-The *gates green, unproven in a world* list is down to two entries, neither of
-them waiting on someone finding the time.
+The *gates green, unproven in a world* list is down to **one** entry — `B14`,
+blocked on `B34` being won't-fix — after `R2` closed `C16`'s install guard the
+same day.
 
 **`C19` was filed and fixed the same day, and it is the only finding here ever
 raised by a published rule rather than by a defect.** The long description was
@@ -55,11 +56,13 @@ the phase is 4 of 6, with `F4` and `F5` left, and **every shipped feature here i
 now proven in a world**. `F6` is no longer one of them: Blockly is `Phase 10` and
 v2.0.0.
 
-**One check stands between here and *everything proven*:**
-
-- **`R2`**, a real install with `codeblock_run_tests` set, which needs a built
-  archive and is the last check in `PLAYTEST.md` with no result at all. It closes
-  `C16`'s install guard and belongs to the release anyway.
+**`R2` passed on 2026-08-28 too, and with it every check in `PLAYTEST.md` now
+carries a result** — 39 of 39, 37 pass and 2 partial, which has never been true
+before. It closed `C16`'s install guard: the archive extracted into
+`minetest_game`'s own `mods/` beside `vector3`, with `codeblock_run_tests = true`,
+loaded normally and logged the warning instead of refusing to load. The one thing
+still unproven anywhere is `B14`, and it is blocked on `B34` being won't-fix
+rather than on anyone finding time.
 
 **`R1` passed on 2026-08-28** and took **`C10`** with it — `.gitattributes` was
 doing its job for the project's whole life and nothing had ever looked. The
@@ -135,9 +138,10 @@ Read what the game actually said, not just whether it did the right thing.
   ≈ 80 s the ceiling over the unload window predicts. `S5` had claimed that
   behaviour from reading since Phase 5.
 
-**Only `R2` has never been run at all** — the real install, which needs a built
-archive. `R1` passed on 2026-08-28, and took `C10` with it. `E16`, new with `F7`
-today, passed the day it was written. The world group — `W1`, `W2`, `W3` — was
+**Nothing is unrun any more.** `R1` and `R2`, the release-archive pair and the
+last two checks with no result, both passed on 2026-08-28, taking `C10` and
+`C16`'s install guard with them. `E16`, new with `F7` the same day, passed the day
+it was written. The world group — `W1`, `W2`, `W3` — was
 played on 2026-08-28 and all three passed, the last group to have had nothing in
 it.
 
@@ -275,12 +279,14 @@ Shipped, gates green, and **confirmed in a world by `E16`** at `afbe504`:
 
 - `F7` a `*` on a tab whose buffer differs from the file.
 
+**The playtest backlog this phase carried is gone.** `R1` and `R2`, the
+release-archive pair, both passed on 2026-08-28 and took `C10` and `C16` with
+them; `D6`, `F-3` case 2 and a re-timed `P3` were run at `6fea453` the same day
+and all three pass, confirming `B44`, `S7` and `B43`. Nothing in the phase waits
+on a code change any more.
+
 Left in the phase:
 
-- `R1` and `R2`, the release-archive pair. The three checks beside them in this
-  item — `D6`, `F-3` case 2 and a re-timed `P3` — were run at `6fea453` on
-  2026-08-28 and all three pass, so `B44`, `S7` and `B43` are confirmed and
-  nothing here waits on a code change any more.
 - `D2` case 2 — the last half nothing has exercised. Aimed at twice and missed
   twice; it needs a way to observe the server has released a mapblock, not
   another session. (B10)
@@ -384,8 +390,8 @@ build with* belongs to the program and travels with it when shared.
   If persistence from a program is ever wanted it gets its own command, not a flag
   on an innocuous-looking call.
 
-Open against it: two `PLAYTEST.md` checks, the Settings panel and the preference
-surviving a relog. Outstanding *checking*, not unfinished work.
+Its two `PLAYTEST.md` checks — the Settings panel and the preference surviving a
+relog — both passed at `246bb37` on 2026-08-27. Nothing is outstanding.
 
 ### F2 · small · shipped `dee0bc7` — open a copy of a program
 
@@ -473,7 +479,7 @@ Spec coverage is unusually good: `integration_spec` gained nine assertions
 (98 → 107), and `stepper_spec` already injects the clock and the budget, so "a
 sleeping drone is skipped and takes no share" is assertable without a world. What
 only a world shows is the pace being watchable and other drones being unaffected —
-`PLAYTEST.md` `F3`, unrun.
+`PLAYTEST.md` `F3`, which passed at `246bb37` on 2026-08-27.
 
 ### F4 · large · planned — a live drone panel
 
@@ -721,12 +727,12 @@ on 2026-08-28**, the day this shipped.
   author on 2026-08-28: one boolean per tab against doubling the editor's memory
   for a cosmetic mark. It is therefore wrong in the harmless direction — type a
   character, undo it, and the tab stays marked until the next save. (F7)
-- `C16`'s install guard and the archive checks are unrun. 37 of 39 `PLAYTEST.md`
-  checks carry a result — **36 pass, 2 partial, nothing failing**; the partials
-  are `E2`, permanent while `B34` is won't-fix, and `D2` case 2. Only `R2` has
-  never been run — `R1` passed on 2026-08-28, confirming the archive holds
-  eleven player-facing entries and none of the record, and taking `C10` with it.
-  The footprint throttle left this list on 2026-08-28,
+- **All 39 `PLAYTEST.md` checks carry a result** — 37 pass, 2 partial, nothing
+  failing and nothing unrun; the partials are `E2`, permanent while `B34` is
+  won't-fix, and `D2` case 2. `R1` and `R2` both passed on 2026-08-28: the archive
+  holds eleven player-facing entries and none of the record (`C10`), and installed
+  as a package with `codeblock_run_tests = true` it loads and warns instead of
+  refusing to load (`C16`). The footprint throttle left this list on 2026-08-28,
   having been on it since Phase 5: `P3` measured it, and then re-timed it against
   `B43`'s fix.
 - A failed file open names the file and logs the operating system's reason at
