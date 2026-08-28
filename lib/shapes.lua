@@ -66,7 +66,12 @@ local bounds = {
             y = s.pos.y,
             z = s.pos.z - floor(s.l / 2)
         }
-        return o, o, {x = o.x + s.w, y = o.y + s.h, z = o.z + s.l}
+        -- Minus one on each axis: the filler writes 0 .. w-1 relative to `o`, so
+        -- the last node is o + w - 1. Returning o + w emerged a node-layer past
+        -- the shape on all three axes, free when it fell inside a mapblock
+        -- already being read and a whole extra layer of blocks when it did not -
+        -- which on a thin shape is a doubling, not a rounding error. (B43)
+        return o, o, {x = o.x + s.w - 1, y = o.y + s.h - 1, z = o.z + s.l - 1}
     end,
 
     sphere = function(s)
@@ -85,8 +90,11 @@ local bounds = {
         local p, r = s.pos, s.r
         local a = s.axis
         local o1, o2 = others[a][1], others[a][2]
+        -- Minus one along the length, for the same reason as the cube: the
+        -- filler runs 0 .. l-1 along the axis. The two radius axes are exact
+        -- already, the filler running -r .. r. (B43)
         local p1 = {[a] = p[a], [o1] = p[o1] - r, [o2] = p[o2] - r}
-        local p2 = {[a] = p[a] + s.l, [o1] = p[o1] + r, [o2] = p[o2] + r}
+        local p2 = {[a] = p[a] + s.l - 1, [o1] = p[o1] + r, [o2] = p[o2] + r}
         return p, p1, p2
     end
 
@@ -228,6 +236,13 @@ local fillers = {
 function shapes.build(spec)
 
     local origin, pos1, pos2 = bounds[spec.kind](spec)
+
+    -- A zero dimension is reachable - cube(0, 0, 0) rounds to w = h = l = 0 -
+    -- and since B43 the bounds for it are pos2 = pos1 - 1 on that axis. An
+    -- inverted box must never reach read_from_map, and there is nothing to
+    -- write anyway. Before B43 the same shape emerged one mapblock and filled
+    -- nothing.
+    if pos2.x < pos1.x or pos2.y < pos1.y or pos2.z < pos1.z then return 0 end
 
     -- Slabs of whole mapblocks along the shape's longest axis. Whole blocks
     -- because the engine emerges them whole anyway: a slab boundary inside a

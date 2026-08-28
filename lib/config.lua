@@ -41,6 +41,12 @@ local function number(name, default)
     return n
 end
 
+--- A boolean from `codeblock_<name>`, or `default` when unset or unreadable.
+local function flag(name, default)
+    if not settings then return default end
+    return settings:get_bool('codeblock_' .. name, default)
+end
+
 --- Four numbers from `codeblock_<name>`, one per codelevel: "1,2,3,4".
 --
 -- Negative values are rejected rather than trusted; zero is allowed, because
@@ -77,6 +83,17 @@ codeblock.config.lua_dir = 'codeblock_files'
 -- a saved one cannot exceed 640 kB anyway - that is the engine's own ceiling on
 -- a formspec submission, from 5.7 onwards.
 codeblock.config.max_file_kb = number('max_file_kb', 128)
+
+-- Flatten the sky for every player who joins: daylight held at noon, and no
+-- sun, moon, stars or clouds.
+--
+-- Off, and it is the only presentation setting here. Nothing this mod does needs
+-- it - a drone builds the same at midnight - and daylight is a game's to
+-- contribute, not a mod's. It exists only because these five overrides were
+-- applied unguarded on every join, so any game that installed the mod silently
+-- lost its sky; a game that wants that look now asks for it in its own
+-- minetest.conf. (C18)
+codeblock.config.flat_sky = flag('flat_sky', false)
 
 codeblock.config.auth_levels = {1, 2, 3, 4}
 

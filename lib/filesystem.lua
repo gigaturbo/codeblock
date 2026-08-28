@@ -94,8 +94,17 @@ local function read_file(name, filename, forceRefresh)
     if not file then return nil, unreadable end
     if file.content then return file.content end
 
+    -- io.open's own message is "<absolute path>: <reason>", so it goes to the
+    -- log and never to the player: it discloses the server's filesystem layout,
+    -- and being the C runtime's errno string it is not a translation key either,
+    -- so it could never come out in the player's language. The player gets the
+    -- filename, like every other refusal here. (S7)
     local handle, err = io.open(file.path, 'rb')
-    if not handle then return nil, err or unreadable end
+    if not handle then
+        core.log('warning', ('[codeblock] cannot read %s: %s'):format(filename,
+                                                                     err or '?'))
+        return nil, unreadable
+    end
 
     -- One byte over the ceiling is all it takes to know the file is too large,
     -- and it is the only way to find out that does not pay for the whole file

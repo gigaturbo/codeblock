@@ -507,6 +507,20 @@ and no record created. This is the only route to B10's message and so to the
 `add_entity`-returns-nil path; case 1 gives *"Please target a node"* and is a
 different branch.
 
+Result: partial — `326f739` + uncommitted B41/C18 fixes · engine 5.17.0 ·
+2026-08-28 — case 2 attempted again with the recipe above and **still not
+reached**: "hard to produce case 2, looks not unloaded". The area stayed resident,
+so the placement kept landing on the success path. Case 1 remains a pass.
+
+**Case 2 is now two attempts old, and the recipe is the suspect rather than the
+tester.** `server_unload_unused_data_timeout` bounds when the engine *may* drop an
+idle mapblock, not when it does, and a block stays resident while anything keeps
+it active — a nearby player, an active object, the drone already standing there.
+Before spending a third session on it, read what actually holds a block: the next
+attempt wants a way to *observe* that the server has let go, rather than waiting a
+timeout and hoping. Until then `B10`'s refusal stays committed and unproven, which
+is where it has been since Phase 7, and this check is the only route to it.
+
 ### D3 · Replace a drone under the same name [B29, B30]
 
 Two things, and the first is not what this check used to say.
@@ -589,16 +603,59 @@ Place the poser with no previously loaded file — a fresh player, or one whose
 `codeblock:last_file` names a file that is gone. The chooser opens. Press
 **Cancel**. Then place again and press **ESC** instead.
 
-**Pass:** no drone is left standing. Today **neither** is: `Drone.new` runs before
-the chooser is shown, so declining leaves a drone nametagged `[<player>] ?.lua`
-that answers *"Not a valid file"* on every use. Placing again is not refused, so
-it costs the player nothing but a puzzle.
+Then a third time: place, and this time **choose a file** — the drone must stay.
+
+**Pass:** neither Cancel nor ESC leaves a drone standing, and choosing a file
+still leaves one that runs. Before `B41`'s fix both declining paths left a drone
+nametagged `[<player>] ?.lua` that answered *"Not a valid file"* on every use.
+Placing again was not refused, so it cost the player nothing but a puzzle.
+
+The third part is the one to actually do: the fix removes the drone whenever the
+chooser closes with no file set, so a bug in it would take away the drone the
+player *did* choose for.
 
 Result: fail — `246bb37` · engine 5.17.0 · 2026-08-27 — reported unprompted: "when
 no program selected, try place, it opens the dialog to choose, click cancel: it
-place a drone with ?.lua and refuses to run with invalid file". **B41**, open, not
-yet fixed. The ESC half is read from the code, not observed — that path sends no
-field any branch claims, so it lands in the same state.
+place a drone with ?.lua and refuses to run with invalid file". **B41**, fixed on
+2026-08-28.
+
+Result: pass — `326f739` + uncommitted B41/C18 fixes · engine 5.17.0 · 2026-08-28
+— **all three parts**. Cancel leaves no drone, ESC leaves no drone, and choosing a
+file still leaves one that runs. **B41 is confirmed fixed in a running world**,
+and its ESC half is observed for the first time: that path was reasoned from the
+field table from the day the finding was filed, through the fix, until this run.
+
+That session turned up a defect no check was looking for, in the same class:
+place a drone, open the editor, **remove the file the drone is holding**, close
+the editor — the drone stands there naming a file that no longer exists, and is
+only taken away when you run it. **B44**, and `D6` below.
+
+### D6 · Removing the file a drone is holding [B44]
+
+Place a drone and give it a file, so its nametag reads `[<player>] thing.lua`.
+Open the editor, open that file, **Remove file**, and close the editor. Look at
+the drone. Then run it.
+
+**Pass:** removing the file does not leave a drone naming it — either the drone
+goes with the file, or its nametag stops claiming a program it cannot run. Today
+neither happens: `remove_file` deletes the file and refreshes the player's cache
+and knows nothing about drones, so `drone.file` still holds the name. The drone
+is taken away on the *run*, where `get_safe_coroutine` fails to read it — so the
+error and the disappearance both arrive one gesture later than the cause.
+
+Also check the other order, which is the one that has a guard already: remove the
+file, then place a **new** drone. That is fine — `Drone.on_place` tests
+`codeblock:last_file` against the player's file list before using it, so a stale
+last-file is ignored and the chooser opens instead.
+
+Result: fail — `326f739` + uncommitted B41/C18 fixes · engine 5.17.0 · 2026-08-28
+— found while running `D5`: "if I pose the drone, open editor, remove the file,
+then close editor, drone is now here with a file that does not exists (drone
+removed on run)". **B44**, fixed the same day; this line predates the fix and the
+check is due a re-run. The drone is now removed when the file it holds is the one
+deleted, so the pass to look for is the drone going *with* the file — and the
+second half above, placing a new drone after a removal, must still open the
+chooser rather than do nothing.
 
 ---
 
@@ -680,12 +737,27 @@ built with `..` and so had never been translatable at all.
    carries on with the rest of the list. This is the branch that runs after
    `handle:close()`, so it is also where a leaked handle would show.
 2. **A genuinely unreadable file**, which is the awkward one. On Windows, deny
-   yourself read on one of your `.lua` files and reopen the editor:
+   yourself read on one of your `.lua` files and reopen the editor. **In
+   PowerShell**, which is the shell on this machine:
 
+   ```powershell
+   $f = "<worldpath>\codeblock_files\<playername>\test.lua"
+   icacls $f /deny "$($env:USERNAME):(R)"     # now unreadable
+   icacls $f /remove:d $env:USERNAME          # put it back
    ```
-   icacls "<worldpath>\codeblock_files\<playername>\test.lua" /deny "%USERNAME%":(R)
-   icacls "<worldpath>\codeblock_files\<playername>\test.lua" /remove:d "%USERNAME%"
-   ```
+
+   **Write it that way and not the `cmd` way.** The obvious
+   `icacls ... /deny "%USERNAME%":(R)` is a `cmd.exe` line and PowerShell
+   mis-parses it twice over: `%USERNAME%` is not expanded, and the bare `(R)` is
+   read as a **subexpression**, so PowerShell runs `R` — an alias for
+   `Invoke-History` — and answers *"Most recent history not found"* without ever
+   calling `icacls`. Hence `$($env:USERNAME):(R)` inside one quoted string, where
+   the subexpression is explicit and the parentheses are literal. Verified as a
+   round trip on 2026-08-28: deny, read refused with `UnauthorizedAccessException`,
+   `/remove:d`, readable again.
+
+   The deny must name **your own** account, because the server runs as you. Put
+   the `/remove:d` back afterwards, or that file stays unreadable to everything.
 
    **Pass:** the message names `test.lua`, and no other file in the list is lost
    with it — a single bad file must not cost the player the session.
@@ -721,6 +793,36 @@ Result: pass — `246bb37` + B40's and B42's fixes, uncommitted · engine 5.17.0
 the file and the editor carries on with the rest of the list, so the branch after
 `handle:close()` is exercised for the first time and **B7** is confirmed in a
 running world. Case 2, the unreadable file, is still unrun.
+
+Result: unchecked — 2026-08-28 — **case 2 attempted and blocked by the recipe,
+not by the mod.** The `icacls` line as written was `cmd` syntax run in PowerShell,
+which answered `R : Historique le plus récent introuvable.` — PowerShell had read
+`(R)` as a subexpression and run the `r` alias for `Invoke-History` instead of
+calling `icacls` at all. **The recipe above is corrected and the round trip is
+verified**; the check itself is still to do. No finding: nothing in the mod was
+reached.
+
+Result: partial — `326f739` + uncommitted B41/C18 fixes · engine 5.17.0 ·
+2026-08-28 — case 2, with the corrected recipe. **The behaviour passes**: the
+file stays in the list, opening it reports the failure, and no other file is
+lost with it, so `B7`'s half of this check is confirmed for the second branch.
+
+**But the message is wrong twice over, and that is `S7`.** It read
+*"&lt;full path&gt; ... permission denied"* — the server's **absolute filesystem
+path**, in English with the game in any language. `read_file` returns `io.open`'s
+own error string for this one branch (`return nil, err or unreadable`), where
+every other refusal beside it uses `S()` and names the bare filename. So the
+pass condition as written — *the message names `test.lua`* — is not met: it names
+the whole path instead.
+
+Case 2 stays **partial** until `S7` is fixed and the message names the file.
+
+**`S7` was fixed the same day, so this is due a re-run.** What to look for now:
+*"Cannot read file test.lua"* and nothing else — no path, and translated if the
+game is in French. The real reason still exists, at `warning` level in the
+server log with the filename beside it, which is where an operator should look
+and where a path is not a disclosure. Check the log too: the point of the fix is
+that the detail moved, not that it was thrown away.
 
 ### F-4 · A file too large to open [B40]
 
@@ -769,24 +871,61 @@ node at a time across several mapblocks and back over ground it already visited.
 cleared before every yield, **per resume, not per run**, which is exactly what
 this check exercises.
 
+**Run it at codelevel 1 or 2, not 3 or 4.** The pass condition is only *no
+holes*, but what this check is *for* is the per-resume memo reset, and the
+codelevel decides how often that runs. `end_command` yields after **every**
+command while `pace_ms > 0` — levels 1 and 2 — and only when the step budget is
+spent when pace is 0. So a 2000-command program clears and rebuilds the memo
+2000 times at level 1 and a handful of times at level 4. The high-codelevel run
+proves the writes land; the low-codelevel run is the one that exercises the
+thing the check exists for.
+
 Result: pass — `43e95a8` · engine not recorded · 2026-08-25 — the mapblock memo,
 the per-crossing footprint charge and the per-resume reset all behaved. Measured
 over a 400-block sweep: **16.3 kB resident per mapblock**, and the engine served
 about **1700 loads a second**. Recorded in the audit under S5 and quoted again as
 the measurement that forced Phase 6's `map_memory_mb`. The engine version was not
 written down at the time; the audit cites `lua_api.md` 5.17.0 for `load_area` not
-triggering mapgen. **Re-run before v1.0.0** — this predates the Phase 6 and
-Phase 7 rewrites of `lib/cost.lua`.
+triggering mapgen.
+
+Result: pass — `326f739` + uncommitted B41/C18 fixes · engine 5.17.0 ·
+2026-08-28 — **no holes**, at a codelevel above 2. Two 1000-node lines, the
+second offset by `right(5)` and built in a different block after
+`default_block(blocks.brick)`, so the return leg re-crosses about 63 mapblocks
+the outward leg had already written into — which is the case the memo is for.
+This clears the re-run the 2026-08-25 line was flagged for: it now postdates the
+Phase 6 and Phase 7 rewrites of `lib/cost.lua`.
+
+Both lines appearing **instantly is the program's speed, not a shortcut**: at
+codelevels 3 and 4 `pace_ms` is 0, so the drone never waits between commands and
+2000 of them fit in a few server steps. 2000 nodes is also nothing against
+`max_nodes_written`, which is 1e7 at level 3. Nothing about the speed weakens
+the *no holes* result — but per the note above, the memo reset is barely
+exercised at that pace, so **a level 1 or 2 re-run is still worth one session**.
+
+Past about 2000 nodes in one direction the program stops with *"The drone cannot
+leave the world (@1 nodes)"*. **That is the world-edge guard working, not a
+limit being hit** — `lib/commands.lua` keeps the drone inside `mapgen_limit`,
+because past that edge a write silently does nothing, which is the lost write
+`load_area` exists to stop. It is `B25`'s half of this check and it reports the
+edge by name. The number depends on the world's own `mapgen_limit`, so a build
+world with a small one stops sooner than the engine's 31000 default.
 
 ### W2 · A node written into never-generated ground [A4]
 
 Place a node in an area that has never been generated, leave, come back so the
 area generates, and look.
 
-**Pass:** the node is still there. **Unknown either way** — whether mapgen can
-overwrite it is one of the things v1.0.0 ships not knowing.
+**Pass:** the node is still there. This was **unknown either way** and was one of
+the things v1.0.0 was going to ship not knowing.
 
-Result: unchecked
+Result: pass — `326f739` + uncommitted B41/C18 fixes · engine 5.17.0 ·
+2026-08-28 — the node survives. **`A4`'s open question is answered**: mapgen does
+not overwrite a node already written into ground it had not generated. That
+question had been on the audit's *not verified anywhere* list since Phase 4 and
+is the oldest thing on it to be settled. `place_block`'s `core.load_area` call
+is what makes the write real in the first place; this says the engine then
+treats the block as generated and leaves it alone.
 
 ### W3 · A large bulk shape [A5, A15]
 
@@ -796,7 +935,37 @@ Run `cube(200, 200, 200)` or similar at codelevel 4 and watch the server.
 not freeze — a 150-node cube stalled it for 0.44 s before shapes were written in
 mapblock-aligned slabs.
 
-Result: unchecked
+Result: pass — `326f739` + uncommitted B41/C18 fixes · engine 5.17.0 ·
+2026-08-28 — `cube(200, 200, 200)` in **0.34 s**, server responsive.
+
+**What that shape costs, since the 0.34 s is the smallest part of it.** Worked
+out from the code and the one measured constant, `16.3 kB` resident per mapblock
+(`S5`); the timing is the only measured number here.
+
+- **8,000,000 nodes**, against `max_nodes_written` = 1e7 at codelevel 3. It fits
+  with a fifth to spare, so `cube(215,215,215)` would not.
+- **~13 mapblocks on each axis**, so a cross-section of ~169 and a total of
+  **~2200 mapblocks** emerged. `SLICE_BLOCKS` is 16, so `layers` computes to 0
+  and is clamped to 1: **every slab is one mapblock thick and 169 across**. This
+  is the "large in two dimensions" case slicing cannot reduce — a slab is 169
+  blocks whatever the axis.
+- **~36 MB of server RAM pinned**, decaying over the engine's 29 s unload
+  window. Against `map_memory_mb` that is 4096 blocks allowed at level 3 and
+  8192 at level 4, so ~2200 never comes near the ceiling and the run never
+  throttles. That is why it did not wait.
+- **CPU**: 13 slabs, each a VoxelManip read, a full-volume fill and a write over
+  ~692k nodes — about 18M Lua table stores in total. 0.34 s is consistent with
+  that under LuaJIT, so the number is what the model predicts rather than a
+  surprise.
+
+**What nothing charges for.** The 0.34 s is the *program's* time, and the budget
+covers nodes, runtime and footprint. Serialising ~2200 mapblocks into the map
+database, and pushing them to every client in range, happen **outside the run
+and are charged to nobody** — they land after the program has already reported
+`completed`. Neither was measured here. That is not this shape misbehaving; it
+is the shape of the limits model, and it is noted under `S5` rather than filed,
+because every mod writing to the map has it and `map_memory_mb` is the closest
+thing to a proxy.
 
 ---
 
@@ -908,6 +1077,17 @@ At view distance 500 the shape was visible as it built, so the codelevel-1 run
 above — nothing appearing until the drone was stopped — was the client and not
 the server. No id for that half.
 
+**Due a re-timing, and this is the check that proves `B43`'s fix.** The
+subtraction landed on 2026-08-28: `bounds.cube` and `bounds.cylinder` no longer
+run a node past the shape. Repeat the three facings from one spot at codelevel 2,
+view distance 500. **Pass:** the three times are within noise of each other and
+near the 78 s end, because a 2-node extent now covers 2 nodes and straddles a
+boundary at 1 position in 16 rather than 2 — the factor-of-two spread between
+facings should be gone. The specs pin the charge arithmetic and were checked
+against the old bounds so they are not vacuous, but **only this check can say
+whether the time a player waits actually changed**, which is what the finding was
+about.
+
 ### P4 · Several drones at once [A5]
 
 Run four or more drones simultaneously.
@@ -945,6 +1125,30 @@ archive and installed it.** Do this once as part of the next release check; the
 release path is exactly where the failure would be met.
 
 Result: unchecked
+
+### R3 · The sky belongs to the game [C18]
+
+Install the mod into a game that has an ordinary day/night cycle — anything but
+`codecube` — and join. Then set `codeblock_flat_sky = true` in `minetest.conf`,
+restart, and join again.
+
+**Pass:** the first join leaves the sky alone — the cycle runs, the sun, moon and
+stars are where the game put them, clouds are drawn. The second join has daylight
+held at noon with none of them visible. Before the fix every joining player got
+the second sky and there was no way to ask for the first.
+
+The setting is read once at mod load, so a restart is part of the check and not an
+impatience. Nothing needs undoing between the two: the overrides are per-player
+and re-applied on join.
+
+Result: pass — `326f739` + uncommitted B41/C18 fixes · engine 5.17.0 · 2026-08-28
+— both positions. With the setting absent the game's own sky is left alone; with
+`codeblock_flat_sky = true` the daylight is held and the sun, moon, stars and
+clouds are gone. **C18 is confirmed fixed in a running world**, and this is the
+first time the finding's player-visible half has been seen at all: that a joining
+player loses the day/night cycle was read from the source for the whole life of
+the finding, because inside `codecube` the flat sky is the game's own design and
+looks correct.
 
 ---
 

@@ -213,13 +213,16 @@ core.register_on_joinplayer(function(player)
     -- tools
     set_tools(player)
 
-    -- overrides
-    -- TODO: TEMP fix
-    player:override_day_night_ratio(1)
-    player:set_stars({visible = false})
-    player:set_sun({visible = false})
-    player:set_moon({visible = false})
-    player:set_clouds({density = 0})
+    -- Presentation, and off unless a game asks for it: see config.flat_sky.
+    -- Per-player and re-applied on every join, so nothing has to be undone
+    -- when the setting is turned off. (C18)
+    if codeblock.config.flat_sky then
+        player:override_day_night_ratio(1)
+        player:set_stars({visible = false})
+        player:set_sun({visible = false})
+        player:set_moon({visible = false})
+        player:set_clouds({density = 0})
+    end
 
 end)
 

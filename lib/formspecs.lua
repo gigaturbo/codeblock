@@ -45,6 +45,8 @@ local write_file = codeblock.filesystem.write_file
 local remove_file = codeblock.filesystem.remove_file
 
 local set_file = codeblock.Drone.set_file
+local get_drone = codeblock.Drone.get
+local remove_drone = codeblock.Drone.remove
 
 --------------------------------------------------------------------------------
 -- private
@@ -372,10 +374,19 @@ local file_editor = {
         local function remove_active()
             if meta.active == 0 then return end
             if #meta.tabs == 0 then return end
-            local err = remove_file(name, meta.tabs[meta.active])
+            local filename = meta.tabs[meta.active]
+            local err = remove_file(name, filename)
             if err then
                 chat_send_player(name, err)
             else
+                -- The drone holding this file would otherwise stand in the world
+                -- naming one that no longer exists, and only go away on the next
+                -- run, where reading it fails. Taking it with the file is the
+                -- same answer B41 gave for a chooser cancelled with none picked;
+                -- the two have to agree. remove_file knows nothing about drones
+                -- and should not - this is the caller's to do. (B44)
+                local drone = get_drone(name)
+                if drone and drone.file == filename then remove_drone(name) end
                 table.remove(meta.tabs, meta.active)
                 table.remove(meta.contents, meta.active)
                 meta.active = 0
@@ -695,7 +706,13 @@ local file_chooser = {
     on_close = function(meta, player, fields)
         local name = player:get_player_name()
 
-        local function cancel()
+        -- Close the chooser, taking the drone with it when the player leaves
+        -- without a file. Drone.on_place creates the drone before showing this
+        -- form, and one with no file stands in the world answering "Not a valid
+        -- file" on every use, so declining has to undo the placement. (B41)
+        local function close()
+            local drone = get_drone(name)
+            if drone and not drone.file then remove_drone(name) end
             close_form(name)
         end
 
@@ -703,13 +720,13 @@ local file_chooser = {
         local function choose(i)
             local file = get_user_data(name).list[i]
             if file then set_file(name, file.name) end
-            close_form(name)
+            close()
         end
 
         if fields.choose then
             choose(meta.selectedIndex)
         elseif fields.cancel then
-            cancel()
+            close()
         elseif fields.file then
             local e = explode_textlist_event(fields.file)
             local t = e.type
@@ -724,6 +741,10 @@ local file_chooser = {
                 return
             end
 
+        elseif fields.quit then
+            -- Escape, the window's X, or Enter with nothing focused. Sent only
+            -- on an active close, so it cannot mask a button above it.
+            close()
         end
 
     end

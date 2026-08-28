@@ -29,8 +29,6 @@ Features
 
 Decisions wanted from the author
 
-- [ ] decide what happens to the five sky overrides on join — permanent daylight,
-      no sun, moon, stars or clouds, for every installing game (audit C18)
 - [ ] decide whether settingtypes.txt gets a generator and a --check, like
       doc/api.md and locale/template.txt (audit C7, C17)
 - [ ] confirm or overrule keeping Blockly out of 1.0.0 (audit F6)

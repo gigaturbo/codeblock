@@ -25,165 +25,61 @@ nothing dropped.
 
 ## Where it stands
 
-70 findings, this project's own. **66 resolved, 3 open (`B41`, `B43`, `C18`),
-1 won't fix (`B34`).** Everything resolved is pushed and **CI is green at
-`0385099`, run 27, all three jobs** — the run that first covered `B40`'s and
-`B42`'s fixes, `62cf464` and `febf16f`, both of which are also confirmed in a
-running world.
+72 findings, this project's own. **71 resolved, none open, 1 won't fix
+(`B34`).** That is the first time this file has had nothing open. Everything
+through `326f739` is pushed and **CI is green at `0385099`, run 27, all three
+jobs**; the five fixes after it — `B41`, `C18`, `S7`, `B44`, `B43` — are
+**in the working tree with the four local gates green, uncommitted**.
 
 | Category | Count | Open |
 |---|---|---|
-| B bugs | 40 | B41, B43 (B34 won't fix) |
-| S sandbox and security | 6 | — |
-| C compliance and packaging | 12 | C18 |
+| B bugs | 41 | — (B34 won't fix) |
+| S sandbox and security | 7 | — |
+| C compliance and packaging | 12 | — |
 | A architecture and performance | 12 | — |
 
-**Two of the three defects the playtests found are already closed.** The run of
-2026-08-27 at `246bb37` took the drone, filesystem, pacing and per-feature groups
-and found three things no reading had: an unbounded file read (`B40`, high), a
-shape wider than the footprint ceiling raising instead of throttling (`B42`,
-medium), and a cancelled file chooser leaving an unusable drone (`B41`, low).
-`B40` and `B42` were fixed on 2026-08-28 and **both are confirmed in a running
-world** — `F-4`, `F-3` case 1 and `P3`. That range of runs also confirmed `B29`,
+**Every defect the playtests found this phase is fixed, and all but two are
+confirmed in a world.** The run of 2026-08-27 at `246bb37` took the drone,
+filesystem, pacing and per-feature groups and found three things no reading had:
+an unbounded file read (`B40`, high), a shape wider than the footprint ceiling
+raising instead of throttling (`B42`, medium), and a cancelled file chooser
+leaving an unusable drone (`B41`, low). All three are fixed and all three are
+confirmed — `F-4`, `F-3` case 1, `P3` and `D5`. That range also confirmed `B29`,
 `B38`, `B39`, `C17` and, a phase late, `B7`.
 
-**`S5`'s throttle measurement was made at the same time**, the one claim in this
-file that had been read from the code and never seen: `P3` at `febf16f`. Timing
-that run at three facings then opened **`B43`** — the emerged box is a node
-larger than the shape on every axis, which on a thin shape doubles the mapblocks
-and makes a program's duration depend on which way the player was looking. It is
-the first finding here that came out of a *measurement* rather than a failure.
+**The re-runs and the world group then opened three more, and all three are now
+fixed but unproven in a world**: `B43` from timing `P3`, `B44` from re-running
+`D5`, and `S7` from `F-3` case 2. `D6` and `F-3` case 2 are the checks that close
+them, and `P3` wants re-timing against `B43`'s fix.
 
-32 of 36 `PLAYTEST.md` checks carry a result — 29 pass, 2 partial, 1 fail.
+**The world group was played on 2026-08-28 and it settled two long-standing
+questions rather than finding defects.** `W2` passed, which **answers `A4`** —
+mapgen does not overwrite a node written into ground it had not generated, the
+oldest thing on the *not verified anywhere* list and open since Phase 4. `W1`
+passed at current code, so `S5`'s 16.3 kB measurement no longer rests on a run
+predating two rewrites. `W3` passed, `cube(200,200,200)` in 0.34 s, and its
+arithmetic is written up under `S5`: the program's own time is the smallest part
+of what a large shape costs, and the map write and client push are charged to
+nobody.
+
+**Three of the six findings this phase's playtests opened came from a session
+going one step past the written procedure.** `B41` was reported while checking
+something else; `B44` came out of re-running `B41`'s own check and then removing
+the file the drone held; and `S7` came out of a check that **passed on behaviour
+and failed on its message**. A pass/fail line would have buried the last of
+those.
+
+36 of 38 `PLAYTEST.md` checks carry a result — 32 pass, 3 partial, 1 fail. The
+fail is `D6` and one partial is `F-3` case 2; **both now describe fixed code and
+are waiting on a re-run rather than on a change.** The other partials are `E2`
+(permanent, `B34`) and `D2` case 2. **Only `R1` and `R2` have never been run at
+all**, and both belong to the release check.
 
 ---
 
 ## Open
 
-### C18 · medium · open — five sky overrides forced on every joining player
-
-`lib/register.lua`, inside `register_on_joinplayer`, still at line 217 of the
-current tree, unguarded on every join and marked by its own comment:
-
-```lua
--- overrides
--- TODO: TEMP fix
-player:override_day_night_ratio(1)
-player:set_stars({visible = false})
-player:set_sun({visible = false})
-player:set_moon({visible = false})
-player:set_clouds({density = 0})
-```
-
-Five per-player presentation overrides with no setting and no way for a player or
-a server operator to decline. Install this mod into any existing world and every
-player who joins loses the day/night cycle, the sky bodies and the clouds,
-silently and permanently. Nothing in the mod's function needs them — a drone
-builds the same at midnight — and it contradicts the boundary `CLAUDE.md` states:
-a game contributes its own daylight and *the two do not mix*. `codecube`'s flat,
-sunless world is the game's design, not the mod's; that is why the author sees the
-intended result and nobody reported it.
-
-Same class as `B38` and `B39`, and found the same way: code whose effect is
-invisible in the game it was written for and destructive in any other. It was
-never a decision — the `TODO: TEMP fix` predates this audit.
-
-**Needs a decision, not a fix, and it is the author's.** Three options,
-recommendation second: (1) delete the block — correct for the mod, but changes
-what a `codecube` player sees unless the game adds it back, a coordinated change
-across two repositories; (2) **one setting, defaulting off** — the mod touches
-nobody's sky unless asked, `codecube` sets it in its own `minetest.conf`, costs
-one entry in `settingtypes.txt` and `lib/config.lua`, and needs no change in the
-game before this mod's release; (3) leave it and document it as a known
-limitation, which is the state it is in now.
-
-No migration is needed either way: the overrides are per-player and re-applied on
-every join, so removing the code takes effect on the next join
-(`override_day_night_ratio(nil)` restores the cycle).
-
-Severity medium, not high: nothing is lost and it is reversible on the next join.
-Medium rather than low because it applies to every player of every installing game
-with no way to refuse, and it is exactly what a ContentDB reviewer or a server
-operator objects to. **Read from the source only** — that a joining player loses
-the cycle is inference, and there is no playtest check for it. One should be added
-to the drone or release group when the decision is taken.
-
-### B43 · low · open — the emerged box is one node larger than the shape on every axis, and which way the drone faces decides what that costs
-
-`lib/shapes.lua`, `bounds.cube`:
-
-```lua
-return o, o, {x = o.x + s.w, y = o.y + s.h, z = o.z + s.l}
-```
-
-The cube filler writes `x = 0, w - 1` relative to `o`, so the last node it
-touches is `o.x + w - 1`. `pos2` is `o.x + w`. **One node past the shape, on all
-three axes**, and `bounds.cylinder` does the same along its length
-(`p2[a] = p[a] + s.l`, filler `i = 0, s.l - 1`). Sphere and dome are exact.
-
-`read_from_map` aligns outward to whole mapblocks, so that extra node-layer is
-free whenever it falls inside a block already being emerged, and costs an entire
-layer of mapblocks whenever it does not. **On a thin shape it is not a rounding
-error but a doubling**: a 2-node extent covers 3 nodes once the extra one is
-added, so it straddles a mapblock boundary on 2 positions in 16 rather than 1.
-
-**Measured, playtest `P3` at `febf16f`, 2026-08-28**, codelevel 2 and view
-distance 500, `cube(2, 2, 30000)` from one spot, turning 90° between runs:
-**78 s, 160 s, 183 s.** The model behind those numbers: codelevel 2 holds 16 MB,
-1024 mapblocks, decaying over the engine's 29 s window, so it settles at 35.3
-blocks a second; the long axis is about 1877 mapblocks and each short axis
-contributes a factor of 1 or 2, giving totals of 1877, 3754 or 7508 and
-predicted times of 24 s, 77 s and 184 s. **78 s and 183 s land on two of those to
-within one per cent.** So the work really does differ with the facing, and by a
-factor of two — this is not what the client drew.
-
-Why the facing changes it at all: `drone_place_cube` computes a different origin
-per angle — `drone.x + floor(w/2)` at angle 0 against `drone.x - floor((w-1)/2)`
-at angle 2 — and swaps `w` and `l` at angles 1 and 3. From one spot the four
-angles put the short extents on different absolute coordinates, so each has its
-own answer to whether they straddle a boundary.
-
-**The 160 s run is not explained by that model** and is left open rather than
-rounded into it: spans are 1 or 2, so the only products are 1, 2 and 4, and
-6674 mapblocks is none of them. A footprint left over from the previous run
-would make a run *longer* than its class, not land it between two.
-
-**The fix, and what it disturbs.** Subtract one from each axis in `bounds.cube`
-and from the length in `bounds.cylinder`. That is the whole change to the module,
-but three cases in `tests/shapes_spec.lua` encode the current behaviour and would
-have to be recomputed rather than adjusted by eye — *a shape across a boundary is
-charged for both sides* is 8 and becomes 2, and the 48-node cube's charge of 64
-becomes 48, with its slab count and per-pass charge following. **Recompute them
-from the geometry, do not fit them to the output**; that is the whole point of
-how that spec is written.
-
-Low, not medium: nothing is built wrong and nothing is lost. It spends emerge
-time and footprint the shape never asked for, and it makes how long a program
-takes depend on which way the player happened to be looking.
-
-### B41 · low · open — cancelling the file chooser leaves a drone that cannot run
-
-Place the poser with no `codeblock:last_file` stored, and `Drone.on_place`
-returns true so `lib/register.lua` shows the chooser — but the drone has already
-been created by `Drone.new` above that return. `file_chooser.on_close`'s `cancel`
-calls `close_form` and nothing else, so the player who declines to pick a file
-gets a drone anyway: it stands in the world with the nametag `[<player>] ?.lua`
-(`lib/drone.lua`, the `self.file or '?.lua'` fallback) and answers *"Not a valid
-file"* on every use. Closing the chooser with **ESC** lands in the same state —
-that path sends no field any branch claims.
-
-Low: recoverable without help, because placing again is not refused (`drone.cor`
-is nil, so the busy check passes) and picking a file then works. It is a wrong
-state rather than a lost one.
-
-The fix is one of two, and they are not equivalent. **Remove the drone when no
-file was chosen** — `show_file_chooser` has exactly one call site, reached only
-when the drone has no file, so `Drone.remove(name)` on cancel is safe today and
-the ESC path needs the same treatment, which means handling `fields.quit` rather
-than only `fields.cancel`. Or **do not create the drone until a file is picked**,
-which is the tidier shape and a larger change: `Drone.new` currently establishes
-the position and facing that the chooser's answer is applied to, so deferring it
-means carrying those to the callback.
+**Nothing is open.** `B34` below is the one won't-fix.
 
 ### B34 · low · won't fix — a file cannot be removed without opening it first
 
@@ -213,8 +109,8 @@ delete should confirm is a separate question.
 
 ## B · Bugs
 
-40 findings, 37 resolved, `B41` and `B43` open (above), `B34` won't fix.
-`B19`, `B20` and `B24` are the game's.
+41 findings, 40 resolved, `B34` won't fix. `B19`, `B20` and `B24` are the
+game's.
 
 - **B1 · critical · resolved** — comment stripping deleted the code between two
   block comments. `lib/sandbox.lua`, pre-Phase 2. Fixed in Phase 2 with B2–B4:
@@ -278,6 +174,14 @@ delete should confirm is a separate question.
   staticdata instead of being written in from outside. Committed, not verified: it
   needs a player pointing at a node the server has unloaded (playtest `D2`
   case 2). `B38` is why it stayed unreachable so long.
+  **Two attempts have now failed to arrange it** — `246bb37` and `326f739`, the
+  second with the written recipe: *"hard to produce case 2, looks not unloaded"*.
+  The suspect is the recipe, not the tester.
+  `server_unload_unused_data_timeout` bounds when the engine *may* drop an idle
+  mapblock, not when it does, and anything keeping the block active holds it. A
+  third attempt wants a way to **observe** that the server has let go, rather than
+  waiting out a timeout and hoping; until there is one, this stays the only route
+  to the refusal and the refusal stays unseen.
 - **B11 · medium · resolved** — `on_deactivate` dereferenced `_data` without the
   guard `on_step` had. Fixed in Phase 7, `742a1ca`, by removing the cache rather
   than adding the guard: the entity holds a name, so a name that names no drone
@@ -687,13 +591,103 @@ delete should confirm is a separate question.
   this finding returning — every orientation completes. Timing three of them
   turned that into `B43`: the emerged box is a node larger than the shape, which
   a thin shape pays for in whole mapblocks.
+- **B41 · low · resolved** — cancelling the file chooser left a drone that could
+  not run. From playtest `D5`. `Drone.on_place` creates the drone and *then*
+  returns true so `lib/register.lua` shows the chooser, and the chooser's cancel
+  called `close_form` and nothing else — so declining left a drone standing in
+  the world with the nametag `[<player>] ?.lua` and answering *"Not a valid
+  file"* on every use. Closing with **ESC** landed in the same state, that path
+  sending no field any branch claimed. Low: recoverable unaided, because the
+  busy check passes with no coroutine attached, so placing again and picking a
+  file works. Fixed 2026-08-28 by the first of the two options this finding
+  named — undo the placement rather than defer it: `file_chooser.on_close` now
+  closes through one local `close`, which removes the drone when it still has no
+  file, and every path reaches it — cancel, a choose that named nothing, and a
+  new `fields.quit` branch for ESC.
+  **Confirmed in a running world: `D5` passed at `326f739` + the uncommitted fix,
+  2026-08-28, all three parts** — cancel, ESC, and choosing a file, that last
+  being the case that would catch the repair taking away a drone it should keep.
+  The **ESC half is observed for the first time**: it was reasoned from the field
+  table from the day this was filed, through the fix, until that run. The same
+  session opened `B44`, which is this defect's neighbour — a drone whose file is
+  removed underneath it rather than never chosen.
+  **Keep — why removing is safe, and why `quit` is last in the chain.**
+  `show_file_chooser` has exactly one call site and it is reached only when the
+  drone has no file, so *no file* means *this chooser placed it* and nothing
+  else can be taken away. The other option — do not create the drone until a
+  file is picked — is the tidier shape and a larger change, because `Drone.new`
+  establishes the position and facing the chooser's answer is applied to. And
+  `quit` sits at the end of the `elseif` chain under the rule `B37` set: it is
+  sent only on an active close, never alongside a plain `button`, so it cannot
+  mask a branch above it.
+- **B43 · low · resolved** — the emerged box was one node larger than the shape
+  on every axis, and which way the drone faced decided what that cost. Opened by
+  *timing* `P3` rather than by anything failing, which is the only finding here
+  with that provenance. `bounds.cube` returned `pos2 = o + (w, h, l)` while the
+  filler writes `0 .. w-1`, so the last node is `o + w - 1`; `bounds.cylinder`
+  did the same along its length. Sphere and dome were already exact.
+  `read_from_map` aligns outward to whole mapblocks, so the extra node-layer was
+  free where it fell inside a block already being emerged and cost a whole layer
+  of blocks where it did not — **on a thin shape a doubling, not a rounding
+  error**, since a 2-node extent covering 3 straddles a boundary on 2 positions
+  in 16 rather than 1. Measured at three facings: 78 s, 160 s, 183 s for
+  `cube(2, 2, 30000)`.
+  Fixed 2026-08-28: one subtraction per axis in `bounds.cube`, one along the
+  length in `bounds.cylinder`.
+  **Keep — the guard the subtraction made necessary.** `cube(0, 0, 0)` is
+  reachable, because `drone_place_cube` does `round0(abs(w))` and does not floor
+  at 1. With the old bounds that gave `pos2 == pos1`, a degenerate but valid
+  one-block box. With the fix it gives `pos2 = pos1 - 1`, an **inverted** box,
+  and an inverted box must never reach `read_from_map`. `shapes.build` now
+  returns 0 before the loop when any axis is inverted. Do not remove that check
+  while the subtraction stands; `tests/shapes_spec.lua` pins it.
+  **Keep — the three spec numbers were recomputed, not fitted, and the recompute
+  is checkable.** `tests/shapes_spec.lua` encoded the old behaviour in three
+  places, and each was derived again from the geometry: *a shape across a
+  boundary* is `1 x 2 x 1 = 2` where it was 8 (origin `{14,15,14}`, last node
+  `{15,16,15}` — only y crosses); the 48-node cube is `4 x 3 x 4 = 48` where it
+  was 64 (`{-24,0,-24}` to `{23,47,23}`, y sitting inside three whole blocks);
+  and its per-pass charge is `4 x 3 = 12` where it was 16. Its **slab count stays
+  4**, and the 400x2x2 cube from `B42` is untouched at 26 x 1 x 2 either way —
+  both were checked rather than assumed. **The fix was then run against the old
+  bounds and those four assertions fail with exactly the old numbers**, so none
+  of them passes vacuously.
+  The two `same(got, box(...))` assertions never moved and could not have caught
+  this: the filler always clipped to `w-1`, so the written set was right all
+  along. Only the emerged box was too big, which is why nothing but the charge
+  saw it.
+- **B44 · low · resolved** — removing a file left a drone still naming it, and
+  the drone was taken away on the run rather than at the removal. Found by
+  re-running `D5` and then doing the obvious next thing. `remove_file` deletes
+  the file and refreshes the player's cache and knows nothing about drones, so
+  `drone.file` kept the name and `update_entity` was never called — even the
+  nametag went on claiming a program that was gone. Running it then failed to
+  read the file, `Drone.on_run`'s `get_safe_coroutine` returned false and the
+  error path called `Drone.remove`, so the drone disappeared at the moment you
+  asked it to build, one gesture after the thing that invalidated it.
+  Same class as `B41`: a drone standing in the world naming a file it cannot run.
+  Fixed 2026-08-28 in `lib/formspecs.lua`'s `remove_active`, **not** in
+  `lib/filesystem.lua`: the drone is removed when its file is the one deleted.
+  **Keep — the two answers had to agree, and where the fix belongs.** The choice
+  was to clear `drone.file` and leave a drone asking for one, or to take the
+  drone with the file. `B41` had just decided that question the second way for a
+  cancelled chooser, so this went the same way; a mod that answers *what happens
+  to a drone with no usable file* two different ways is worse than either answer.
+  And it belongs at the caller: `lib/filesystem.lua` has no drone dependency and
+  must not acquire one — modules here take their inputs and know nothing about
+  each other.
+  The opposite order needed nothing and still does: remove a file, then place a
+  new drone, and `Drone.on_place` tests `codeblock:last_file` against the
+  player's file list before using it, so a stale last-file opens the chooser.
+  **Not provable by the specs** — it is the editor writing to the filesystem and
+  a drone in a world. Playtest `D6`.
 
 ---
 
 ## S · Sandbox and security
 
-6 findings, all resolved. Three carry constraints a future change would re-break,
-and `S2`'s residue is one of the things v1.0.0 ships broken.
+7 findings, all resolved. Three carry constraints a future change would
+re-break, and `S2`'s residue is one of the things v1.0.0 ships broken.
 
 - **S1 · high · resolved** — player programs got live references to shared module
   and config tables: the real `vector`, `blocks`, `plants`, `wools`, `iwools`, and
@@ -774,8 +768,23 @@ and `S2`'s residue is one of the things v1.0.0 ships broken.
   two dimensions still exceeds it.
   The live measurement is
   playtest `W1`, attributed to `43e95a8` with the engine version never written
-  down, and **flagged for re-running before v1.0.0** because it predates the
-  Phase 6 and Phase 7 rewrites of `lib/cost.lua`.
+  down. **`W1` was re-run at `326f739` on 2026-08-28 and passed**, so the
+  measurement no longer rests on a run predating the Phase 6 and Phase 7
+  rewrites of `lib/cost.lua`.
+  **Keep — what no limit stands for, from `W3`.** `cube(200, 200, 200)` took
+  0.34 s of program time at `326f739`, and that is the *smallest* part of what it
+  cost. The budget charges nodes, runtime and footprint; **serialising the ~2200
+  mapblocks into the map database and pushing them to every client in range are
+  charged to nobody**, and both land after the run has already reported
+  `completed`. Neither has been measured. It is not a defect and is not filed as
+  one — every mod writing to the map has it, and `map_memory_mb` is the nearest
+  proxy the model has — but a limit added later should not be sold as bounding
+  what a shape costs the server, because that is not what any of them bound.
+  Also from `W3`, and worth having in one place: at 13 mapblocks per axis the
+  cross-section is ~169 and `floor(SLICE_BLOCKS / across)` is 0, clamped to 1, so
+  **every slab of a large cube is one mapblock thick and 169 across**. That is
+  the "large in two dimensions" case above, seen from the other side — it did not
+  throttle only because ~2200 blocks is well under level 3's 4096.
 - **S6 · medium · resolved** — every player got the widest limits by default.
   Fixed in Phase 5: resolved once from `core.is_singleplayer()` — 4 in
   singleplayer, 2 on a server, overridable by `codeblock_default_auth_level`, and
@@ -784,12 +793,40 @@ and `S2`'s residue is one of the things v1.0.0 ships broken.
   `register_on_newplayer`, not `register_on_joinplayer`, so **upgrading a live
   server demotes nobody — and equally tightens nobody**; existing players stay at
   4 until `/codelevel`. That second half is the one that surprises.
+- **S7 · low · resolved** — a failed file open told the player the server's
+  absolute path, in English whatever language the game was in. From playtest
+  `F-3` case 2, which **passed on behaviour and failed on its message**.
+  `lib/filesystem.lua`, `read_file`: `if not handle then return nil, err ... end`
+  handed back `io.open`'s own string — `<absolute path>: Permission denied` —
+  where every other refusal in the same function names the bare filename. Two
+  defects on one line: the server's install layout disclosed to any player, and
+  a message that could never be translated, the C runtime's errno string not
+  being a translation key and so invisible to `gen_locale.lua --check` for the
+  same reason a concatenated one is. The `unreadable` message built four lines
+  above was unreachable: `err` is nil only if `io.open` fails without a reason.
+  Reachable ordinarily, not only by contriving it — a file removed between the
+  list being built and the file being opened gives the same thing.
+  Fixed 2026-08-28: the player gets `unreadable`, and `err` goes to the log at
+  `warning` with the filename beside it, which is where an operator can already
+  see it and where the path is not a disclosure.
+  **Keep — the class, not the line.** This is `C17`'s lesson one level down: a
+  string that reaches a player and is not a translation key cannot be translated
+  and **nothing reports it**, because the checker only sees literals. An error
+  value handed straight through from an engine or C call is exactly that, and it
+  is the shape to watch for — `gen_locale.lua --check` cannot find the next one
+  either.
+  Also worth keeping, from writing the comment: **the locale checker reads
+  comments too.** An explanatory comment containing the literal call syntax made
+  it report a non-literal key, in the source it was documenting. Prose about
+  translation has to avoid spelling the call out.
+  **Not provable by the specs** — no spec reaches `read_file`. Playtest `F-3`
+  case 2, which stays partial until re-run.
 
 ---
 
 ## C · Compliance and packaging
 
-12 findings, 11 resolved, `C18` open (above). `C2`–`C5` and `C15` are the game's;
+12 findings, all resolved. `C2`–`C5` and `C15` are the game's;
 `C9` was never used.
 
 - **C1 · high · resolved, with residue elsewhere** — the version ceiling hid the
@@ -950,6 +987,35 @@ and `S2`'s residue is one of the things v1.0.0 ships broken.
   Severity medium: no behaviour is wrong and nothing is lost, but the mod is
   educational and ships a French locale as a feature, and 12 of its messages could
   not be translated at all while three more looked translated and were not.
+- **C18 · medium · resolved** — five sky overrides were forced on every joining
+  player. `lib/register.lua`, inside `register_on_joinplayer`, unguarded and
+  marked `TODO: TEMP fix`: `override_day_night_ratio(1)` and the sun, moon,
+  stars and clouds all hidden. Install the mod into any existing world and every
+  player lost the day/night cycle and the sky, with no way to refuse. Nothing the
+  mod does needs it — a drone builds the same at midnight — and it contradicts the
+  boundary `CLAUDE.md` states: a game contributes its own daylight and the two do
+  not mix. `codecube`'s flat, sunless world is the game's design, which is why
+  the author saw the intended result and nobody reported it. Same class as `B38`
+  and `B39`: code whose effect is invisible in the game it was written for and
+  destructive in any other. Fixed 2026-08-28 by the second of the three options
+  this finding put to the author — **one setting, defaulting off**:
+  `config.flat_sky`, read through a new `flag` helper beside `number` and
+  `per_level`, with the five calls behind it and a matching entry under a new
+  `[Appearance]` section of `settingtypes.txt`. No migration: the overrides are
+  per-player and re-applied on join, so turning it off takes effect on the next
+  one.
+  **Keep — `codecube` has to ask for it now.** The game adopting a release with
+  this in it gets an ordinary sky unless it sets `codeblock_flat_sky = true` in
+  its own `minetest.conf`. That is one line in the game and nothing in this
+  repository, and it is deliberately not defaulted the other way: a mod that
+  ships to any game must not rewrite its sky to suit one of them.
+  **Confirmed in a running world: `R3` passed at `326f739` + the uncommitted fix,
+  2026-08-28, in both positions** — the game's own sky is left alone with the
+  setting absent, and held flat with it set. That is the first time this
+  finding's player-visible half has been *seen*: the claim that a joining player
+  loses the cycle was inference from the source for the finding's whole life,
+  because inside `codecube` the flat sky is the game's own design and looks
+  correct. The gap this closes is exactly the one that let the defect live.
 
 ---
 
@@ -1009,8 +1075,13 @@ refactor introduced.**
   `ignore`; with it the node lands and is still there on recheck, even where
   terrain was never generated. The per-node cost was fixed where it was large by
   `A15` (one VoxelManip pass per shape, ~20x) and sliced in Phase 6.
-  **Deliberately not verified:** whether mapgen can later overwrite such a node
-  when a player first visits and the area generates (playtest `W2`).
+  **Answered on 2026-08-28, and the answer is no.** Whether mapgen can later
+  overwrite such a node when a player first visits and the area generates was
+  left open here from Phase 4 and was the oldest thing on the *not verified
+  anywhere* list. **`W2` passed** at `326f739`: the node survives generation.
+  So `load_area` plus `set_node` does not merely make the write land, it makes
+  the engine treat the block as generated and leave it alone — and this finding
+  no longer ships with a question attached.
   **Keep — the batching decision, and why its arithmetic wants redoing.** Batching
   `place()` into `core.bulk_set_node` is decided against for 1.0.0. The prize is
   the engine's own 1.3x on the write half of a short run. The price is a
@@ -1133,19 +1204,24 @@ specs 374 passed / 0 failed / 1 xfail / 0 xpass.
 **Verified in a running world** (2026-08-27 and 2026-08-28, engine 5.17.0):
 `F-4` and `F-3` case 1 on 2026-08-28, confirming `B40` and — a phase late,
 because `B40` stood in front of the branch — `B7`; and `P3` at `febf16f` the same
-day, confirming `B42` and making `S5`'s throttle measurement. Before that:
+day, confirming `B42` and making `S5`'s throttle measurement; **`D5`, all three
+parts, confirming `B41`** and pressing its ESC path for the first time;
+**`R3` in both positions, confirming `C18`** and seeing its player-visible half
+for the first time; and **the whole world group — `W1`, `W2`, `W3` — at
+`326f739`**, which answered `A4`, re-based `S5`'s measurement on current code,
+and priced a 200-node cube. Before that:
 `E1`–`E7` at
 `3293a2c`+F1, `E8`, `E9`, `E13` at `dee0bc7`, `E10`, `E11`, `E14`, `E15`, `D1`,
 `D3` part 1, `F-1` at `f274245`, `E12`, `D2` case 1, `D3` part 2, `D4` both cases,
-`F-2`, `P1`, `P2`, `P4` and all three per-feature checks at `246bb37`, and `W1` at
-`43e95a8` (due a re-run). Between them they confirm `A9`, `B13`, `B17`, `B33` on
+`F-2`, `P1`, `P2`, `P4` and all three per-feature checks at `246bb37`. Between
+them they confirm `A9`, `B13`, `B17`, `B33` on
 all three of its losing paths, `B5`, `B22`, `A2`, `B35`, `B36`, `B37`,
 `B10`/`A11`'s happy path, `F2` and `S5`'s measurements — and, new at `246bb37`,
 **`B29`'s serial guard, `B38`, `B39`, `C17`, `F1` and `F3`**.
 
-**Verified by reading a diff or the source:** `C18`'s five overrides still present
-at `lib/register.lua:217`; `B41`'s ESC half, which was reasoned from the field
-table rather than clicked.
+**Verified by reading a diff or the source:** nothing, for the first time since
+this list was written. `B41`'s ESC half was the last entry and `D5` pressed it on
+2026-08-28.
 
 **Verified by reading the engine's own source** (2026-08-28, `luanti-org/luanti`
 at tags 5.6.0, 5.7.0, 5.8.0, 5.9.0 and 5.17.0): a formspec submission is dropped
@@ -1153,13 +1229,23 @@ whole once its field names and values total 640 kB, and that check exists from
 **5.7.0** and not before. `B40`'s reachability question, open when it was filed,
 is answered there.
 
-**Committed, CI-green, unproven in a world:** `B14`, which cannot be proven from
-the editor at all while `B34` stands. `C16`'s install guard, which needs a real
-archive (`R1`, `R2`). `B7` left this list on 2026-08-28.
+**Gates green, unproven in a world:** `B14`, which cannot be proven from the
+editor at all while `B34` stands; `C16`'s install guard, which needs a real
+archive (`R1`, `R2`); and the three fixed on 2026-08-28 after the world group —
+`S7`, `B44` and `B43` — whose checks are `F-3` case 2, `D6` and a re-timed `P3`.
+`B7`, `B41` and `C18` all left this list on 2026-08-28.
 
-**Not verified anywhere:** `A4`'s mapgen-overwrite question, and `C18`'s
-player-visible half. The footprint throttle *doing its throttling* left this list
-on 2026-08-28, having been on it since Phase 5.
+**Not verified anywhere:** `B10`'s refusal, twice aimed at through `D2` case 2
+and twice missed. **That is the whole list.** `A4`'s mapgen-overwrite question
+left it on 2026-08-28 after `W2`, having been on it since Phase 4 and being the
+oldest entry it ever had; `C18`'s player-visible half and the footprint throttle
+*doing its throttling* left it the same day.
+
+**Computed, not measured:** `W3`'s cost breakdown under `S5` — mapblock counts,
+slab geometry, the ~36 MB resident and the ceilings they are compared against are
+arithmetic over the source and the one measured constant (16.3 kB a block). Only
+the 0.34 s is a measurement. The map write and the client push are neither: they
+are named there as uncharged and unmeasured, and should not be quoted as figures.
 
 **Measured, then explained:** the facing-dependent behaviour `P3` turned up was
 timed at three angles on 2026-08-28 — 78 s, 160 s, 183 s — and is `B43`. Two of

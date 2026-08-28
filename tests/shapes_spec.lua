@@ -423,6 +423,21 @@ do
     })
     it('a one-node shape is charged one mapblock', one, 1)
 
+    -- cube(0, 0, 0) is reachable - the command rounds abs(w) and does not floor
+    -- at 1 - and since B43 its bounds are pos2 = pos1 - 1 on every axis. An
+    -- inverted box must never reach read_from_map, so build answers 0 without a
+    -- pass. Before B43 the same call emerged one mapblock and wrote nothing.
+    local empty = shapes.build({
+        kind = 'cube',
+        pos = {x = 0, y = 0, z = 0},
+        w = 0,
+        h = 0,
+        l = 0,
+        node = 'x',
+        hollow = false
+    })
+    it('a zero-sized shape emerges nothing', empty, 0)
+
     -- A radius-20 sphere spans -20..20 on every axis, which aligns out to
     -- -32..31 - four mapblocks per axis, not two, because the shape crosses a
     -- boundary in both directions.
@@ -437,6 +452,10 @@ do
 
     -- Straddling a boundary costs more than sitting inside one, which is the
     -- property that makes the charge track what was actually pinned.
+    --
+    -- Origin is {14, 15, 14} and the last node {15, 16, 15}, so only y crosses:
+    -- 1 x 2 x 1. It was 8 before B43, when pos2 ran a node past the shape and
+    -- put all three axes across a boundary that the shape itself never reaches.
     local across = shapes.build({
         kind = 'cube',
         pos = {x = 15, y = 15, z = 15},
@@ -446,7 +465,7 @@ do
         node = 'x',
         hollow = false
     })
-    it('a shape across a boundary is charged for both sides', across, 8)
+    it('a shape across a boundary is charged for both sides', across, 2)
 end
 
 --------------------------------------------------------------------------------
@@ -487,8 +506,12 @@ do
 
     local o = {x = 0, y = 0, z = 0}
 
-    -- 48 nodes on a side, emerging 4x4x4 mapblocks: 16 across, so one z layer
-    -- per pass and four passes.
+    -- 48 nodes on a side, from {-24, 0, -24} to {23, 47, 23}. That is 4 x 3 x 4
+    -- mapblocks: y sits at 0..47, three whole blocks, while x and z straddle a
+    -- boundary and take four. Sliced along z (ties go to z), so `across` is
+    -- 4 x 3 = 12 and one z layer fits in a pass of 16: four passes of 12, 48 in
+    -- total. Before B43 it read 4 x 4 x 4 and charged 64 for a box a node
+    -- larger than the shape on every axis.
     local got, n, total, charged = sliced({
         kind = 'cube',
         pos = o,
@@ -504,9 +527,9 @@ do
         y = 0,
         z = -24
     }, {x = 23, y = 47, z = 23}, function() return true end)), 'ok')
-    it('the whole charge is the emerged box', total, 64)
+    it('the whole charge is the emerged box', total, 48)
     it('charged once per pass', #charged, 4)
-    it('and per pass for what that pass emerged', charged[1], 16)
+    it('and per pass for what that pass emerged', charged[1], 12)
 
     -- The sphere clips its outer loop the same way, over a radius rather than
     -- an extent, and the radius test must still be the asymmetric one.

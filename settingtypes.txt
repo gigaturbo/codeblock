@@ -1,7 +1,8 @@
 #    Settings for the codeblock mod, shown under Mods in the advanced settings.
 #
-#    Every limit here bounds what one player program may do. They are read once,
-#    when the mod loads, so a change needs a server restart.
+#    Every limit here bounds what one player program may do; the one setting that
+#    is not a limit is under Appearance. They are read once, when the mod loads,
+#    so a change needs a server restart.
 #
 #    The per-codelevel limits take four numbers separated by commas, one for each
 #    codelevel from 1 (novice) to 4 (poweruser). A value that is empty, or that
@@ -78,3 +79,12 @@ codeblock_heap_mb (Maximum heap growth) string 16,64,128,512
 #    Largest string, in megabytes, a single call may produce. Covers the single
 #    allocation the heap limit cannot see.
 codeblock_max_string_mb (Maximum string size) string 1,4,16,64
+
+[Appearance]
+
+#    Hold daylight at noon and hide the sun, moon, stars and clouds, for every
+#    player who joins. Nothing this mod does needs it - a drone builds the same
+#    at midnight - so it is off, and a game that wants a flat, sunless sky asks
+#    for it here. Per-player and re-applied on join, so turning it off takes
+#    effect on the next one.
+codeblock_flat_sky (Flat sky) bool false

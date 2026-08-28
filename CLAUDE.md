@@ -238,9 +238,11 @@ limit once shipped undocumented.
 
 Every one of those tables can be overridden from the settings menu or
 `minetest.conf`, as four comma-separated numbers, plus the scalars
-`default_auth_level`, `server_step_budget_us` and `max_file_kb` — the last being
-the ceiling on a file read out of a player's directory, which is not a codelevel
-limit because it bounds the read itself rather than a running program (B40).
+`default_auth_level`, `server_step_budget_us`, `max_file_kb` and `flat_sky`.
+`max_file_kb` is the ceiling on a file read out of a player's directory, which is
+not a codelevel limit because it bounds the read itself rather than a running
+program (B40); `flat_sky` is the one setting here that bounds nothing at all, and
+why it exists is below (C18).
 `settingtypes.txt` only *draws*
 that menu — the engine does not read it for defaults, so it is a hand-kept mirror
 of the literals here and its own header says so. `map_window_s` is not a
@@ -263,13 +265,15 @@ at load and names its replacement, from the `replaced` table.
 Every setting here is this mod's. A game that embeds it contributes its own —
 mapgen, daylight, build restrictions — and the two do not mix.
 
-**The source currently breaks that rule in one place**, and the rule is the one
-that is right: `register_on_joinplayer` in `lib/register.lua` calls
-`override_day_night_ratio(1)` and hides the sun, moon, stars and clouds for every
-player, unguarded, under a comment reading `TODO: TEMP fix`. That is `codecube`'s
-presentation living in the mod. Open as audit **C18**, with a recommendation and
-no fix, because deleting it changes what a `codecube` player sees. Do not add
-anything else of that kind.
+**One setting is the exception, and it exists only because that rule was broken
+once.** `register_on_joinplayer` in `lib/register.lua` used to call
+`override_day_night_ratio(1)` and hide the sun, moon, stars and clouds for every
+player, unguarded, under a comment reading `TODO: TEMP fix` — `codecube`'s
+presentation living in the mod, and imposed on every other game that installed
+it. It is now behind `config.flat_sky`, **off by default** (C18), so a game that
+wants that sky asks for it in its own `minetest.conf`. Read through `flag`, the
+boolean sibling of `number` and `per_level`. Do not add anything else of that
+kind: the next piece of `codecube` presentation belongs in `codecube`.
 
 ### Writing to the world
 

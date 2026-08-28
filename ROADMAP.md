@@ -20,24 +20,61 @@ because several changes break saved player programs.
 
 ## Now
 
-**Fix `B41`, then `B43`.** The playtest run of 2026-08-27 at `246bb37` closed the
-backlog of *checking* and opened one of *fixing*: it took the drone, filesystem,
-pacing and per-feature groups, confirmed `B29`, `B38`, `B39`, `C17`, `F1` and
-`F3` in a running world — everything this range had committed but unproven — and
-found three defects no reading had. **Two are fixed, pushed and confirmed in a
-world, and CI is green over them at `0385099`, run 27.** A fourth came out of
-timing the re-run.
+**Nothing is open. Run the four checks that close the last three fixes.** The
+playtest run of 2026-08-27 at `246bb37` closed the backlog of *checking* and
+opened one of *fixing*; that backlog is now empty too. Six findings came out of
+this phase's playtests and **all six are fixed**, with `AUDIT.md` showing nothing
+open for the first time in the project's life.
 
-- **`B41` · low** — cancelling the file chooser leaves a drone nametagged
-  `?.lua` that cannot run. `Drone.new` runs before the chooser is shown and
-  `cancel` only closes the form; ESC lands in the same state. Then re-run `D5`.
-- **`B43` · low** — the emerged box is one node larger than the shape on every
-  axis, so a thin shape pays for a whole extra layer of mapblocks whenever that
-  node crosses a boundary, and which way the drone faces decides whether it does.
-  `cube(2, 2, 30000)` at codelevel 2 took 78 s one way and 183 s another. The fix
-  is one subtraction per axis in `bounds`; the work is in `tests/shapes_spec.lua`,
-  where three cases encode the current numbers and must be **recomputed from the
-  geometry rather than fitted to the new output**.
+Four checks stand between here and *everything proven*:
+
+- **`D6`** for `B44` — the drone now goes with the file it was holding. Also
+  re-check the other order: removing a file then placing a drone must still open
+  the chooser.
+- **`F-3` case 2** for `S7` — the refusal should read *"Cannot read file
+  test.lua"* and nothing more, translated with the game in French, with the
+  operating system's reason now at `warning` in the server log. **Check the log
+  as well**: the point is that the detail moved, not that it was discarded.
+- **`P3`, re-timed** for `B43` — three facings, codelevel 2, view distance 500.
+  The times should be within noise of each other and near the 78 s end. The
+  specs pin the charge arithmetic; only this says whether the time a player
+  waits actually changed, which is what the finding was about.
+- **`R1` and `R2`**, the release-archive pair nobody has ever run.
+
+Then `F7`, `F4` and `F5`, and v1.0.0.
+
+**The three fixed on 2026-08-28 after the world group.**
+
+- **`S7` · low** — a failed file open handed the player `io.open`'s own string,
+  so the server's **absolute path** reached them, in English whatever language
+  the game was in. Fixed by returning the message built four lines above and
+  unreachable until now, with `err` logged at `warning`. **The class matters more
+  than the line**: an error value passed straight through from an engine or C
+  call is a player-facing string that is not a translation key, and
+  `gen_locale.lua --check` cannot see it — the next one will not be reported
+  either.
+- **`B44` · low** — removing a file left the drone holding it standing there
+  naming a program that was gone, going away only on the next run. Fixed in the
+  editor's *Remove file* handler, **not** in `lib/filesystem.lua`, which has no
+  drone dependency and must not gain one. It takes the drone with the file, the
+  same answer `B41` gave for a cancelled chooser: the two had to agree.
+- **`B43` · low** — one subtraction per axis in `bounds.cube`, one along the
+  length in `bounds.cylinder`. Three `shapes_spec` cases were **recomputed from
+  the geometry and then run against the old bounds to prove they were not fitted
+  to the new output**: they fail there with exactly the old numbers. The
+  subtraction made `cube(0,0,0)` produce an inverted box, so `build` now returns
+  before the loop when any axis is inverted — that guard and the subtraction go
+  together.
+
+**The pattern worth naming: three of those six came from a session going one step
+past the written procedure.** `B41` was reported while checking something else;
+`B44` came out of re-running `B41`'s own check and then doing the obvious next
+thing to a drone; and `S7` came out of a check that **passed on behaviour and
+failed on its message**, which no pass/fail line on its own would have caught.
+Read what the game actually said, not just whether it did the right thing.
+
+**Fixed earlier in the phase, both confirmed in a world.**
+
 - **`B40` · high · `62cf464`, confirmed by `F-4` and `F-3` case 1** — `read_file`
   read a file whole with no bound and the editor sent it to the client; a 168 MB
   file took Luanti to ~14 GB and froze it. It now reads one byte past the ceiling
@@ -57,12 +94,43 @@ timing the re-run.
   ≈ 80 s the ceiling over the unload window predicts. `S5` had claimed that
   behaviour from reading since Phase 5.
 
-Four checks have still never been run: `W2`, `W3`, `R1` and `R2` — and `R1`/`R2`
-are the release-archive pair nobody has ever done. `D2` case 2 is the one that was
-aimed at and missed, and it carries a recipe now; `F-3` case 1 was the other, and
-it **passed on 2026-08-28** — reachable at last because an oversized file is
-refused before the bytecode branch, which also confirmed `B7` a phase after it was
-fixed.
+**Only `R1` and `R2` have never been run at all**, and both belong to the release
+check. The world group — `W1`, `W2`, `W3` — was played on 2026-08-28 and all
+three passed, which is the last group to have had nothing in it.
+
+**That run settled questions rather than finding defects, which is new here.**
+`W2` **answers `A4`**: mapgen does not overwrite a node written into ground it
+had not generated. That had been on the audit's *not verified anywhere* list
+since Phase 4, was the oldest entry it ever had, and its departure leaves that
+list holding one thing — `B10`'s refusal. `W1` passed at current code, so `S5`'s
+16.3 kB measurement no longer rests on a run predating the Phase 6 and Phase 7
+rewrites of `lib/cost.lua`. `W3` priced a large shape, written up under `S5`.
+
+**The one thing `W3` is worth remembering for.** `cube(200, 200, 200)` took
+0.34 s of program time — and that is the *smallest* part of what it cost. The
+budget charges nodes, runtime and footprint; serialising ~2200 mapblocks into the
+map database and pushing them to every client happen **after the run reports
+`completed` and are charged to nobody**. Neither was measured. Not a defect and
+not filed as one, but a limit added later must not be sold as bounding what a
+shape costs the server, because none of them do.
+
+**`F-3` case 2 cost two sessions before it passed on behaviour**, and the second
+of those is a lesson. The `icacls` recipe was `cmd` syntax run in PowerShell,
+which read the bare `(R)` as a subexpression and ran the `r` alias for
+`Invoke-History` instead of calling `icacls` at all. **A recipe written for one
+shell and run in another is a procedure defect, not a finding** — that is twice a
+`PLAYTEST.md` recipe has cost a session (`D2` case 2 is the other), so a recipe
+added here names the shell it is for. The corrected one is verified as a round
+trip. Case 1 **passed on 2026-08-28** — reachable at last because an oversized
+file is refused before the bytecode branch, which also confirmed `B7` a phase
+after it was fixed.
+
+**`D2` case 2 has now been aimed at twice and missed twice**, the second time
+with the written recipe: *"hard to produce case 2, looks not unloaded"*. The
+recipe is the suspect, not the tester — `server_unload_unused_data_timeout`
+bounds when the engine *may* drop an idle mapblock, not when it does. Do not
+spend a third session waiting out a timeout and hoping; find a way to observe
+that the server has let go first. It is the only route to `B10`'s refusal.
 
 **One number decided `B43`, and it is worth remembering how.** `P3` turned up
 that the facing changed the run, and there were two explanations — what the
@@ -72,9 +140,12 @@ per cent of a doubled and a quadrupled emerge. **Ask for the number the two
 explanations disagree on.** The 160 s run fits neither and is recorded as
 fitting neither, rather than rounded into the story.
 
-One thing wants an answer rather than an action: **`C18`**, the five sky
-overrides forced on every joining player. Recommended: one setting, defaulting
-off. It blocks nothing but should not reach v1.0.0 undecided.
+**`C18` was decided on 2026-08-28: one setting, defaulting off** — the middle of
+the three options the finding put up, and the one it recommended. The mod touches
+nobody's sky unless asked; a game that wants a flat, sunless one says so in its
+own `minetest.conf`. The cost lands outside this repository and is one line:
+`codecube` sets `codeblock_flat_sky = true` when it adopts a release with this in
+it, or its world gets an ordinary day/night cycle back.
 
 ## Milestones
 
@@ -110,16 +181,15 @@ holds the reasoning.
 
 "Done" through Phase 7 means the findings are closed and the gates green, **not**
 that the editor and drone paths were exercised by hand. Phase 8's playtests have
-since found **nine** defects in code earlier phases called done (B36–B43, C17)
-plus one open finding (C18) — the newest of them were the largest, and
-`B40` and `B42` are now fixed.
+since found **twelve** defects in code earlier phases called done (B36–B44, C17,
+C18, S7) — the newest of them were the largest. **All twelve are fixed.**
 
-### 8 · Features — in progress (3/7 shipped · 10 findings closed, 3 open)
+### 8 · Features — in progress (3/7 shipped · 15 findings closed, none open)
 
 The last phase before v1.0.0 and the only one that adds rather than repairs.
-Ordered easiest to hardest, one at a time. **The pacing group has now been
-played**, which is what `F4` and `F5` were waiting on — and it produced `B42` and
-then `B43`.
+Ordered easiest to hardest, one at a time. **The pacing and world groups have now
+been played**, which is what `F4` and `F5` were waiting on — between them they
+produced `B42` and `B43`, and answered `A4`.
 
 Shipped, gates green, pushed and CI-green at `b8b30e3`:
 
@@ -131,15 +201,12 @@ Shipped, gates green, pushed and CI-green at `b8b30e3`:
 
 Left in the phase:
 
-- Fix `B41`, the cancelled chooser leaving a dead drone. Then re-run `D5`.
-- Fix `B43`, the emerged box a node larger than the shape. The change is one
-  subtraction per axis; the care is in recomputing three `shapes_spec` cases from
-  the geometry rather than from the new output.
-- Run `D2` case 2, which now has a recipe, and `F-3` case 2, the unreadable file —
-  the last thing in the filesystem group nothing has exercised. (B10, B15)
-- Run `W2`, `W3`, `R1` and `R2` — the four that have never been run at all.
-  `R1`/`R2` belong to the release check.
-- Decide `C18`, the five sky overrides. **Open, the author's call.**
+- Run the four checks that close the last three fixes: `D6` for `B44`, `F-3`
+  case 2 for `S7`, a re-timed `P3` for `B43`, and `R1`/`R2` for the release
+  archive. Nothing here is waiting on a code change any more.
+- `D2` case 2 — the last half nothing has exercised. Aimed at twice and missed
+  twice; it needs a way to observe the server has released a mapblock, not
+  another session. (B10)
 - Decide whether `settingtypes.txt` gets a generator and a `--check`, as
   `doc/api.md` and `locale/template.txt` have. Open question. (C7, C17)
 - Build `F7`, a marker on unsaved tabs — small, and what `E12`'s three fails
@@ -493,20 +560,37 @@ rather than necessary, which is why it comes first.
   footprint ceiling in a single pass, and the run dies instead of waiting. Only
   one axis can be sliced away, so the fix for a shape long in one dimension does
   not reach this. (B42)
-- Cancelling the drone's file chooser leaves a drone that cannot run. **Open.**
-  (B41)
+- Cancelling the drone's file chooser removes the drone it placed, rather than
+  never placing one — the tidier shape, deferring `Drone.new` until a file is
+  picked, is a larger change and was not taken. Fixed and confirmed in a world,
+  `D5` on 2026-08-28. (B41)
+- Removing the file a standing drone is holding takes the drone with it, rather
+  than clearing its name and leaving it asking for another — the same answer
+  `B41` gave, and the two had to agree. Fixed, unchecked in a world (`D6`). (B44)
 - Nothing marks a tab whose buffer is unsaved, so an edit surviving a tab switch
   and then vanishing on ESC reads as a lost save. It is not one — `E12` passed at
   `246bb37`. (F7)
-- `C16`'s install guard and the archive checks are unrun. 32 of 36 `PLAYTEST.md`
-  checks carry a result — 29 pass, 2 partial, 1 fail. The footprint throttle left
-  this list on 2026-08-28, having been on it since Phase 5: `P3` measured it.
+- `C16`'s install guard and the archive checks are unrun. 36 of 38 `PLAYTEST.md`
+  checks carry a result — 32 pass, 3 partial, 1 fail. The fail and one partial
+  now describe fixed code and want a re-run, not a change. Only `R1`
+  and `R2` have never been run. The footprint throttle left this list on
+  2026-08-28, having been on it since Phase 5: `P3` measured it.
+- A failed file open names the file and logs the operating system's reason at
+  `warning` rather than showing the player the server's absolute path. Fixed,
+  unchecked in a world (`F-3` case 2). **The class is the thing to remember:** an
+  error value passed through from an engine or C call is a player-facing string
+  that is not a translation key, and nothing reports it. (S7)
 - `settingtypes.txt` mirrors `lib/config.lua` by hand and nothing checks it — the
   third such mirror, and the only one without a `--check`. (C7, C17)
-- Joining forces permanent daylight and hides the sun, moon, stars and clouds,
-  with no setting and no way to decline. Open, undecided. (C18)
-- Unknown whether mapgen can overwrite a node written into never-generated
-  ground. (A4)
+- The flat, sunless sky is now `codeblock_flat_sky`, off by default, so
+  **`codecube` must set it in its own `minetest.conf`** when it adopts a release
+  with this in it or its world gets an ordinary day/night cycle. One line in the
+  game, nothing here. Confirmed in a world, `R3` in both positions on
+  2026-08-28. (C18)
+- Nothing charges for writing a shape to the map database or pushing it to
+  clients: both happen after a run reports `completed`. Not a defect — every mod
+  writing to the map has it — but no limit bounds what a large shape costs the
+  server, and none should be sold as if it did. (S5, from `W3`)
 - `tests/game/mods/vector3/mod.conf` still carries a 5.5 version ceiling —
   separate repository, not fixable from here. (C1)
 - `scripts/gen_cdb_json.sh` is verified by nothing and escapes neither `"` nor a
@@ -515,7 +599,7 @@ rather than necessary, which is why it comes first.
 - `README.md:14`'s trailing whitespace is deliberate — a Markdown hard break
   `gen_cdb_json.sh` folds into the ContentDB description. (B21)
 
-## Two rules this phase paid for
+## Four rules this phase paid for
 
 - **Run a playtest group that has never been run before writing the next
   feature.** Eight sessions on the editor found four findings; the one session
@@ -524,6 +608,17 @@ rather than necessary, which is why it comes first.
 - **Play the mod outside its own game before a release.** `B38`, `B39` and `C18`
   are all invisible in `codecube`, where a player carries nothing but the two
   drone tools and the sunless sky is the game's design.
+- **A check is a starting point, not a script — do the obvious next thing to
+  whatever it leaves on screen.** `B41` was reported while a session was checking
+  something else, and `B44` came out of re-running `B41`'s own check and then
+  removing the file the drone was holding. Neither is in any written procedure,
+  and no check would have caught either. The written steps are what stops a
+  session forgetting; they are not what finds things.
+- **Read what the game actually said, not just whether it did the right thing.**
+  `F-3` case 2 passed on behaviour — the file listed, the failure reported, the
+  session intact — and the message it printed was the server's absolute
+  filesystem path in English. That is `S7`, and a pass/fail line on its own
+  would have buried it.
 
 ---
 
