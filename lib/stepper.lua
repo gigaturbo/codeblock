@@ -69,7 +69,14 @@ end
 -- A paced or throttled drone sleeps until drone.wake_at, and a sleeping drone
 -- must not take a share of the step pool either - otherwise a classroom of paced
 -- novices would shrink the slice of the one drone actually working.
+--
+-- drone.paused is the player holding the program, and is deliberately not
+-- expressed as a far-off wake_at: advance() clears wake_at the moment a drone is
+-- awake again, so a pause that borrowed it would throw away the wake time of a
+-- program that was in the middle of its own sleep(). Two reasons to be stopped,
+-- two fields. (F4)
 function stepper.awake(drone)
+    if drone.paused then return false end
     return drone.wake_at == nil or deps.now() >= drone.wake_at
 end
 

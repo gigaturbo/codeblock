@@ -181,6 +181,99 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- binding: which limit the run is actually closest to
+--------------------------------------------------------------------------------
+
+-- The display's whole point is to name one resource out of four, so what this
+-- has to get right is the comparison across units: 60 nodes of 100 must beat
+-- half a second of one second, even though 60 is the larger number.
+do
+    local b = new(1)
+
+    local what, at = limits.binding(b)
+    it('an untouched budget is binding on the first resource', what, 'nodes')
+    it('and is not full at all', at, 0)
+
+    b.used.nodes = 60
+    b.used.runtime = 0.5e6
+    what, at = limits.binding(b)
+    it('the fuller fraction wins, not the larger number', what, 'nodes')
+    it('and the fraction is in the resource\'s own units', at, 0.6)
+
+    b.used.runtime = 0.9e6
+    what, at = limits.binding(b)
+    it('a fuller resource in another unit takes over', what, 'runtime')
+    about('reported as a fraction of its own ceiling', at * 1000, 900)
+
+    -- Mapblocks and kB, the two the display converts back for the player. Both
+    -- have to be comparable here or the wrong row is highlighted.
+    b.used.map = 60
+    what = limits.binding(b)
+    it('the map footprint competes on the same scale', what, 'map')
+
+    b.used.heap_kb = 1000
+    what, at = limits.binding(b)
+    it('the heap peak competes too', what, 'heap_kb')
+    about('at its own fraction', at * 1000, 976)
+
+    -- A run is stopped by the charge that went over, so the honest figure is
+    -- briefly above the ceiling. Clamping it here would hide an overshoot.
+    b.used.heap_kb = 2048
+    local _, over = limits.binding(b)
+    it('an overshoot is reported as it is, not clamped', over, 2)
+end
+
+do
+    -- A ceiling of zero admits no use at all: there is no fraction to compute,
+    -- so nothing spent is empty and anything spent is full.
+    local b = new(1)
+    b.caps.nodes = 0
+    it('a zero ceiling with nothing spent is not binding',
+       select(2, limits.binding(b)), 0)
+    b.used.nodes = 1
+    it('a zero ceiling with anything spent is fully binding',
+       select(2, limits.binding(b)), 1)
+    it('and names that resource', limits.binding(b), 'nodes')
+end
+
+--------------------------------------------------------------------------------
+-- report: back into the units a player reads
+--------------------------------------------------------------------------------
+
+-- limits.new converts the config's seconds and megabytes into microseconds and
+-- mapblocks; this converts them back. The two have to be exact inverses, or the
+-- panel shows a player a ceiling their settings file does not contain.
+do
+    local b = new(2)
+    b.used.nodes = 50
+    b.used.runtime = 1e6
+    b.used.map = 64
+    b.used.heap_kb = 512
+
+    local r = limits.report(b)
+
+    it('every fillable resource is reported', #r, 4)
+    it('in a fixed order, so the rows never move', r[1].what .. r[2].what ..
+           r[3].what .. r[4].what, 'nodesruntimemapheap_kb')
+
+    it('nodes are counted, not converted', r[1].used, 50)
+    it('and their ceiling is the config figure', r[1].cap, 200)
+    it('nodes carry no unit', r[1].unit, '')
+
+    it('runtime comes back as seconds', r[2].used, 1)
+    it('against the ceiling in seconds', r[2].cap, 2)
+    it('labelled as seconds', r[2].unit, 's')
+
+    it('the footprint comes back as megabytes', r[3].used, 1)
+    it('against the ceiling in megabytes', r[3].cap, 2)
+    it('labelled as megabytes', r[3].unit, 'MB')
+
+    it('the heap comes back as megabytes', r[4].used, 0.5)
+    it('against the ceiling in megabytes', r[4].cap, 2)
+    it('labelled as megabytes', r[4].unit, 'MB')
+end
+
+--------------------------------------------------------------------------------
 -- summary
 --------------------------------------------------------------------------------
 

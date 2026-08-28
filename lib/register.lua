@@ -12,6 +12,11 @@ local drone_on_remove = codeblock.Drone.on_remove
 
 local show_file_editor = codeblock.formspecs.file_editor.show
 local show_file_chooser = codeblock.formspecs.file_chooser.show
+local show_drone_panel = codeblock.formspecs.drone_panel.show
+local drone_panel_tick = codeblock.formspecs.drone_panel.tick
+
+local get_drone = codeblock.Drone.get
+local hud_tick = codeblock.hud.tick
 
 local check_auth_level = codeblock.utils.check_auth_level
 local parse_target = codeblock.utils.parse_target
@@ -140,9 +145,21 @@ core.register_tool("codeblock:setter", {
     range = 0,
     stack_max = 1,
     on_drop = function(itemstack) return itemstack end,
+    -- One gesture, two meanings, decided by whether a program is running.
+    --
+    -- An idle drone is taken away, which is what this always did. A *running*
+    -- one opens the drone panel instead, because the same click used to end a
+    -- long build outright with nothing asked and nothing to undo. Cancelling is
+    -- now the red button in that panel: one click further away, deliberately.
+    -- (F4)
     on_use = function(itemstack, user)
         local name = user:get_player_name()
-        drone_on_remove(name)
+        local drone = get_drone(name)
+        if drone and drone.cor then
+            show_drone_panel(name)
+        else
+            drone_on_remove(name)
+        end
         return itemstack
     end,
     on_place = function(itemstack, placer)
@@ -162,6 +179,21 @@ core.register_tool("codeblock:setter", {
 --------------------------------------------------------------------------------
 
 core.register_entity("codeblock:drone", codeblock.DroneEntity)
+
+--------------------------------------------------------------------------------
+-- the display tick
+--------------------------------------------------------------------------------
+
+-- One globalstep for both surfaces that show a running program's budget, rather
+-- than one each: they show the same numbers, so a player watching both must not
+-- see them disagree. hud.tick owns the cadence and says when it actually
+-- redrew - it is the same display period for both - and the panel follows.
+--
+-- Neither is registered in its own module because neither should have to know
+-- the other exists; the orchestration is the caller's, which is here. (F4, A11)
+core.register_globalstep(function(dtime)
+    if hud_tick(dtime) then drone_panel_tick() end
+end)
 
 --------------------------------------------------------------------------------
 -- players

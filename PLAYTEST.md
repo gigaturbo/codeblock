@@ -711,6 +711,144 @@ usable file* the same way in both places it can happen.
 
 ---
 
+## The drone HUD and panel
+
+**Unrun.** `F4` is committed with its gates green and **nothing in this group has
+been checked in a world.** It carries more unverifiable surface than any feature
+here so far: the specs reach the binding-constraint arithmetic (`limits_spec`),
+the pause field (`stepper_spec`) and the panel's session routing (`forms_spec`),
+and reach **none** of the drawing, the cadence, the colour, the toggle, the
+setter gesture or anything a player actually sees. Run this group before trusting
+any of it.
+
+A note on all of these: the HUD is drawn **top-right**, which the engine leaves
+empty by default. If it is not there at all, check *Show the drone HUD* in the
+editor and `codeblock_drone_hud` in `minetest.conf` before assuming it is broken.
+
+### H1 · The HUD appears, updates and goes [F4]
+
+Run a program that takes ten seconds or so — a large cube at codelevel 4, or any
+loop with `sleep(0.2)` in it.
+
+**Pass:** two lines appear top-right the moment the program starts; the filename
+is right; the percentage moves while it builds; **both lines disappear when the
+program ends**, without a reload and without a leftover from the previous run.
+
+Result: unchecked
+
+### H2 · The binding limit is the one it names, and it changes [F4, B26]
+
+Run two programs at the same codelevel: one that writes a great many nodes
+quickly, and one that spends time without writing much (a long loop of
+arithmetic, or `sleep`).
+
+**Pass:** the first names **Nodes written**, the second names **Running time**.
+The percentage rises toward 100 as each approaches its ceiling, and the colour
+goes green, amber, red as it fills. If a single program crosses over — nodes
+early, time later — the named limit changes mid-run rather than sticking.
+
+This is the check that the display is telling a player something true rather than
+always naming the first row.
+
+Result: unchecked
+
+### H3 · The toggle, and whose choice wins [F4, B5, C18]
+
+Four cases, and the third is the one that has been got wrong before:
+
+1. Untick *Show the drone HUD* in the editor **while a program is running**.
+   The HUD goes **within half a second**, not at the next run and not when the
+   editor closes.
+2. Tick it again: it comes back on the next tick.
+3. Untick it, leave the game, rejoin, run a program. **It stays off.** An
+   unticked box that reads as "never chosen" on rejoin is exactly the `B5` trap.
+4. Set `codeblock_drone_hud = false` in `minetest.conf` and restart, with a
+   player who has **never touched the box**. No HUD. Then tick the box for that
+   player: the HUD appears, because a player's own choice beats the server's
+   default.
+
+Result: unchecked
+
+### H4 · The setter's left click, both meanings [F4, B39]
+
+The gesture that changed. With the **setter**:
+
+1. Left click a drone that is **idle** (placed, no program running). It is taken
+   away, exactly as before.
+2. Left click a drone that **is running**. The panel opens; the drone keeps
+   building; the run is **not** cancelled.
+
+**Pass:** both. Case 1 is the regression risk — the whole point of the change is
+that it did not alter what an idle drone does.
+
+Result: unchecked
+
+### H5 · The panel's numbers, and its own refresh [F4]
+
+With a long program running, open the panel and leave it open.
+
+**Pass:** four rows, each with what the run has spent against its ceiling, and the
+ceilings match what `minetest.conf` / the settings menu say for that codelevel —
+seconds and megabytes, not microseconds and mapblocks. The numbers **update while
+the panel sits open**, without touching anything. The *Closest limit* line agrees
+with the HUD behind it.
+
+Result: unchecked
+
+### H6 · Pause and Resume [F4, F3]
+
+Pause a running program from the panel.
+
+**Pass:** the drone stops building. The HUD says **paused**. The button becomes
+*Resume*. Leave it paused a full minute, then resume: it carries on from where it
+was and **does not** report running out of time — a pause is charged no runtime.
+A second drone running alongside it keeps its full pace while the first is
+paused, rather than sharing a step with a drone that is not using one.
+
+Then the interaction with `F3`: pause a program **while it is inside a
+`sleep(10)`**, wait past the ten seconds, and resume. It should resume promptly
+rather than sleeping ten more seconds — the sleep expired while it was held.
+
+Result: unchecked
+
+### H7 · Cancel [F4, B12, B30]
+
+Cancel a running program from the panel.
+
+**Pass:** the drone goes, the panel closes, and there is **exactly one** message
+in chat — the same completion line the setter's old left click produced. Not two,
+and not none.
+
+Result: unchecked
+
+### H8 · The panel and the editor, and a run that ends under it [F4, B33, B29]
+
+Three ways the panel can be outlived:
+
+1. Open the panel, then open the editor with the setter's **right click**. The
+   editor draws normally. **Nothing pushes the panel's content into it** half a
+   second later — that is the exact defect the `forms_spec` case guards, and the
+   spec cannot see the screen.
+2. Open the panel and let the program **finish on its own** while it is open. The
+   panel switches to *No program is running* rather than freezing on stale
+   numbers or throwing.
+3. Open the panel, then cancel the run, and while the panel is still open place
+   a **new** drone under the same name and run something. Nothing from the old
+   run leaks into the new panel or the new HUD (`B29`'s serial guard).
+
+Result: unchecked
+
+### H9 · Leaving and rejoining with a program running [F4]
+
+Run a long program, then disconnect while it runs. Rejoin.
+
+**Pass:** no orphaned HUD line on rejoin, and no error in the server log about a
+HUD element belonging to a player who is gone.
+
+Result: unchecked
+
+---
+
 ## Filesystem and example generation
 
 **First run, 2026-08-27, at `f274245`**, engine Luanti 5.17.0 — one pass, one

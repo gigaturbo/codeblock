@@ -22,6 +22,7 @@ dofile(codeblock.modpath .. "/lib/forms.lua")
 dofile(codeblock.modpath .. "/lib/stepper.lua")
 dofile(codeblock.modpath .. "/lib/drone.lua")
 dofile(codeblock.modpath .. "/lib/drone_entity.lua")
+dofile(codeblock.modpath .. "/lib/hud.lua")
 dofile(codeblock.modpath .. "/lib/formspecs.lua")
 dofile(codeblock.modpath .. "/lib/register.lua")
 

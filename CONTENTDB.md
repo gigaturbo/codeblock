@@ -13,6 +13,9 @@ can imagine: learn to code, or give your inner computer artist somewhere to play
   that cannot harm the server.
 - **Example programs to discover.** Spirals, fractals, 3D plots and other more
   artistic examples. Open one and change a number to see what happens.
+- **Watch your program spend.** A small display while it runs shows which limit
+  it is closest to, and a panel on the drone gives you the whole picture with
+  pause, resume and cancel.
 - **Per-player limits** an administrator can tune, so the mod is usable on a
   public server and not only in singleplayer.
 
@@ -38,7 +41,8 @@ Experiment and discover with the other examples, or write your own!
 - **Every player has a `codelevel`**, and it bounds what one program may spend of
   the server: how long it runs, how many blocks it writes, how much of the map it
   holds at once. If a program stops early, that is usually why, and the chat says
-  which limit it hit.
+  which limit it hit. While it is still running, the corner display says which
+  limit it is heading for.
 - **At codelevels 1 and 2 the drone builds slowly on purpose**, so a beginner can
   watch a loop happen. Levels 3 and 4 do not wait.
 - **A very large shape takes time and memory on the server.** It is not
@@ -48,6 +52,9 @@ Experiment and discover with the other examples, or write your own!
 
 ## Recent changes
 
+- **See what a running program is spending.** A display in the corner while it
+  runs, and a panel with every limit — plus pause, resume and cancel — when you
+  left click a running drone with the drone setter.
 - **A default block** you pick in the editor, so a bare `place()` builds what you
   chose. A program can override it for its own run with `default_block(block)`.
 - **`sleep(seconds)`**, so a program can build at a pace you choose rather than

@@ -88,3 +88,10 @@ codeblock_max_string_mb (Maximum string size) string 1,4,16,64
 #    for it here. Per-player and re-applied on join, so turning it off takes
 #    effect on the next one.
 codeblock_flat_sky (Flat sky) bool false
+
+#    Whether a player who has set no preference of their own sees the drone HUD
+#    while their program runs: the file, whether it is running or paused, and
+#    which limit the run is closest to. On, because it is the only place a
+#    running program's budget can be seen, and it leaves the screen the moment
+#    the program ends. A player's own choice, made in the editor, overrides this.
+codeblock_drone_hud (Drone HUD) bool true

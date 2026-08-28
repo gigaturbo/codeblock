@@ -15,6 +15,7 @@ local chat_send_player = core.chat_send_player
 local close_form = codeblock.forms.close
 local update_form = codeblock.forms.update
 local show_form = codeblock.forms.show
+local get_form_meta = codeblock.forms.get_meta
 local explode_textlist_event = core.explode_textlist_event
 local explode_scrollbar_event = core.explode_scrollbar_event
 local get_player_by_name = core.get_player_by_name
@@ -47,6 +48,14 @@ local remove_file = codeblock.filesystem.remove_file
 local set_file = codeblock.Drone.set_file
 local get_drone = codeblock.Drone.get
 local remove_drone = codeblock.Drone.remove
+local cancel_drone = codeblock.Drone.on_remove
+
+local hud_wanted = codeblock.hud.wanted
+local hud_set_wanted = codeblock.hud.set_wanted
+-- One naming of the four limits for both surfaces; lib/hud.lua owns it.
+local limit_label = codeblock.hud.limit_label
+local limits_report = codeblock.limits.report
+local limits_binding = codeblock.limits.binding
 
 --------------------------------------------------------------------------------
 -- private
@@ -76,6 +85,7 @@ local file_editor = {
         local soe = false
         local loe = false
         local sos = false
+        local dhud = false
         local dblock = cubes.stone
         local player = get_player_by_name(name)
         if player then
@@ -95,6 +105,11 @@ local file_editor = {
             soe = meta:get_string('codeblock:save_on_exit') == '1'
             loe = s_loe == '' or s_loe == '1'
             sos = s_sos == '' or s_sos == '1'
+            -- Same string read for the same reason, but the fallback is the
+            -- server's setting rather than a literal, so hud.wanted owns it -
+            -- there must be one answer to "does this player see it" and the
+            -- tick in this box is the same question the HUD asks itself. (F4)
+            dhud = hud_wanted(player)
             -- Validated on read, the same check lib/drone.lua makes at the
             -- start of a run: this key outlives a change to the palette, and a
             -- player who joined before the setting existed has none. (F1)
@@ -131,6 +146,7 @@ local file_editor = {
             default_block = dblock,
             picking = false,
             soe = soe,
+            dhud = dhud,
             loe = loe,
             sos = sos,
             newfile = ''
@@ -237,6 +253,8 @@ local file_editor = {
                  (meta.loe and 'true' or 'false') .. ']'
         fs = fs .. 'checkbox[5,10;sos;' .. S('Save on tab switch') .. ';' ..
                  (meta.sos and 'true' or 'false') .. ']'
+        fs = fs .. 'checkbox[10,10;dhud;' .. S('Show the drone HUD') .. ';' ..
+                 (meta.dhud and 'true' or 'false') .. ']'
 
         -- textarea
         local text = meta.contents[meta.active]
@@ -635,6 +653,14 @@ local file_editor = {
         elseif fields.sos then
             meta.sos = (fields.sos == 'true')
             update()
+        elseif fields.dhud then
+            meta.dhud = (fields.dhud == 'true')
+            -- Written now rather than with the other two at close, because this
+            -- is the only preference here with an effect outside the form: the
+            -- HUD reads player meta on its own tick, so deferring the write
+            -- would leave it on screen until the editor was shut. (F4)
+            hud_set_wanted(player, meta.dhud)
+            update()
         elseif fields.files then
             local e = explode_textlist_event(fields.files)
             local selected = get_user_data(name).list[e.index]
@@ -784,9 +810,149 @@ local file_chooser = {
 
 }
 
+-- drone_panel
+--
+-- What the running program is spending, and the two things a player can do
+-- about it. The at-a-glance version is lib/hud.lua; this is the whole table,
+-- four resources with the counter beside the ceiling, in the units
+-- lib/config.lua is written in.
+--
+-- Reached by left-clicking a *running* drone with the setter, the gesture that
+-- used to cancel it outright. Cancelling is now the button below, which is one
+-- click further away on purpose: the old gesture destroyed a long build with no
+-- confirmation at all.
+--
+-- Refreshed on the same tick as the HUD. A redraw costs no input focus here
+-- because there is no text field in the form - that is what makes a live
+-- formspec affordable for this one and not for the editor.
+
+-- name -> the panel's own meta table, for every player with one open. The panel
+-- refreshes itself rather than being redrawn by whatever changed, so it has to
+-- know who is watching, and forms.lua deliberately does not publish its session
+-- list.
+--
+-- The meta table rather than `true`, so the tick can tell that the form still
+-- open for this player is *this* one: forms.lua allows a single form per player,
+-- so opening the editor silently replaces the session, and a tick that only knew
+-- a name would push the panel's formspec into the editor's form.
+local watching = {}
+
+-- %d rather than tostring: math.floor returns a float in Lua 5.1, and tostring
+-- renders a large one as 1e+06.
+local function fmt(n, unit)
+    if unit == '' then return ('%d'):format(n + 0.5) end
+    return ('%.1f %s'):format(n, unit)
+end
+
+local drone_panel = {
+
+    show = function(name)
+        local meta = {name = name}
+        watching[name] = meta
+        show_form(name, 'codeblock:drone_panel', meta,
+                  codeblock.formspecs.drone_panel.get_form(meta),
+                  codeblock.formspecs.drone_panel.on_close)
+    end,
+
+    get_form = function(meta)
+
+        -- Read fresh on every redraw, never held in meta: this form outlives
+        -- the run it describes, and a drone can be replaced by another under
+        -- the same name between two ticks of it. (B29)
+        local drone = get_drone(meta.name)
+        local running = drone and drone.cor and drone.budget
+
+        local fs = 'formspec_version[4]' .. 'size[8.5,7]'
+
+        if not running then
+            return fs .. 'label[0.6,0.9;' .. S('No program is running') .. ']' ..
+                       'button_exit[3.2,5.6;2,0.8;close;' .. S('Close') .. ']'
+        end
+
+        fs = fs .. 'label[0.6,0.8;' .. formspec_escape(drone.file or '?.lua') ..
+                 '  -  ' ..
+                 (drone.paused and S('paused') or S('running')) .. ']'
+
+        local what, fraction = limits_binding(drone.budget)
+        fs = fs .. 'label[0.6,1.4;' ..
+                 S('Closest limit: @1, at @2%', limit_label(what),
+                   math.floor(fraction * 100 + 0.5)) .. ']'
+
+        local y = 2.3
+        for _, row in ipairs(limits_report(drone.budget)) do
+            fs = fs .. 'label[0.6,' .. y .. ';' .. limit_label(row.what) .. ']'
+            fs = fs .. 'label[4.2,' .. y .. ';' .. fmt(row.used, row.unit) ..
+                     ' / ' .. fmt(row.cap, row.unit) .. ']'
+            y = y + 0.6
+        end
+
+        fs = fs .. 'button[0.6,5.6;2.3,0.8;pause;' ..
+                 (drone.paused and S('Resume') or S('Pause')) .. ']'
+        fs = fs .. 'style[cancel;bgcolor=red]'
+        fs = fs .. 'button[3.1,5.6;2.3,0.8;cancel;' .. S('Cancel') .. ']'
+        fs = fs .. 'button_exit[5.6,5.6;2.3,0.8;close;' .. S('Close') .. ']'
+
+        return fs
+    end,
+
+    --- Redraw every open panel. Called from the same globalstep as hud.tick, so
+    -- the two surfaces never disagree about what the run is spending.
+    --
+    -- A panel whose session has been replaced - the player opened the editor
+    -- over it - is dropped rather than redrawn, because forms.update writes to
+    -- whichever form the player actually has open. Copied before the walk, since
+    -- the loop writes to the table. (B33)
+    tick = function()
+        local names = {}
+        for name in pairs(watching) do names[#names + 1] = name end
+        for _, name in ipairs(names) do
+            local meta = watching[name]
+            if get_form_meta(name) ~= meta then
+                watching[name] = nil
+            else
+                update_form(name,
+                            codeblock.formspecs.drone_panel.get_form(meta))
+            end
+        end
+    end,
+
+    on_close = function(meta, player, fields)
+
+        local name = player:get_player_name()
+
+        -- Every path out of this form drops the watch, including the engine's
+        -- quit event, which is also what leaving and shutdown arrive as. (B33)
+        local function close()
+            watching[name] = nil
+            close_form(name)
+        end
+
+        -- Both buttons read the drone fresh, and both do nothing if the run
+        -- ended between the redraw the player clicked on and this event.
+        if fields.pause then
+            local drone = get_drone(name)
+            if drone and drone.cor then
+                drone.paused = not drone.paused
+                update_form(name, codeblock.formspecs.drone_panel.get_form(meta))
+            end
+        elseif fields.cancel then
+            -- Through Drone.on_remove, so the run ends the one way every other
+            -- path ends it and the player gets exactly one message. (B12, B30)
+            cancel_drone(name)
+            close()
+        elseif fields.quit then
+            -- button_exit sends quit too, so Close needs no branch of its own.
+            watching[name] = nil
+        end
+
+    end
+
+}
+
 --------------------------------------------------------------------------------
 -- export
 --------------------------------------------------------------------------------
 
 codeblock.formspecs.file_chooser = file_chooser
 codeblock.formspecs.file_editor = file_editor
+codeblock.formspecs.drone_panel = drone_panel

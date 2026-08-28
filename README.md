@@ -32,6 +32,16 @@ A drone you program in Lua, an in-game editor, a sandbox and a documented API. I
 4. Right click with ![drone_poser](https://raw.githubusercontent.com/gigaturbo/codeblock/master/doc/dp.png) tool on a block and run the code with a left click on ![drone_poser](https://raw.githubusercontent.com/gigaturbo/codeblock/master/doc/dp.png)
 5. Read the [Lua API](https://github.com/gigaturbo/codeblock/blob/master/doc/api.md#lua-api) in `doc/api.md` to know which commands and blocks you can use
 
+### Watch and steer a running program
+
+- While your program runs, a **HUD** in the top-right corner names the file, says
+  whether it is running or paused, and shows the one limit the run is closest to.
+  Untick *Show the drone HUD* in the editor to turn it off, or set
+  `codeblock_drone_hud = false` for the server's default.
+- **Left click a running drone with the drone setter** to open its panel: every
+  limit with what the run has spent beside it, and buttons to pause, resume or
+  cancel. Left clicking an *idle* drone takes it away, as it always did.
+
 ### Explore and tweak
 
 - More built-in examples are available, just open the editor and choose an example to run

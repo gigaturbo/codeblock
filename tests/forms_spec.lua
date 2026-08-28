@@ -192,6 +192,73 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- the drone panel: who it redraws, and when it stops (F4)
+--
+-- The drawing needs a client and the numbers need a running program, so neither
+-- is reachable from here. What is reachable is the part that would break the
+-- editor if wrong: the panel refreshes itself on a timer, and forms.lua allows
+-- one form per player, so a stale watch would push the panel's formspec into
+-- whatever form the player actually has open.
+--------------------------------------------------------------------------------
+
+local panel = codeblock.formspecs.drone_panel
+
+do
+    reset_backend()
+    panel.show('frank')
+
+    it('the panel opens a session', forms.count(), 1)
+    it('and with no drone it says so',
+       (last_shown().spec:find('No program is running', 1, true) ~= nil), true)
+
+    local before = #shown
+    panel.tick()
+    it('a tick redraws it', (#shown > before), true)
+    it('into its own form', last_shown().form, shown[before].form)
+
+    forms.on_receive_fields(fake_player('frank'), last_shown().form,
+                            {quit = 'true'})
+    it('the quit event drops the session', forms.count(), 0)
+
+    before = #shown
+    panel.tick()
+    it('and no tick redraws it afterwards', #shown, before)
+end
+
+do
+    -- The regression this exists for: opening the editor over an open panel
+    -- replaces the session, and forms.update writes to whichever form the
+    -- player has open - so a watch left behind would redraw the panel's
+    -- formspec into the editor.
+    reset_backend()
+    panel.show('grace')
+    forms.show('grace', 'codeblock:file_editor', {}, 'EDITOR', function() end)
+
+    local before = #shown
+    panel.tick()
+    it('a panel whose session was replaced is not redrawn', #shown, before)
+    it('so the form that is open keeps its own content',
+       last_shown().spec, 'EDITOR')
+
+    before = #shown
+    panel.tick()
+    it('and the stale watch is gone rather than retried', #shown, before)
+    forms.forget('grace')
+end
+
+do
+    -- Cancel with no drone still closes the panel rather than leaving it up:
+    -- Drone.on_remove finds nothing, which is exactly the case of a run that
+    -- ended between the redraw the player clicked and this event arriving.
+    reset_backend()
+    panel.show('heidi')
+    forms.on_receive_fields(fake_player('heidi'), last_shown().form,
+                            {cancel = 'x'})
+    it('cancelling closes the session', forms.count(), 0)
+    it('and closes the client side too', #closed, 1)
+end
+
+--------------------------------------------------------------------------------
 -- restore the real backend, or the editor stops working for the rest of the run
 --------------------------------------------------------------------------------
 

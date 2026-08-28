@@ -30,9 +30,10 @@ it. Six findings came out of this phase's playtests, **all six are fixed**, and
 on 2026-08-28 at `6fea453` the last three were confirmed in a world by their own
 checks — `D6` for `B44`, `F-3` case 2 for `S7`, and a re-timed `P3` for `B43`,
 which spread **78 s and 95 s** where the same shape spread 78 / 160 / 183 before.
-The *gates green, unproven in a world* list is down to **one** entry — `B14`,
-blocked on `B34` being won't-fix — after `R2` closed `C16`'s install guard the
-same day.
+The *gates green, unproven in a world* list held **one** entry — `B14`, blocked
+on `B34` being won't-fix — after `R2` closed `C16`'s install guard the same day.
+**`F4` is the second, and it is a whole feature rather than one cold path:** its
+nine `H` checks are all unrun.
 
 **`C19` was filed and fixed the same day, and it is the only finding here ever
 raised by a published rule rather than by a defect.** The long description was
@@ -51,14 +52,25 @@ anyone finding it unreadable and reaching for a multi-line format is about to
 break the upload.
 
 **`F7` shipped the same day and `E16` passed it the same day** — a `*` on a tab
-whose buffer differs from the file, confirmed in a running world at `afbe504`. So
-the phase is 4 of 6, with `F4` and `F5` left, and **every shipped feature here is
-now proven in a world**. `F6` is no longer one of them: Blockly is `Phase 10` and
-v2.0.0.
+whose buffer differs from the file, confirmed in a running world at `afbe504`.
+`F6` is no longer one of them: Blockly is `Phase 10` and v2.0.0.
 
-**`R2` passed on 2026-08-28 too, and with it every check in `PLAYTEST.md` now
-carries a result** — 39 of 39, 37 pass and 2 partial, which has never been true
-before. It closed `C16`'s install guard: the archive extracted into
+**`F4` shipped the same day and is the phase's fifth of six, leaving only `F5`.**
+It is also the first feature here to ship with **none** of its in-world checks
+run: a HUD and a formspec panel showing what a running program spends, plus
+Pause, Resume and Cancel, and the setter's left click on a *running* drone
+repointed from cancelling the run to opening that panel. The specs reach its
+arithmetic (`limits.binding`, `limits.report`), its pause field and the panel's
+session routing, and reach nothing a player sees. **That is playtest group `H`,
+nine checks, all unchecked** — so *every shipped feature is proven in a world* is
+no longer true, and `H` is the group to run before `F5` starts. The rule this
+phase paid for says as much: run a group that has never been run before writing
+the next feature.
+
+**`R2` passed on 2026-08-28 too, and every check that existed then carries a
+result** — 39 of 39, 37 pass and 2 partial, which had never been true before;
+`F4`'s nine take the file to 39 of 48. It closed `C16`'s install guard: the
+archive extracted into
 `minetest_game`'s own `mods/` beside `vector3`, with `codeblock_run_tests = true`,
 loaded normally and logged the warning instead of refusing to load. The one thing
 still unproven anywhere is `B14`, and it is blocked on `B34` being won't-fix
@@ -481,18 +493,56 @@ sleeping drone is skipped and takes no share" is assertable without a world. Wha
 only a world shows is the pace being watchable and other drones being unaffected —
 `PLAYTEST.md` `F3`, which passed at `246bb37` on 2026-08-27.
 
-### F4 · large · planned — a live drone panel
+### F4 · large · shipped in the commit this entry was added in, playtest unrun — a live drone panel
 
-One panel per drone: running or idle, which file, each count beside its limit, the
-**binding** constraint as a percentage so a player learns which limit their
-program actually spends, and buttons to start, pause and cancel. Today a player
-learns all of this only from `Drone.finish`'s one completion line.
+Two surfaces, because one of them cannot do the other's job. A **HUD** carries the
+live read-out while a program runs; a small **formspec panel** carries the
+per-limit breakdown and the two buttons. Today a player learns all of this only
+from `Drone.finish`'s one completion line.
 
-**Merged from three `TODO.md` lines, because they are one formspec:** the drone
-info UI, "show the program's budget while it runs" (the original Phase 8 item), and
-the player-side half of "option to pause the drone" (the timed, in-program half is
-`F3`). Splitting them would mean two features editing the same form and the second
-rewriting the first.
+**Merged from three `TODO.md` lines, because they are one feature:** the drone
+info UI, "show the program's budget while it runs" (the original Phase 8 item),
+and the player-side half of "option to pause the drone" (the timed, in-program
+half is `F3`). Splitting them would mean two features editing the same surface
+and the second rewriting the first.
+
+**Settled 2026-08-28, in conversation with the author.**
+
+- **A HUD cannot carry buttons, and that is what splits the feature.** The
+  element types in 5.17.0 are `image`, `text`, `statbar`, `inventory`, `hotbar`,
+  `waypoint`, `image_waypoint`, `compass` and `minimap` — there is no button, and
+  **no HUD click callback exists anywhere in the API**.
+  `register_on_player_receive_fields` is formspec-only. The only input a HUD can
+  answer is polling `get_player_control()`, which is key *state*, not "which
+  element was clicked".
+- **The HUD is nevertheless the right surface for the read-out**, and it dissolves
+  the two risks the original entry named. `hud_change(id, stat, value)` updates
+  one field: no formspec string, **no input focus reset**, and it does not go
+  through `lib/forms.lua`, so it does not collide with the one-form-per-player
+  rule. The editor can stay open with the HUD live over it.
+- **The HUD shows only while that player's own drone is running** — it appears
+  when a program starts and goes when it ends. Nothing on screen otherwise:
+  a permanent status area is decoration, and decoration imposed on every game
+  that installs this mod is exactly the `C18` shape.
+- **On screen: the state and the binding constraint, and nothing else.** Which
+  file, running or paused, and the one limit closest to its ceiling as a
+  percentage — so a player learns which limit their program actually spends. The
+  full count-beside-limit table is the panel's, not the HUD's, which keeps the
+  live tick to two `hud_change` calls.
+- **Player toggle over a server default.** A `flag` in `lib/config.lua`, the
+  boolean sibling `flat_sky` already uses, overridden per player in player meta —
+  read with `get_string`, because `get_int` cannot tell an unset key from a stored
+  `0` (`B5`). Costs one `settingtypes.txt` mirror row and one toggle in the editor.
+- **0.5 s cadence, only while running.** Affordable now that a tick is a
+  `hud_change` per field that actually moved rather than a whole formspec.
+- **The panel opens by left-clicking a *running* drone with the setter** — the
+  gesture that today cancels the run. Left-clicking an idle drone still removes
+  it, unchanged. **The consequence is deliberate: stopping a runaway program
+  becomes two clicks rather than one**, and the accidental cancel that gesture
+  allowed becomes impossible.
+- **Pause/Resume and Cancel, no Start.** The poser's left-click is the gesture
+  that starts a run; a second one means a second entry into the one place a
+  drone's budget, coroutine and block preference are built.
 
 **Constraints and risks.**
 
@@ -501,30 +551,43 @@ rewriting the first.
   missing rather than hidden: **peak heap is never retained** (`heap_mb` is
   sampled and compared, never kept), and the charged-CPU figure was dropped from
   the completion line in Phase 6 as meaningless against a ceiling in minutes — it
-  belongs here as a **share** of the budget (`B26`).
+  belongs here as a **share** of the budget (`B26`). Both are wanted, so the
+  binding-constraint function is total over what it can see.
 - **Do not reintroduce the dependency `A11` removed.** `lib/drone.lua` does not
-  know forms exist. Drive the live refresh from the form side reading
-  `drone.budget`, not by `drone.lua` calling `update_form`. `Drone.on_place`
-  already sets the precedent: it *returns* whether a file is needed and
-  `register.lua` shows the chooser.
-- **A live formspec is a redraw cadence, and that is the performance risk.**
-  `core.show_formspec` per server step per player is a packet per step; pick an
-  interval and state it in the code. Redraw also resets input focus, so a panel
-  that redraws while a text field is focused is unusable — keep it separate from
-  the editor form, or refresh only non-editable fields. `lib/forms.lua` holds one
-  form per player, so opening this panel closes whatever else was open: **decide
-  that explicitly rather than discovering it.**
-- **Pause and cancel touch the lifecycle.** Cancel must go through
-  `Drone.finish`, the single place an outcome is announced, or the player gets two
-  messages or none (`B12`, `B30`). Pause is `drone.wake_at` again, so `F3`'s
-  constraints apply. Anything reading a drone by name from a callback must respect
-  the **serial guard** (`B29`): read the record fresh, as `lib/drone_entity.lua`
-  does — a panel that caches a drone table across redraws hits exactly that.
-- No API name, no new limit, no codelevel change. Spec coverage partial:
-  `forms_spec` for session and handler routing, `limits_spec` for the binding-
-  constraint arithmetic (**keep it a pure function of `caps` and `used`** so it
-  can be), `stepper_spec` for pause. The drawing and the cadence cannot be
-  spec'd, so this one wants its playtest group run first.
+  know forms exist, and must not learn that a HUD exists either. Drive both from
+  the other side, reading `drone.budget`. `Drone.on_place` is the precedent: it
+  *returns* whether a file is needed and `register.lua` shows the chooser.
+- **Pause is not `wake_at`.** Reusing it would clobber a pending `sleep()` from
+  `F3`: resuming sets `wake_at = nil` and the drone wakes early. A separate
+  `drone.paused`, checked in `stepper.awake`, leaves a sleeping program's own
+  wake time intact — and a paused drone already takes no share of the step pool,
+  because `Drone.on_step` counts only drones that are awake.
+- **Cancel must go through `Drone.finish`**, the single place an outcome is
+  announced, or the player gets two messages or none (`B12`, `B30`). Anything
+  reading a drone by name from a callback must respect the **serial guard**
+  (`B29`): read the record fresh, as `lib/drone_entity.lua` does — a panel that
+  caches a drone table across redraws hits exactly that, and so does a panel left
+  open while the run it describes ends.
+- No API name, no codelevel change; one new `flag` setting. Spec coverage
+  partial: `limits_spec` for the binding-constraint arithmetic (**keep it a pure
+  function of `caps` and `used`** so it can be), `stepper_spec` for pause,
+  `forms_spec` for the panel's session and handler routing. **The HUD itself, the
+  cadence, the drawing and the setter gesture cannot be spec'd at all** — they
+  need a player, a screen and a world — so this one wants its playtest group run
+  first and carries more `PLAYTEST.md` weight than any feature so far.
+
+**Argued out, so it is not proposed again.**
+
+- **A Start button.** Duplicates the poser's left-click and doubles the entries
+  into `get_safe_coroutine`.
+- **An admin view of another player's drone.** No one asked, and it adds a
+  privilege surface to a feature that otherwise has none.
+- **A `statbar` for the percentage.** It needs a texture pair and draws in
+  half-image steps; a colorized `text` says the same thing to the pixel and costs
+  no asset.
+- **A live-refreshing panel that reproduces the HUD.** The panel refreshes on the
+  same tick — it has no text field, so a redraw costs no focus — but it does not
+  duplicate the HUD's job. Two surfaces, one each.
 
 ### F5 · large · planned — change a codelevel while a program runs
 
@@ -663,6 +726,10 @@ on 2026-08-28**, the day this shipped.
 
 ## Other decisions worth not re-litigating
 
+- **Putting a button in a HUD** — impossible, not merely unwise. 5.17.0 has nine
+  HUD element types and none is a button, and no HUD click callback exists;
+  `register_on_player_receive_fields` is formspec-only, and `get_player_control`
+  is key state, not a click target. Anything interactive is a formspec. (`F4`)
 - **Batching `place()` into `core.bulk_set_node`** — not for 1.0.0. 1.3x against
   five flush sites whose omission is a silently wrong build; the arithmetic wants
   redoing since Phase 6 changed the yield cadence. (A4)
@@ -784,10 +851,11 @@ on 2026-08-28**, the day this shipped.
 
 ---
 
-2026-08-28 · codeblock `afbe504` (master), pushed · CI green, run 30, all three
-jobs — the first run to cover `F7`, with run 29 covering the five fixes of
-2026-08-28 before it. Only the record commits above it are unseen by CI.
-Local gates green there too, engine 5.17.0, read from output rather than
+2026-08-28 · codeblock `9e04990` (master), pushed · CI green, run 36, all three
+jobs — the run covering `C19`'s corrected ContentDB long description and `C16`'s
+install-guard playtest. `F4` is in the commit this line was added in, gates
+green, awaiting its own CI run.
+Local gates green over that commit, engine 5.17.0, read from output rather than
 exit codes: luacheck silent, `doc/api.md` and `locale/template.txt` up to date,
-nine in-engine specs **380 passed, 0 failed, 1 xfail, 0 xpass**, six standalone
-specs green under plain Lua 5.1.
+`locale/*.tr` covering every message, nine in-engine specs **428 passed, 0
+failed, 1 xfail, 0 xpass**, six standalone specs green under plain Lua 5.1.

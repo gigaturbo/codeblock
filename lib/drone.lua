@@ -181,6 +181,10 @@ local drone_mt = {
                 tstart = nil,
                 file = nil,
                 cor = nil,
+                -- The player holding the program from the drone panel. Separate
+                -- from wake_at, which is the program's own sleep; see
+                -- stepper.awake for why the two cannot share a field. (F4)
+                paused = false,
                 obj = obj
             }
 
@@ -310,6 +314,7 @@ local drone_mt = {
             drone.calls, drone.commands = 0, 0
             drone.default_block = preferred_block(name)
             drone.wake_at = nil
+            drone.paused = false
             drone.cor = res
 
         end,

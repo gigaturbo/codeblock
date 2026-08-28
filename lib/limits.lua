@@ -53,7 +53,11 @@ function limits.new(config, level, now)
             pace = config.pace_ms[level] * 1000,
             step = config.step_budget_us[level]
         },
-        used = {nodes = 0, runtime = 0, map = 0},
+        -- heap_kb is the peak growth seen, not a running total: it is measured
+        -- rather than counted, so nothing charges it. Kept so the display can
+        -- show the heap beside the other three instead of leaving a ceiling
+        -- nobody can see how close they are to. (F4)
+        used = {nodes = 0, runtime = 0, map = 0, heap_kb = 0},
         map_at = now,
         window = (config.map_window_s or DEFAULT_WINDOW_S) * 1e6
     }
@@ -116,6 +120,80 @@ function limits.hold(budget, blocks, now)
     -- above zero, because held + blocks is over the cap and blocks is not.
     return budget.window * (1 - (cap - blocks) / held)
 
+end
+
+--------------------------------------------------------------------------------
+-- reading the budget back
+--------------------------------------------------------------------------------
+
+-- The four resources a run fills up, in the order ties are broken. Every one is
+-- a counter in `used` over a ceiling in `caps` under the same key, which is the
+-- pairing limits.new exists to keep.
+--
+-- The other three caps are not here and are not oversights. `string_bytes` is a
+-- ceiling on one allocation rather than a total, so there is nothing to be a
+-- fraction of; `pace` and `step` are cadence, not a resource a program spends.
+local FILLABLE = {'nodes', 'runtime', 'map', 'heap_kb'}
+
+--- The resource closest to its ceiling: its key, and how full it is.
+--
+-- Returns a key from FILLABLE and a fraction, which is what a display needs to
+-- say *which* limit a program actually spends rather than listing four numbers
+-- and leaving the player to compare them. Not clamped at 1: a run is stopped
+-- after the charge that went over, so the honest figure is briefly above it.
+--
+-- A ceiling of zero admits no use at all, so anything spent against it is fully
+-- binding and nothing spent is not - there is no fraction to compute either way.
+--
+-- Pure arithmetic over `caps` and `used`, deliberately: it is the one part of
+-- this feature tests/limits_spec.lua can reach.
+function limits.binding(budget)
+
+    local worst, worst_at = FILLABLE[1], -1
+
+    for _, what in ipairs(FILLABLE) do
+        local cap, used = budget.caps[what], budget.used[what]
+        local at
+        if cap > 0 then
+            at = used / cap
+        else
+            at = used > 0 and 1 or 0
+        end
+        if at > worst_at then worst, worst_at = what, at end
+    end
+
+    return worst, worst_at
+end
+
+-- The same four, converted back into the units lib/config.lua is written in and
+-- doc/api.md documents - seconds and megabytes, not microseconds and mapblocks.
+--
+-- The conversion belongs here for the reason limits.new's does: this file is the
+-- only one that knows a mapblock is 1/64 of a megabyte, and a display doing that
+-- arithmetic itself would be a second place to get it wrong.
+local REPORT = {
+    {what = 'nodes', unit = '', scale = 1},
+    {what = 'runtime', unit = 's', scale = 1 / 1e6},
+    {what = 'map', unit = 'MB', scale = 1 / BLOCKS_PER_MB},
+    {what = 'heap_kb', unit = 'MB', scale = 1 / 1024}
+}
+
+--- Every fillable resource as {what, used, cap, unit}, in player-facing units.
+--
+-- Ordered, so a display shows the same four rows in the same order every time.
+-- No formatting and no translation: the numbers are this file's, the words are
+-- the caller's.
+function limits.report(budget)
+    local out = {}
+    for i, r in ipairs(REPORT) do
+        out[i] = {
+            what = r.what,
+            used = budget.used[r.what] * r.scale,
+            cap = budget.caps[r.what] * r.scale,
+            unit = r.unit
+        }
+    end
+    return out
 end
 
 --------------------------------------------------------------------------------

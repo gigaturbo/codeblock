@@ -224,6 +224,56 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- pausing: the player holding the program (F4)
+--
+-- Deliberately not the same field as sleeping. A pause has no end time and the
+-- program's own sleep() does, so borrowing wake_at would mean resuming a paused
+-- drone threw away a wake time it was still waiting on.
+--------------------------------------------------------------------------------
+
+do
+    local drone = make_drone('for i = 1, 100000 do end\n', 4)
+
+    clock = 0
+    drone.paused = true
+
+    it('a paused drone is not due', stepper.awake(drone), false)
+
+    local resumes = stepper.advance(drone, 1000000)
+    it('and is not resumed', resumes, 0)
+    it('nor charged for the step', drone.budget.used.runtime, 0)
+    it('and its slice is left alone', clock, 0)
+
+    -- No wake time was ever set, so nothing can expire and let it through: a
+    -- pause lasts until the player ends it, however long that is.
+    clock = 1e9
+    it('a pause does not time out', stepper.awake(drone), false)
+
+    drone.paused = false
+    it('and it runs again when the player says so',
+       (stepper.advance(drone, 1000) > 0), true)
+end
+
+do
+    -- The two reasons to be stopped are independent, which is the whole point of
+    -- the second field: unpausing must not wake a program that is still in its
+    -- own sleep().
+    local drone = make_drone('local x = 1\n', 4)
+
+    clock = 0
+    drone.wake_at = 5000
+    drone.paused = true
+    it('paused while sleeping is still not due', stepper.awake(drone), false)
+
+    drone.paused = false
+    it('unpausing does not shorten the sleep', stepper.awake(drone), false)
+    it('and the wake time survived it', drone.wake_at, 5000)
+
+    clock = 5000
+    it('which then expires on its own', stepper.awake(drone), true)
+end
+
+--------------------------------------------------------------------------------
 -- running time: the bound on a program that never finishes
 --
 -- Nothing limits how many calls or commands a program makes any more. What it

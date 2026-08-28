@@ -124,6 +124,11 @@ local function use_call(drone)
 
     if drone.mem0 then
         local grown = collectgarbage('count') - drone.mem0
+        -- Kept as a peak because this is the only place it is measured, and it
+        -- can fall as well as rise: a display reading it live would show a
+        -- collection as the program using less. (F4)
+        local used = drone.budget.used
+        if grown > used.heap_kb then used.heap_kb = grown end
         if grown > drone.budget.caps.heap_kb then
             error(S('Memory limit exceeded (@1 MB)',
                     drone.budget.caps.heap_kb / 1024), 4)

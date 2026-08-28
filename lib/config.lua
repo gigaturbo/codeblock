@@ -95,6 +95,16 @@ codeblock.config.max_file_kb = number('max_file_kb', 128)
 -- minetest.conf. (C18)
 codeblock.config.flat_sky = flag('flat_sky', false)
 
+-- Whether a player who has expressed no preference sees the drone HUD: the file,
+-- the state, and which limit the running program is closest to.
+--
+-- On, unlike flat_sky, and the difference is the point. This is not presentation
+-- the mod imposes on a game - it is on screen only while that player's own
+-- program runs, and it is the only place the budget a run is held to is visible
+-- at all. A player who disagrees unticks it in the editor, and that choice wins
+-- over this default. (F4, C18)
+codeblock.config.drone_hud = flag('drone_hud', true)
+
 codeblock.config.auth_levels = {1, 2, 3, 4}
 
 -- The codelevel a player gets on first join. Level 4 is right for singleplayer,
