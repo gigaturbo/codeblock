@@ -30,7 +30,8 @@ nothing dropped.
 (`B34`).** That is the first time this file has had nothing open. Everything
 is pushed through `ee01261` and **CI is green there, run 29, all three jobs** —
 the first run to cover the five fixes `B41`, `C18`, `S7`, `B44`, `B43`. `F7`
-landed after it, at `4eec1ce`, with the four local gates green.
+landed after it, in the commit this line was added in, with the four local gates
+green.
 
 | Category | Count | Open |
 |---|---|---|
@@ -1334,7 +1335,8 @@ dirty buffer, now `ROADMAP.md`'s `F7`. No finding id was ever allocated, correct
 
 2026-08-28 · describes codeblock `ee01261` (master), **pushed**, CI green (run
 29, all three jobs) — the first run to cover the five fixes of 2026-08-28. `F7`
-is committed at `4eec1ce` on top of it, gates green, CI not yet run on it.
+is in the commit this line was added in, gates green, awaiting its own CI run.
+
 Restructured at `b8b30e3`: this file is new and holds the findings that
 were in `.reports/audit.old.html`, which also held the roadmap and the `F` series
 — those are now in `ROADMAP.md`. Nothing renumbered, nothing dropped.
