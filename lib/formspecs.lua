@@ -68,6 +68,10 @@ local file_editor = {
         -- load saved state
         local tabs = {}
         local contents = {}
+        -- One flag per tab, kept dense so table.remove shifts it with the two
+        -- arrays beside it. Nothing restored here is dirty: every buffer was
+        -- just read from the file it names. (F7)
+        local dirty = {}
         local active = 0
         local soe = false
         local loe = false
@@ -107,6 +111,7 @@ local file_editor = {
                     else
                         table.insert(tabs, filename)
                         table.insert(contents, content)
+                        table.insert(dirty, false)
                         if filename == saved_active then active = #tabs end
                     end
                 end
@@ -117,6 +122,7 @@ local file_editor = {
             name = name,
             tabs = tabs,
             contents = contents,
+            dirty = dirty,
             active = active,
             help = 'cubes',
             scroll_c = 0,
@@ -150,12 +156,17 @@ local file_editor = {
         fs = fs .. 'style[help_cmds;bgcolor=blue]'
         fs = fs .. 'style[help_settings;bgcolor=blue]'
 
-        -- tabs
+        -- tabs. The asterisk marks a buffer that differs from the file, and is
+        -- decoration only: meta.tabs holds the name write_file, read_file and
+        -- remove_file are handed, and fields.tabs comes back as an index, so
+        -- nothing reads this label. Never append it to the name itself - that
+        -- creates a file called foo.lua*. (F7)
         if #meta.tabs > 0 then
             fs = fs .. 'tabheader[0,0;tabs;'
             for i, filename in ipairs(meta.tabs) do
                 if i ~= 1 then fs = fs .. ',' end
                 fs = fs .. formspec_escape(filename)
+                if meta.dirty[i] then fs = fs .. '*' end
             end
             fs = fs .. ';' .. (meta.active or 0) .. ';false;false]'
         end
@@ -368,7 +379,13 @@ local file_editor = {
         local function save_active()
             local err = write_file(name, meta.tabs[meta.active],
                                    meta.contents[meta.active])
-            if err then chat_send_player(name, err) end
+            if err then
+                chat_send_player(name, err)
+                return
+            end
+            -- Clean only on a write that happened: a refused save leaves the
+            -- buffer differing from the file, which is what the mark says. (F7)
+            meta.dirty[meta.active] = false
         end
 
         local function remove_active()
@@ -389,6 +406,7 @@ local file_editor = {
                 if drone and drone.file == filename then remove_drone(name) end
                 table.remove(meta.tabs, meta.active)
                 table.remove(meta.contents, meta.active)
+                table.remove(meta.dirty, meta.active)
                 meta.active = 0
                 if #meta.tabs > 0 then
                     for i, filename in ipairs(meta.tabs) do
@@ -412,6 +430,7 @@ local file_editor = {
             end
             table.insert(meta.tabs, file.name)
             table.insert(meta.contents, content)
+            table.insert(meta.dirty, false)
             meta.active = #meta.tabs
         end
 
@@ -495,6 +514,7 @@ local file_editor = {
             if #meta.tabs == 0 then return end
             table.remove(meta.tabs, meta.active)
             table.remove(meta.contents, meta.active)
+            table.remove(meta.dirty, meta.active)
             meta.active = 0
             if #meta.tabs > 0 then
                 for i, filename in ipairs(meta.tabs) do
@@ -532,7 +552,20 @@ local file_editor = {
         -- threw away everything typed since the last one. Still the *old* active
         -- tab at this point, which is what the tab and file branches want.
         -- Absent from the quit event, which carries no field but `quit`. (B35)
+        --
+        -- The tab is marked dirty from the comparison rather than from the
+        -- field arriving: the textarea reports itself on every submit, so
+        -- setting the flag unconditionally here would mark every tab on the
+        -- first button press and the mark would mean nothing. Comparing against
+        -- the buffer costs no memory - it is the copy already held - and is not
+        -- the pristine-copy design F7 rejected, so it says *differs from what
+        -- was last written* and not *differs from disk*: typing a character and
+        -- undoing it leaves the tab marked until the next save. That is the
+        -- harmless direction. (F7)
         if fields.content and meta.active ~= 0 then
+            if fields.content ~= meta.contents[meta.active] then
+                meta.dirty[meta.active] = true
+            end
             meta.contents[meta.active] = fields.content
         end
 

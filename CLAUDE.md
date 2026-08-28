@@ -27,9 +27,11 @@ Five documents in this directory, plus this file, the `.claude/` definitions and
 the gitignored HTML renderings:
 
 - `ROADMAP.md` — the one to read first. What to do next, in order; the phases
-  (`Phase 0`–`Phase 8`) and the `F` feature series; and **the log of what was
+  (`Phase 0`–`Phase 10`) and the `F` feature series; and **the log of what was
   agreed** — a feature's shape as settled, a part argued out, a rewording, a
-  default chosen. Nothing else records those.
+  default chosen. Nothing else records those. Three of those phases are three
+  releases: `Phase 8` is v1.0.0, `Phase 9` is v1.x.y, and `Phase 10` is v2.0.0
+  and holds nothing but the Blockly editor.
 - `TODO.md` — the author's inbox and wanted-features list. One line each. A
   `FIX:` or `BUG:` line there is a hand-off: it gets a finding id in `AUDIT.md`
   and stays in `TODO.md` until the author deletes it.

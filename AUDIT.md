@@ -28,9 +28,9 @@ nothing dropped.
 
 72 findings, this project's own. **71 resolved, none open, 1 won't fix
 (`B34`).** That is the first time this file has had nothing open. Everything
-through `326f739` is pushed and **CI is green at `0385099`, run 27, all three
-jobs**; the five fixes after it — `B41`, `C18`, `S7`, `B44`, `B43` — are
-committed at `6fea453` with the four local gates green, **CI not yet run on it**.
+is pushed through `ee01261` and **CI is green there, run 29, all three jobs** —
+the first run to cover the five fixes `B41`, `C18`, `S7`, `B44`, `B43`. `F7`
+landed after it, at `4eec1ce`, with the four local gates green.
 
 | Category | Count | Open |
 |---|---|---|
@@ -82,11 +82,12 @@ the file the drone held; and `S7` came out of a check that **passed on behaviour
 and failed on its message**. A pass/fail line would have buried the last of
 those.
 
-36 of 38 `PLAYTEST.md` checks carry a result — **34 pass, 2 partial, nothing
+36 of 39 `PLAYTEST.md` checks carry a result — **34 pass, 2 partial, nothing
 failing**. The two partials are `E2`, permanent because `B34` is won't-fix, and
 `D2` case 2, whose recipe has failed to produce the case twice and is the suspect
-rather than the code. **Only `R1` and `R2` have never been run at all**, and both
-belong to the release check.
+rather than the code. **Three have never been run at all**: `R1` and `R2`, which
+belong to the release check, and `E16`, new on 2026-08-28 with `F7` — a feature,
+so it closes no finding here.
 
 ---
 
@@ -1222,15 +1223,16 @@ Never blurred. **Verified** means a run or a reading demonstrates it,
 **committed** means the code is there and unproven, **claimed** means only a
 document says so.
 
-**Verified by machine.** CI run 27 at `0385099`, all three jobs green, checked
+**Verified by machine.** CI run 29 at `ee01261`, all three jobs green, checked
 against the GitHub API: luacheck, the six standalone specs under plain Lua 5.1
-(`B42`'s new slicing case among them), and `doc/api.md` and
-`locale/template.txt` both up to date. It is the first run to cover `B40` and
-`B42`. CI never runs the nine in-engine specs.
+(`B42`'s and `B43`'s new cases among them), and `doc/api.md` and
+`locale/template.txt` both up to date. It is the first run to cover the five
+fixes of 2026-08-28. CI never runs the nine in-engine specs, which is why the
+editor findings rest on the local suite and the playtests.
 
 **Verified locally, the author's report** (engine 5.17.0, read from output rather
 than exit codes — `$?` does not survive this machine's WSL layer): nine in-engine
-specs 374 passed / 0 failed / 1 xfail / 0 xpass.
+specs 380 passed / 0 failed / 1 xfail / 0 xpass.
 
 **Verified in a running world** (2026-08-27 and 2026-08-28, engine 5.17.0):
 `F-4` and `F-3` case 1 on 2026-08-28, confirming `B40` and — a phase late,
@@ -1330,8 +1332,9 @@ dirty buffer, now `ROADMAP.md`'s `F7`. No finding id was ever allocated, correct
 
 ---
 
-2026-08-28 · describes codeblock `0385099` (master), **pushed**, CI green (run
-27, all three jobs) — the first run to cover `B40` and `B42`. Restructured at
-`b8b30e3`: this file is new and holds the findings that
+2026-08-28 · describes codeblock `ee01261` (master), **pushed**, CI green (run
+29, all three jobs) — the first run to cover the five fixes of 2026-08-28. `F7`
+is committed at `4eec1ce` on top of it, gates green, CI not yet run on it.
+Restructured at `b8b30e3`: this file is new and holds the findings that
 were in `.reports/audit.old.html`, which also held the roadmap and the `F` series
 — those are now in `ROADMAP.md`. Nothing renumbered, nothing dropped.

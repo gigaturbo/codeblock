@@ -436,6 +436,47 @@ throughout — its branch sits above the scrollbars.
 
 Result: pass — `f274245` · engine 5.17.0 · 2026-08-27.
 
+### E16 · The unsaved marker on a tab [F7]
+
+Open a file. Type into it, then press anything that is **not Save** — a help
+panel button, a checkbox, `+`, the block picker, another tab. Look at the tab
+label. Then press **Save** and look again.
+
+Then, with an unsaved tab open, leave with **ESC**, reopen the editor, and look
+at the file: the edit is gone and the tab is unmarked, which is correct and is
+the thing the marker exists to warn about.
+
+**Pass:** the tab reads `thing.lua*` while the buffer differs from the file, and
+`thing.lua` once it has been written. It clears on **Save**, on a tab switch with
+*Save on tab switch* ticked, and on **Load and close**. It does *not* clear on a
+tab switch with that option unticked, because nothing was written.
+
+Three things worth checking beyond that first pass:
+
+- **The mark is legible on a tab.** A `tabheader` sizes itself to its labels, so
+  a marked tab is one character wider than an unmarked one and the row shifts as
+  you type. That is the cost of the design and this is where it is seen.
+- **The file is still called `thing.lua`.** Save a marked tab and look at the
+  file list on the left: a file named `thing.lua*` means the marker reached
+  `meta.tabs`, which is what `integration_spec` pins and what would corrupt the
+  player's directory. Nothing should ever create one.
+- **Create a copy leaves the source marked.** With an unsaved edit, press
+  *Create a copy*: the copy opens **unmarked**, because what was written to it is
+  what is in the buffer, and the source tab **stays marked**, because its own
+  file was deliberately not saved.
+
+**A known and accepted wrongness, not a fail:** type a character and undo it, and
+the tab stays marked until the next save. The flag records *the buffer changed*,
+not *the buffer differs from disk* — a diff would need a pristine copy of every
+open file, which was rejected for a cosmetic mark. Report it only if the mark
+appears without any typing at all, which would mean it is being set from the
+field arriving rather than from the text differing.
+
+Result: unchecked — `F7` shipped 2026-08-28 at gates green; nothing in a world
+has seen it. `integration_spec` pins the drawn label and that `meta.tabs` is
+undecorated, so what is unproven here is what a player can see and the flag's
+transitions across tab and file operations.
+
 ---
 
 ## Drone placement and the setter tool

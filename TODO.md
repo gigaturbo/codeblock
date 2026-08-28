@@ -29,19 +29,20 @@ Features
 
 Decisions wanted from the author
 
-- [ ] decide whether settingtypes.txt gets a generator and a --check, like
-      doc/api.md and locale/template.txt (audit C7, C17)
-- [ ] confirm or overrule keeping Blockly out of 1.0.0 (audit F6)
+- [x] settingtypes.txt gets a generator and a --check, like doc/api.md and
+      locale/template.txt — answered yes, 2026-08-28: "can have a generator if
+      this simplifies and unify the process" (audit C7, C17)
+- [x] Blockly is out of 1.0.0 — answered 2026-08-28 and made larger than that:
+      it is v2.0.0 and Phase 10 on its own, with Phase 9 for v1.x.y in between
+      (audit F6)
 
 Checks left in a running world — the checklist is `PLAYTEST.md`
 
+- [ ] run E16 — the unsaved-tab marker, new with F7 and never seen by a player
+      (audit F7)
 - [ ] run D2 case 2 — a drone placed where the client shows a node the server has
-      unloaded; the recipe is in the check (audit B10)
-- [ ] run F-3 case 2 — a file the process cannot read, denied with icacls; the
-      last thing in the filesystem group nothing has exercised (audit B15)
-- [ ] run W2 and W3, the two world-write checks never run at all
-- [ ] re-run W1 — its pass predates the Phase 6 and 7 rewrites of lib/cost.lua
-      and never recorded an engine version (audit S5, A4)
+      unloaded; the recipe is in the check, and it has now been aimed at twice
+      and missed twice, so the recipe is the suspect (audit B10)
 - [ ] build the release archive and install it once, to prove C16's guard —
       playtest R1 and R2, never run (audit C16)
 

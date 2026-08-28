@@ -10,13 +10,16 @@ minimum past information stays.
 Findings and their reasoning are in `AUDIT.md`. Manual checks are in
 `PLAYTEST.md`. Intentions not yet planned are in `TODO.md`.
 
-Numbering, so a commit message always resolves: phases are `Phase 0`–`Phase 8`,
+Numbering, so a commit message always resolves: phases are `Phase 0`–`Phase 10`,
 features are `F1`–`F7`, and finding ids are `B`/`S`/`C`/`A`. **Nothing is ever
 renumbered.**
 
-Target is **v1.0.0** — a correct sandbox, no unmaintained dependencies,
-documentation generated from the code, tests enough that changes are safe. Major,
-because several changes break saved player programs.
+Three releases, settled 2026-08-28. **`Phase 8` is v1.0.0** — a correct sandbox,
+no unmaintained dependencies, documentation generated from the code, tests enough
+that changes are safe; major, because several changes break saved player
+programs. **`Phase 9` is v1.x.y**, features and defect work after the release.
+**`Phase 10` is v2.0.0**, the Blockly editor and nothing else, because it needs
+thinking rather than a queue position.
 
 ## Now
 
@@ -31,8 +34,15 @@ which spread **78 s and 95 s** where the same shape spread 78 / 160 / 183 before
 *gates green, unproven in a world* list is down to two entries, neither of them
 waiting on someone finding the time.
 
-**One check stands between here and *everything proven*:**
+**`F7` shipped the same day** — a `*` on a tab whose buffer differs from the
+file — so the phase is 4 of 6, with `F4` and `F5` left. `F6` is no longer one of
+them: Blockly is `Phase 10` and v2.0.0.
 
+**Two checks stand between here and *everything proven*:**
+
+- **`E16`** for `F7`, which has gates green and has never been seen by a player.
+  The spec pins the string; only a session says whether the mark is legible on a
+  tab and whether it appears and clears when it should.
 - **`R1` and `R2`**, the release-archive pair nobody has ever run. They are the
   only checks in `PLAYTEST.md` with no result at all, they close `C16`'s install
   guard, and they belong to the release anyway.
@@ -48,7 +58,7 @@ Two loose ends worth naming, neither of them blocking:
   returning; it is recorded in `PLAYTEST.md` and `AUDIT.md` rather than filed,
   the same way the old unexplained 160 s was.
 
-Then `F7`, `F4` and `F5`, and v1.0.0.
+Then `F4`, `F5`, `settingtypes.txt`'s generator, and v1.0.0.
 
 **The three fixed on 2026-08-28 after the world group, all three now confirmed.**
 
@@ -101,9 +111,10 @@ Read what the game actually said, not just whether it did the right thing.
   ≈ 80 s the ceiling over the unload window predicts. `S5` had claimed that
   behaviour from reading since Phase 5.
 
-**Only `R1` and `R2` have never been run at all**, and both belong to the release
-check. The world group — `W1`, `W2`, `W3` — was played on 2026-08-28 and all
-three passed, which is the last group to have had nothing in it.
+**Three checks have never been run at all** — `R1` and `R2`, which belong to the
+release, and `E16`, which is new with `F7` today. The world group — `W1`, `W2`,
+`W3` — was played on 2026-08-28 and all three passed, which is the last group to
+have had nothing in it.
 
 **That run settled questions rather than finding defects, which is new here.**
 `W2` **answers `A4`**: mapgen does not overwrite a node written into ground it
@@ -152,7 +163,21 @@ the three options the finding put up, and the one it recommended. The mod touche
 nobody's sky unless asked; a game that wants a flat, sunless one says so in its
 own `minetest.conf`. The cost lands outside this repository and is one line:
 `codecube` sets `codeblock_flat_sky = true` when it adopts a release with this in
-it, or its world gets an ordinary day/night cycle back.
+it, or its world gets an ordinary day/night cycle back. **The author accepted
+that cost on 2026-08-28** — *"when codecube will be updated it will take this
+into account"* — so nothing here is waiting on the game and nothing here should
+change to accommodate it. The one thing to keep: this repository does not track
+whether that line was added, so a `codecube` release that adopts a version with
+`C18` in it and forgets it looks like a regression in the game's sky. That
+belongs to the game's own record, not to this one.
+
+**Four things the author settled on 2026-08-28**, all of them recorded where they
+apply rather than only here: `C18`'s cost accepted by `codecube` (above);
+`settingtypes.txt` **gets a generator**, on the grounds that it unifies a process
+`doc/api.md` and `locale/template.txt` already share (`C7`, `C17`, and the phase
+list); **Blockly becomes v2.0.0** with `Phase 9` for v1.x.y in between (`F6`, and
+the milestone list); and `F7` takes **the flag, not the pristine copy** — built
+the same day.
 
 ## Milestones
 
@@ -191,12 +216,15 @@ that the editor and drone paths were exercised by hand. Phase 8's playtests have
 since found **twelve** defects in code earlier phases called done (B36–B44, C17,
 C18, S7) — the newest of them were the largest. **All twelve are fixed.**
 
-### 8 · Features — in progress (3/7 shipped · 15 findings closed, none open)
+### 8 · Features for v1.0.0 — in progress (4/6 shipped · 15 findings closed, none open)
 
 The last phase before v1.0.0 and the only one that adds rather than repairs.
 Ordered easiest to hardest, one at a time. **The pacing and world groups have now
 been played**, which is what `F4` and `F5` were waiting on — between them they
 produced `B42` and `B43`, and answered `A4`.
+
+**`F6` is no longer in this phase**: Blockly is `Phase 10` and v2.0.0, decided
+2026-08-28. So this phase is six features, not seven.
 
 Shipped, gates green, pushed and CI-green at `b8b30e3`:
 
@@ -205,6 +233,10 @@ Shipped, gates green, pushed and CI-green at `b8b30e3`:
 - `F2` *Create a copy*, and a file list sorting `foo_2` before `foo_10`.
   `dee0bc7`.
 - `F3` `sleep(seconds)`, charged against `max_runtime_s` up front. `90cfb70`.
+
+Shipped, gates green, **not yet run in a world** (`E16`):
+
+- `F7` a `*` on a tab whose buffer differs from the file.
 
 Left in the phase:
 
@@ -215,13 +247,35 @@ Left in the phase:
 - `D2` case 2 — the last half nothing has exercised. Aimed at twice and missed
   twice; it needs a way to observe the server has released a mapblock, not
   another session. (B10)
-- Decide whether `settingtypes.txt` gets a generator and a `--check`, as
-  `doc/api.md` and `locale/template.txt` have. Open question. (C7, C17)
-- Build `F7`, a marker on unsaved tabs — small, and what `E12`'s three fails
-  were really about. (F7)
+- Give `settingtypes.txt` a generator and a `--check`, **decided yes** on
+  2026-08-28: it is the third hand-kept mirror and the only one without one, and
+  a generator unifies a process the other two already share. (C7, C17)
 - Build `F4`, the live drone panel.
 - Build `F5`, changing a codelevel mid-run.
-- `F6`, Blockly — planned, **out of 1.0.0**, first item after it.
+- Run `E16` for `F7`, which is shipped with gates green and unseen in a world.
+
+### 9 · v1.x.y — features and defects after the release
+
+**Allocated 2026-08-28**, when `F6` moved to its own phase. Everything that is
+not 1.0.0 and not Blockly lands here: features too late for the release, defects
+the release itself turns up, and the playtest groups that only a shipped version
+can reach. It has no fixed content on purpose — a phase for what comes back from
+players is worth more empty than filled in advance.
+
+The one thing already in it: **the first release under real use is where a
+finding series meets people who did not write it.** Everything in `AUDIT.md` was
+found by the author, one reviewer or one spec. That is a narrow sample and this
+phase is where it widens.
+
+### 10 · v2.0.0 — the Blockly editor
+
+**Allocated 2026-08-28.** `F6` alone, and a major version because it is the
+change that most plausibly breaks how a program is stored and edited. Its four
+obstacles are written up under `F6` and **none of them has an answer yet** — no
+HTTP allowance a ContentDB package can arrange, mod security on the write side,
+where the assets come from, and what a generated program is stored as. The
+author's own framing is the point: *time to plan and think*, not a queue
+position. **Do not start building it because the phase exists.**
 
 ## The features
 
@@ -448,13 +502,18 @@ already in progress — most usefully to slow a drone down to watch it, since
   standalone and can pin the whole thing; the privilege path in
   `lib/register.lua` is not spec-reachable.
 
-### F6 · post-1.0.0 · planned — Blockly web-based editor
+### F6 · Phase 10 / v2.0.0 · planned — Blockly web-based editor
 
 Build programs by dragging blocks in a browser instead of typing Lua — the obvious
-next step for the educational goal, and the reason it keeps coming back. **Planned
-and deliberately out of 1.0.0**, keeping its id so a commit can cite it, and it is
-the first item after the release. *A decision to confirm or overrule, not a
-settled fact.*
+next step for the educational goal, and the reason it keeps coming back.
+
+**Settled on 2026-08-28: `F6` is `Phase 10` and v2.0.0**, not the first item after
+1.0.0. It keeps its `F6` id, which is never renumbered. The author's reason is
+that it needs thinking rather than scheduling, and a major version gives it the
+room: *"Blockly will be 2.0.0 so I have time to plan and think."* `Phase 9` —
+`v1.x.y` features and defect work — comes between, so the release after 1.0.0 does
+not have to wait on the largest unanswered design question in the project. The
+four obstacles below are that question, and none of them has moved.
 
 Why it is last, and what would have to be true first:
 
@@ -478,10 +537,11 @@ Why it is last, and what would have to be true first:
   *where do the assets live and who allows the HTTP call*, before any code. None of
   v1.0.0's goals depend on it.
 
-### F7 · small · planned — show which tabs are unsaved
+### F7 · small · shipped — show which tabs are unsaved
 
-Mark a tab whose buffer differs from what is on disk, so a player can see the
-editor is holding an edit they have not saved. Nothing shows it today.
+A tab whose buffer differs from what is on disk is drawn with a trailing `*`, so
+a player can see the editor is holding an edit they have not saved. Nothing
+showed it before.
 
 **Why it exists.** `E12` failed three times and was traced twice for a write that
 was never happening. What the player was seeing each time was the unsaved edit
@@ -518,6 +578,31 @@ rather than necessary, which is why it comes first.
   transitions through the handler; **the drawing cannot be spec'd**, so this needs
   a `PLAYTEST.md` entry beside `E12` — and `E12` itself is unaffected, since the
   behaviour it checks does not change.
+
+**Built on 2026-08-28, the flag, as chosen by the author.** `meta.dirty` is a
+third array beside `meta.tabs` and `meta.contents`, one boolean per tab, and the
+three are maintained at the same four sites — inserted together in `show` and
+`open`, removed together in `remove_active` and `close_active`. **Kept dense
+rather than sparse** for exactly one reason: `table.remove` on a table with nil
+holes has no defined behaviour in Lua 5.1, and the removals are what keep the
+flag with its tab when the indices shift.
+
+**One thing the constraint above did not say, and it decides whether the mark
+means anything.** The flag cannot be set from `fields.content` *arriving*: the
+textarea reports itself on every submit, so that would mark every tab on the
+first button press. It is set from `fields.content ~= meta.contents[active]`,
+compared before the buffer is overwritten. That is **not** the pristine-copy
+design rejected above — the buffer is a copy already held, so it costs no memory
+— but it does mean the mark says *differs from what was last written*, not
+*differs from disk*. Typing a character and undoing it leaves the tab marked
+until the next save, which is the harmless direction the constraint asked for.
+
+`save_active` clears the flag **only on a write that happened**: a refused save
+leaves the buffer differing from the file, which is what the mark is for.
+
+`integration_spec` pins the two things that fail silently — the label carries the
+`*` and `meta.tabs` does not — by calling `get_form` on a built meta and reading
+the `tabheader` back out. What a player can see is `E16`.
 
 ## Other decisions worth not re-litigating
 
@@ -576,10 +661,16 @@ rather than necessary, which is why it comes first.
   than clearing its name and leaving it asking for another — the same answer
   `B41` gave, and the two had to agree. Fixed and confirmed in a world, `D6` on
   2026-08-28. (B44)
-- Nothing marks a tab whose buffer is unsaved, so an edit surviving a tab switch
-  and then vanishing on ESC reads as a lost save. It is not one — `E12` passed at
-  `246bb37`. (F7)
-- `C16`'s install guard and the archive checks are unrun. 36 of 38 `PLAYTEST.md`
+- A tab whose buffer is unsaved is marked with a trailing `*`, so an edit
+  surviving a tab switch and then vanishing on ESC no longer reads as a lost
+  save. It never was one — `E12` passed at `246bb37`; what was missing was
+  anything saying the buffer was dirty. Shipped 2026-08-28, unchecked in a world
+  (`E16`). (F7)
+- The mark is a **flag, not a diff against a kept pristine copy**, chosen by the
+  author on 2026-08-28: one boolean per tab against doubling the editor's memory
+  for a cosmetic mark. It is therefore wrong in the harmless direction — type a
+  character, undo it, and the tab stays marked until the next save. (F7)
+- `C16`'s install guard and the archive checks are unrun. 36 of 39 `PLAYTEST.md`
   checks carry a result — **34 pass, 2 partial, nothing failing**; the partials
   are `E2`, permanent while `B34` is won't-fix, and `D2` case 2. Only `R1` and
   `R2` have never been run. The footprint throttle left this list on 2026-08-28,
@@ -634,9 +725,10 @@ rather than necessary, which is why it comes first.
 
 ---
 
-2026-08-28 · codeblock `0385099` (master), pushed · CI green, run 27, all three
-jobs — the first run to cover `B40` and `B42`.
-Local gates green at `febf16f`, engine 5.17.0, read from output rather than exit
+2026-08-28 · codeblock `ee01261` (master), pushed · CI green, run 29, all three
+jobs — the first run to cover the five fixes of 2026-08-28. `F7` is committed at
+`4eec1ce` on top of it, gates green, CI not yet run on it.
+Local gates green at `4eec1ce`, engine 5.17.0, read from output rather than exit
 codes: luacheck silent, `doc/api.md` and `locale/template.txt` up to date, nine
-in-engine specs **377 passed, 0 failed, 1 xfail, 0 xpass**, six standalone specs
+in-engine specs **380 passed, 0 failed, 1 xfail, 0 xpass**, six standalone specs
 green under plain Lua 5.1.

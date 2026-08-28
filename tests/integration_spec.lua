@@ -244,6 +244,35 @@ do
     it('and the drone no longer builds forms',
        Drone.show_file_editor_form or Drone.show_set_file_form, nil)
 
+    -- The unsaved marker (F7). What is checked here is the one thing that can
+    -- go wrong silently: the asterisk being decoration and nothing else. It
+    -- must appear in the drawn label and must never reach meta.tabs, which is
+    -- the name write_file, read_file and remove_file are handed - a name with a
+    -- star in it creates a file called foo.lua*. Whether a player can see the
+    -- mark is a playtest (E16); that the string carries it is testable here.
+    local ed_meta = {
+        name = 'codeblock_spec_player',
+        tabs = {'one.lua', 'two.lua'},
+        contents = {'a', 'b'},
+        dirty = {false, true},
+        active = 1,
+        help = 'cubes',
+        scroll_c = 0,
+        scroll_p = 0,
+        scroll_w = 0,
+        default_block = 'stone',
+        picking = false,
+        soe = false,
+        loe = false,
+        sos = false,
+        newfile = ''
+    }
+    local labels = codeblock.formspecs.file_editor.get_form(ed_meta):match(
+                       'tabheader%[0,0;tabs;([^;]*);')
+    it('a clean tab is drawn under its own name', labels, 'one.lua,two.lua*')
+    it('and the marker never reaches the name a file is written under',
+       table.concat(ed_meta.tabs, ','), 'one.lua,two.lua')
+
     -- Directly on the prototype, not behind a metatable of this mod's own:
     -- register_entity makes the definition the luaentity's metatable with
     -- __index pointing at itself. (A6)
