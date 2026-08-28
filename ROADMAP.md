@@ -725,10 +725,10 @@ the `tabheader` back out. What a player can see is `E16`.
 
 ---
 
-2026-08-28 · codeblock `ee01261` (master), pushed · CI green, run 29, all three
-jobs — the first run to cover the five fixes of 2026-08-28. `F7` is in the
-commit this line was added in, gates green, awaiting its own CI run.
-Local gates green over that commit, engine 5.17.0, read from output rather than
+2026-08-28 · codeblock `afbe504` (master), pushed · CI green, run 30, all three
+jobs — the first run to cover `F7`, with run 29 covering the five fixes of
+2026-08-28 before it. Only the record commits above it are unseen by CI.
+Local gates green there too, engine 5.17.0, read from output rather than
 exit codes: luacheck silent, `doc/api.md` and `locale/template.txt` up to date,
 nine in-engine specs **380 passed, 0 failed, 1 xfail, 0 xpass**, six standalone
 specs green under plain Lua 5.1.

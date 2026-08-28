@@ -23,15 +23,14 @@ finding whose reasoning is load-bearing keeps a **Keep** paragraph, because
 someone could otherwise undo it by accident. Nothing has ever been renumbered and
 nothing dropped.
 
-
 ## Where it stands
 
 72 findings, this project's own. **71 resolved, none open, 1 won't fix
 (`B34`).** That is the first time this file has had nothing open. Everything
-is pushed through `ee01261` and **CI is green there, run 29, all three jobs** —
-the first run to cover the five fixes `B41`, `C18`, `S7`, `B44`, `B43`. `F7`
-landed after it, in the commit this line was added in, with the four local gates
-green.
+is pushed through `afbe504` and **CI is green there, run 30, all three jobs** —
+the first run to cover `F7`; run 29 before it covered the five fixes `B41`,
+`C18`, `S7`, `B44`, `B43`. Only the record commits on top of it are unseen by
+CI.
 
 | Category | Count | Open |
 |---|---|---|
@@ -1224,10 +1223,10 @@ Never blurred. **Verified** means a run or a reading demonstrates it,
 **committed** means the code is there and unproven, **claimed** means only a
 document says so.
 
-**Verified by machine.** CI run 29 at `ee01261`, all three jobs green, checked
+**Verified by machine.** CI run 30 at `afbe504`, all three jobs green, checked
 against the GitHub API: luacheck, the six standalone specs under plain Lua 5.1
 (`B42`'s and `B43`'s new cases among them), and `doc/api.md` and
-`locale/template.txt` both up to date. It is the first run to cover the five
+`locale/template.txt` both up to date. Run 30 covers `F7` and run 29 the five
 fixes of 2026-08-28. CI never runs the nine in-engine specs, which is why the
 editor findings rest on the local suite and the playtests.
 
@@ -1333,9 +1332,9 @@ dirty buffer, now `ROADMAP.md`'s `F7`. No finding id was ever allocated, correct
 
 ---
 
-2026-08-28 · describes codeblock `ee01261` (master), **pushed**, CI green (run
-29, all three jobs) — the first run to cover the five fixes of 2026-08-28. `F7`
-is in the commit this line was added in, gates green, awaiting its own CI run.
+2026-08-28 · describes codeblock `afbe504` (master), **pushed**, CI green (run
+30, all three jobs) — the first run to cover `F7`, with run 29 covering the five
+fixes before it. Only the record commits above it are unseen by CI.
 
 Restructured at `b8b30e3`: this file is new and holds the findings that
 were in `.reports/audit.old.html`, which also held the roadmap and the `F` series
