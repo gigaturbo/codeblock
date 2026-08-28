@@ -20,30 +20,37 @@ because several changes break saved player programs.
 
 ## Now
 
-**Nothing is open. Run the four checks that close the last three fixes.** The
+**Nothing is open, and everything fixed is proven in a running world.** The
 playtest run of 2026-08-27 at `246bb37` closed the backlog of *checking* and
-opened one of *fixing*; that backlog is now empty too. Six findings came out of
-this phase's playtests and **all six are fixed**, with `AUDIT.md` showing nothing
-open for the first time in the project's life.
+opened one of *fixing*; that backlog is now empty too, and so is the one after
+it. Six findings came out of this phase's playtests, **all six are fixed**, and
+on 2026-08-28 at `6fea453` the last three were confirmed in a world by their own
+checks — `D6` for `B44`, `F-3` case 2 for `S7`, and a re-timed `P3` for `B43`,
+which spread **78 s and 95 s** where the same shape spread 78 / 160 / 183 before.
+`AUDIT.md` shows nothing open for the first time in the project's life, and the
+*gates green, unproven in a world* list is down to two entries, neither of them
+waiting on someone finding the time.
 
-Four checks stand between here and *everything proven*:
+**One check stands between here and *everything proven*:**
 
-- **`D6`** for `B44` — the drone now goes with the file it was holding. Also
-  re-check the other order: removing a file then placing a drone must still open
-  the chooser.
-- **`F-3` case 2** for `S7` — the refusal should read *"Cannot read file
-  test.lua"* and nothing more, translated with the game in French, with the
-  operating system's reason now at `warning` in the server log. **Check the log
-  as well**: the point is that the detail moved, not that it was discarded.
-- **`P3`, re-timed** for `B43` — three facings, codelevel 2, view distance 500.
-  The times should be within noise of each other and near the 78 s end. The
-  specs pin the charge arithmetic; only this says whether the time a player
-  waits actually changed, which is what the finding was about.
-- **`R1` and `R2`**, the release-archive pair nobody has ever run.
+- **`R1` and `R2`**, the release-archive pair nobody has ever run. They are the
+  only checks in `PLAYTEST.md` with no result at all, they close `C16`'s install
+  guard, and they belong to the release anyway.
+
+Two loose ends worth naming, neither of them blocking:
+
+- **`S7`'s log line is unlooked-at.** `F-3` case 2 confirmed what the player
+  sees — *"Impossible de lire le fichier ..."*, translated and naming the file —
+  but not that `io.open`'s real reason is at `warning` in `debug.txt`. One grep,
+  next time an unreadable file is to hand.
+- **`P3` left a 23% gap unexplained**, 78 s against 95 s across two of four
+  facings. The emerge multipliers can only be 1, 2 or 4, so it is not `B43`
+  returning; it is recorded in `PLAYTEST.md` and `AUDIT.md` rather than filed,
+  the same way the old unexplained 160 s was.
 
 Then `F7`, `F4` and `F5`, and v1.0.0.
 
-**The three fixed on 2026-08-28 after the world group.**
+**The three fixed on 2026-08-28 after the world group, all three now confirmed.**
 
 - **`S7` · low** — a failed file open handed the player `io.open`'s own string,
   so the server's **absolute path** reached them, in English whatever language
@@ -201,9 +208,10 @@ Shipped, gates green, pushed and CI-green at `b8b30e3`:
 
 Left in the phase:
 
-- Run the four checks that close the last three fixes: `D6` for `B44`, `F-3`
-  case 2 for `S7`, a re-timed `P3` for `B43`, and `R1`/`R2` for the release
-  archive. Nothing here is waiting on a code change any more.
+- `R1` and `R2`, the release-archive pair. The three checks beside them in this
+  item — `D6`, `F-3` case 2 and a re-timed `P3` — were run at `6fea453` on
+  2026-08-28 and all three pass, so `B44`, `S7` and `B43` are confirmed and
+  nothing here waits on a code change any more.
 - `D2` case 2 — the last half nothing has exercised. Aimed at twice and missed
   twice; it needs a way to observe the server has released a mapblock, not
   another session. (B10)
@@ -566,18 +574,22 @@ rather than necessary, which is why it comes first.
   `D5` on 2026-08-28. (B41)
 - Removing the file a standing drone is holding takes the drone with it, rather
   than clearing its name and leaving it asking for another — the same answer
-  `B41` gave, and the two had to agree. Fixed, unchecked in a world (`D6`). (B44)
+  `B41` gave, and the two had to agree. Fixed and confirmed in a world, `D6` on
+  2026-08-28. (B44)
 - Nothing marks a tab whose buffer is unsaved, so an edit surviving a tab switch
   and then vanishing on ESC reads as a lost save. It is not one — `E12` passed at
   `246bb37`. (F7)
 - `C16`'s install guard and the archive checks are unrun. 36 of 38 `PLAYTEST.md`
-  checks carry a result — 32 pass, 3 partial, 1 fail. The fail and one partial
-  now describe fixed code and want a re-run, not a change. Only `R1`
-  and `R2` have never been run. The footprint throttle left this list on
-  2026-08-28, having been on it since Phase 5: `P3` measured it.
+  checks carry a result — **34 pass, 2 partial, nothing failing**; the partials
+  are `E2`, permanent while `B34` is won't-fix, and `D2` case 2. Only `R1` and
+  `R2` have never been run. The footprint throttle left this list on 2026-08-28,
+  having been on it since Phase 5: `P3` measured it, and then re-timed it against
+  `B43`'s fix.
 - A failed file open names the file and logs the operating system's reason at
-  `warning` rather than showing the player the server's absolute path. Fixed,
-  unchecked in a world (`F-3` case 2). **The class is the thing to remember:** an
+  `warning` rather than showing the player the server's absolute path. Fixed and
+  confirmed in a world, `F-3` case 2 on 2026-08-28 — though only the player's
+  half; the log line is still unlooked-at. **The class is the thing to
+  remember:** an
   error value passed through from an engine or C call is a player-facing string
   that is not a translation key, and nothing reports it. (S7)
 - `settingtypes.txt` mirrors `lib/config.lua` by hand and nothing checks it — the

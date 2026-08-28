@@ -23,13 +23,14 @@ finding whose reasoning is load-bearing keeps a **Keep** paragraph, because
 someone could otherwise undo it by accident. Nothing has ever been renumbered and
 nothing dropped.
 
+
 ## Where it stands
 
 72 findings, this project's own. **71 resolved, none open, 1 won't fix
 (`B34`).** That is the first time this file has had nothing open. Everything
 through `326f739` is pushed and **CI is green at `0385099`, run 27, all three
 jobs**; the five fixes after it — `B41`, `C18`, `S7`, `B44`, `B43` — are
-**in the working tree with the four local gates green, uncommitted**.
+committed at `6fea453` with the four local gates green, **CI not yet run on it**.
 
 | Category | Count | Open |
 |---|---|---|
@@ -38,8 +39,8 @@ jobs**; the five fixes after it — `B41`, `C18`, `S7`, `B44`, `B43` — are
 | C compliance and packaging | 12 | — |
 | A architecture and performance | 12 | — |
 
-**Every defect the playtests found this phase is fixed, and all but two are
-confirmed in a world.** The run of 2026-08-27 at `246bb37` took the drone,
+**Every defect the playtests found this phase is fixed, and every one of them is
+now confirmed in a running world.** The run of 2026-08-27 at `246bb37` took the drone,
 filesystem, pacing and per-feature groups and found three things no reading had:
 an unbounded file read (`B40`, high), a shape wider than the footprint ceiling
 raising instead of throttling (`B42`, medium), and a cancelled file chooser
@@ -47,10 +48,22 @@ leaving an unusable drone (`B41`, low). All three are fixed and all three are
 confirmed — `F-4`, `F-3` case 1, `P3` and `D5`. That range also confirmed `B29`,
 `B38`, `B39`, `C17` and, a phase late, `B7`.
 
-**The re-runs and the world group then opened three more, and all three are now
-fixed but unproven in a world**: `B43` from timing `P3`, `B44` from re-running
-`D5`, and `S7` from `F-3` case 2. `D6` and `F-3` case 2 are the checks that close
-them, and `P3` wants re-timing against `B43`'s fix.
+**The re-runs and the world group then opened three more, and all three are fixed
+and closed by their own checks on 2026-08-28 at `6fea453`**: `B43` from timing
+`P3`, `B44` from re-running `D5`, and `S7` from `F-3` case 2. `D6` passes, `F-3`
+case 2 passes and reads *"Impossible de lire le fichier ..."* — translated, and
+naming the file rather than the server's path — and the re-timed `P3` spreads
+**78 s and 95 s** across two facings where the same shape spread 78 / 160 / 183
+before. The factor of two `B43` was about is gone.
+
+Two things that closure does not cover, both small and both written into the
+checks. `S7` moved `io.open`'s real reason to the server log rather than
+discarding it, and **only the player's half was looked at**; the log line is
+unconfirmed, not suspected missing. And `P3` timed two of four facings, at
+codelevel 1 where the pre-fix run was at codelevel 2, leaving a 23% gap between
+its two times that the emerge model does not explain — the multipliers can only
+be 1, 2 or 4. Recorded there, not filed, exactly as the old unexplained 160 s
+was.
 
 **The world group was played on 2026-08-28 and it settled two long-standing
 questions rather than finding defects.** `W2` passed, which **answers `A4`** —
@@ -69,11 +82,11 @@ the file the drone held; and `S7` came out of a check that **passed on behaviour
 and failed on its message**. A pass/fail line would have buried the last of
 those.
 
-36 of 38 `PLAYTEST.md` checks carry a result — 32 pass, 3 partial, 1 fail. The
-fail is `D6` and one partial is `F-3` case 2; **both now describe fixed code and
-are waiting on a re-run rather than on a change.** The other partials are `E2`
-(permanent, `B34`) and `D2` case 2. **Only `R1` and `R2` have never been run at
-all**, and both belong to the release check.
+36 of 38 `PLAYTEST.md` checks carry a result — **34 pass, 2 partial, nothing
+failing**. The two partials are `E2`, permanent because `B34` is won't-fix, and
+`D2` case 2, whose recipe has failed to produce the case twice and is the suspect
+rather than the code. **Only `R1` and `R2` have never been run at all**, and both
+belong to the release check.
 
 ---
 
@@ -656,6 +669,18 @@ game's.
   this: the filler always clipped to `w-1`, so the written set was right all
   along. Only the emerged box was too big, which is why nothing but the charge
   saw it.
+  **Confirmed by re-timing `P3`, pass at `6fea453` on 2026-08-28**, and a
+  measurement is the only thing that could confirm it, since the specs pin the
+  charge and not the wait. Two facings of `cube(2, 2, 30000)` at codelevel 1,
+  view distance 500: **78 s and 95 s**, where codelevel 1 predicts 77 s at
+  multiplier 1 and 183 s at multiplier 2. Both are at the multiplier-1 end, so
+  the facing no longer decides how much is emerged.
+  **What that run does not settle**, written here rather than left to be
+  rediscovered: two of four facings were timed, at a different codelevel from the
+  pre-fix run, and the 23% between 78 and 95 fits none of the multipliers, which
+  can only be 1, 2 or 4. The coarse linear decay in `limits.hold` and the drone's
+  own traverse are the obvious places for it. Not a finding — the doubling this
+  one was about is what the numbers rule out.
 - **B44 · low · resolved** — removing a file left a drone still naming it, and
   the drone was taken away on the run rather than at the removal. Found by
   re-running `D5` and then doing the obvious next thing. `remove_file` deletes
@@ -680,7 +705,8 @@ game's.
   new drone, and `Drone.on_place` tests `codeblock:last_file` against the
   player's file list before using it, so a stale last-file opens the chooser.
   **Not provable by the specs** — it is the editor writing to the filesystem and
-  a drone in a world. Playtest `D6`.
+  a drone in a world. **Confirmed by playtest `D6`, pass at `6fea453` on
+  2026-08-28**: the drone goes with the file, at the removal.
 
 ---
 
@@ -819,8 +845,13 @@ re-break, and `S2`'s residue is one of the things v1.0.0 ships broken.
   comments too.** An explanatory comment containing the literal call syntax made
   it report a non-literal key, in the source it was documenting. Prose about
   translation has to avoid spelling the call out.
-  **Not provable by the specs** — no spec reaches `read_file`. Playtest `F-3`
-  case 2, which stays partial until re-run.
+  **Not provable by the specs** — no spec reaches `read_file`. **Confirmed by
+  playtest `F-3` case 2, pass at `6fea453` on 2026-08-28**: the message read
+  *"Impossible de lire le fichier ..."*, which shows both halves at once — a
+  translation key, so it came out in French, and the filename in place of the
+  absolute path. The **log** half, the real reason kept at `warning` rather than
+  discarded, was not looked at in that run and is the one thing still resting on
+  reading the code.
 
 ---
 
@@ -1209,7 +1240,9 @@ parts, confirming `B41`** and pressing its ESC path for the first time;
 **`R3` in both positions, confirming `C18`** and seeing its player-visible half
 for the first time; and **the whole world group — `W1`, `W2`, `W3` — at
 `326f739`**, which answered `A4`, re-based `S5`'s measurement on current code,
-and priced a 200-node cube. Before that:
+and priced a 200-node cube; and, at `6fea453` on 2026-08-28, **`D6`, `F-3`
+case 2 and a re-timed `P3`, confirming `B44`, `S7` and `B43`** — the three the
+world group itself opened, closed on the day they were fixed. Before that:
 `E1`–`E7` at
 `3293a2c`+F1, `E8`, `E9`, `E13` at `dee0bc7`, `E10`, `E11`, `E14`, `E15`, `D1`,
 `D3` part 1, `F-1` at `f274245`, `E12`, `D2` case 1, `D3` part 2, `D4` both cases,
@@ -1230,10 +1263,12 @@ whole once its field names and values total 640 kB, and that check exists from
 is answered there.
 
 **Gates green, unproven in a world:** `B14`, which cannot be proven from the
-editor at all while `B34` stands; `C16`'s install guard, which needs a real
-archive (`R1`, `R2`); and the three fixed on 2026-08-28 after the world group —
-`S7`, `B44` and `B43` — whose checks are `F-3` case 2, `D6` and a re-timed `P3`.
-`B7`, `B41` and `C18` all left this list on 2026-08-28.
+editor at all while `B34` stands, and `C16`'s install guard, which needs a real
+archive (`R1`, `R2`). **That is now the whole list**, and both entries are
+blocked on something other than someone finding time: one on a won't-fix, one on
+a release. `B7`, `B41`, `C18`, `S7`, `B44` and `B43` all left it on 2026-08-28.
+One residue, too small for an entry of its own: `S7`'s **log** line is unlooked-at
+— `F-3` case 2 confirmed what the player sees and not what the operator does.
 
 **Not verified anywhere:** `B10`'s refusal, twice aimed at through `D2` case 2
 and twice missed. **That is the whole list.** `A4`'s mapgen-overwrite question
@@ -1247,12 +1282,14 @@ arithmetic over the source and the one measured constant (16.3 kB a block). Only
 the 0.34 s is a measurement. The map write and the client push are neither: they
 are named there as uncharged and unmeasured, and should not be quoted as figures.
 
-**Measured, then explained:** the facing-dependent behaviour `P3` turned up was
-timed at three angles on 2026-08-28 — 78 s, 160 s, 183 s — and is `B43`. Two of
-the three land within one per cent of what a doubled or quadrupled emerge
-predicts, so it is the work and not what the client drew. **The 160 s run fits
-nothing** and is recorded as not fitting: the spans can only multiply to 1, 2 or
-4.
+**Measured, then explained, then measured again:** the facing-dependent behaviour
+`P3` turned up was timed at three angles on 2026-08-28 — 78 s, 160 s, 183 s — and
+is `B43`. Two of the three land within one per cent of what a doubled or
+quadrupled emerge predicts, so it is the work and not what the client drew. After
+the fix, two facings at codelevel 1 gave **78 s and 95 s** against predictions of
+77 s and 183 s, so both now emerge the same multiplier. **Neither the old 160 s
+nor the new 23% gap fits anything** and both are recorded as not fitting: the
+spans can only multiply to 1, 2 or 4.
 
 **Observed and unattributed:** at codelevel 1 nothing of the shape appeared until
 the drone was stopped, `P3` at `febf16f`, view distance 30. It is not a deferred

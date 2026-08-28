@@ -453,6 +453,12 @@ which was aimed at and missed. It also turned up a defect no check was looking
 for: cancelling the file chooser leaves a drone that cannot run, now **B41** and
 **D5**.
 
+**Third and fourth runs, 2026-08-28** — `D5` passes on all three parts at
+`326f739`+fixes, confirming `B41`, and turns up `B44` by doing the obvious next
+thing to the drone it left on screen; `D6` then passes at `6fea453`, confirming
+that one too. **The group's only outstanding item is `D2` case 2**, aimed at
+twice and missed twice, and the recipe is the suspect rather than the code.
+
 ### D1 · Place a drone and run a program [B10, A11]
 
 Point at loaded ground with the setter, place a drone, pick a file, watch it run
@@ -657,6 +663,11 @@ deleted, so the pass to look for is the drone going *with* the file — and the
 second half above, placing a new drone after a removal, must still open the
 chooser rather than do nothing.
 
+Result: pass — `6fea453` · engine 5.17.0 · 2026-08-28 — the drone now goes with
+the file, at the removal rather than one gesture later on the run. `B44` is
+confirmed in a running world, and with `D5` the mod answers *a drone with no
+usable file* the same way in both places it can happen.
+
 ---
 
 ## Filesystem and example generation
@@ -677,6 +688,13 @@ passes too, at last, and only because of that fix: the size bound refuses a
 168 MB file before the bytecode branch, so a small `luac5.1` chunk is what
 reaches it. **This group is now green apart from `F-3` case 2**, the unreadable
 file, which nothing has ever exercised.
+
+**Fourth run, 2026-08-28, at `6fea453`** — `F-3` case 2 passes and **the group is
+green**. It took three attempts: the first was blocked by a `cmd` recipe run in
+PowerShell, the second passed on behaviour and failed on its message and opened
+`S7`, and this one reads *"Impossible de lire le fichier ..."* — translated, with
+the filename and no absolute path. What is not yet looked at is the server log,
+where `S7` put the operating system's real reason.
 
 ### F-1 · `/codegenerate` on your own files [B8, B15]
 
@@ -823,6 +841,19 @@ game is in French. The real reason still exists, at `warning` level in the
 server log with the filename beside it, which is where an operator should look
 and where a path is not a disclosure. Check the log too: the point of the fix is
 that the detail moved, not that it was thrown away.
+
+Result: pass — `6fea453` · engine 5.17.0 · 2026-08-28 — case 2 re-run after
+`S7`. The message now reads *"Impossible de lire le fichier ..."* — the
+translated form of `Cannot read file`, in the player's language, with the
+filename and **no absolute path**. Both halves of the fix are visible in one
+line: it is a translation key, so it came out in French, and it names the file
+rather than the server's install layout. `F-3` is a full pass at last, both
+cases, and `S7` and `B7` are each confirmed in a running world.
+
+**The log half is not confirmed.** The fix moved `io.open`'s real reason to
+`warning` level rather than discarding it, and this run reported only what the
+player saw. Nothing suggests it is missing; it is simply unlooked-at. Whoever
+next has an unreadable file to hand can settle it in one grep of `debug.txt`.
 
 ### F-4 · A file too large to open [B40]
 
@@ -988,6 +1019,13 @@ returning. Timing three of them settled it and opened **`B43`**: 78 s, 160 s and
 doubled or quadrupled emerge predicts. **A measurement, not a failure, is what
 found that one**, and it is the first finding here to arrive that way.
 
+**Third run, 2026-08-28, at `6fea453`** — `P3` re-timed against `B43`'s fix, and
+the spread is gone: **78 s and 95 s** at codelevel 1, where a doubled emerge
+would have cost 183 s. The group stays green and `B43` is closed by the same
+kind of evidence that opened it. Two facings, not four, and 23% of the gap is
+still unaccounted for; both are written into the result below rather than
+smoothed over.
+
 ### P1 · `pace_ms` at the low codelevels [S5, B26]
 
 Run the same loop at codelevel 1, then 2, then 4.
@@ -1087,6 +1125,30 @@ facings should be gone. The specs pin the charge arithmetic and were checked
 against the old bounds so they are not vacuous, but **only this check can say
 whether the time a player waits actually changed**, which is what the finding was
 about.
+
+Result: pass — `6fea453` · engine 5.17.0 · 2026-08-28 — the re-timing, **at
+codelevel 1**, view distance 500: **78 s one way, 95 s the other**. The
+factor-of-two the finding was about is gone. At codelevel 1 the hold is 512
+mapblocks decaying over 29 s, so the rate is 17.7 a second and the first 512 are
+free; against a long axis of about 1877 mapblocks that predicts **77 s at
+multiplier 1 and 183 s at multiplier 2**. Both facings land at the multiplier-1
+end. Before the fix the same shape spread 78 / 160 / 183 s across three facings.
+
+Two things to keep straight about this as evidence. It was run at **codelevel 1
+where the pre-fix timing was at codelevel 2**, so the absolute seconds are not a
+like-for-like pair — but the *ratio between facings* is what `B43` is about, and
+that ratio barely moves with codelevel: the free initial hold makes a doubling
+cost 2.37x at level 1 against 2.05x at level 2, so if anything this run was the
+sharper test. And **only two of the four facings were timed**; the other two are
+untimed, as is the third that was 160 s before.
+
+The 95 s is 23% over the 78 s and the emerge model does not explain it — the
+multipliers can only be 1, 2 or 4, and 1.23 is none of them. Recorded rather
+than filed, as the old 160 s was: the coarse linear decay in `limits.hold`, the
+drone's own traverse and whatever else the server was doing all live in that
+gap, and none of them is the doubled emerge this check was looking for. The
+93 s codelevel-1 run at `febf16f` sits beside today's 95 s, but its facing was
+never recorded, so it is not a before/after pair either.
 
 ### P4 · Several drones at once [A5]
 
