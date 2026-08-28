@@ -36,7 +36,8 @@ them waiting on someone finding the time.
 **One finding is open, and it is not a defect.** `C19`, filed the same day from
 reading ContentDB's own page guidance: the package's long description is
 `README.md` verbatim and breaks six of that guidance's *do not include* rules —
-worst of them, its nine images are blanks in Luanti's own content browser. It
+worst of them, its nine images reach nobody browsing in-game — and five are tool
+icons used *inline in the instructions*, so those sentences lose their object. It
 blocks the *listing*, not the mod, and no gate in this repository could have seen
 it, because the rules live on a page nothing here reads. `release-check` now
 carries them.
@@ -281,7 +282,9 @@ Left in the phase:
   a generator unifies a process the other two already share. (C7, C17)
 - **Rewrite the ContentDB long description so it stops being `README.md`.** The
   README breaks six of ContentDB's own *do not include* rules at once, and the
-  worst of them is that its nine images are blanks in Luanti's content browser.
+  worst of them is that its nine images are not visible inside Luanti — and five
+  are tool icons used *inline in the instructions*, so those sentences lose their
+  object rather than just their decoration.
   The replacement is player-facing copy and the author's to write; what is
   settled is that `long_description` gets its own source. Blocks nothing until
   the release, and `release-check` fails on it until then. (C19)

@@ -27,9 +27,9 @@ Features
       and acted on nowhere; `F7` marks unsaved tabs first, which may be enough
       (audit F7)
 - [ ] write a ContentDB long description that is not README.md — the README
-      breaks six of ContentDB's do-not-include rules, and its nine images are
-      blanks in Luanti's content browser. Player-facing copy, so it wants the
-      author's words (audit C19)
+      breaks six of ContentDB's do-not-include rules, and its nine images are not
+      visible inside Luanti — five of them inline in the instructions. Player-
+      facing copy, so it wants the author's words (audit C19)
 - [ ] configure the ContentDB release webhook — trigger "Branch or tag
       creation", not push, because this project tags. The procedure is in the
       release-codeblock skill (no finding; from the author, 2026-08-28)

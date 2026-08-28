@@ -195,8 +195,13 @@ these is a fail, not a style note:
 - **API documentation or development instructions.** Those belong in the
   repository README.
 - **Images, including the screenshots already uploaded.** This is the one with
-  teeth: **images do not render inside Luanti's content browser**, so every image
-  here is a blank to a large share of the audience. Badges included.
+  teeth, and ContentDB gives the reason in its own words: **"images ... are not
+  visible inside Luanti"**. So every image here reaches the website's readers
+  and nobody browsing in-game, badges included.
+  **And check whether any of them is load-bearing**: this README's
+  Quick start puts the tool icons *inline in its instructions*, so deleting them
+  leaves "Right click with  tool on a block". An image carrying meaning has to
+  become words, not simply go.
 
 What *should* be there: what the package contains, what distinguishes it from
 the alternatives, and how to use it once installed.

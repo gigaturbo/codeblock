@@ -108,9 +108,16 @@ README; and **images**, including screenshots already uploaded.
 alternatives, and how to use it once installed.
 
 Two reasons this is not cosmetic. A reader of the long description is **already
-on the package page**, so a link back to it is circular. And **images do not
-render inside Luanti's content browser**, which is where most installs happen —
-every image is a blank there, badges included.
+on the package page**, so a link back to it is circular. And ContentDB's stated
+reason for the images rule is that **"images ... are not visible inside
+Luanti"** — its words — so an image reaches the website's readers and nobody
+browsing in-game.
+
+**Check whether any image is load-bearing before treating that as cosmetic.**
+The README's *Quick start* uses the two tool icons *inline in its instructions* —
+"Right click with ![drone_poser] tool on a block" — so without them the sentence
+loses its object three times over. An image carrying meaning has to become words,
+not simply be deleted.
 
 **`README.md` is a good README and a bad long description, and today it is
 both.** That is `C19` in `AUDIT.md`, open: the generator is faithful, the source

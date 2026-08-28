@@ -1078,9 +1078,18 @@ re-break, and `S2`'s residue is one of the things v1.0.0 ships broken.
   does not belong there. `scripts/gen_cdb_json.sh` embeds the file whole into
   `long_description`. The two documents have different readers — GitHub wants
   badges, repository links and a licence line; a ContentDB page reader is
-  **already on the page**, so those are noise at best. Worse, **images do not
-  render inside Luanti's own content browser**, which is where most installs
-  happen, so the nine images in this README are nine blanks.
+  **already on the page**, so those are noise at best. Worse, ContentDB's stated
+  reason for the images rule is that **"images ... are not visible inside
+  Luanti"** — its words — so the nine here reach the website's readers and nobody
+  browsing in-game.
+  **Five of those nine are load-bearing, which is what makes this more than
+  tidiness.** The *Quick start* uses the two tool icons *inline in the
+  instructions*: "Right click with ![drone_poser] tool on a block to place the
+  drone". Strip the image and the sentence loses its object — *"Right click with
+  tool on a block"* — three times over. The other four are decoration and lose
+  nothing but polish. **A rule about images turns out to be a rule about a
+  sentence that cannot be read**, and only reading the README against the rule
+  showed which.
   Read against
   <https://content.luanti.org/help/appealing_page/>, the README breaks six of the
   *do not include* rules at once:

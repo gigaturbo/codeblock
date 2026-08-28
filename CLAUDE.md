@@ -222,7 +222,7 @@ why a `--check` would not save it.** It is *generated* from `README.md` by
 the wrong source. ContentDB's rules say a long description must not repeat the
 title or the short description, must not link to the repository or to its own
 ContentDB page, must not carry licence text or API documentation, and **must not
-contain images, which Luanti's content browser cannot render at all**. A good
+contain images, which are not visible inside Luanti at all**. A good
 README is all of those things. That is `C19`, open. The lesson generalises past
 this file: **a generator guarantees the output matches its input, and nothing
 more.**
