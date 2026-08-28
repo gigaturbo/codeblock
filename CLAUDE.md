@@ -212,9 +212,20 @@ than by the code, and so **drift silently — nothing fails when they are wrong*
 drifted twelve messages one way and seventeen the other and now has
 `gen_locale.lua --check` (C17). **`settingtypes.txt` is the third and has
 neither**: it only *draws* the settings menu, the engine reads no defaults from
-it, and it is a hand-kept mirror of the literals in `lib/config.lua`. Whether it
-should get the same treatment is an open question in `ROADMAP.md`. The pattern to
-carry forward: a note about remembering does not hold, a `--check` in CI does.
+it, and it is a hand-kept mirror of the literals in `lib/config.lua`. It **is**
+getting the same treatment — decided 2026-08-28. The pattern to carry forward: a
+note about remembering does not hold, a `--check` in CI does.
+
+**`.cdb.json` is a fourth file of the same family and fails differently, which is
+why a `--check` would not save it.** It is *generated* from `README.md` by
+`scripts/gen_cdb_json.sh`, so it never drifts — it is faithfully generated from
+the wrong source. ContentDB's rules say a long description must not repeat the
+title or the short description, must not link to the repository or to its own
+ContentDB page, must not carry licence text or API documentation, and **must not
+contain images, which Luanti's content browser cannot render at all**. A good
+README is all of those things. That is `C19`, open. The lesson generalises past
+this file: **a generator guarantees the output matches its input, and nothing
+more.**
 
 Two rules for a string a player sees, both learned from C17:
 

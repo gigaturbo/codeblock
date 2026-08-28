@@ -1,6 +1,6 @@
 ---
 name: release-codeblock
-description: Cut a release of the CodeBlock mod — version bump, regenerated reference and ContentDB metadata, verification, tag on master, ContentDB upload. It releases on its own cadence; a game that embeds it adopts a release later and separately, in its own repository.
+description: Cut a release of the CodeBlock mod — version bump, regenerated reference and ContentDB metadata, verification, tag on master, ContentDB upload or release webhook, and what the page's long description may and may not contain. It releases on its own cadence; a game that embeds it adopts a release later and separately, in its own repository.
 when_to_use: When releasing, tagging or publishing this mod. Also read it before changing anything that ships in a release, to see what will need regenerating.
 disable-model-invocation: true
 argument-hint: "[version]"
@@ -92,6 +92,50 @@ The `codeblock` package at <https://content.luanti.org>, uploaded on its own.
   that.
 - Confirm the licence field matches the `LICENSE` file: AGPL-3.0-only.
 
+### What belongs in the long description, and what does not
+
+ContentDB's own guidance is <https://content.luanti.org/help/appealing_page/>,
+and the index of the rest is <https://content.luanti.org/help/>. The short
+version, because it decides what `long_description` may contain:
+
+**Leave out** — a heading repeating the package title; the short description
+restated; a link to the ContentDB page itself, the git repository or a forum
+topic, all of which have their own fields; licence text, which has a field;
+API documentation and development instructions, which belong in the repository
+README; and **images**, including screenshots already uploaded.
+
+**Put in** — what the package contains, what distinguishes it from the
+alternatives, and how to use it once installed.
+
+Two reasons this is not cosmetic. A reader of the long description is **already
+on the package page**, so a link back to it is circular. And **images do not
+render inside Luanti's content browser**, which is where most installs happen —
+every image is a blank there, badges included.
+
+**`README.md` is a good README and a bad long description, and today it is
+both.** That is `C19` in `AUDIT.md`, open: the generator is faithful, the source
+is wrong. Fixing it means `long_description` stops being the README — a separate
+file, or a marked section of it — and the replacement text is player-facing copy,
+so it is the author's to write. Do not quietly rewrite it as part of a release.
+
+### The release webhook
+
+<https://content.luanti.org/help/release_webhooks/>. Optional; it replaces the
+manual upload with a push from the repository.
+
+- An API token from *Profile → API Tokens → Manage* on ContentDB is the webhook
+  **secret**. Payload URL `https://content.luanti.org/github/webhook/`, content
+  type JSON, under the repository's *Settings → Webhooks*.
+- **Select "Branch or tag creation", not push events.** This project tags — step
+  2 above — so a tag is the release. Push events are for rolling releases and
+  would publish every commit on `master`.
+- A push-triggered webhook only watches the default branch; a tag-triggered one
+  works on any branch. If more than one ContentDB package matches the repository,
+  **only the first gets the release**.
+- Once it exists, step 5 gains a check: after pushing the tag, confirm the
+  release actually appeared. A webhook that has silently stopped looks exactly
+  like one nobody configured.
+
 ## 5. After
 
 - Watch CI on the tagged commit; a red build on a tag is worth fixing
@@ -111,3 +155,8 @@ The `codeblock` package at <https://content.luanti.org>, uploaded on its own.
   and `gen_docs.lua --check` is what enforces it.
 - `.cdb.json` regenerated on a checkout whose line endings differed, producing a
   spurious diff.
+- The long description shipped as `README.md` for the whole project's life, with
+  badges, repository links, a licence line and nine images that Luanti's own
+  content browser cannot render. **A generator being faithful says nothing about
+  its source being right** — `gen_cdb_json.sh` never drifted, and a `--check` on
+  it would pass today. `C19`.

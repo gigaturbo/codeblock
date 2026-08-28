@@ -1,6 +1,6 @@
 ---
 name: release-check
-description: Decides whether a CodeBlock release is ready, and says no when it is not. Runs every gate — the specs, lint, CI on the exact commit, the API reference matching the code, documentation in each format it ships in, licensing, ContentDB metadata, what the release archive contains, and a fresh clone — then reports a single go or no-go with the evidence behind it. Read-only; it verifies and never fixes or releases. Use before tagging, before uploading to ContentDB, or to ask whether a release is ready.
+description: Decides whether a CodeBlock release is ready, and says no when it is not. Runs every gate — the specs, lint, CI on the exact commit, the API reference matching the code, documentation in each format it ships in, licensing, ContentDB metadata and the page's long description against ContentDB's own rules, what the release archive contains, the release webhook, and a fresh clone — then reports a single go or no-go with the evidence behind it. Read-only; it verifies and never fixes or releases. Use before tagging, before uploading to ContentDB, or to ask whether a release is ready.
 tools: Read, Grep, Glob, Bash, WebFetch
 disallowedTools: Write, Edit, NotebookEdit
 skills: run-tests, references
@@ -118,7 +118,9 @@ Each output has a different consumer, and they go stale independently:
   clean boot proves it builds.
 - **ContentDB** — `.cdb.json`, generated from the README by
   `scripts/gen_cdb_json.sh`. **Nothing verifies it**, so read the script and
-  compare the embedded description against `README.md` by hand.
+  confirm the embedded description matches the current `README.md`. That the
+  generator ran is not enough: see gate 9, which is about whether the *content*
+  belongs there at all.
 - **The reference** — `doc/api.md`, covered by gate 4.
 - **Translations** — `locale/template.txt` is the translator's inventory of every
   message the mod sends, and `locale/codeblock.fr.tr` is the only translation.
@@ -170,6 +172,68 @@ Read the changelog against the diff since the last tag. If anything renames or
 removes a name in `lib/api.lua`, changes what a function returns for the same
 input, changes a block name, refuses a construct that used to work, or changes a
 licence — the version must be major, and the changelog must say so first.
+
+### 9. The ContentDB page says the right things
+
+The listing is the only part of a release most people ever read, and **nothing in
+this repository can see the result** — ContentDB renders the description, and
+Luanti's own content browser renders it again and differently. So the published
+rules are the only test there is. They are
+<https://content.luanti.org/help/appealing_page/>; the index of everything else
+is <https://content.luanti.org/help/>.
+
+Check `long_description` in `.cdb.json` against the *do not include* list. Each of
+these is a fail, not a style note:
+
+- **A heading repeating the package title**, or the short description restated.
+  Both are already fields on the page, one line above.
+- **A link to the ContentDB page itself, to the git repository, or to a forum
+  topic.** ContentDB has dedicated fields for all three. A reader of the long
+  description is *already on the package page* — a link back to it is circular,
+  and a downloads shield pointing at the same package is the worst case of it.
+- **Licence text.** There is a licence field, and gate 6 already checks it.
+- **API documentation or development instructions.** Those belong in the
+  repository README.
+- **Images, including the screenshots already uploaded.** This is the one with
+  teeth: **images do not render inside Luanti's content browser**, so every image
+  here is a blank to a large share of the audience. Badges included.
+
+What *should* be there: what the package contains, what distinguishes it from
+the alternatives, and how to use it once installed.
+
+**Known state, and do not re-derive it.** `long_description` is `README.md`
+verbatim, and the README breaks six of those rules at once. That is **`C19`,
+open**. Until it is fixed this gate fails — say so plainly and do not soften it,
+but note that it blocks the *page*, not the code: if the author is knowingly
+shipping the old description, that is their call to record, not yours to assume.
+
+Two smaller things while you are in the file:
+
+- Every ContentDB URL in `README.md` is on `content.minetest.net`, the
+  pre-rename domain. It redirects; it is still stale.
+- `short_description` should be specific about what the package contains, not a
+  generic category line.
+
+### 10. The release webhook, if it is configured
+
+Optional, and only a gate once it exists — but check it rather than assume,
+because a webhook that has stopped working looks exactly like one nobody set up.
+
+Setup is <https://content.luanti.org/help/release_webhooks/>. For GitHub: an API
+token from *Profile → API Tokens → Manage* becomes the webhook **secret**;
+payload URL `https://content.luanti.org/github/webhook/`; content type JSON.
+
+**Which event to select is decided by how this project releases.** CodeBlock
+tags — see the skill's step 2 — so the trigger is **"Branch or tag creation"**,
+not "push". Selecting push events would publish every commit on `master` as a
+release. Two consequences worth knowing: a push-triggered webhook only watches
+the default branch, while a tag-triggered one works on any branch; and if more
+than one ContentDB package matches the repository, only the first gets the
+release.
+
+If it is configured, confirm after tagging that the release actually appeared on
+ContentDB. If it is not, say so — the upload stays manual, which is the state
+the skill's step 4 describes.
 
 ## Reporting
 

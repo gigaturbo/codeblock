@@ -26,6 +26,15 @@ Features
 - [ ] warn when the editor is closed with unsaved changes — `soe` is read, written
       and acted on nowhere; `F7` marks unsaved tabs first, which may be enough
       (audit F7)
+- [ ] write a ContentDB long description that is not README.md — the README
+      breaks six of ContentDB's do-not-include rules, and its nine images are
+      blanks in Luanti's content browser. Player-facing copy, so it wants the
+      author's words (audit C19)
+- [ ] configure the ContentDB release webhook — trigger "Branch or tag
+      creation", not push, because this project tags. The procedure is in the
+      release-codeblock skill (no finding; from the author, 2026-08-28)
+- [ ] the ContentDB URLs in README.md are on content.minetest.net, the
+      pre-rename domain; it redirects but is stale (audit C19)
 
 Decisions wanted from the author
 

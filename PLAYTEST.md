@@ -477,6 +477,11 @@ has seen it. `integration_spec` pins the drawn label and that `meta.tabs` is
 undecorated, so what is unproven here is what a player can see and the flag's
 transitions across tab and file operations.
 
+Result: pass — `afbe504` · engine 5.17.0 · 2026-08-28 — the marker works in a
+running world, the day it shipped. **`F7` is confirmed**, and with it the flag's
+transitions across tab and file operations, which no spec reaches: only the drawn
+label and the undecorated `meta.tabs` are pinned by `integration_spec`.
+
 ---
 
 ## Drone placement and the setter tool
@@ -1211,10 +1216,30 @@ steps.
 git archive HEAD | tar -t | grep tests
 ```
 
-**Pass:** no output. ContentDB builds releases with `git archive`, and nothing in
-CI checks `.gitattributes`.
+**Pass:** no `tests/` directory. ContentDB builds releases with `git archive`,
+and nothing in CI checks `.gitattributes`.
 
-Result: unchecked
+**The grep is not the pass condition — read what it prints.** `lib/examples/`
+contains a player-facing example named `tests.lua`, so this command has a match
+even when the archive is correct. It is one of the fourteen example programs a
+player can open and run, and it exercises every API command in one go, which is
+exactly why it is called that. What would be a fail is a path *beginning*
+`tests/`. Better to list the top level and read it whole:
+
+```bash
+git archive --format=tar HEAD | tar -t | awk -F/ '{print $1}' | sort -u
+```
+
+Result: pass — `afbe504` · 2026-08-28 — run in WSL by the author. `grep tests`
+returned `lib/examples/tests.lua` and nothing else, which is the example, not the
+suite. Listed in full the archive holds eleven top-level entries, all
+player-facing: `CHANGELOG.md`, `LICENSE`, `README.md`, `doc`, `init.lua`, `lib`,
+`locale`, `mod.conf`, `screenshot.png`, `settingtypes.txt`, `textures`. No
+`.claude/`, `.reports/`, `.github/`, `tests/`, `scripts/`, and **none of the
+record** — `AUDIT.md`, `PLAYTEST.md`, `ROADMAP.md`, `TODO.md` and `CLAUDE.md` are
+all absent. `screenshot.png` survives, which it must: Luanti shows it in the
+Mods tab. **`C10` is confirmed for the first time** — `.gitattributes` was doing
+its job, but nothing had ever looked.
 
 ### R2 · A real install with the test flag set [C16]
 

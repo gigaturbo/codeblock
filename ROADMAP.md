@@ -23,29 +23,45 @@ thinking rather than a queue position.
 
 ## Now
 
-**Nothing is open, and everything fixed is proven in a running world.** The
+**No defect is open, and everything fixed is proven in a running world.** The
 playtest run of 2026-08-27 at `246bb37` closed the backlog of *checking* and
 opened one of *fixing*; that backlog is now empty too, and so is the one after
 it. Six findings came out of this phase's playtests, **all six are fixed**, and
 on 2026-08-28 at `6fea453` the last three were confirmed in a world by their own
 checks — `D6` for `B44`, `F-3` case 2 for `S7`, and a re-timed `P3` for `B43`,
 which spread **78 s and 95 s** where the same shape spread 78 / 160 / 183 before.
-`AUDIT.md` shows nothing open for the first time in the project's life, and the
-*gates green, unproven in a world* list is down to two entries, neither of them
-waiting on someone finding the time.
+The *gates green, unproven in a world* list is down to two entries, neither of
+them waiting on someone finding the time.
 
-**`F7` shipped the same day** — a `*` on a tab whose buffer differs from the
-file — so the phase is 4 of 6, with `F4` and `F5` left. `F6` is no longer one of
-them: Blockly is `Phase 10` and v2.0.0.
+**One finding is open, and it is not a defect.** `C19`, filed the same day from
+reading ContentDB's own page guidance: the package's long description is
+`README.md` verbatim and breaks six of that guidance's *do not include* rules —
+worst of them, its nine images are blanks in Luanti's own content browser. It
+blocks the *listing*, not the mod, and no gate in this repository could have seen
+it, because the rules live on a page nothing here reads. `release-check` now
+carries them.
 
-**Two checks stand between here and *everything proven*:**
+**`F7` shipped the same day and `E16` passed it the same day** — a `*` on a tab
+whose buffer differs from the file, confirmed in a running world at `afbe504`. So
+the phase is 4 of 6, with `F4` and `F5` left, and **every shipped feature here is
+now proven in a world**. `F6` is no longer one of them: Blockly is `Phase 10` and
+v2.0.0.
 
-- **`E16`** for `F7`, which has gates green and has never been seen by a player.
-  The spec pins the string; only a session says whether the mark is legible on a
-  tab and whether it appears and clears when it should.
-- **`R1` and `R2`**, the release-archive pair nobody has ever run. They are the
-  only checks in `PLAYTEST.md` with no result at all, they close `C16`'s install
-  guard, and they belong to the release anyway.
+**One check stands between here and *everything proven*:**
+
+- **`R2`**, a real install with `codeblock_run_tests` set, which needs a built
+  archive and is the last check in `PLAYTEST.md` with no result at all. It closes
+  `C16`'s install guard and belongs to the release anyway.
+
+**`R1` passed on 2026-08-28** and took **`C10`** with it — `.gitattributes` was
+doing its job for the project's whole life and nothing had ever looked. The
+archive holds eleven top-level entries, all player-facing, and none of the
+record. Worth keeping from that run: **the check's own command is misleading.**
+`git archive HEAD | tar -t | grep tests` prints `lib/examples/tests.lua` even
+when the archive is correct — it is one of the fourteen example programs, the one
+that exercises every API command. Reading `grep` output as a pass/fail is how
+that reads as a fail; listing the top level is what actually answers it, and the
+check now says so.
 
 Two loose ends worth naming, neither of them blocking:
 
@@ -111,10 +127,11 @@ Read what the game actually said, not just whether it did the right thing.
   ≈ 80 s the ceiling over the unload window predicts. `S5` had claimed that
   behaviour from reading since Phase 5.
 
-**Three checks have never been run at all** — `R1` and `R2`, which belong to the
-release, and `E16`, which is new with `F7` today. The world group — `W1`, `W2`,
-`W3` — was played on 2026-08-28 and all three passed, which is the last group to
-have had nothing in it.
+**Only `R2` has never been run at all** — the real install, which needs a built
+archive. `R1` passed on 2026-08-28, and took `C10` with it. `E16`, new with `F7`
+today, passed the day it was written. The world group — `W1`, `W2`, `W3` — was
+played on 2026-08-28 and all three passed, the last group to have had nothing in
+it.
 
 **That run settled questions rather than finding defects, which is new here.**
 `W2` **answers `A4`**: mapgen does not overwrite a node written into ground it
@@ -170,6 +187,18 @@ change to accommodate it. The one thing to keep: this repository does not track
 whether that line was added, so a `codecube` release that adopts a version with
 `C18` in it and forgets it looks like a regression in the game's sky. That
 belongs to the game's own record, not to this one.
+
+**The ContentDB rules were read into the tooling on 2026-08-28, before the
+release rather than during it.** The author supplied the guidance
+(<https://content.luanti.org/help/appealing_page/>, the index at
+<https://content.luanti.org/help/>) and the intention to configure a release
+webhook (<https://content.luanti.org/help/release_webhooks/>). Both are now in
+`release-check` as gates 9 and 10 and in the `release-codeblock` skill, so they
+are checked rather than remembered. Reading them turned up `C19`: **the long
+description is `README.md` verbatim and breaks six of the *do not include* rules
+at once.** The webhook's one decision is written down — **the trigger is *Branch
+or tag creation*, not push**, because this project tags; push events would
+publish every commit on `master` as a release.
 
 **Four things the author settled on 2026-08-28**, all of them recorded where they
 apply rather than only here: `C18`'s cost accepted by `codecube` (above);
@@ -234,7 +263,7 @@ Shipped, gates green, pushed and CI-green at `b8b30e3`:
   `dee0bc7`.
 - `F3` `sleep(seconds)`, charged against `max_runtime_s` up front. `90cfb70`.
 
-Shipped, gates green, **not yet run in a world** (`E16`):
+Shipped, gates green, and **confirmed in a world by `E16`** at `afbe504`:
 
 - `F7` a `*` on a tab whose buffer differs from the file.
 
@@ -250,9 +279,14 @@ Left in the phase:
 - Give `settingtypes.txt` a generator and a `--check`, **decided yes** on
   2026-08-28: it is the third hand-kept mirror and the only one without one, and
   a generator unifies a process the other two already share. (C7, C17)
+- **Rewrite the ContentDB long description so it stops being `README.md`.** The
+  README breaks six of ContentDB's own *do not include* rules at once, and the
+  worst of them is that its nine images are blanks in Luanti's content browser.
+  The replacement is player-facing copy and the author's to write; what is
+  settled is that `long_description` gets its own source. Blocks nothing until
+  the release, and `release-check` fails on it until then. (C19)
 - Build `F4`, the live drone panel.
 - Build `F5`, changing a codelevel mid-run.
-- Run `E16` for `F7`, which is shipped with gates green and unseen in a world.
 
 ### 9 · v1.x.y — features and defects after the release
 
@@ -537,7 +571,7 @@ Why it is last, and what would have to be true first:
   *where do the assets live and who allows the HTTP call*, before any code. None of
   v1.0.0's goals depend on it.
 
-### F7 · small · shipped — show which tabs are unsaved
+### F7 · small · shipped `afbe504`, confirmed by `E16` — show which tabs are unsaved
 
 A tab whose buffer differs from what is on disk is drawn with a trailing `*`, so
 a player can see the editor is holding an edit they have not saved. Nothing
@@ -602,7 +636,8 @@ leaves the buffer differing from the file, which is what the mark is for.
 
 `integration_spec` pins the two things that fail silently — the label carries the
 `*` and `meta.tabs` does not — by calling `get_form` on a built meta and reading
-the `tabheader` back out. What a player can see is `E16`.
+the `tabheader` back out. What a player can see was `E16`, **passed at `afbe504`
+on 2026-08-28**, the day this shipped.
 
 ## Other decisions worth not re-litigating
 
@@ -664,16 +699,18 @@ the `tabheader` back out. What a player can see is `E16`.
 - A tab whose buffer is unsaved is marked with a trailing `*`, so an edit
   surviving a tab switch and then vanishing on ESC no longer reads as a lost
   save. It never was one — `E12` passed at `246bb37`; what was missing was
-  anything saying the buffer was dirty. Shipped 2026-08-28, unchecked in a world
-  (`E16`). (F7)
+  anything saying the buffer was dirty. Shipped 2026-08-28 at `afbe504`,
+  and confirmed in a world by `E16` the same day. (F7)
 - The mark is a **flag, not a diff against a kept pristine copy**, chosen by the
   author on 2026-08-28: one boolean per tab against doubling the editor's memory
   for a cosmetic mark. It is therefore wrong in the harmless direction — type a
   character, undo it, and the tab stays marked until the next save. (F7)
-- `C16`'s install guard and the archive checks are unrun. 36 of 39 `PLAYTEST.md`
-  checks carry a result — **34 pass, 2 partial, nothing failing**; the partials
-  are `E2`, permanent while `B34` is won't-fix, and `D2` case 2. Only `R1` and
-  `R2` have never been run. The footprint throttle left this list on 2026-08-28,
+- `C16`'s install guard and the archive checks are unrun. 37 of 39 `PLAYTEST.md`
+  checks carry a result — **36 pass, 2 partial, nothing failing**; the partials
+  are `E2`, permanent while `B34` is won't-fix, and `D2` case 2. Only `R2` has
+  never been run — `R1` passed on 2026-08-28, confirming the archive holds
+  eleven player-facing entries and none of the record, and taking `C10` with it.
+  The footprint throttle left this list on 2026-08-28,
   having been on it since Phase 5: `P3` measured it, and then re-timed it against
   `B43`'s fix.
 - A failed file open names the file and logs the operating system's reason at

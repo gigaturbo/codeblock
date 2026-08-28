@@ -25,18 +25,19 @@ nothing dropped.
 
 ## Where it stands
 
-72 findings, this project's own. **71 resolved, none open, 1 won't fix
-(`B34`).** That is the first time this file has had nothing open. Everything
-is pushed through `afbe504` and **CI is green there, run 30, all three jobs** —
-the first run to cover `F7`; run 29 before it covered the five fixes `B41`,
-`C18`, `S7`, `B44`, `B43`. Only the record commits on top of it are unseen by
-CI.
+73 findings, this project's own. **71 resolved, 1 open (`C19`), 1 won't fix
+(`B34`).** The open one arrived on 2026-08-28 from reading ContentDB's own page
+guidance rather than from a defect: the long description is `README.md` verbatim
+and should not be, which no gate here could have seen. The code is pushed through
+`afbe504` and **CI is green there, run 30, all three jobs** — the first run to
+cover `F7`; run 29 before it covered the five fixes `B41`, `C18`, `S7`, `B44`,
+`B43`. Only the record commits on top of it are unseen by CI.
 
 | Category | Count | Open |
 |---|---|---|
 | B bugs | 41 | — (B34 won't fix) |
 | S sandbox and security | 7 | — |
-| C compliance and packaging | 12 | — |
+| C compliance and packaging | 13 | **1** (C19) |
 | A architecture and performance | 12 | — |
 
 **Every defect the playtests found this phase is fixed, and every one of them is
@@ -82,18 +83,25 @@ the file the drone held; and `S7` came out of a check that **passed on behaviour
 and failed on its message**. A pass/fail line would have buried the last of
 those.
 
-36 of 39 `PLAYTEST.md` checks carry a result — **34 pass, 2 partial, nothing
+38 of 39 `PLAYTEST.md` checks carry a result — **36 pass, 2 partial, nothing
 failing**. The two partials are `E2`, permanent because `B34` is won't-fix, and
 `D2` case 2, whose recipe has failed to produce the case twice and is the suspect
-rather than the code. **Three have never been run at all**: `R1` and `R2`, which
-belong to the release check, and `E16`, new on 2026-08-28 with `F7` — a feature,
-so it closes no finding here.
+rather than the code. **Only `R2` has never been run at all** — the real install,
+which needs a built archive. `R1` passed on 2026-08-28 and took `C10` with it;
+`E16`, new the same day with `F7`, passed the day it was written.
 
 ---
 
 ## Open
 
-**Nothing is open.** `B34` below is the one won't-fix.
+**One finding is open: `C19`**, the ContentDB long description. It is not a
+defect in the code and nothing in this repository fails because of it — it fails
+against ContentDB's published rules for a package page, which is a document no
+gate here can read. It blocks the *listing*, not the mod. The reasoning is under
+`C19` in the compliance section; `release-check` gate 9 is what stops it reaching
+a release unnoticed.
+
+`B34` below is the one won't-fix.
 
 ### B34 · low · won't fix — a file cannot be removed without opening it first
 
@@ -924,6 +932,22 @@ re-break, and `S2`'s residue is one of the things v1.0.0 ships broken.
   `gen_docs.lua --check`. ContentDB builds the release with `git archive`, so a
   file added to the tree ships unless a rule excludes it, and nothing local fails
   when one does. Add to that file when adding anything a player has no use for.
+  **Confirmed for the first time by playtest `R1`, 2026-08-28 at `afbe504`.** The
+  archive holds eleven top-level entries, all player-facing, and **none of the
+  record**: `AUDIT.md`, `PLAYTEST.md`, `ROADMAP.md`, `TODO.md` and `CLAUDE.md`
+  are all absent, as are `.claude/`, `.reports/`, `.github/`, `tests/` and
+  `scripts/`. `screenshot.png` survives, which it must. The rules were right for
+  the project's whole life and **nothing had ever looked**, which is the same
+  shape as `C18`: correct by construction is not the same as observed.
+  **Keep — `R1`'s own command misleads, and the check now says so.**
+  `git archive HEAD | tar -t | grep tests` prints `lib/examples/tests.lua` even
+  when the archive is correct — a player-facing example, the one that exercises
+  every API command in one program, and named that for exactly that reason. Read
+  as a bare pass/fail the grep says *fail*. What answers the question is listing
+  the top level:
+  `git archive --format=tar HEAD | tar -t | awk -F/ '{print $1}' | sort -u`.
+  A check whose command needs its output interpreted has to say so, or the next
+  person reads it wrong.
 - **C11 · low · resolved** — the changelog shipped two "known limitations" the
   same section contradicted. Fixed by `a023ceb`: both deleted rather than
   reworded, since a reworded limitation would have been an invented one. Released
@@ -1049,6 +1073,46 @@ re-break, and `S2`'s residue is one of the things v1.0.0 ships broken.
   because inside `codecube` the flat sky is the game's own design and looks
   correct. The gap this closes is exactly the one that let the defect live.
 
+- **C19 · medium · open** — the ContentDB long description is `README.md`
+  verbatim, and ContentDB's own guidance says most of what a good README contains
+  does not belong there. `scripts/gen_cdb_json.sh` embeds the file whole into
+  `long_description`. The two documents have different readers — GitHub wants
+  badges, repository links and a licence line; a ContentDB page reader is
+  **already on the page**, so those are noise at best. Worse, **images do not
+  render inside Luanti's own content browser**, which is where most installs
+  happen, so the nine images in this README are nine blanks.
+  Read against
+  <https://content.luanti.org/help/appealing_page/>, the README breaks six of the
+  *do not include* rules at once:
+  a heading repeating the package title (`CodeBlock`); the short description
+  restated in the first bold line, one field below the real `short_description`;
+  **links to the git repository and to the ContentDB page itself** — the
+  downloads shield links to this very package, and eight links go to
+  `github.com/gigaturbo/codeblock`; a licence line and a licence badge, where
+  ContentDB has a licence field already filled in; API and development material,
+  which the guidance puts in the repository README rather than here; and images,
+  including the screenshot ContentDB is separately given.
+  What the guidance asks for instead is what the *Quick start* section already
+  is: what the package contains, what distinguishes it, and how to use it once
+  installed. So this is not a rewrite from nothing — it is a subtraction, plus
+  keeping the parts that already comply.
+  **Not yet fixed, and deliberately not fixed here**: the replacement text is
+  player-facing copy and the author's to write. What is settled is that
+  `long_description` stops being `README.md`.
+  **Keep — this is the fourth hand-kept mirror, and it is the one that is not
+  even a mirror.** `doc/api.md` and `locale/template.txt` drifted and got a
+  `--check`; `settingtypes.txt` is the third and is getting one (`C7`, `C17`).
+  `.cdb.json` is worse than all three: it is generated, so it never *drifts* —
+  it is faithfully generated from the wrong source. A `--check` would pass on it
+  today. **A generator is not a guarantee that the output is right, only that it
+  matches its input.**
+  **Keep — nothing in this repository can see the result.** ContentDB renders the
+  description, Luanti's content browser renders it again and differently, and
+  neither is reachable from here. The rules above are the only test there is, so
+  they are written into `release-check` as a gate rather than left as a link.
+  **Also noted, and smaller**: every ContentDB URL in `README.md` is on
+  `content.minetest.net`, the pre-rename domain. It redirects today. `.cdb.json`
+  carries them too, because it is generated from the same file.
 ---
 
 ## A · Architecture and performance
@@ -1242,7 +1306,9 @@ parts, confirming `B41`** and pressing its ESC path for the first time;
 **`R3` in both positions, confirming `C18`** and seeing its player-visible half
 for the first time; and **the whole world group — `W1`, `W2`, `W3` — at
 `326f739`**, which answered `A4`, re-based `S5`'s measurement on current code,
-and priced a 200-node cube; and, at `6fea453` on 2026-08-28, **`D6`, `F-3`
+and priced a 200-node cube; **`E16` at `afbe504`, confirming `F7` on the day it
+shipped**; **`R1` at the same commit, confirming `C10`** for the first time in
+the project's life; and, at `6fea453` on 2026-08-28, **`D6`, `F-3`
 case 2 and a re-timed `P3`, confirming `B44`, `S7` and `B43`** — the three the
 world group itself opened, closed on the day they were fixed. Before that:
 `E1`–`E7` at
@@ -1266,9 +1332,10 @@ is answered there.
 
 **Gates green, unproven in a world:** `B14`, which cannot be proven from the
 editor at all while `B34` stands, and `C16`'s install guard, which needs a real
-archive (`R1`, `R2`). **That is now the whole list**, and both entries are
-blocked on something other than someone finding time: one on a won't-fix, one on
-a release. `B7`, `B41`, `C18`, `S7`, `B44` and `B43` all left it on 2026-08-28.
+archive and a real install (`R2`). **That is now the whole list**, and both
+entries are blocked on something other than someone finding time: one on a
+won't-fix, one on a release. `B7`, `B41`, `C18`, `S7`, `B44`, `B43` and — through
+`R1` — `C10` all left it on 2026-08-28.
 One residue, too small for an entry of its own: `S7`'s **log** line is unlooked-at
 — `F-3` case 2 confirmed what the player sees and not what the operator does.
 
