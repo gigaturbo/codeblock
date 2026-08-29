@@ -803,7 +803,7 @@ leaves the buffer differing from the file, which is what the mark is for.
 the `tabheader` back out. What a player can see was `E16`, **passed at `afbe504`
 on 2026-08-28**, the day this shipped.
 
-### F8 · medium · shipped in the commit this entry was added in, playtest due — make the drone panel readable, and settle where things live
+### F8 · medium · shipped `d619fba`, playtest due — make the drone panel readable, and settle where things live
 
 Everything `F4`'s first playtest asked for, in one feature because all of it edits
 the same two surfaces. Four wanted changes from the session of 2026-08-29, plus
@@ -1010,10 +1010,10 @@ the two findings that session filed.
 
 ---
 
-2026-08-29 · codeblock `729c255` was the last commit CI has seen — green,
-**run 37, all three jobs**, covering `F4`. **`B45`, `B46` and `F8` are committed on
-top of it and await their own run.**
-Local gates green over that commit, engine 5.17.0, read from output rather than
+2026-08-29 · codeblock `d619fba` (master), pushed · CI green, **run 40, all three
+jobs** — the run covering `B45`, `B46` and `F8`; run 37 before it covered `F4`.
+Only the record commits above it are unseen by CI.
+Local gates green there too, engine 5.17.0, read from output rather than
 exit codes: luacheck silent, `doc/api.md` and `locale/template.txt` up to date,
 `locale/*.tr` covering all 79 messages, nine in-engine specs **439 passed, 0
 failed, 1 xfail, 0 xpass**, six standalone specs green under plain Lua 5.1.
