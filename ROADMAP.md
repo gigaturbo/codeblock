@@ -55,17 +55,22 @@ break the upload.
 whose buffer differs from the file, confirmed in a running world at `afbe504`.
 `F6` is no longer one of them: Blockly is `Phase 10` and v2.0.0.
 
-**`F4` shipped the same day and is the phase's fifth of six, leaving only `F5`.**
-It is also the first feature here to ship with **none** of its in-world checks
-run: a HUD and a formspec panel showing what a running program spends, plus
-Pause, Resume and Cancel, and the setter's left click on a *running* drone
-repointed from cancelling the run to opening that panel. The specs reach its
-arithmetic (`limits.binding`, `limits.report`), its pause field and the panel's
-session routing, and reach nothing a player sees. **That is playtest group `H`,
-nine checks, all unchecked** — so *every shipped feature is proven in a world* is
-no longer true, and `H` is the group to run before `F5` starts. The rule this
-phase paid for says as much: run a group that has never been run before writing
-the next feature.
+**`F4` shipped 2026-08-28 at `729c255`, CI run 37 green on all three jobs, and
+with `F5` dropped the day after it makes this phase feature-complete.** It is also
+the first feature here to ship with **none** of its in-world checks run: a HUD and
+a formspec panel showing what a running program spends, plus Pause, Resume and
+Cancel, and the setter's left click on a *running* drone repointed from cancelling
+the run to opening that panel. The specs reach its arithmetic (`limits.binding`,
+`limits.report`), its pause field and the panel's session routing, and reach
+nothing a player sees. **That is playtest group `H`, nine checks, all unchecked**
+— so *every shipped feature is proven in a world* is no longer true, and closing
+that is the last work in the phase. The author is carrying the run.
+
+**`F5` was dropped unbuilt on 2026-08-29**, the author's call: *"not very
+interesting in the end."* Nothing was written. Its entry stays, marked dropped,
+because the two rules inside it outlive the feature — a codelevel control must be
+privilege-gated per press, and a mid-run budget rebuild must carry `used` across
+or re-levelling becomes a limit bypass.
 
 **`R2` passed on 2026-08-28 too, and every check that existed then carries a
 result** — 39 of 39, 37 pass and 2 partial, which had never been true before;
@@ -97,7 +102,8 @@ Two loose ends worth naming, neither of them blocking:
   returning; it is recorded in `PLAYTEST.md` and `AUDIT.md` rather than filed,
   the same way the old unexplained 160 s was.
 
-Then `F4`, `F5`, `settingtypes.txt`'s generator, and v1.0.0.
+Then `F4` — shipped 2026-08-29 — `settingtypes.txt`'s generator, and v1.0.0.
+`F5` was dropped rather than built.
 
 **The three fixed on 2026-08-28 after the world group, all three now confirmed.**
 
@@ -269,15 +275,20 @@ that the editor and drone paths were exercised by hand. Phase 8's playtests have
 since found **twelve** defects in code earlier phases called done (B36–B44, C17,
 C18, S7) — the newest of them were the largest. **All twelve are fixed.**
 
-### 8 · Features for v1.0.0 — in progress (4/6 shipped · 15 findings closed, none open)
+### 8 · Features for v1.0.0 — feature-complete (5/5 shipped · 15 findings closed, none open)
 
 The last phase before v1.0.0 and the only one that adds rather than repairs.
 Ordered easiest to hardest, one at a time. **The pacing and world groups have now
-been played**, which is what `F4` and `F5` were waiting on — between them they
-produced `B42` and `B43`, and answered `A4`.
+been played**, which is what `F4` was waiting on — between them they produced
+`B42` and `B43`, and answered `A4`.
 
-**`F6` is no longer in this phase**: Blockly is `Phase 10` and v2.0.0, decided
-2026-08-28. So this phase is six features, not seven.
+**Two features left this phase rather than shipping in it.** `F6` moved out on
+2026-08-28: Blockly is `Phase 10` and v2.0.0. `F5` was **dropped unbuilt on
+2026-08-29** — the author's call, "not very interesting in the end". So the phase
+was seven features, then six, and is five, **all five shipped**.
+
+**What remains before v1.0.0 is checking and one generator, not features:** `F4`'s
+playtest group `H`, and `settingtypes.txt`'s `--check`.
 
 Shipped, gates green, pushed and CI-green at `b8b30e3`:
 
@@ -319,8 +330,9 @@ Left in the phase:
   family as `doc/api.md` and `locale/template.txt`, and it will drift the same
   way. The release skill names it as a step, which is a note about remembering,
   and this project's own lesson is that those do not hold. (C19)
-- Build `F4`, the live drone panel.
-- Build `F5`, changing a codelevel mid-run.
+- Run playtest group `H`, `F4`'s nine in-world checks — the last unrun group, and
+  the only evidence there will ever be for a feature the specs cannot reach. The
+  author is carrying these.
 
 ### 9 · v1.x.y — features and defects after the release
 
@@ -589,20 +601,31 @@ and the second rewriting the first.
   same tick — it has no text field, so a redraw costs no focus — but it does not
   duplicate the HUD's job. Two surfaces, one each.
 
-### F5 · large · planned — change a codelevel while a program runs
+### F5 · large · dropped 2026-08-29 — change a codelevel while a program runs
 
-`/codelevel` takes effect on the next run, because `limits.new` converts the seven
-ceilings once when the run starts. This would let a level change reach a run
-already in progress — most usefully to slow a drone down to watch it, since
-`pace_ms` is the level-1 and level-2 pacing.
+**Cut by the author, unbuilt, in the author's words: "not very interesting in the
+end."** No code was written and none is wanted. It is kept here rather than
+deleted because the analysis below is the reason a future proposal to build it
+should be weighed against, not because it is queued — and because a feature with
+no recorded reason for its absence gets proposed again.
 
-**Constraints and risks.**
+What it would have been: `/codelevel` takes effect on the next run, because
+`limits.new` converts the seven ceilings once when the run starts. This would have
+let a level change reach a run already in progress — most usefully to slow a drone
+down to watch it, since `pace_ms` is the level-1 and level-2 pacing. `F4` covers
+the watching half of that want, which is part of why the rest stopped being
+interesting.
+
+**What the analysis was worth keeping for.** Two of these outlive the feature: the
+privilege rule holds for anything that ever exposes a codelevel control, and the
+counter-carrying rule is a limit-bypass shape rather than an `F5` detail.
 
 - **Codelevel is privileged, and this is the feature most able to break that.** An
   intermediate version once removed privs so players could set their own level — a
   privilege escalation, reverted before it shipped (`B9`). A player must not be
-  able to raise their own level, and if it is exposed in `F4`'s panel the button
-  has to be privilege-gated **per press, not per form**.
+  able to raise their own level, and if it is ever exposed in `F4`'s panel the
+  button has to be privilege-gated **per press, not per form**. `F4` shipped
+  without any such control, which is now the settled position.
 - **The subtler hole is the counters, not the privilege.** Rebuilding the budget
   from a new codelevel mid-run **must carry `used` across**; a rebuild that resets
   it turns re-levelling into a way to spend `max_nodes_written` or
@@ -726,6 +749,11 @@ on 2026-08-28**, the day this shipped.
 
 ## Other decisions worth not re-litigating
 
+- **Building `F5`, changing a codelevel mid-run** — dropped unbuilt 2026-08-29,
+  the author's words: *"not very interesting in the end."* `F4` covers the
+  watching half of what it was for. Do not re-propose it as a small addition to
+  the drone panel: the privilege gating and the counter-carrying below its entry
+  are what make it large.
 - **Putting a button in a HUD** — impossible, not merely unwise. 5.17.0 has nine
   HUD element types and none is a button, and no HUD click callback exists;
   `register_on_player_receive_fields` is formspec-only, and `get_player_control`
@@ -851,11 +879,13 @@ on 2026-08-28**, the day this shipped.
 
 ---
 
-2026-08-28 · codeblock `9e04990` (master), pushed · CI green, run 36, all three
-jobs — the run covering `C19`'s corrected ContentDB long description and `C16`'s
-install-guard playtest. `F4` is in the commit this line was added in, gates
-green, awaiting its own CI run.
-Local gates green over that commit, engine 5.17.0, read from output rather than
-exit codes: luacheck silent, `doc/api.md` and `locale/template.txt` up to date,
+2026-08-29 · codeblock `729c255` (master), pushed · CI green, **run 37, all three
+jobs** — the run covering `F4`. Only the record commits above it are unseen by CI.
+Local gates green there too, engine 5.17.0, read from output rather than exit
+codes: luacheck silent, `doc/api.md` and `locale/template.txt` up to date,
 `locale/*.tr` covering every message, nine in-engine specs **428 passed, 0
 failed, 1 xfail, 0 xpass**, six standalone specs green under plain Lua 5.1.
+
+**The phase is feature-complete and the only work left in it is checking.**
+`PLAYTEST.md` stands at 39 of 48 checks carrying a result; the nine without one
+are `F4`'s group `H`, and the author is running them.
