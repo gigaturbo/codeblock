@@ -52,8 +52,11 @@ local cancel_drone = codeblock.Drone.on_remove
 
 local hud_wanted = codeblock.hud.wanted
 local hud_set_wanted = codeblock.hud.set_wanted
--- One naming of the four limits for both surfaces; lib/hud.lua owns it.
+-- One naming of the four limits for both surfaces, plus the number formatting;
+-- lib/hud.lua owns how a limit is described to a player.
 local limit_label = codeblock.hud.limit_label
+local limit_description = codeblock.hud.limit_description
+local short_number = codeblock.hud.short_number
 local limits_report = codeblock.limits.report
 local limits_binding = codeblock.limits.binding
 
@@ -246,15 +249,9 @@ local file_editor = {
         fs = fs .. 'button[18.4,0;1.6, 0.75;help_settings;' .. S('Settings') ..
                  ']'
 
-        -- checkboxes
-        -- fs = fs .. 'checkbox[0,10;soe;Save on exit;' ..
-        --          (meta.soe and 'true' or 'false') .. ']'
-        fs = fs .. 'checkbox[0,10;loe;' .. S('Load program on exit') .. ';' ..
-                 (meta.loe and 'true' or 'false') .. ']'
-        fs = fs .. 'checkbox[5,10;sos;' .. S('Save on tab switch') .. ';' ..
-                 (meta.sos and 'true' or 'false') .. ']'
-        fs = fs .. 'checkbox[10,10;dhud;' .. S('Show the drone HUD') .. ';' ..
-                 (meta.dhud and 'true' or 'false') .. ']'
+        -- The three preference checkboxes used to be here, loose along the bottom
+        -- edge. They are on the Settings panel now, with the default-block
+        -- picker, which is what that panel is for. (F8, playtest H3)
 
         -- textarea
         local text = meta.contents[meta.active]
@@ -369,6 +366,25 @@ local file_editor = {
                     if v.key == meta.default_block then index = i end
                 end
                 fs = fs .. ';' .. index .. ']'
+            end
+
+            -- The three preferences, together on the panel that is for
+            -- preferences. They used to sit loose along the bottom edge of the
+            -- form, beside nothing and below the text area, which is where the
+            -- first two ended up when there was nowhere else and where the third
+            -- followed them. Hidden while the block list is open, because that
+            -- textlist is drawn over this space. (F8, playtest H3)
+            if not meta.picking then
+                fs = fs .. 'label[14.5,2.5;' .. S('Preferences') .. ']'
+                fs = fs .. 'checkbox[14.5,3.1;loe;' ..
+                         S('Load program on exit') .. ';' ..
+                         (meta.loe and 'true' or 'false') .. ']'
+                fs = fs .. 'checkbox[14.5,3.7;sos;' ..
+                         S('Save on tab switch') .. ';' ..
+                         (meta.sos and 'true' or 'false') .. ']'
+                fs = fs .. 'checkbox[14.5,4.3;dhud;' ..
+                         S('Show the drone HUD') .. ';' ..
+                         (meta.dhud and 'true' or 'false') .. ']'
             end
 
         end
@@ -812,15 +828,18 @@ local file_chooser = {
 
 -- drone_panel
 --
--- What the running program is spending, and the two things a player can do
--- about it. The at-a-glance version is lib/hud.lua; this is the whole table,
--- four resources with the counter beside the ceiling, in the units
--- lib/config.lua is written in.
+-- Everything about one drone in one place: what it is doing, what a running
+-- program is spending against each ceiling, and every action a player can take
+-- on it. The at-a-glance version is lib/hud.lua; this is the whole table.
 --
--- Reached by left-clicking a *running* drone with the setter, the gesture that
--- used to cancel it outright. Cancelling is now the button below, which is one
--- click further away on purpose: the old gesture destroyed a long build with no
--- confirmation at all.
+-- **Reached by left-clicking the drone with the setter, whatever it is doing.**
+-- That gesture has meant three things in turn: it removed the drone, then it
+-- removed an idle one and opened this panel on a running one, and now it always
+-- opens this panel. The two-meanings version was `F4`'s and lasted one playtest
+-- (`H4`): a gesture whose effect depends on invisible state is a gesture a player
+-- has to guess at. So removal is a button here instead - shown whatever the
+-- drone is doing, and on a running drone it means cancel-and-remove, which is
+-- what `Drone.on_remove` already did. (F8)
 --
 -- Refreshed on the same tick as the HUD. A redraw costs no input focus here
 -- because there is no text field in the form - that is what makes a live
@@ -837,12 +856,20 @@ local file_chooser = {
 -- a name would push the panel's formspec into the editor's form.
 local watching = {}
 
--- %d rather than tostring: math.floor returns a float in Lua 5.1, and tostring
--- renders a large one as 1e+06.
+-- One side of a `used / cap` pair, in the row's own unit.
+--
+-- Counts go through short_number, so 100000000 reads as 100.0M; a quantity with
+-- a unit is a small number already and gets one decimal. (F8)
 local function fmt(n, unit)
-    if unit == '' then return ('%d'):format(n + 0.5) end
+    if unit == '' then return short_number(n) end
     return ('%.1f %s'):format(n, unit)
 end
+
+-- Where the four rows and the buttons sit, so the form's height and the loop
+-- that fills it cannot disagree.
+local ROW_Y = 2.5
+local ROW_H = 1.15
+local BUTTON_Y = ROW_Y + 4 * ROW_H + 0.5
 
 local drone_panel = {
 
@@ -862,35 +889,66 @@ local drone_panel = {
         local drone = get_drone(meta.name)
         local running = drone and drone.cor and drone.budget
 
-        local fs = 'formspec_version[4]' .. 'size[8.5,7]'
+        -- Three states, and the panel opens in all of them: no drone, an idle
+        -- one, and a running one. Saying "there is no drone" is a real answer to
+        -- the gesture, which is why it no longer has to mean something else when
+        -- nothing is running. (F8)
+        local fs = 'formspec_version[4]' .. 'size[10,' ..
+                       (running and (BUTTON_Y + 1.4) or 3.6) .. ']'
+
+        if not drone then
+            return fs .. 'label[0.6,0.9;' .. S('You have no drone') .. ']' ..
+                       'button_exit[4,2.3;2,0.8;close;' .. S('Close') .. ']'
+        end
 
         if not running then
-            return fs .. 'label[0.6,0.9;' .. S('No program is running') .. ']' ..
-                       'button_exit[3.2,5.6;2,0.8;close;' .. S('Close') .. ']'
+            fs = fs .. 'label[0.6,0.9;' ..
+                     S('Drone idle, holding @1',
+                       formspec_escape(drone.file or '?.lua')) .. ']'
+            fs = fs .. 'style[remove;bgcolor=red]'
+            fs = fs .. 'button[0.6,2.3;3,0.8;remove;' .. S('Remove drone') ..
+                     ']'
+            fs = fs .. 'button_exit[6.4,2.3;3,0.8;close;' .. S('Close') .. ']'
+            return fs
         end
 
-        fs = fs .. 'label[0.6,0.8;' .. formspec_escape(drone.file or '?.lua') ..
-                 '  -  ' ..
-                 (drone.paused and S('paused') or S('running')) .. ']'
+        fs = fs .. 'label[0.6,0.8;' ..
+                 S('@1 - @2', formspec_escape(drone.file or '?.lua'),
+                   (drone.paused and S('paused') or S('running'))) .. ']'
 
+        -- Only the spent resources compete here; the map footprint is a throttle
+        -- that sits at its ceiling by design and used to win every time. (B45)
         local what, fraction = limits_binding(drone.budget)
-        fs = fs .. 'label[0.6,1.4;' ..
-                 S('Closest limit: @1, at @2%', limit_label(what),
+        fs = fs .. 'label[0.6,1.5;' ..
+                 S('Will stop on: @1, at @2%', limit_label(what),
                    math.floor(fraction * 100 + 0.5)) .. ']'
 
-        local y = 2.3
+        local y = ROW_Y
         for _, row in ipairs(limits_report(drone.budget)) do
+            local pct = math.floor(row.at * 100 + 0.5)
             fs = fs .. 'label[0.6,' .. y .. ';' .. limit_label(row.what) .. ']'
-            fs = fs .. 'label[4.2,' .. y .. ';' .. fmt(row.used, row.unit) ..
+            fs = fs .. 'label[4.4,' .. y .. ';' .. fmt(row.used, row.unit) ..
                      ' / ' .. fmt(row.cap, row.unit) .. ']'
-            y = y + 0.6
+            -- A held resource at its ceiling is working, not failing, so it says
+            -- so rather than showing a number that looks like imminent death.
+            local right = (row.held and pct >= 99) and S('throttled') or
+                              (pct .. '%')
+            fs = fs .. 'label[8.2,' .. y .. ';' .. right .. ']'
+            fs = fs .. 'label[0.8,' .. (y + 0.45) .. ';' ..
+                     limit_description(row.what) .. ']'
+            y = y + ROW_H
         end
 
-        fs = fs .. 'button[0.6,5.6;2.3,0.8;pause;' ..
+        fs = fs .. 'button[0.6,' .. BUTTON_Y .. ';2.1,0.8;pause;' ..
                  (drone.paused and S('Resume') or S('Pause')) .. ']'
-        fs = fs .. 'style[cancel;bgcolor=red]'
-        fs = fs .. 'button[3.1,5.6;2.3,0.8;cancel;' .. S('Cancel') .. ']'
-        fs = fs .. 'button_exit[5.6,5.6;2.3,0.8;close;' .. S('Close') .. ']'
+        fs = fs .. 'style[cancel;bgcolor=orange]'
+        fs = fs .. 'button[2.85,' .. BUTTON_Y .. ';2.1,0.8;cancel;' ..
+                 S('Cancel') .. ']'
+        fs = fs .. 'style[remove;bgcolor=red]'
+        fs = fs .. 'button[5.1,' .. BUTTON_Y .. ';2.1,0.8;remove;' ..
+                 S('Remove drone') .. ']'
+        fs = fs .. 'button_exit[7.35,' .. BUTTON_Y .. ';2.1,0.8;close;' ..
+                 S('Close') .. ']'
 
         return fs
     end,
@@ -927,8 +985,8 @@ local drone_panel = {
             close_form(name)
         end
 
-        -- Both buttons read the drone fresh, and both do nothing if the run
-        -- ended between the redraw the player clicked on and this event.
+        -- Every button reads the drone fresh, and every one does nothing if the
+        -- run ended between the redraw the player clicked on and this event.
         if fields.pause then
             local drone = get_drone(name)
             if drone and drone.cor then
@@ -938,6 +996,14 @@ local drone_panel = {
         elseif fields.cancel then
             -- Through Drone.on_remove, so the run ends the one way every other
             -- path ends it and the player gets exactly one message. (B12, B30)
+            cancel_drone(name)
+            close()
+        elseif fields.remove then
+            -- The same call: Drone.on_remove announces a run it cut short and
+            -- takes the drone silently when there was nothing running, which is
+            -- exactly the two meanings this button needs. It is the gesture the
+            -- setter's left click used to be, moved here because that click now
+            -- always opens this panel. (F8)
             cancel_drone(name)
             close()
         elseif fields.quit then

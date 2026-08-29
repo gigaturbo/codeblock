@@ -55,24 +55,70 @@ local function band(fraction)
     return WHITE
 end
 
--- What each key from limits.binding and limits.report is called on screen.
+-- What each key from limits.binding and limits.report is called on screen, and
+-- one line saying what it actually means.
+--
 -- Deliberately one set for both surfaces: two would be two translation keys for
 -- the same resource, free to drift apart and to be translated differently in the
 -- same sentence. This module owns how a limit is *named* to a player, which is
 -- the same job as showing one.
+--
+-- **`runtime` is not wall-clock time and its name must not imply that** - the
+-- whole of B46. A drone is charged only the microseconds it actually spent being
+-- advanced, which is a small fraction of elapsed time by construction: 8 ms of a
+-- 90 ms server step at codelevel 4. Called *Running time*, it read as a stopwatch
+-- and made the ceiling unreadable - 1800 s at codelevel 4 is nearer five hours
+-- of wall clock than thirty minutes. The fix is the words, not the arithmetic.
 local LABELS = {
-    nodes = function() return S('Nodes written') end,
-    runtime = function() return S('Running time') end,
-    map = function() return S('Map memory') end,
+    nodes = function() return S('Blocks written') end,
+    runtime = function() return S('Server time used') end,
+    map = function() return S('Map held') end,
     heap_kb = function() return S('Lua memory') end
 }
 
+local DESCRIPTIONS = {
+    nodes = function()
+        return S('Blocks this program has placed. It stops at the ceiling.')
+    end,
+    runtime = function()
+        return S(
+                   'Server time the drone was actually given, not time on the clock - far less. It stops at the ceiling.')
+    end,
+    map = function()
+        return S(
+                   'World the program is holding in memory. At the ceiling the drone waits instead of stopping, and it drains by itself.')
+    end,
+    heap_kb = function()
+        return S('Most memory the program has grown by. It stops at the ceiling.')
+    end
+}
+
 --- What to call the resource `what`, or the key itself if it has no name here -
--- a limit added to limits.FILLABLE and not here shows as its key rather than as
--- a blank row.
+-- a limit added to limits.report and not here shows as its key rather than as a
+-- blank row.
 function hud.limit_label(what)
     local f = LABELS[what]
     return f and f() or what
+end
+
+--- One line saying what `what` is and whether reaching it stops the program.
+-- Empty for a resource with no description, so a caller can concatenate blindly.
+function hud.limit_description(what)
+    local f = DESCRIPTIONS[what]
+    return f and f() or ''
+end
+
+--- `n` with a K/M/G suffix once it stops being readable, else as an integer.
+--
+-- max_nodes_written is 1e8 at codelevel 4, so the panel was printing a
+-- nine-digit integer against another nine-digit integer and nobody read either.
+-- Thresholded rather than always applied: 850 is clearer than 0.9K. (F8)
+function hud.short_number(n)
+    local abs = n < 0 and -n or n
+    if abs >= 1e9 then return ('%.1fG'):format(n / 1e9) end
+    if abs >= 1e6 then return ('%.1fM'):format(n / 1e6) end
+    if abs >= 1e4 then return ('%.1fK'):format(n / 1e3) end
+    return ('%d'):format(n + (n < 0 and -0.5 or 0.5))
 end
 
 --------------------------------------------------------------------------------

@@ -13,9 +13,9 @@ can imagine: learn to code, or give your inner computer artist somewhere to play
   that cannot harm the server.
 - **Example programs to discover.** Spirals, fractals, 3D plots and other more
   artistic examples. Open one and change a number to see what happens.
-- **Watch your program spend.** A small display while it runs shows which limit
-  it is closest to, and a panel on the drone gives you the whole picture with
-  pause, resume and cancel.
+- **Watch your program spend.** A small display while it runs names the limit it
+  will stop on, and a panel on the drone gives you the whole picture — every
+  limit, what it means, and pause, resume, cancel and remove.
 - **Per-player limits** an administrator can tune, so the mod is usable on a
   public server and not only in singleplayer.
 
@@ -53,8 +53,9 @@ Experiment and discover with the other examples, or write your own!
 ## Recent changes
 
 - **See what a running program is spending.** A display in the corner while it
-  runs, and a panel with every limit — plus pause, resume and cancel — when you
-  left click a running drone with the drone setter.
+  runs, naming the one limit the run will actually stop on. And **left click your
+  drone with the drone setter** for the whole picture: every limit with what the
+  run has spent beside it, plus pause, resume, cancel and remove.
 - **A default block** you pick in the editor, so a bare `place()` builds what you
   chose. A program can override it for its own run with `default_block(block)`.
 - **`sleep(seconds)`**, so a program can build at a pace you choose rather than

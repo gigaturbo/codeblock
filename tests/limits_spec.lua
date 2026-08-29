@@ -205,11 +205,14 @@ do
     it('a fuller resource in another unit takes over', what, 'runtime')
     about('reported as a fraction of its own ceiling', at * 1000, 900)
 
-    -- Mapblocks and kB, the two the display converts back for the player. Both
-    -- have to be comparable here or the wrong row is highlighted.
-    b.used.map = 60
-    what = limits.binding(b)
-    it('the map footprint competes on the same scale', what, 'map')
+    -- The map footprint must NOT compete, however full it is. It is a held
+    -- resource: lib/cost.lua sleeps until there is room rather than stopping the
+    -- run, which pins it to its ceiling during any sustained build, so it won
+    -- every comparison and the display named it every time. (B45)
+    b.used.map = b.caps.map
+    what, at = limits.binding(b)
+    it('a saturated map footprint does not win', what, 'runtime')
+    about('nor changes the fraction reported', at * 1000, 900)
 
     b.used.heap_kb = 1000
     what, at = limits.binding(b)
@@ -271,6 +274,50 @@ do
     it('the heap comes back as megabytes', r[4].used, 0.5)
     it('against the ceiling in megabytes', r[4].cap, 2)
     it('labelled as megabytes', r[4].unit, 'MB')
+
+    -- The fraction comes from here rather than from the display, so both
+    -- surfaces show the same number and only one place does the division.
+    it('every row carries its own fraction', r[1].at, 0.25)
+    about('in its own units', r[2].at * 100, 50)
+
+    -- `held` is what lets the panel say "throttled" instead of implying the run
+    -- is about to die. The map footprint is the only one. (B45)
+    it('the map row is marked held', r[3].held, true)
+    it('nodes are not', r[1].held, false)
+    it('nor runtime', r[2].held, false)
+    it('nor the heap', r[4].held, false)
+end
+
+--------------------------------------------------------------------------------
+-- spent and held are not the same kind of thing (B45)
+--
+-- The distinction this whole file is built around, asserted rather than left to
+-- a comment: binding answers "what will stop this run", and the map footprint
+-- never stops one - lib/cost.lua makes the drone wait instead.
+--------------------------------------------------------------------------------
+
+do
+    local b = new(1)
+
+    -- The pathological case the playtest actually hit: a program steadily
+    -- loading mapblocks sits at the map ceiling for its whole life while barely
+    -- touching the three resources that can end it.
+    b.used.map = b.caps.map
+    b.used.nodes = 1
+    b.used.runtime = 1
+
+    local what, at = limits.binding(b)
+    it('a run pinned at the map ceiling still reports a spent limit',
+       what ~= 'map', true)
+    it('and reports it as barely used', (at < 0.02), true)
+
+    -- And the row is still there to be shown; it is the comparison it is kept
+    -- out of, not the display.
+    local seen = false
+    for _, row in ipairs(limits.report(b)) do
+        if row.what == 'map' then seen = true end
+    end
+    it('the map footprint is still reported', seen, true)
 end
 
 --------------------------------------------------------------------------------

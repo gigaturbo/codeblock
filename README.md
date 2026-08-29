@@ -35,12 +35,19 @@ A drone you program in Lua, an in-game editor, a sandbox and a documented API. I
 ### Watch and steer a running program
 
 - While your program runs, a **HUD** in the top-right corner names the file, says
-  whether it is running or paused, and shows the one limit the run is closest to.
-  Untick *Show the drone HUD* in the editor to turn it off, or set
-  `codeblock_drone_hud = false` for the server's default.
-- **Left click a running drone with the drone setter** to open its panel: every
-  limit with what the run has spent beside it, and buttons to pause, resume or
-  cancel. Left clicking an *idle* drone takes it away, as it always did.
+  whether it is running or paused, and shows the one limit the run **will stop
+  on**. Untick *Show the drone HUD* on the editor's **Settings** panel to turn it
+  off, or set `codeblock_drone_hud = false` for the server's default.
+- **Left click your drone with the drone setter** to open its panel, whatever it
+  is doing: every limit with what the run has spent beside it, a line saying what
+  each one means, and buttons to **pause**, **resume**, **cancel** and **remove
+  the drone**. With no drone placed, it tells you that instead.
+- Two things the panel is careful about, because both misled at first. *Server
+  time used* is the time the server actually gave the drone — roughly a tenth of
+  the time you watch pass — not clock time, so a ceiling of 1800 s is nearer five
+  hours than thirty minutes. And *Map held* says `throttled` rather than a
+  percentage when it is full: reaching that one makes the drone **wait**, not
+  stop, and it frees itself.
 
 ### Explore and tweak
 

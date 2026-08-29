@@ -25,19 +25,19 @@ nothing dropped.
 
 ## Where it stands
 
-75 findings, this project's own. **72 resolved, 2 open (`B45`, `B46`), 1 won't fix
-(`B34`).** The two open ones are `F4`'s, filed 2026-08-29 from the first run of
-playtest group `H`, and both are about what the new display *says* rather than
-what it computes. Before them, `C19` was filed and fixed on 2026-08-28 — the only
-finding here to arrive from reading a published rule rather than from a defect.
-The code is pushed through `729c255` and **CI is green there, run 37, all three
-jobs** — the run covering `F4`; run 30 covered `F7` and run 29 the five fixes
-`B41`, `C18`, `S7`, `B44`, `B43`. Only the record commits on top of it are unseen
-by CI.
+75 findings, this project's own. **74 resolved, none open, 1 won't fix (`B34`).**
+`B45` and `B46` were `F4`'s, filed and fixed on 2026-08-29 from the first run of
+playtest group `H` — both about what the new display said rather than what it
+computed, and both fixed in `F8`'s first pass. Before them, `C19` was filed and
+fixed on 2026-08-28 — the only finding here to arrive from reading a published
+rule rather than from a defect. CI was green at `729c255`, run 37, all three jobs
+— the run covering `F4`; run 30 covered `F7` and run 29 the five fixes `B41`,
+`C18`, `S7`, `B44`, `B43`. `B45`, `B46` and `F8` are committed on top and await
+their own run.
 
 | Category | Count | Open |
 |---|---|---|
-| B bugs | 43 | B45, B46 (B34 won't fix) |
+| B bugs | 43 | — (B34 won't fix) |
 | S sandbox and security | 7 | — |
 | C compliance and packaging | 13 | — |
 | A architecture and performance | 12 | — |
@@ -97,26 +97,17 @@ day it was written.
 
 ## Open
 
-**Two, both from `F4`'s first playtest and both about what the display *says*
-rather than what the code computes.** Filed 2026-08-29 from playtest group `H` at
-`729c255`, engine 5.17.0.
+**Nothing is open.** `B45` and `B46` were filed and fixed on 2026-08-29, both
+from `F4`'s first playtest and both about what the display *said* rather than what
+the code computed: the HUD named the map footprint almost always because
+`limits.binding` compared a held resource against spent ones, and *Running time*
+was charged CPU wearing a wall-clock label. Neither was reachable by any spec as
+observed — `limits_spec` pinned the arithmetic and the arithmetic was right — but
+**the contract now is**, which is the part worth keeping.
 
-- **`B45` · medium** — the HUD almost always names *map memory* as the binding
-  limit, because `limits.binding` compares a **held** resource against **spent**
-  ones and a held one sits at its ceiling by design. The feature's whole purpose
-  is to teach which resource a program spends, and this defeats it. It also
-  explains `H6`'s apparent pause bug: a two-minute pause drains the footprint, so
-  the drone resumes unthrottled and looks like it is catching up.
-- **`B46` · medium** — *Running time* is charged CPU, not wall clock, and neither
-  surface says so: 22 s displayed against 180 s elapsed, climbing at ~0.1 s per
-  second, because a codelevel-4 drone gets 8 ms of a 90 ms server step. The
-  number is right; the label makes the ceiling unreadable. Do **not** fix it by
-  charging wall clock.
-
-Both are presentation, both are in code that shipped, and **neither is reachable
-by any spec** — `limits_spec` pins `binding`'s arithmetic and the arithmetic is
-correct. That is the shape this project keeps meeting: the gates were green and
-the first ten minutes in a world found two.
+That is the shape this project keeps meeting: four green gates, and the first ten
+minutes in a running world found two. It is also the argument for the rule about
+running a playtest group before writing the next feature.
 
 `B34` below is the one won't-fix.
 
@@ -148,7 +139,7 @@ delete should confirm is a separate question.
 
 ## B · Bugs
 
-43 findings, 40 resolved, `B34` won't fix, `B45` and `B46` open. `B19`, `B20` and
+43 findings, 42 resolved, `B34` won't fix. `B19`, `B20` and
 `B24` are the game's.
 
 - **B1 · critical · resolved** — comment stripping deleted the code between two
@@ -734,7 +725,7 @@ delete should confirm is a separate question.
   a drone in a world. **Confirmed by playtest `D6`, pass at `6fea453` on
   2026-08-28**: the drone goes with the file, at the removal.
 
-- **B45 · medium · open** — the drone HUD almost always names *map memory* as the
+- **B45 · medium · resolved** — the drone HUD almost always names *map memory* as the
   limit a program is closest to, so the one thing `F4` exists to teach — which
   resource your program actually spends — is drowned out. Found by playtest `H2`
   at `729c255` on 2026-08-29: *"pas si facile à observer parce que « mémoire de la
@@ -759,8 +750,18 @@ delete should confirm is a separate question.
   Not spec-reachable as observed: `limits_spec` pins `binding`'s arithmetic and
   the arithmetic is right. What is wrong is which resources are handed to it, and
   the saturation only appears with a real map under a real throttle.
+  Fixed 2026-08-29 in `lib/limits.lua`: the table `binding` walks is now `SPENT`
+  and holds three keys, not four. **What is spec-reachable is the contract, and
+  it now is** — `limits_spec` asserts that a budget pinned at the map ceiling
+  still reports a spent limit, reports it as barely used, and that the map row is
+  *still returned by `limits.report`*. That last one is the point: the resource
+  was never the problem, the comparison was. `report` also gained `held`, so the
+  panel can print *throttled* on that row instead of a percentage that reads as
+  imminent death. **Keep — do not "simplify" `binding` and `report` back to one
+  list.** They answer different questions: *what will stop this run* and *what is
+  this run using*. The map footprint belongs in the second and never the first.
 
-- **B46 · medium · open** — the HUD and the drone panel label the runtime budget
+- **B46 · medium · resolved** — the HUD and the drone panel label the runtime budget
   *Running time* / *Temps d'exécution*, which reads as wall-clock time and is not.
   Found by playtest `H6` at `729c255` on 2026-08-29: `mosely.lua` reported **22 s**
   against a chat completion line saying **180 s duration**, and the figure climbed
@@ -782,6 +783,14 @@ delete should confirm is a separate question.
   reason the budget is counted this way (it replaced `max_calls` for being in
   units nobody could reason about). The fix is the label and a describing line,
   which playtest `H5` asks for independently.
+  Fixed 2026-08-29 in `lib/hud.lua`, which owns how a limit is named on both
+  surfaces: *Running time* became **Server time used**, and every row gained a
+  line from a new `hud.limit_description` — the runtime one says *"not time on
+  the clock - far less"* in as many words. `Nodes written` became `Blocks
+  written` and `Map memory` became `Map held` in the same pass, both for the same
+  reason: the word was doing the explaining and doing it wrongly.
+  **Not provable by the specs** — it is words on a screen. Its check is a rewritten
+  `H6`.
 
 ---
 

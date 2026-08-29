@@ -208,8 +208,13 @@ do
     panel.show('frank')
 
     it('the panel opens a session', forms.count(), 1)
+    -- It opens for a player with no drone at all and says so, rather than the
+    -- gesture doing nothing. That is the whole of the F8 change to this form:
+    -- one meaning, an answer in every state. (F8)
     it('and with no drone it says so',
-       (last_shown().spec:find('No program is running', 1, true) ~= nil), true)
+       (last_shown().spec:find('no drone', 1, true) ~= nil), true)
+    it('offering nothing to act on but Close',
+       (last_shown().spec:find('remove', 1, true) == nil), true)
 
     local before = #shown
     panel.tick()

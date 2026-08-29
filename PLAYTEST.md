@@ -731,9 +731,17 @@ any spec**: the gates were green and ten minutes in a world found two.
 **Two things worth carrying forward.** The pause-then-fast-restart in `H6` looked
 like a third bug and is not one — it is `B45`'s root cause seen from another
 angle, and chasing it before filing is what kept the record from carrying an
-invented defect. And **three of these passes are already superseded**: `H3`, `H4`
-and part of `H8` describe behaviour `F8` is about to change, so a pass here means
-*it worked as asked*, not *it is settled*.
+invented defect.
+
+And **the run rewrote its own checks.** `F8` landed the same day with both fixes
+and four wanted changes, so **five of the nine now describe behaviour that did not
+exist when they were first run**: `H2` (the comparison is possible for the first
+time), `H3` (the boxes moved to *Settings*), `H4` (the gesture is unconditional
+and removal is a button), `H5` (K/M/G, per-row percentages, describing lines) and
+`H8` (the idle view, and a procedure that can actually distinguish case 1). **Six
+of nine are due a second run**, and that is the group working rather than
+churning: a pass here meant *it did what was asked*, and what was asked turned out
+to be wrong in five places.
 
 A note on all of these: the HUD draws **top-right**. If nothing is there, check
 *Show the drone HUD* in the editor and `codeblock_drone_hud` in `minetest.conf`
@@ -751,13 +759,19 @@ program ends**, without a reload and without a leftover from the previous run.
 Result: pass — `729c255` · engine 5.17.0 · 2026-08-29 — the two lines appear on
 start, track the run and go when it ends.
 
-### H2 · The binding limit is the one it names, and it changes [F4, B26]
+### H2 · The binding limit is the one it names, and it changes [F4, B26, B45]
+
+**Rewritten after `B45`, and this check has still never actually been performed** —
+map memory saturated the comparison both times it was attempted. That resource no
+longer competes, so the comparison is now possible for the first time.
 
 Run two programs at the same codelevel: one that writes a great many nodes
 quickly, and one that spends time without writing much (a long loop of
 arithmetic, or `sleep`).
 
-**Pass:** the first names **Nodes written**, the second names **Running time**.
+**Pass:** the first names **Blocks written**, the second names **Server time
+used**. **Map held must never be named at all**, however full that row is — it is
+a throttle, not a limit a run stops on, and naming it is exactly `B45`.
 The percentage rises toward 100 as each approaches its ceiling, and the colour
 goes green, amber, red as it fills. If a single program crosses over — nodes
 early, time later — the named limit changes mid-run rather than sticking.
@@ -769,20 +783,30 @@ Result: partial — `729c255` · engine 5.17.0 · 2026-08-29 — **the check cou
 be observed, and that is the finding.** The author's words: *"not so easy to
 observe because « mémoire de la carte » almost always saturates at 100%."* Map
 memory wins the comparison nearly always, so the display cannot teach which
-resource a program spends — which is the whole point of it. **`B45`, open.** The
-cause is that `limits.binding` compares a *held* resource against *spent* ones:
-`use_map` loops on `limits.hold`, pushing `used.map` right up to `caps.map` and
-holding it there while a drone keeps loading mapblocks, so 100% on that row means
-*being throttled as intended*, not *about to fail*. Re-run once `B45` is fixed —
-the two-programs comparison in this check has still never actually been made.
+resource a program spends — which is the whole point of it. **`B45`**, since fixed.
+The cause was that `limits.binding` compared a *held* resource against *spent*
+ones: `use_map` loops on `limits.hold`, pushing `used.map` right up to `caps.map`
+and holding it there while a drone keeps loading mapblocks, so 100% on that row
+means *being throttled as intended*, not *about to fail*.
 
-### H3 · The toggle, and whose choice wins [F4, B5, C18]
+Result: unchecked — **due, and the only check here that has never been performed.**
+`B45` was fixed the same day in `lib/limits.lua`; the comparison this check exists
+for is possible for the first time. Run it against the rewritten text above.
 
-Four cases, and the third is the one that has been got wrong before:
+### H3 · The toggle, whose choice wins, and where it lives [F4, B5, C18, F8]
 
-1. Untick *Show the drone HUD* in the editor **while a program is running**.
-   The HUD goes **within half a second**, not at the next run and not when the
-   editor closes.
+**The tick moved in `F8`: it is on the editor's *Settings* panel now**, beside the
+default-block picker and with *Load program on exit* and *Save on tab switch*,
+under a *Preferences* label. All three used to sit loose along the bottom edge of
+the form. So case 0 is new, and cases 1–4 are unchanged behaviour in a new place.
+
+0. Open the editor, click **Settings**. All three checkboxes are there and show
+   the right state. Open the block list with *Default block* — the three are
+   hidden while it is open, because the list is drawn over that space — and close
+   it again: they come back with their state intact. Switch to Blocks / Plants /
+   Wools / API and back.
+1. Untick *Show the drone HUD* **while a program is running**. The HUD goes
+   **within half a second**, not at the next run and not when the editor closes.
 2. Tick it again: it comes back on the next tick.
 3. Untick it, leave the game, rejoin, run a program. **It stays off.** An
    unticked box that reads as "never chosen" on rejoin is exactly the `B5` trap.
@@ -791,49 +815,84 @@ Four cases, and the third is the one that has been got wrong before:
    player: the HUD appears, because a player's own choice beats the server's
    default.
 
+Cases 1–4 also have to keep working for the **other two** boxes now that they have
+moved — *Load program on exit* is the one with a history (`B33`, `B36`), and its
+own checks are `E8`–`E10`.
+
 Result: pass — `729c255` · engine 5.17.0 · 2026-08-29 — all four cases, including
-the rejoin that would have caught the `B5` trap. **Superseded by a decision taken
-the same day:** the tick moves to a settings page along with *Load program on
-exit* and *Save on tab switch*, so this check's location will change even though
-its behaviour is right. See `F8`.
+the rejoin that would have caught the `B5` trap. **Behaviour confirmed, location
+since changed:** `F8` moved all three boxes onto the *Settings* panel the same
+day, so case 0 above and the other two boxes' new home are unchecked. The
+preference logic itself needs no re-proving.
 
-### H4 · The setter's left click, both meanings [F4, B39]
+### H4 · The setter's left click always opens the panel [F4, F8, B39]
 
-The gesture that changed. With the **setter**:
+**Rewritten in `F8`. The gesture has meant three things in turn** — it removed the
+drone, then `F4` split it by state, and that split lasted exactly one playtest
+before this check killed it: an effect that depends on state the player cannot see
+is one they have to guess at, and the guess destroys a build. It now always opens
+the panel, and removal is a button in there.
 
-1. Left click a drone that is **idle** (placed, no program running). It is taken
-   away, exactly as before.
-2. Left click a drone that **is running**. The panel opens; the drone keeps
-   building; the run is **not** cancelled.
+Left click with the **setter** in each of three states:
 
-**Pass:** both. Case 1 is the regression risk — the whole point of the change is
-that it did not alter what an idle drone does.
+1. **No drone at all.** The panel opens and says *You have no drone*, offering
+   only *Close*. The gesture answers instead of doing nothing silently.
+2. **An idle drone.** The panel opens naming the file it holds, with *Remove
+   drone* and *Close* — and **nothing is removed until that button is pressed**.
+3. **A running drone.** The panel opens with the full table, *Pause*, *Cancel*,
+   *Remove drone* and *Close*. The drone keeps building; the run is **not**
+   cancelled by opening the panel.
 
-Result: pass — `729c255` · engine 5.17.0 · 2026-08-29 — both meanings behave,
-including case 1, the regression risk: an idle drone is still taken away.
-**Superseded by a decision taken the same day:** the click becomes *drone info*
-unconditionally, so the two-meanings split this check exists for is being
-removed. See `F8` — and note the open question it raises, where removing a drone
-then lives.
+Then the button itself, which is where the old gesture went:
 
-### H5 · The panel's numbers, and its own refresh [F4]
+4. *Remove drone* on an **idle** drone: it goes, silently, as the old left click
+   did.
+5. *Remove drone* on a **running** drone: it goes and the run is announced —
+   **exactly one message**, the same one *Cancel* produces. Both routes are
+   `Drone.on_remove`, so two messages or none would be `B12`/`B30` returning.
 
-With a long program running, open the panel and leave it open.
+**Pass:** all five. Cases 1 and 2 are the new behaviour; case 4 is the old
+behaviour still reachable, which is the thing that must not have been lost.
 
-**Pass:** four rows, each with what the run has spent against its ceiling, and the
-ceilings match what `minetest.conf` / the settings menu say for that codelevel —
-seconds and megabytes, not microseconds and mapblocks. The numbers **update while
-the panel sits open**, without touching anything. The *Closest limit* line agrees
-with the HUD behind it.
+Result: unchecked — **the check that superseded itself.** The `F4` version passed
+at `729c255` on 2026-08-29 (both meanings behaved, and an idle drone was still
+taken away), and that pass is what decided the split had to go: the author's
+words were *"we'll change behavior to: always show the info panel."* `F8` did it
+the same day, so all five cases above are new and none is run. Removal now lives
+on a button, which is the part most worth checking.
 
-Result: pass — `729c255` · engine 5.17.0 · 2026-08-29 — four rows, ceilings in the
-player's units, updating live, agreeing with the HUD. **Three adjustments wanted
-from the same session**, none of them a defect in what was asked: long numbers
-want `K`/`M`/`G` suffixes, each row wants its own percentage beside the pair, and
-each limit wants a short line saying what it is. See `F8`. The describing line
-also carries `B46`'s fix.
+### H5 · The panel's numbers, and its own refresh [F4, F8, B46]
 
-### H6 · Pause and Resume [F4, F3]
+With a long program running, open the panel and leave it open. Do it at
+**codelevel 4**, where `max_nodes_written` is 1e8 — that is the case the number
+formatting exists for.
+
+**Pass:** four rows, each with what the run has spent against its ceiling, in the
+units `minetest.conf` uses — seconds and megabytes, not microseconds and
+mapblocks. The numbers **update while the panel sits open**, without touching
+anything.
+
+What `F8` added and this check now covers:
+
+- **Long counts are readable.** The blocks row shows something like `1.2K /
+  100.0M`, not `1247 / 100000000`. The threshold is 10 000, so a small count still
+  reads as a plain integer.
+- **Every row carries its own percentage**, on the right, not just the summary
+  line.
+- **Every row has a line saying what it is** and whether reaching it stops the
+  program. The *Server time used* line must say it is not clock time — that is
+  `B46`'s fix and the reason the row was renamed.
+- **The *Map held* row says `throttled`** rather than a percentage once it is at
+  its ceiling, because there it is working rather than failing. It must **not**
+  appear on the *Will stop on* line at any fullness (`B45`).
+
+Result: pass for the `F4` version — `729c255` · engine 5.17.0 · 2026-08-29 — four
+rows, ceilings in the player's units, updating live, agreeing with the HUD. **The
+four `F8` points above are unchecked**, and all four came out of that session:
+*"we'll make adjustments: make long numbers readable (K, M, G blocks for example,
+plus a percentage), add small line describing the limit."*
+
+### H6 · Pause and Resume [F4, F3, B46]
 
 Pause a running program from the panel.
 
@@ -847,11 +906,25 @@ Then the interaction with `F3`: pause a program **while it is inside a
 `sleep(10)`**, wait past the ten seconds, and resume. It should resume promptly
 rather than sleeping ten more seconds — the sleep expired while it was held.
 
+**Two things this check must not report as bugs, both settled 2026-08-29:**
+
+- **A drone resuming from a long pause races before settling.** That is the map
+  footprint having drained: it decays over the engine's own
+  `server_unload_unused_data_timeout` (29 s), so a two-minute pause leaves nothing
+  held and the drone builds unthrottled until it rebuilds. The engine really did
+  unload those mapblocks. Not `B45`, not a pause defect, and not to be filed a
+  third time.
+- **The time figure advancing at roughly a tenth of the clock.** *Server time
+  used* is what the drone was actually given — 8 ms of a 90 ms server step at
+  codelevel 4 — so ~0.1 s per elapsed second is correct. What `B46` fixed is the
+  wording; the arithmetic was never wrong. **The row's describing line should now
+  say so, and checking that it does is part of this check.**
+
 Result: partial — `729c255` · engine 5.17.0 · 2026-08-29 — Pause, Resume and the
 `sleep` interaction behave. **Two observations, one finding, and the second
 observation is not a bug.**
 
-`B46`, open: the runtime figure is charged CPU and reads as wall clock.
+`B46`, since fixed: the runtime figure is charged CPU and read as wall clock.
 `mosely.lua` showed **22 s** against a completion line saying **180 s duration**,
 climbing at about **0.1 s per second**. That ratio is by construction — a
 codelevel-4 drone gets `step_budget_us` 8 ms of a 0.09 s server step — and both
@@ -868,6 +941,10 @@ default), so a two-minute pause drains it to nothing and the drone resumes with
 no throttle until it rebuilds. The engine really did unload those mapblocks.
 Same root cause as `B45`; deliberately **not** filed twice.
 
+`B46` was fixed the same day: the row is *Server time used* now and carries a line
+saying it is not clock time. **The renamed row and its description are unchecked**
+— re-run the pause cases and read the words this time.
+
 ### H7 · Cancel [F4, B12, B30]
 
 Cancel a running program from the panel.
@@ -879,7 +956,7 @@ and not none.
 Result: pass — `729c255` · engine 5.17.0 · 2026-08-29 — the drone goes, the panel
 closes, exactly one message.
 
-### H8 · The panel and the editor, and a run that ends under it [F4, B33, B29]
+### H8 · The panel over the editor, and a run that ends under it [F4, F8, B33, B29]
 
 Three ways the panel can be outlived:
 
@@ -888,21 +965,31 @@ Three ways the panel can be outlived:
    second later — that is the exact defect the `forms_spec` case guards, and the
    spec cannot see the screen.
 2. Open the panel and let the program **finish on its own** while it is open. The
-   panel switches to *No program is running* rather than freezing on stale
-   numbers or throwing.
+   panel **switches to the idle view** — the file it holds, *Remove drone*,
+   *Close* — rather than freezing on stale numbers or throwing. `F8` changed what
+   this looks like: it used to say *No program is running* and offer only Close.
 3. Open the panel, then cancel the run, and while the panel is still open place
    a **new** drone under the same name and run something. Nothing from the old
    run leaks into the new panel or the new HUD (`B29`'s serial guard).
+4. **New in `F8`:** open the panel on an idle drone, press *Remove drone*, and
+   watch the panel it was showing. It closes; it does not sit there describing a
+   drone that no longer exists, and the next left click says *You have no drone*.
+
+**How to tell case 1 apart from "it happened to be harmless."** The defect would
+show as the *editor* being replaced by the panel's content about half a second
+after opening it. So open the editor over the panel, then **wait two seconds
+without touching anything** and look at the form. Still the editor, unchanged, is
+the pass. That is the observable the first run could not name.
 
 Result: partial — `729c255` · engine 5.17.0 · 2026-08-29 — **case 1 inconclusive
 by the author's own reading**: *"unsure — can use 'open the editor' while in a
 panel."* Opening the editor over the panel worked and the editor was not
 corrupted, which is the pass condition; what could not be confirmed from the
 outside is that the stale watch was dropped rather than merely harmless. The
-`forms_spec` case asserts it and a spec cannot see a screen, so this stays
-partial rather than being called a pass. Cases 2 and 3 not reported.
-**Superseded in part:** with `F8` making the panel unconditional, this check needs
-rewriting around the new behaviour.
+`forms_spec` case asserts it and a spec cannot see a screen, so this stayed
+partial rather than being called a pass. Cases 2 and 3 not reported. **Rewritten
+in `F8`**: case 2 now expects the idle view, case 4 is new, and case 1 has a
+procedure that can actually distinguish a pass.
 
 ### H9 · Leaving and rejoining with a program running [F4]
 

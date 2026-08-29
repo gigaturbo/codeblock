@@ -15,7 +15,6 @@ local show_file_chooser = codeblock.formspecs.file_chooser.show
 local show_drone_panel = codeblock.formspecs.drone_panel.show
 local drone_panel_tick = codeblock.formspecs.drone_panel.tick
 
-local get_drone = codeblock.Drone.get
 local hud_tick = codeblock.hud.tick
 
 local check_auth_level = codeblock.utils.check_auth_level
@@ -145,21 +144,17 @@ core.register_tool("codeblock:setter", {
     range = 0,
     stack_max = 1,
     on_drop = function(itemstack) return itemstack end,
-    -- One gesture, two meanings, decided by whether a program is running.
+    -- One gesture, one meaning: show me this drone.
     --
-    -- An idle drone is taken away, which is what this always did. A *running*
-    -- one opens the drone panel instead, because the same click used to end a
-    -- long build outright with nothing asked and nothing to undo. Cancelling is
-    -- now the red button in that panel: one click further away, deliberately.
-    -- (F4)
+    -- It has meant three things in turn. It removed the drone; then `F4` split
+    -- it, removing an idle one and opening the panel on a running one; and that
+    -- split lasted exactly one playtest (`H4`), because a gesture whose effect
+    -- depends on state the player cannot see is a gesture they have to guess at
+    -- - and the guess destroys a build. Now it always opens the panel, which
+    -- answers for all three states including *you have no drone*, and removal is
+    -- a button in there. (F4, F8)
     on_use = function(itemstack, user)
-        local name = user:get_player_name()
-        local drone = get_drone(name)
-        if drone and drone.cor then
-            show_drone_panel(name)
-        else
-            drone_on_remove(name)
-        end
+        show_drone_panel(user:get_player_name())
         return itemstack
     end,
     on_place = function(itemstack, placer)
