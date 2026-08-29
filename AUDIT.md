@@ -25,18 +25,19 @@ nothing dropped.
 
 ## Where it stands
 
-73 findings, this project's own. **72 resolved, none open, 1 won't fix
-(`B34`).** `C19` was filed and fixed on 2026-08-28, the only finding here to
-arrive from reading a published rule rather than from a defect: the long
-description was `README.md` verbatim, which no gate here could have seen. It now
-has its own source. The code is pushed through
-`afbe504` and **CI is green there, run 30, all three jobs** — the first run to
-cover `F7`; run 29 before it covered the five fixes `B41`, `C18`, `S7`, `B44`,
-`B43`. Only the record commits on top of it are unseen by CI.
+75 findings, this project's own. **72 resolved, 2 open (`B45`, `B46`), 1 won't fix
+(`B34`).** The two open ones are `F4`'s, filed 2026-08-29 from the first run of
+playtest group `H`, and both are about what the new display *says* rather than
+what it computes. Before them, `C19` was filed and fixed on 2026-08-28 — the only
+finding here to arrive from reading a published rule rather than from a defect.
+The code is pushed through `729c255` and **CI is green there, run 37, all three
+jobs** — the run covering `F4`; run 30 covered `F7` and run 29 the five fixes
+`B41`, `C18`, `S7`, `B44`, `B43`. Only the record commits on top of it are unseen
+by CI.
 
 | Category | Count | Open |
 |---|---|---|
-| B bugs | 41 | — (B34 won't fix) |
+| B bugs | 43 | B45, B46 (B34 won't fix) |
 | S sandbox and security | 7 | — |
 | C compliance and packaging | 13 | — |
 | A architecture and performance | 12 | — |
@@ -96,11 +97,26 @@ day it was written.
 
 ## Open
 
-**Nothing is open.** `C19` was filed and fixed on 2026-08-28 — the ContentDB
-long description now has its own source rather than being `README.md`. It was
-the only finding here ever raised by a published rule rather than by a defect,
-and `release-check` gate 9 is what stops the next one reaching a release
-unnoticed.
+**Two, both from `F4`'s first playtest and both about what the display *says*
+rather than what the code computes.** Filed 2026-08-29 from playtest group `H` at
+`729c255`, engine 5.17.0.
+
+- **`B45` · medium** — the HUD almost always names *map memory* as the binding
+  limit, because `limits.binding` compares a **held** resource against **spent**
+  ones and a held one sits at its ceiling by design. The feature's whole purpose
+  is to teach which resource a program spends, and this defeats it. It also
+  explains `H6`'s apparent pause bug: a two-minute pause drains the footprint, so
+  the drone resumes unthrottled and looks like it is catching up.
+- **`B46` · medium** — *Running time* is charged CPU, not wall clock, and neither
+  surface says so: 22 s displayed against 180 s elapsed, climbing at ~0.1 s per
+  second, because a codelevel-4 drone gets 8 ms of a 90 ms server step. The
+  number is right; the label makes the ceiling unreadable. Do **not** fix it by
+  charging wall clock.
+
+Both are presentation, both are in code that shipped, and **neither is reachable
+by any spec** — `limits_spec` pins `binding`'s arithmetic and the arithmetic is
+correct. That is the shape this project keeps meeting: the gates were green and
+the first ten minutes in a world found two.
 
 `B34` below is the one won't-fix.
 
@@ -132,8 +148,8 @@ delete should confirm is a separate question.
 
 ## B · Bugs
 
-41 findings, 40 resolved, `B34` won't fix. `B19`, `B20` and `B24` are the
-game's.
+43 findings, 40 resolved, `B34` won't fix, `B45` and `B46` open. `B19`, `B20` and
+`B24` are the game's.
 
 - **B1 · critical · resolved** — comment stripping deleted the code between two
   block comments. `lib/sandbox.lua`, pre-Phase 2. Fixed in Phase 2 with B2–B4:
@@ -717,6 +733,55 @@ game's.
   **Not provable by the specs** — it is the editor writing to the filesystem and
   a drone in a world. **Confirmed by playtest `D6`, pass at `6fea453` on
   2026-08-28**: the drone goes with the file, at the removal.
+
+- **B45 · medium · open** — the drone HUD almost always names *map memory* as the
+  limit a program is closest to, so the one thing `F4` exists to teach — which
+  resource your program actually spends — is drowned out. Found by playtest `H2`
+  at `729c255` on 2026-08-29: *"pas si facile à observer parce que « mémoire de la
+  carte » sature presque toujours à 100 %."*
+  **The cause is that `limits.binding` compares a held resource against spent
+  ones, and a held one sits at its ceiling by design.** `lib/limits.lua`'s own
+  header states the distinction and this code ignored it: nodes, runtime and heap
+  are *spent*, so `used/cap` is progress toward being stopped; the map footprint
+  is *held*, and `lib/cost.lua`'s `use_map` loops on `limits.hold` — setting
+  `wake_at` and yielding until there is room — which pushes `used.map` right up
+  to `caps.map` and keeps it there for as long as the program keeps loading
+  mapblocks. So `map` reads ~100% whenever a drone is building steadily, and
+  `max` over four fractions picks it every time. 100% on that row does not mean
+  *about to fail*; it means *being throttled right now, as intended*.
+  **This also explains `H6`'s second observation**, which looked like a separate
+  pause bug: pause a drone for two minutes and the footprint decays to nothing
+  over `map_window_s` (the engine's `server_unload_unused_data_timeout`, 29 s by
+  default), so on resume the throttle is gone and the drone builds at full speed
+  until the footprint rebuilds. That is correct — the engine really did unload
+  those mapblocks — and it reads as the drone "recovering the paused duration".
+  One phenomenon, one root cause, and `H6` should not be filed twice for it.
+  Not spec-reachable as observed: `limits_spec` pins `binding`'s arithmetic and
+  the arithmetic is right. What is wrong is which resources are handed to it, and
+  the saturation only appears with a real map under a real throttle.
+
+- **B46 · medium · open** — the HUD and the drone panel label the runtime budget
+  *Running time* / *Temps d'exécution*, which reads as wall-clock time and is not.
+  Found by playtest `H6` at `729c255` on 2026-08-29: `mosely.lua` reported **22 s**
+  against a chat completion line saying **180 s duration**, and the figure climbed
+  at roughly **0.1 s per second**.
+  **The number is right and the word is wrong.** `stepper.advance` charges only
+  the microseconds it actually spent advancing the coroutine, which is by
+  construction a small fraction of wall clock: a codelevel-4 drone gets
+  `step_budget_us` = 8 ms of a server step that is 0.09 s by default
+  (`dedicated_server_step`), so about 9% — and the observed 22/180 is 12%. Both
+  `doc/api.md` and `lib/config.lua` already say this in as many words (*"It counts
+  time the drone was actually advanced, not wall-clock time"*); the HUD and the
+  panel are the two places a player meets the number **without** the
+  documentation, and they say neither.
+  The consequence is not cosmetic: it makes the ceiling unreadable. `max_runtime_s`
+  = 1800 at codelevel 4 is **about five hours of wall clock**, not thirty minutes,
+  and nothing on screen lets a player work that out.
+  **Keep — do not "fix" this by charging wall clock.** Charging wall clock would
+  punish a program for a busy server and for its own pace, which is the whole
+  reason the budget is counted this way (it replaced `max_calls` for being in
+  units nobody could reason about). The fix is the label and a describing line,
+  which playtest `H5` asks for independently.
 
 ---
 

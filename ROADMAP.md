@@ -11,7 +11,7 @@ Findings and their reasoning are in `AUDIT.md`. Manual checks are in
 `PLAYTEST.md`. Intentions not yet planned are in `TODO.md`.
 
 Numbering, so a commit message always resolves: phases are `Phase 0`–`Phase 10`,
-features are `F1`–`F7`, and finding ids are `B`/`S`/`C`/`A`. **Nothing is ever
+features are `F1`–`F8`, and finding ids are `B`/`S`/`C`/`A`. **Nothing is ever
 renumbered.**
 
 Three releases, settled 2026-08-28. **`Phase 8` is v1.0.0** — a correct sandbox,
@@ -23,17 +23,55 @@ thinking rather than a queue position.
 
 ## Now
 
-**No defect is open, and everything fixed is proven in a running world.** The
-playtest run of 2026-08-27 at `246bb37` closed the backlog of *checking* and
-opened one of *fixing*; that backlog is now empty too, and so is the one after
-it. Six findings came out of this phase's playtests, **all six are fixed**, and
-on 2026-08-28 at `6fea453` the last three were confirmed in a world by their own
-checks — `D6` for `B44`, `F-3` case 2 for `S7`, and a re-timed `P3` for `B43`,
-which spread **78 s and 95 s** where the same shape spread 78 / 160 / 183 before.
-The *gates green, unproven in a world* list held **one** entry — `B14`, blocked
-on `B34` being won't-fix — after `R2` closed `C16`'s install guard the same day.
-**`F4` is the second, and it is a whole feature rather than one cold path:** its
-nine `H` checks are all unrun.
+**Playtest group `H` ran on 2026-08-29 at `729c255` — six pass, three partial —
+and it opened two findings, `B45` and `B46`.** Both are `F4`'s, both are about
+what the new display *says* rather than what it computes, and **neither is
+reachable by any spec**: the four gates were green and ten minutes in a world
+found two. That is the shape this project keeps meeting, and it is the argument
+for the rule about running an unrun group.
+
+- **`B45` · medium · open** — the HUD almost always names *map memory* as the
+  binding limit, so the one thing `F4` exists to teach is drowned out.
+  `limits.binding` compares a **held** resource against **spent** ones, and a held
+  one sits at its ceiling by design: `use_map` loops on `limits.hold` until there
+  is room, which pins `used.map` to `caps.map` for as long as a drone keeps
+  loading mapblocks. `lib/limits.lua`'s own header draws that distinction and this
+  code ignored it.
+- **`B46` · medium · open** — *Running time* is charged CPU, not wall clock, and
+  neither surface says so. `mosely.lua` read **22 s** against a **180 s**
+  completion line, climbing at ~0.1 s/s, because a codelevel-4 drone gets 8 ms of
+  a 90 ms server step. `doc/api.md` and `lib/config.lua` both already state the
+  semantics; the HUD and the panel are where a player meets the number without
+  them. **The number is right and the word is wrong** — do not fix it by charging
+  wall clock.
+
+**One thing the session nearly filed twice.** `H6`'s pause-then-fast-restart —
+hold a drone two minutes, resume, and it races before settling — looked like a
+third defect and is `B45`'s root cause from another angle: the footprint decays
+over `map_window_s` (the engine's own `server_unload_unused_data_timeout`, 29 s),
+so a long pause drains it and the drone resumes unthrottled. The engine really did
+unload those mapblocks. Chasing it before writing it down is what kept an invented
+bug out of the record.
+
+**Four wanted changes came out of the same session and are now `F8`** — the panel
+unconditional and the setter's click meaning *drone info*, `K`/`M`/`G` on long
+numbers with a percentage per row, a describing line per limit, and the HUD tick
+moved onto the *Settings* panel with the editor's other two checkboxes. `F8` also
+carries the two findings, because they are the same two surfaces. **It has one
+blocking question**: if left click always opens the panel, removing a drone needs
+a new home.
+
+The *gates green, unproven in a world* list holds `B14`, blocked on `B34` being
+won't-fix. Before this run it also held the whole of `F4`; now `F4` is checked and
+what it produced is two open findings instead.
+
+**Earlier context, still true.** The playtest run of 2026-08-27 at `246bb37`
+closed the backlog of *checking* and opened one of *fixing*; that backlog emptied,
+and so did the one after it. Six findings came out of that phase's playtests, **all
+six fixed**, and on 2026-08-28 at `6fea453` the last three were confirmed in a
+world by their own checks — `D6` for `B44`, `F-3` case 2 for `S7`, and a re-timed
+`P3` for `B43`, which spread **78 s and 95 s** where the same shape spread
+78 / 160 / 183 before.
 
 **`C19` was filed and fixed the same day, and it is the only finding here ever
 raised by a published rule rather than by a defect.** The long description was
@@ -56,15 +94,13 @@ whose buffer differs from the file, confirmed in a running world at `afbe504`.
 `F6` is no longer one of them: Blockly is `Phase 10` and v2.0.0.
 
 **`F4` shipped 2026-08-28 at `729c255`, CI run 37 green on all three jobs, and
-with `F5` dropped the day after it makes this phase feature-complete.** It is also
-the first feature here to ship with **none** of its in-world checks run: a HUD and
+with `F5` dropped the day after it makes this phase feature-complete.** A HUD and
 a formspec panel showing what a running program spends, plus Pause, Resume and
 Cancel, and the setter's left click on a *running* drone repointed from cancelling
-the run to opening that panel. The specs reach its arithmetic (`limits.binding`,
-`limits.report`), its pause field and the panel's session routing, and reach
-nothing a player sees. **That is playtest group `H`, nine checks, all unchecked**
-— so *every shipped feature is proven in a world* is no longer true, and closing
-that is the last work in the phase. The author is carrying the run.
+the run to opening that panel. Its group `H` ran the next day: **six pass, three
+partial, two findings**, above. Three of those passes are already superseded by
+`F8` — `H3`, `H4` and part of `H8` describe behaviour that is about to change, so
+a pass there means *it worked as asked*, not *it is settled*.
 
 **`F5` was dropped unbuilt on 2026-08-29**, the author's call: *"not very
 interesting in the end."* Nothing was written. Its entry stays, marked dropped,
@@ -72,10 +108,9 @@ because the two rules inside it outlive the feature — a codelevel control must
 privilege-gated per press, and a mid-run budget rebuild must carry `used` across
 or re-levelling becomes a limit bypass.
 
-**`R2` passed on 2026-08-28 too, and every check that existed then carries a
-result** — 39 of 39, 37 pass and 2 partial, which had never been true before;
-`F4`'s nine take the file to 39 of 48. It closed `C16`'s install guard: the
-archive extracted into
+**`R2` passed on 2026-08-28, and with `H` now run every check in `PLAYTEST.md`
+carries a result** — 48 of 48, **43 pass and 5 partial**. It closed `C16`'s
+install guard: the archive extracted into
 `minetest_game`'s own `mods/` beside `vector3`, with `codeblock_run_tests = true`,
 loaded normally and logged the warning instead of refusing to load. The one thing
 still unproven anywhere is `B14`, and it is blocked on `B34` being won't-fix
@@ -275,7 +310,7 @@ that the editor and drone paths were exercised by hand. Phase 8's playtests have
 since found **twelve** defects in code earlier phases called done (B36–B44, C17,
 C18, S7) — the newest of them were the largest. **All twelve are fixed.**
 
-### 8 · Features for v1.0.0 — feature-complete (5/5 shipped · 15 findings closed, none open)
+### 8 · Features for v1.0.0 — feature-complete (5/5 shipped · 15 findings closed · B45, B46 open from F4's playtest)
 
 The last phase before v1.0.0 and the only one that adds rather than repairs.
 Ordered easiest to hardest, one at a time. **The pacing and world groups have now
@@ -287,8 +322,12 @@ been played**, which is what `F4` was waiting on — between them they produced
 2026-08-29** — the author's call, "not very interesting in the end". So the phase
 was seven features, then six, and is five, **all five shipped**.
 
-**What remains before v1.0.0 is checking and one generator, not features:** `F4`'s
-playtest group `H`, and `settingtypes.txt`'s `--check`.
+**Group `H` ran on 2026-08-29 and the checking is done — what it left is work.**
+Six pass, three partial, and two open findings, `B45` and `B46`, both about what
+`F4`'s display says rather than what it computes. They plus four wanted changes
+from the same session are `F8`. **So what remains before v1.0.0 is `B45`, `B46`,
+`F8` and `settingtypes.txt`'s `--check`** — no unrun checks and no unbuilt
+features.
 
 Shipped, gates green, pushed and CI-green at `b8b30e3`:
 
@@ -330,9 +369,14 @@ Left in the phase:
   family as `doc/api.md` and `locale/template.txt`, and it will drift the same
   way. The release skill names it as a step, which is a note about remembering,
   and this project's own lesson is that those do not hold. (C19)
-- Run playtest group `H`, `F4`'s nine in-world checks — the last unrun group, and
-  the only evidence there will ever be for a feature the specs cannot reach. The
-  author is carrying these.
+- Fix `B45` and `B46`, `F4`'s two open findings — the map footprint must leave
+  `limits.binding`, and the runtime figure must stop being called wall clock.
+  Both are in `F8`'s scope and both should go first, being defects.
+- Build `F8`, the rest of what `F4`'s playtest asked for. **Answer its blocking
+  question first:** if the setter's left click always opens the panel, removing a
+  drone needs a home.
+- Re-run playtest `H2`, whose comparison has never actually been made — `B45`
+  drowned it out both times.
 
 ### 9 · v1.x.y — features and defects after the release
 
@@ -747,6 +791,76 @@ leaves the buffer differing from the file, which is what the mark is for.
 the `tabheader` back out. What a player can see was `E16`, **passed at `afbe504`
 on 2026-08-28**, the day this shipped.
 
+### F8 · medium · planned — make the drone panel readable, and settle where things live
+
+Everything `F4`'s first playtest asked for, in one feature because all of it edits
+the same two surfaces. Four wanted changes from the session of 2026-08-29, plus
+the two findings that session filed.
+
+**The two findings come first, because they are defects and the rest is polish.**
+
+- **`B45`** — drop the map footprint from `limits.binding`. It is a *held*
+  resource and sits at its ceiling by design, so it wins the comparison nearly
+  always and the HUD cannot do its one job. `lib/limits.lua`'s header already
+  draws the spent/held distinction; `binding` should compare only the three spent
+  ones (nodes, runtime, heap). The map row stays in `limits.report` — a player
+  still wants to see it — but as a **state**, not a race: at 100% the honest
+  words are *"throttled"*, not *"99% of the way to failing"*.
+- **`B46`** — stop calling charged CPU *Running time*. It is a fraction of wall
+  clock by construction (8 ms of a 90 ms server step at codelevel 4), which makes
+  `max_runtime_s` 1800 read as half an hour when it is nearer five. Rename it and
+  say what it counts. Do **not** change what is counted.
+
+**The four wanted changes.**
+
+- **The panel becomes unconditional, and the setter's left click means *drone
+  info*** — from `H4` and `H8`. No more two-meanings-by-state: click, get the
+  panel, and if nothing is running the panel says so (it already does). This
+  removes the branch `H4` was written to protect and simplifies
+  `register.lua`'s `on_use` to one call.
+  **Open question, and it blocks this part:** left click on an idle drone is today
+  how a drone is *removed*, and all four setter gestures are taken. Removal has to
+  land somewhere — most naturally a button in the panel — and that is the author's
+  call, not a detail. Nothing here should be built until it is answered.
+- **Long numbers get `K`/`M`/`G`, and every row gets its own percentage** — from
+  `H5`. `max_nodes_written` is 1e8 at codelevel 4, so the panel currently prints
+  a nine-digit integer against another nine-digit integer and no player reads
+  that. Suffix the pair and put the fraction beside it, which also means the
+  binding line stops being the only place a percentage appears.
+- **Every limit gets a describing line** — from `H5`, and it is where `B46`'s fix
+  lands. One short sentence per row saying what the resource is and why it has a
+  ceiling. This is the panel earning its space over the HUD: the HUD is four words
+  and a number, the panel can afford a sentence.
+- **The HUD tick moves to a settings page, with the other two checkboxes** — from
+  `H3`. *Show the drone HUD*, *Load program on exit* and *Save on tab switch* all
+  live loose at the bottom of the editor form; they belong together on the
+  existing *Settings* panel beside Blocks / Plants / Wools / API, which `F1` built
+  and which already holds the default-block picker.
+
+**Constraints.**
+
+- **The editor form is legacy coordinates and the panel is `formspec_version[4]`.**
+  Moving three checkboxes into the Settings panel is work inside the legacy form,
+  so the button-width and `scroll_container` traps in `CLAUDE.md` apply; the
+  number formatting is inside the panel and does not.
+- **`limits.report` and `limits.binding` stay pure functions of `caps` and `used`**
+  so `limits_spec` keeps pinning them. The `K`/`M`/`G` formatting is presentation
+  and belongs with the display, not in `lib/limits.lua` — that file converts
+  units, it does not choose words.
+- **Three playtest checks need rewriting, not just re-running.** `H3` moves with
+  the setting, `H4`'s two-meanings split stops existing, and `H8` case 1 changes
+  shape. `H2` needs a genuine re-run: its comparison has never actually been made,
+  because map memory drowned it out both times.
+
+**Argued out already.**
+
+- **Charging wall clock instead of CPU** to make the runtime figure intuitive. It
+  would punish a program for a busy server and for its own pace, which is exactly
+  why `max_calls` was replaced. The number is right; the word is wrong.
+- **Dropping the map row from the panel** along with removing it from `binding`.
+  It is the limit that actually throttles a big build, so a player debugging a
+  slow drone needs it — it just must not be presented as a race toward failure.
+
 ## Other decisions worth not re-litigating
 
 - **Building `F5`, changing a codelevel mid-run** — dropped unbuilt 2026-08-29,
@@ -886,6 +1000,8 @@ codes: luacheck silent, `doc/api.md` and `locale/template.txt` up to date,
 `locale/*.tr` covering every message, nine in-engine specs **428 passed, 0
 failed, 1 xfail, 0 xpass**, six standalone specs green under plain Lua 5.1.
 
-**The phase is feature-complete and the only work left in it is checking.**
-`PLAYTEST.md` stands at 39 of 48 checks carrying a result; the nine without one
-are `F4`'s group `H`, and the author is running them.
+**The phase is feature-complete, the checking is done, and what the checking
+found is now the work.** `PLAYTEST.md` stands at **48 of 48** carrying a result,
+43 pass and 5 partial — the first time every check has one since `F4` shipped.
+Group `H` ran on 2026-08-29 at `729c255` and opened `B45` and `B46`; those two,
+`F8` and `settingtypes.txt`'s `--check` are all that stand before v1.0.0.
