@@ -30,9 +30,9 @@ nothing dropped.
 playtest group `H` — both about what the new display said rather than what it
 computed, and both fixed in `F8`'s first pass. Before them, `C19` was filed and
 fixed on 2026-08-28 — the only finding here to arrive from reading a published
-rule rather than from a defect. The code is pushed through `d619fba` and **CI is green there, run 40, all three
-jobs** — the run covering `B45`, `B46` and `F8`; run 37 covered `F4`, run 30 `F7`,
-and run 29 the five fixes `B41`, `C18`, `S7`, `B44`, `B43`. Only the record
+rule rather than from a defect. The code is pushed through `60dc8dd` and **CI is green there, run 42, all three
+jobs**; run 40 covered `B45`, `B46` and `F8`'s first pass, run 37 `F4`, run 30
+`F7`, and run 29 the five fixes `B41`, `C18`, `S7`, `B44`, `B43`. Only the record
 commits on top of it are unseen by CI.
 
 | Category | Count | Open |
