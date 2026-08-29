@@ -43,9 +43,10 @@ barely used, and that the map row is nonetheless still returned by
   one sits at its ceiling by design: `use_map` loops on `limits.hold` until there
   is room, which pins `used.map` to `caps.map` for as long as a drone keeps
   loading mapblocks. `lib/limits.lua`'s own header draws that distinction and this
-  code ignored it. Fixed by comparing only the three spent resources; the map row
-  is still reported, and `limits.report` gained `held` so the panel can print
-  *throttled* there instead of a percentage that reads as imminent failure.
+  code ignored it. Fixed by comparing only the three spent resources. The row is
+  still returned by `limits.report` with a new `held` flag, but **neither surface
+  lists it** any more — the author's call the same day, *"only list hard limits"*,
+  after a *throttled* label shipped and read as one more thing to learn.
 - **`B46` · medium · fixed** — *Running time* was charged CPU, not wall clock, and
   neither surface said so. `mosely.lua` read **22 s** against a **180 s**
   completion line, climbing at ~0.1 s/s, because a codelevel-4 drone gets 8 ms of
@@ -62,13 +63,26 @@ so a long pause drains it and the drone resumes unthrottled. The engine really d
 unload those mapblocks. Chasing it before writing it down is what kept an invented
 bug out of the record.
 
-**`F8` shipped the same day and carries both fixes plus the four changes the
-session asked for** — the panel unconditional with the setter's click meaning
-*drone info*, `K`/`M`/`G` on long numbers with a percentage per row, a describing
-line per limit, and the three preference checkboxes moved onto the *Settings*
-panel. Its one blocking question was settled first: **removal is a *Remove drone*
-button in the panel**, since the gesture change took away the only way to remove
-one.
+**`F8` shipped the same day, and then twice more from screenshots.** It carries
+both fixes plus what the session asked for: the panel unconditional with the
+setter's click meaning *drone info*, `K`/`M`/`G` on long numbers, a percentage and
+a description per row, and the three preference checkboxes moved onto the
+*Settings* panel. Its blocking question was settled first — removal became a
+button, since the gesture change took away the only way to remove one.
+
+**Then the author photographed it twice, and each screenshot cost a revision.**
+The panel's descriptions were clipped at the right edge in French, so names went
+bold and left-aligned with descriptions that now wrap over two lines in an *area
+label*; the *Will stop on…* summary went; the table dropped to hard limits only;
+the fullest percentage went amber and anything at 80% or more red. And the two
+destructive buttons became one **Stop** — the author asked what the difference
+between *Cancel* and *Remove drone* was, and **there was none: both called
+`Drone.on_remove`.** Closing moved to an `x` in the corner.
+
+The second screenshot was the HUD, misaligned and still two lines. It is now a
+five-line block hanging from the top-right corner: the file and its state in bold,
+`Budget usage:`, and one short line per hard limit with the same colour rule as
+the panel.
 
 **The run rewrote five of its own nine checks**, which is the group working rather
 than churning. `H2` was never actually performed — map memory saturated the
@@ -656,6 +670,11 @@ and the second rewriting the first.
 - **A live-refreshing panel that reproduces the HUD.** The panel refreshes on the
   same tick — it has no text field, so a redraw costs no focus — but it does not
   duplicate the HUD's job. Two surfaces, one each.
+- **Two destructive buttons.** *Cancel* and *Remove drone* shipped side by side
+  for one afternoon and were **the same `Drone.on_remove` call** under different
+  labels and colours. The author asked what the difference was; there was none.
+  One action gets one button, now *Stop*. A second button that offers a
+  distinction the code does not make is worse than no button.
 
 ### F5 · large · dropped 2026-08-29 — change a codelevel while a program runs
 
@@ -844,6 +863,36 @@ the two findings that session filed.
   a nine-digit integer against another nine-digit integer and no player reads
   that. Suffix the pair and put the fraction beside it, which also means the
   binding line stops being the only place a percentage appears.
+- **A second pass on the layout, from the author's screenshot of the first one.**
+  Settled 2026-08-29: the limit name is **bold** and shares its left edge with the
+  description; the description is an **area label** (`label[x,y;w,h;text]`), which
+  the engine wraps to two lines and gives no scrollbar, because the single-line
+  version was cut off at the panel edge in French. The *Will stop on: …* summary
+  line is **gone entirely** — the binding limit is now shown by colouring its
+  percentage **amber**, with **red** at 80% or more, so there is either nothing to
+  look at or one thing. And the panel lists **hard limits only**, three rows.
+- **One destructive button, and a close `x` in the corner.** *Cancel* and *Remove
+  drone* were the same call; they are now **Stop**. Closing moved to an `x` at the
+  top right, where a window's close control belongs, rather than a fourth button
+  competing with the two that do something.
+- **The HUD became a five-line block, from a second screenshot.** Settled
+  2026-08-29: it hangs from the top-right corner and reads
+  `<file> : running` in bold, `Budget usage:`, then `- Blocks: n%`,
+  `- CPU: n%`, `- Memory: n%` — the three limits that can stop a program, with
+  the same colour rule as the panel. **The two-line version that named only the
+  binding limit is gone**: naming one was meant to teach which resource a program
+  spends, and in a world it only meant the other two were invisible while the
+  answer was nearly always the same.
+  Three facts made it cheap. A HUD `text` element has a **`style` bitfield**
+  (1 bold, 2 italic, 4 monospace), so the header can be bold. Colour is per
+  element through `number`, which every client honours, so **one element per line**
+  gives per-line colour without needing `core.colorize` and its protocol-44
+  floor. And `alignment = {x = -1, y = 1}` hangs the block down-and-left from the
+  corner, which is what fixes the alignment the screenshot showed.
+  The HUD gets its **own short names** — `Blocks`, `CPU`, `Memory` — and that
+  duplication is deliberate: the panel's row is a heading over a sentence, the
+  HUD's is one line of five. `Server time used` earns its length beside an
+  explanation; on the HUD it would be the whole line.
 - **Every limit gets a describing line** — from `H5`, and it is where `B46`'s fix
   lands. One short sentence per row saying what the resource is and why it has a
   ceiling. This is the panel earning its space over the HUD: the HUD is four words
@@ -874,9 +923,17 @@ the two findings that session filed.
 - **Charging wall clock instead of CPU** to make the runtime figure intuitive. It
   would punish a program for a busy server and for its own pace, which is exactly
   why `max_calls` was replaced. The number is right; the word is wrong.
-- **Dropping the map row from the panel** along with removing it from `binding`.
-  It is the limit that actually throttles a big build, so a player debugging a
-  slow drone needs it — it just must not be presented as a race toward failure.
+- ~~**Dropping the map row from the panel** along with removing it from
+  `binding`.~~ **Reversed 2026-08-29 on the author's call — *"only list hard
+  limits"*.** The first answer was to keep it with the word *throttled* in place
+  of a percentage; that shipped and was dropped the same day. The reason is
+  `B45`'s own reason: one table holding three ceilings that end a run and one that
+  does not invites the misreading, and a special word asks the player to learn a
+  distinction the table's shape denies. **The row is still in `limits.report`**
+  with its `held` flag, so the data is complete and only this surface declines to
+  draw it. Known consequence, recorded rather than smoothed over: **nothing now
+  tells a player why a drone is slow**, which is the `H6` pause confusion waiting
+  to come back.
 
 ## Other decisions worth not re-litigating
 

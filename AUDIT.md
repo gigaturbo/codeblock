@@ -760,6 +760,17 @@ delete should confirm is a separate question.
   imminent death. **Keep — do not "simplify" `binding` and `report` back to one
   list.** They answer different questions: *what will stop this run* and *what is
   this run using*. The map footprint belongs in the second and never the first.
+  **Second decision, 2026-08-29, reversing the one first recorded here: the panel
+  no longer lists the held row at all.** *Throttled* was shipped and then dropped
+  the same day, on the author's call — *"only list hard limits"*. The reasoning
+  that survives is the same reasoning that opened this finding: three ceilings
+  that end a run and one that does not, side by side in one table, invite exactly
+  the misreading `B45` is about, and a word like *throttled* asks the player to
+  learn a distinction the table's own shape denies. `limits.report` still returns
+  the row with its `held` flag, and `limits_spec` still pins that — the data is
+  complete and the surface chooses. **What is now unsurfaced anywhere is why a
+  drone is slow**, which is the `H6` pause confusion waiting to return; that is a
+  known gap, not an oversight.
 
 - **B46 · medium · resolved** — the HUD and the drone panel label the runtime budget
   *Running time* / *Temps d'exécution*, which reads as wall-clock time and is not.

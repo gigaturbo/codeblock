@@ -32,5 +32,7 @@ doc/*.png       export-ignore
 # Shown in the main menu's Mods tab, so it must survive the rules above.
 screenshot.png  -export-ignore
 
-# GIMP sources for the textures that ship beside them as PNG.
+# Editable sources for the textures that ship beside them as PNG. A player needs
+# the PNG the engine loads and nothing else; the source is for whoever redraws it.
+*.svg           export-ignore
 *.xcf           export-ignore

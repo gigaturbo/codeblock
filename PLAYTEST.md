@@ -714,7 +714,9 @@ usable file* the same way in both places it can happen.
 ## The drone HUD and panel
 
 **First run, 2026-08-29, at `729c255`**, engine Luanti 5.17.0 — **six pass, three
-partial**, and it produced two findings and four wanted changes. This group
+partial**, and it produced two findings, four wanted changes and then two further
+revisions from screenshots. **Seven of the nine checks are now due a second run**,
+because what they describe has changed under them. This group
 carries more unverifiable surface than any other here: the specs reach the
 binding-constraint arithmetic (`limits_spec`), the pause field (`stepper_spec`)
 and the panel's session routing (`forms_spec`), and reach **none** of the
@@ -727,6 +729,17 @@ at its ceiling by design, so the display cannot do the one job it exists for.
 `B46` — *Running time* is charged CPU, not wall clock, and neither surface says
 so. Both are presentation over correct arithmetic, and **neither is reachable by
 any spec**: the gates were green and ten minutes in a world found two.
+
+**Two more passes on 2026-08-29, each from a screenshot.** The panel's
+descriptions were clipped at the right edge in French, so names became bold and
+left-aligned with descriptions that wrap over two lines, the *Will stop on…*
+summary was deleted, the table was cut to **hard limits only**, the fullest
+percentage went amber with anything at 80% or more red, *Cancel* and *Remove
+drone* merged into one **Stop** (they were the same call all along), and closing
+moved to an `x` in the corner. Then the HUD: misaligned and still naming one
+limit, it became a **five-line block** flush to the top-right corner with a bold
+header and one short line per hard limit. **None of either pass is checked** —
+`H1`, `H2`, `H4`, `H5`, `H7` and `H8` all describe it.
 
 **Two things worth carrying forward.** The pause-then-fast-restart in `H6` looked
 like a third bug and is not one — it is `B45`'s root cause seen from another
@@ -747,17 +760,30 @@ A note on all of these: the HUD draws **top-right**. If nothing is there, check
 *Show the drone HUD* in the editor and `codeblock_drone_hud` in `minetest.conf`
 before assuming it is broken.
 
-### H1 · The HUD appears, updates and goes [F4]
+### H1 · The HUD appears, updates and goes [F4, F8]
 
 Run a program that takes ten seconds or so — a large cube at codelevel 4, or any
 loop with `sleep(0.2)` in it.
 
-**Pass:** two lines appear top-right the moment the program starts; the filename
-is right; the percentage moves while it builds; **both lines disappear when the
-program ends**, without a reload and without a leftover from the previous run.
+**Pass:** a **five-line block** appears top-right the moment the program starts:
 
-Result: pass — `729c255` · engine 5.17.0 · 2026-08-29 — the two lines appear on
-start, track the run and go when it ends.
+```
+mosely.lua : running          <- bold
+Budget usage:
+- Blocks: 72%
+- CPU: 0%
+- Memory: 4%
+```
+
+The filename is right, the block is **flush to the top-right corner** with even
+line spacing, the percentages move while it builds, and **every line disappears
+when the program ends** — without a reload and without a leftover from the
+previous run. The header is bold and the other four are not.
+
+Result: pass for the `F4` version — `729c255` · engine 5.17.0 · 2026-08-29 — two
+lines appeared on start, tracked the run and went when it ended. **`F8` replaced
+it entirely** after a screenshot showed it sitting away from the corner and naming
+only one limit, so the layout above is unchecked.
 
 ### H2 · The binding limit is the one it names, and it changes [F4, B26, B45]
 
@@ -769,9 +795,15 @@ Run two programs at the same codelevel: one that writes a great many nodes
 quickly, and one that spends time without writing much (a long loop of
 arithmetic, or `sleep`).
 
-**Pass:** the first names **Blocks written**, the second names **Server time
-used**. **Map held must never be named at all**, however full that row is — it is
-a throttle, not a limit a run stops on, and naming it is exactly `B45`.
+**Pass:** in the panel, the first is closest on **Blocks placed** and the second
+on **Server time used**; on the HUD the same two lead. **Map held cannot appear at
+all** — it is neither compared nor listed on either surface, which is `B45` plus
+the author's *"only list hard limits"*.
+
+The colouring is what to read now that no sentence names the winner: **exactly one
+percentage is amber** — the fullest of the three — and any at 80% or more is
+**red**, red winning. A run nowhere near a ceiling shows three plain percentages
+and no colour at all, on both surfaces, saying the same thing.
 The percentage rises toward 100 as each approaches its ceiling, and the colour
 goes green, amber, red as it fills. If a single program crosses over — nodes
 early, time later — the named limit changes mid-run rather than sticking.
@@ -837,22 +869,25 @@ Left click with the **setter** in each of three states:
 
 1. **No drone at all.** The panel opens and says *You have no drone*, offering
    only *Close*. The gesture answers instead of doing nothing silently.
-2. **An idle drone.** The panel opens naming the file it holds, with *Remove
-   drone* and *Close* — and **nothing is removed until that button is pressed**.
-3. **A running drone.** The panel opens with the full table, *Pause*, *Cancel*,
-   *Remove drone* and *Close*. The drone keeps building; the run is **not**
-   cancelled by opening the panel.
+2. **An idle drone.** The panel opens naming the file it holds, with **Stop**
+   and the close `x` — and **nothing is removed until Stop is pressed**.
+3. **A running drone.** The panel opens with the three hard limits, **Pause**,
+   **Stop** and the `x`. The drone keeps building; the run is **not** cancelled by
+   opening the panel.
 
 Then the button itself, which is where the old gesture went:
 
-4. *Remove drone* on an **idle** drone: it goes, silently, as the old left click
-   did.
-5. *Remove drone* on a **running** drone: it goes and the run is announced —
-   **exactly one message**, the same one *Cancel* produces. Both routes are
-   `Drone.on_remove`, so two messages or none would be `B12`/`B30` returning.
+4. **Stop** on an **idle** drone: it goes, silently, as the old left click did.
+5. **Stop** on a **running** drone: it goes and the run is announced — **exactly
+   one message**. `Drone.on_remove` is the only route, so two messages or none
+   would be `B12`/`B30` returning.
 
 **Pass:** all five. Cases 1 and 2 are the new behaviour; case 4 is the old
 behaviour still reachable, which is the thing that must not have been lost.
+
+There is **one** destructive button on purpose. *Cancel* and *Remove drone*
+shipped together for one afternoon and called the same function; if two ever
+reappear, that is the defect, not the fix.
 
 Result: unchecked — **the check that superseded itself.** The `F4` version passed
 at `729c255` on 2026-08-29 (both meanings behaved, and an idle drone was still
@@ -867,30 +902,36 @@ With a long program running, open the panel and leave it open. Do it at
 **codelevel 4**, where `max_nodes_written` is 1e8 — that is the case the number
 formatting exists for.
 
-**Pass:** four rows, each with what the run has spent against its ceiling, in the
-units `minetest.conf` uses — seconds and megabytes, not microseconds and
-mapblocks. The numbers **update while the panel sits open**, without touching
-anything.
+**Pass:** **three rows** — blocks, server time, Lua memory — each with what the
+run has spent against its ceiling, in the units `minetest.conf` uses: seconds and
+megabytes, not microseconds and mapblocks. The numbers **update while the panel
+sits open**, without touching anything.
 
-What `F8` added and this check now covers:
+What the second layout pass added, all of it unchecked:
 
+- **Three rows, not four.** *Map held* is **not listed at all**: it stops nothing,
+  and a table mixing it with three ceilings that do end a run is what `B45` was
+  about. There is also **no *Will stop on…* line** any more.
 - **Long counts are readable.** The blocks row shows something like `1.2K /
   100.0M`, not `1247 / 100000000`. The threshold is 10 000, so a small count still
   reads as a plain integer.
-- **Every row carries its own percentage**, on the right, not just the summary
-  line.
-- **Every row has a line saying what it is** and whether reaching it stops the
-  program. The *Server time used* line must say it is not clock time — that is
+- **Each name is bold, and the description under it starts at the same left
+  edge.** The description is allowed **two lines** and must not be cut off at the
+  panel edge — check this **in French**, which is where the single-line version
+  clipped.
+- **The *Server time used* description says it is not clock time.** That is
   `B46`'s fix and the reason the row was renamed.
-- **The *Map held* row says `throttled`** rather than a percentage once it is at
-  its ceiling, because there it is working rather than failing. It must **not**
-  appear on the *Will stop on* line at any fullness (`B45`).
+- **The percentage is coloured, and at most one thing is coloured amber.** Amber
+  marks the limit that will be reached first; **red at 80% or more** and red wins.
+  A run nowhere near any ceiling shows three plain percentages.
 
 Result: pass for the `F4` version — `729c255` · engine 5.17.0 · 2026-08-29 — four
-rows, ceilings in the player's units, updating live, agreeing with the HUD. **The
-four `F8` points above are unchecked**, and all four came out of that session:
-*"we'll make adjustments: make long numbers readable (K, M, G blocks for example,
-plus a percentage), add small line describing the limit."*
+rows, ceilings in the player's units, updating live, agreeing with the HUD. **Every
+point above is unchecked**, and all of it came out of that session and the
+screenshot after it: *"make long numbers readable (K, M, G blocks for example,
+plus a percentage), add small line describing the limit"*, then bold names, shared
+left edge, two-line descriptions, no summary line, hard limits only, and the
+colour rule.
 
 ### H6 · Pause and Resume [F4, F3, B46]
 
@@ -945,16 +986,21 @@ Same root cause as `B45`; deliberately **not** filed twice.
 saying it is not clock time. **The renamed row and its description are unchecked**
 — re-run the pause cases and read the words this time.
 
-### H7 · Cancel [F4, B12, B30]
+### H7 · Stop [F4, F8, B12, B30]
 
-Cancel a running program from the panel.
+Press **Stop** on a running program from the panel. Then the same on an idle
+drone.
 
-**Pass:** the drone goes, the panel closes, and there is **exactly one** message
-in chat — the same completion line the setter's old left click produced. Not two,
-and not none.
+**Pass:** the drone goes both times, the panel closes, and on the running one
+there is **exactly one** message in chat — the same completion line the setter's
+old left click produced. Not two, and not none. On the idle one, no message, the
+drone simply goes.
 
-Result: pass — `729c255` · engine 5.17.0 · 2026-08-29 — the drone goes, the panel
-closes, exactly one message.
+Result: pass for the `F4` version, then named *Cancel* — `729c255` · engine 5.17.0
+· 2026-08-29 — the drone goes, the panel closes, exactly one message. **`F8`
+merged *Cancel* and *Remove drone* into this one button** (they were the same
+`Drone.on_remove` call all along), so the button is renamed and the idle case is
+new and unchecked.
 
 ### H8 · The panel over the editor, and a run that ends under it [F4, F8, B33, B29]
 
@@ -965,14 +1011,13 @@ Three ways the panel can be outlived:
    second later — that is the exact defect the `forms_spec` case guards, and the
    spec cannot see the screen.
 2. Open the panel and let the program **finish on its own** while it is open. The
-   panel **switches to the idle view** — the file it holds, *Remove drone*,
-   *Close* — rather than freezing on stale numbers or throwing. `F8` changed what
-   this looks like: it used to say *No program is running* and offer only Close.
+   panel **switches to the idle view** — the file it holds, **Stop**, and the
+   close `x` — rather than freezing on stale numbers or throwing.
 3. Open the panel, then cancel the run, and while the panel is still open place
    a **new** drone under the same name and run something. Nothing from the old
    run leaks into the new panel or the new HUD (`B29`'s serial guard).
-4. **New in `F8`:** open the panel on an idle drone, press *Remove drone*, and
-   watch the panel it was showing. It closes; it does not sit there describing a
+4. **New in `F8`:** open the panel on an idle drone, press **Stop**, and watch
+   the panel it was showing. It closes; it does not sit there describing a
    drone that no longer exists, and the next left click says *You have no drone*.
 
 **How to tell case 1 apart from "it happened to be harmless."** The defect would

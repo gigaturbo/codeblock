@@ -48,7 +48,7 @@ local remove_file = codeblock.filesystem.remove_file
 local set_file = codeblock.Drone.set_file
 local get_drone = codeblock.Drone.get
 local remove_drone = codeblock.Drone.remove
-local cancel_drone = codeblock.Drone.on_remove
+local stop_drone = codeblock.Drone.on_remove
 
 local hud_wanted = codeblock.hud.wanted
 local hud_set_wanted = codeblock.hud.set_wanted
@@ -57,6 +57,7 @@ local hud_set_wanted = codeblock.hud.set_wanted
 local limit_label = codeblock.hud.limit_label
 local limit_description = codeblock.hud.limit_description
 local short_number = codeblock.hud.short_number
+local pct_colour = codeblock.hud.pct_colour
 local limits_report = codeblock.limits.report
 local limits_binding = codeblock.limits.binding
 
@@ -837,9 +838,18 @@ local file_chooser = {
 -- removed an idle one and opened this panel on a running one, and now it always
 -- opens this panel. The two-meanings version was `F4`'s and lasted one playtest
 -- (`H4`): a gesture whose effect depends on invisible state is a gesture a player
--- has to guess at. So removal is a button here instead - shown whatever the
--- drone is doing, and on a running drone it means cancel-and-remove, which is
--- what `Drone.on_remove` already did. (F8)
+-- has to guess at.
+--
+-- **Two buttons, Pause and Stop, and a close x in the corner.** Stop is
+-- `Drone.on_remove`, which ends a run if there is one and takes the drone away
+-- either way. It was briefly two buttons - Cancel and Remove drone - calling that
+-- same function with different labels and colours, which offered a distinction
+-- a player would hunt for and never find. One action, one button. (F8)
+--
+-- **Only the hard limits are listed.** The map footprint stops nothing - it makes
+-- the drone wait and frees itself - so showing it beside three ceilings that do
+-- end a run invited the exact misreading `B45` was filed for. It is still in
+-- `limits.report`; this surface chooses not to draw it.
 --
 -- Refreshed on the same tick as the HUD. A redraw costs no input focus here
 -- because there is no text field in the form - that is what makes a live
@@ -865,11 +875,28 @@ local function fmt(n, unit)
     return ('%.1f %s'):format(n, unit)
 end
 
--- Where the four rows and the buttons sit, so the form's height and the loop
--- that fills it cannot disagree.
-local ROW_Y = 2.5
-local ROW_H = 1.15
-local BUTTON_Y = ROW_Y + 4 * ROW_H + 0.5
+-- Where the rows and the buttons sit, so the form's height and the loop that
+-- fills it cannot disagree. A row is a bold name with its numbers, then two
+-- wrapped lines of description under it, which is what sets ROW_H.
+local PANEL_W = 10
+local ROW_Y = 1.9
+local ROW_H = 1.35
+local DESC_DY = 0.3
+local HARD_ROWS = 3
+local BUTTON_Y = ROW_Y + HARD_ROWS * ROW_H + 0.35
+
+-- The percentage, coloured by how much trouble the row is in.
+--
+-- The rule and the two colours live in lib/hud.lua, which applies them to the
+-- same numbers on the corner display: a player looking at both must not be told
+-- two different things about one figure. That function answers in the integer a
+-- HUD element takes, so it is formatted here for core.colorize.
+local function pct_label(fraction, is_binding)
+    local text = math.floor(fraction * 100 + 0.5) .. '%'
+    local colour = pct_colour(fraction, is_binding)
+    if not colour then return text end
+    return core.colorize(('#%06X'):format(colour), text)
+end
 
 local drone_panel = {
 
@@ -893,62 +920,75 @@ local drone_panel = {
         -- one, and a running one. Saying "there is no drone" is a real answer to
         -- the gesture, which is why it no longer has to mean something else when
         -- nothing is running. (F8)
-        local fs = 'formspec_version[4]' .. 'size[10,' ..
-                       (running and (BUTTON_Y + 1.4) or 3.6) .. ']'
+        local fs = 'formspec_version[4]' .. 'size[' .. PANEL_W .. ',' ..
+                       (running and (BUTTON_Y + 1.3) or 2.9) .. ']'
+
+        -- An x in the top-right corner, where a window's close control lives,
+        -- rather than a fourth button competing with the ones that do something.
+        -- ESC still works and arrives as the same quit event.
+        fs = fs .. 'button_exit[' .. (PANEL_W - 1.1) .. ',0.35;0.7,0.7;close;x]'
 
         if not drone then
-            return fs .. 'label[0.6,0.9;' .. S('You have no drone') .. ']' ..
-                       'button_exit[4,2.3;2,0.8;close;' .. S('Close') .. ']'
+            return fs .. 'label[0.6,0.9;' .. S('You have no drone') .. ']'
         end
 
         if not running then
             fs = fs .. 'label[0.6,0.9;' ..
                      S('Drone idle, holding @1',
                        formspec_escape(drone.file or '?.lua')) .. ']'
-            fs = fs .. 'style[remove;bgcolor=red]'
-            fs = fs .. 'button[0.6,2.3;3,0.8;remove;' .. S('Remove drone') ..
-                     ']'
-            fs = fs .. 'button_exit[6.4,2.3;3,0.8;close;' .. S('Close') .. ']'
+            -- The same Stop as below: on an idle drone there is no run to end,
+            -- so it simply takes the drone away.
+            fs = fs .. 'style[stop;bgcolor=red]'
+            fs = fs .. 'button[0.6,1.7;2.1,0.8;stop;' .. S('Stop') .. ']'
             return fs
         end
 
         fs = fs .. 'label[0.6,0.8;' ..
-                 S('@1 - @2', formspec_escape(drone.file or '?.lua'),
+                 S('@1 : @2', formspec_escape(drone.file or '?.lua'),
                    (drone.paused and S('paused') or S('running'))) .. ']'
 
-        -- Only the spent resources compete here; the map footprint is a throttle
-        -- that sits at its ceiling by design and used to win every time. (B45)
-        local what, fraction = limits_binding(drone.budget)
-        fs = fs .. 'label[0.6,1.5;' ..
-                 S('Will stop on: @1, at @2%', limit_label(what),
-                   math.floor(fraction * 100 + 0.5)) .. ']'
+        -- Which limit will be reached first, used to colour its percentage
+        -- rather than to print a sentence. Only the spent resources compete: the
+        -- map footprint is a throttle that sits at its ceiling by design and
+        -- used to win every time. (B45)
+        local binding = limits_binding(drone.budget)
 
         local y = ROW_Y
         for _, row in ipairs(limits_report(drone.budget)) do
-            local pct = math.floor(row.at * 100 + 0.5)
-            fs = fs .. 'label[0.6,' .. y .. ';' .. limit_label(row.what) .. ']'
-            fs = fs .. 'label[4.4,' .. y .. ';' .. fmt(row.used, row.unit) ..
-                     ' / ' .. fmt(row.cap, row.unit) .. ']'
-            -- A held resource at its ceiling is working, not failing, so it says
-            -- so rather than showing a number that looks like imminent death.
-            local right = (row.held and pct >= 99) and S('throttled') or
-                              (pct .. '%')
-            fs = fs .. 'label[8.2,' .. y .. ';' .. right .. ']'
-            fs = fs .. 'label[0.8,' .. (y + 0.45) .. ';' ..
-                     limit_description(row.what) .. ']'
-            y = y + ROW_H
+            -- Hard limits only. The held one stops nothing - it makes the drone
+            -- wait - so listing it beside three ceilings that do end a run
+            -- invited exactly the reading B45 was filed for.
+            if not row.held then
+                -- Bold for the name only, so the eye lands on the four names
+                -- before it reads any number. style_type applies to the elements
+                -- that follow it, so each row switches on and back off.
+                fs = fs .. 'style_type[label;font=bold]'
+                fs = fs .. 'label[0.6,' .. y .. ';' .. limit_label(row.what) ..
+                         ']'
+                fs = fs .. 'style_type[label;font=normal]'
+                fs = fs .. 'label[4.4,' .. y .. ';' .. fmt(row.used, row.unit) ..
+                         ' / ' .. fmt(row.cap, row.unit) .. ']'
+                fs = fs .. 'label[8.2,' .. y .. ';' ..
+                         pct_label(row.at, row.what == binding) .. ']'
+                -- An area label, which the engine wraps to the box and never
+                -- gives a scrollbar - so a long translation takes a second line
+                -- instead of being cut off at the panel edge, and no extra field
+                -- arrives on submit. Left edge shared with the name above it.
+                fs = fs .. 'label[0.6,' .. (y + DESC_DY) .. ';' ..
+                         (PANEL_W - 1.2) .. ',0.7;' ..
+                         limit_description(row.what) .. ']'
+                y = y + ROW_H
+            end
         end
 
         fs = fs .. 'button[0.6,' .. BUTTON_Y .. ';2.1,0.8;pause;' ..
                  (drone.paused and S('Resume') or S('Pause')) .. ']'
-        fs = fs .. 'style[cancel;bgcolor=orange]'
-        fs = fs .. 'button[2.85,' .. BUTTON_Y .. ';2.1,0.8;cancel;' ..
-                 S('Cancel') .. ']'
-        fs = fs .. 'style[remove;bgcolor=red]'
-        fs = fs .. 'button[5.1,' .. BUTTON_Y .. ';2.1,0.8;remove;' ..
-                 S('Remove drone') .. ']'
-        fs = fs .. 'button_exit[7.35,' .. BUTTON_Y .. ';2.1,0.8;close;' ..
-                 S('Close') .. ']'
+        -- One destructive button, not two. Cancel and Remove drone were the same
+        -- call - Drone.on_remove - wearing different labels and colours, which is
+        -- a distinction a player would look for and never find.
+        fs = fs .. 'style[stop;bgcolor=red]'
+        fs = fs .. 'button[2.85,' .. BUTTON_Y .. ';2.1,0.8;stop;' .. S('Stop') ..
+                 ']'
 
         return fs
     end,
@@ -985,26 +1025,25 @@ local drone_panel = {
             close_form(name)
         end
 
-        -- Every button reads the drone fresh, and every one does nothing if the
-        -- run ended between the redraw the player clicked on and this event.
+        -- Both buttons read the drone fresh, and both do nothing if the run
+        -- ended between the redraw the player clicked on and this event.
         if fields.pause then
             local drone = get_drone(name)
             if drone and drone.cor then
                 drone.paused = not drone.paused
                 update_form(name, codeblock.formspecs.drone_panel.get_form(meta))
             end
-        elseif fields.cancel then
-            -- Through Drone.on_remove, so the run ends the one way every other
-            -- path ends it and the player gets exactly one message. (B12, B30)
-            cancel_drone(name)
-            close()
-        elseif fields.remove then
-            -- The same call: Drone.on_remove announces a run it cut short and
-            -- takes the drone silently when there was nothing running, which is
-            -- exactly the two meanings this button needs. It is the gesture the
-            -- setter's left click used to be, moved here because that click now
-            -- always opens this panel. (F8)
-            cancel_drone(name)
+        elseif fields.stop then
+            -- Through Drone.on_remove, which announces a run it cut short and
+            -- takes the drone silently when there was nothing running. Those are
+            -- the two meanings Stop needs, and it is the one place a run's
+            -- outcome is announced, so the player gets exactly one message.
+            -- (B12, B30)
+            --
+            -- This was two buttons, Cancel and Remove drone, and they called
+            -- this same function: the same action with two labels and two
+            -- colours, offering a difference that did not exist. (F8)
+            stop_drone(name)
             close()
         elseif fields.quit then
             -- button_exit sends quit too, so Close needs no branch of its own.

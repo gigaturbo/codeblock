@@ -1,11 +1,27 @@
 --- The drone HUD: what a running program is spending, on screen.
 --
--- Two lines in the top-right corner while the player's own program runs, and
--- nothing at all otherwise. The first says which file and whether it is running
--- or paused; the second says which single limit the run is closest to, and how
--- close. One limit rather than four, because the point is to teach a player
--- which resource their program actually spends - the full table is the drone
--- panel's job.
+-- A five-line block hanging from the top-right corner while the player's own
+-- program runs, and nothing at all otherwise:
+--
+--     mosely.lua : running          <- bold
+--     Budget usage:
+--     - Blocks: 72%
+--     - CPU: 0%
+--     - Memory: 4%
+--
+-- The three that can stop a program, as percentages, with the one that will be
+-- reached first in amber and anything at 80% or more in red - so a glance finds
+-- either nothing or one thing. The map footprint is absent: it throttles rather
+-- than stops, so a percentage of it says nothing about whether the run survives.
+-- (B45)
+--
+-- This replaced a two-line version that named only the binding limit. Naming one
+-- was meant to teach which resource a program spends; in a world it just meant
+-- the other two were invisible, and the answer was almost always the same. Three
+-- short lines cost four more elements and say all of it. (F4, F8)
+--
+-- The full table, with what each limit means and what it has spent against its
+-- ceiling, is the drone panel's job.
 --
 -- Why a HUD and not a formspec. core.show_formspec resets input focus and goes
 -- through lib/forms.lua, which allows one form per player, so a live formspec
@@ -27,11 +43,13 @@ local hud = codeblock.hud
 local S = codeblock.S
 local get_player_by_name = core.get_player_by_name
 local binding = codeblock.limits.binding
+local report = codeblock.limits.report
 local default_on = codeblock.config.drone_hud
 
--- How often the numbers are redrawn, in seconds. Two hud_change calls at most,
--- and only for a player whose own program is running, so the cost is bounded by
--- the number of players actually building rather than by the player count.
+-- How often the numbers are redrawn, in seconds. At most one hud_change per line
+-- that actually changed, and only for a player whose own program is running, so
+-- the cost is bounded by the number of players actually building rather than by
+-- the player count.
 local PERIOD = 0.5
 
 -- Top-right: the one corner the engine draws nothing in by default. Chat is top
@@ -46,13 +64,34 @@ local Z = 100
 
 local WHITE = 0xFFFFFF
 
--- How full the binding limit is, coloured, so the second line can be read
--- without reading it. Ordered worst first.
-local BANDS = {{0.9, 0xFF4040}, {0.7, 0xFFC040}, {0, 0x60E060}}
+-- The HUD's own line height and top inset, in pixels. Both adapt to screen DPI
+-- and the player's scaling factor, which is what `offset` promises.
+local LINE_H = 20
+local TOP = 6
 
-local function band(fraction)
-    for _, b in ipairs(BANDS) do if fraction >= b[1] then return b[2] end end
-    return WHITE
+-- Bold, from the `style` bitfield on a text element: 1 bold, 2 italic,
+-- 4 monospace. Only the first line gets it, so the block reads as a title over
+-- its numbers.
+local BOLD = 1
+
+--- What colour a percentage should be drawn in, or nil to leave it plain.
+--
+-- Red once a limit is nearly spent, amber for the one that will be reached
+-- first, nothing otherwise - so a glance finds either nothing or one thing. Red
+-- wins, because "nearly out" matters more than "first to run out".
+--
+-- Exported because the drone panel applies the same rule to the same numbers: a
+-- player looking at both must not be told two different things about one figure.
+-- Returned as an integer, which is what a HUD element takes; the panel formats it
+-- for `core.colorize`.
+local RED = 0xFF4040
+local AMBER = 0xFFC040
+local ALARM_AT = 0.8
+
+function hud.pct_colour(fraction, is_binding)
+    if fraction >= ALARM_AT then return RED end
+    if is_binding then return AMBER end
+    return nil
 end
 
 -- What each key from limits.binding and limits.report is called on screen, and
@@ -70,28 +109,51 @@ end
 -- and made the ceiling unreadable - 1800 s at codelevel 4 is nearer five hours
 -- of wall clock than thirty minutes. The fix is the words, not the arithmetic.
 local LABELS = {
-    nodes = function() return S('Blocks written') end,
+    nodes = function() return S('Blocks placed') end,
     runtime = function() return S('Server time used') end,
     map = function() return S('Map held') end,
     heap_kb = function() return S('Lua memory') end
 }
 
+-- One line each, and short on purpose: the panel gives each two wrapped lines,
+-- and a translation runs longer than the English.
+--
+-- None of them says "it stops the program", because the panel lists only the
+-- limits that do - the held one is not shown there at all. Saying it on every
+-- row would be three copies of the same sentence. (F8)
 local DESCRIPTIONS = {
-    nodes = function()
-        return S('Blocks this program has placed. It stops at the ceiling.')
-    end,
+    nodes = function() return S('How many blocks this program has placed.') end,
     runtime = function()
         return S(
-                   'Server time the drone was actually given, not time on the clock - far less. It stops at the ceiling.')
+                   'Time the server actually gave the drone, which is far less than the time you watch pass.')
     end,
     map = function()
         return S(
-                   'World the program is holding in memory. At the ceiling the drone waits instead of stopping, and it drains by itself.')
+                   'World the program holds in memory. Here the drone waits rather than stopping, and it frees itself.')
     end,
     heap_kb = function()
-        return S('Most memory the program has grown by. It stops at the ceiling.')
+        return S('The most memory the program has grown by at any point.')
     end
 }
+
+-- The same three resources named for the HUD, where there is room for one word
+-- and no room for an explanation.
+--
+-- A second naming, and the duplication is the point rather than a slip: the
+-- panel's row is a heading over a sentence, the HUD's is an item in a five-line
+-- glance. `Server time used` earns its length beside a description saying it is
+-- not clock time; on the HUD it would be most of the line, and `CPU` is what it
+-- actually is. (F8)
+local SHORT_LABELS = {
+    nodes = function() return S('Blocks') end,
+    runtime = function() return S('CPU') end,
+    heap_kb = function() return S('Memory') end
+}
+
+-- Which resources the HUD lists, in order. The same three the panel lists and
+-- the same three limits.binding compares - the held one stops nothing, so it is
+-- not a budget to show a percentage of. (B45)
+local HUD_ROWS = {'nodes', 'runtime', 'heap_kb'}
 
 --- What to call the resource `what`, or the key itself if it has no name here -
 -- a limit added to limits.report and not here shows as its key rather than as a
@@ -125,60 +187,76 @@ end
 -- per-player elements
 --------------------------------------------------------------------------------
 
--- name -> {state = id, limit = id, last_state = string, last_limit = string,
---          last_colour = number}
+-- name -> {ids = {n...}, text = {n...}, colour = {n...}}
 --
--- The last_* fields are what makes the tick cheap: a hud_change is sent only for
--- a field whose text actually differs, so a paused drone costs nothing at all.
+-- One element per line, five of them: the header, "Budget usage:", and one row
+-- per resource. Not one element holding newlines, for two reasons - colour is a
+-- property of the whole element, so per-line colouring needs per-line elements
+-- anyway, and `number` is documented for every client while inline
+-- `core.colorize` in HUD text needs protocol 44.
+--
+-- `text` and `colour` are the last values sent. They are what makes the tick
+-- cheap: a hud_change goes only for a line that actually changed, so a paused
+-- drone costs nothing at all.
 local live = {}
+
+local LINES = 2 + #HUD_ROWS
 
 local function add(player, name)
 
-    local ids = {
-        state = player:hud_add({
-            type = 'text',
-            position = ANCHOR,
-            alignment = ALIGN,
-            offset = {x = -12, y = 26},
-            text = '',
-            number = WHITE,
-            z_index = Z,
-            name = 'codeblock:drone_state'
-        }),
-        limit = player:hud_add({
-            type = 'text',
-            position = ANCHOR,
-            alignment = ALIGN,
-            offset = {x = -12, y = 48},
-            text = '',
-            number = WHITE,
-            z_index = Z,
-            name = 'codeblock:drone_limit'
-        })
-    }
+    local ids = {}
 
-    -- hud_add returns nil rather than an id if the element could not be made.
-    -- Half a HUD is worse than none, so both go or neither does.
-    if not (ids.state and ids.limit) then
-        if ids.state then player:hud_remove(ids.state) end
-        if ids.limit then player:hud_remove(ids.limit) end
-        return nil
+    for i = 1, LINES do
+        -- Anchored at the top-right corner and extending left and down, so the
+        -- block hangs from the corner: alignment {-1, 1} puts the element's
+        -- top-right at the anchor plus the offset.
+        ids[i] = player:hud_add({
+            type = 'text',
+            position = ANCHOR,
+            alignment = ALIGN,
+            offset = {x = -8, y = TOP + (i - 1) * LINE_H},
+            text = '',
+            number = WHITE,
+            -- The header only. Bold is per element, so only a whole line can
+            -- have it - the name and its state read as one title anyway.
+            style = i == 1 and BOLD or 0,
+            z_index = Z,
+            name = 'codeblock:drone_hud_' .. i
+        })
+        -- hud_add returns nil rather than an id if an element could not be made.
+        -- Part of a HUD is worse than none, so they all go or none does.
+        if not ids[i] then
+            for j = 1, i - 1 do player:hud_remove(ids[j]) end
+            return nil
+        end
     end
 
-    live[name] = ids
-    return ids
+    live[name] = {ids = ids, text = {}, colour = {}}
+    return live[name]
+end
+
+--- Send one line, if it differs from what this player was last sent.
+local function set_line(player, rec, i, text, colour)
+    colour = colour or WHITE
+    if rec.text[i] ~= text then
+        player:hud_change(rec.ids[i], 'text', text)
+        rec.text[i] = text
+    end
+    if rec.colour[i] ~= colour then
+        player:hud_change(rec.ids[i], 'number', colour)
+        rec.colour[i] = colour
+    end
 end
 
 --- Take a player's HUD away, if they have one. Safe to call for a player who
 -- has left: the elements went with them, so only the record has to go.
 function hud.clear(name)
-    local ids = live[name]
-    if not ids then return end
+    local rec = live[name]
+    if not rec then return end
     live[name] = nil
     local player = get_player_by_name(name)
     if not player then return end
-    player:hud_remove(ids.state)
-    player:hud_remove(ids.limit)
+    for _, id in ipairs(rec.ids) do player:hud_remove(id) end
 end
 
 --------------------------------------------------------------------------------
@@ -239,29 +317,32 @@ function hud.tick(dtime)
 
         if player and hud.wanted(player) then
 
-            local ids = live[name] or add(player, name)
+            local rec = live[name] or add(player, name)
 
-            if ids then
+            if rec then
 
-                local state = (drone.file or '?.lua') .. '  ' ..
-                                  (drone.paused and S('paused') or S('running'))
+                set_line(player, rec, 1, S('@1 : @2', drone.file or '?.lua',
+                                           (drone.paused and S('paused') or
+                                               S('running'))))
+                set_line(player, rec, 2, S('Budget usage:'))
 
-                local what, fraction = binding(drone.budget)
-                local limit = S('@1: @2%', hud.limit_label(what),
-                                math.floor(fraction * 100 + 0.5))
-                local colour = band(fraction)
+                -- Which of the three will be reached first, so exactly one of
+                -- them can be marked amber. It is never the map footprint: that
+                -- one is a throttle and stops nothing. (B45)
+                local worst = binding(drone.budget)
 
-                if state ~= ids.last_state then
-                    player:hud_change(ids.state, 'text', state)
-                    ids.last_state = state
-                end
-                if limit ~= ids.last_limit then
-                    player:hud_change(ids.limit, 'text', limit)
-                    ids.last_limit = limit
-                end
-                if colour ~= ids.last_colour then
-                    player:hud_change(ids.limit, 'number', colour)
-                    ids.last_colour = colour
+                -- limits.report returns every resource in its own fixed order,
+                -- so index it by key and let HUD_ROWS decide what is shown and
+                -- in what order. That is what skips the held one.
+                local at = {}
+                for _, r in ipairs(report(drone.budget)) do at[r.what] = r.at end
+
+                for i, what in ipairs(HUD_ROWS) do
+                    local f = at[what] or 0
+                    set_line(player, rec, 2 + i,
+                             S('- @1: @2%', SHORT_LABELS[what](),
+                               math.floor(f * 100 + 0.5)),
+                             hud.pct_colour(f, what == worst))
                 end
 
             end

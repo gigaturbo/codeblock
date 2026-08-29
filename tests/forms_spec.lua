@@ -252,14 +252,18 @@ do
 end
 
 do
-    -- Cancel with no drone still closes the panel rather than leaving it up:
+    -- Stop with no drone still closes the panel rather than leaving it up:
     -- Drone.on_remove finds nothing, which is exactly the case of a run that
     -- ended between the redraw the player clicked and this event arriving.
+    --
+    -- One destructive button, not two: Cancel and Remove drone were the same
+    -- Drone.on_remove call wearing different labels, so there never was a second
+    -- behaviour to assert. (F8)
     reset_backend()
     panel.show('heidi')
     forms.on_receive_fields(fake_player('heidi'), last_shown().form,
-                            {cancel = 'x'})
-    it('cancelling closes the session', forms.count(), 0)
+                            {stop = 'x'})
+    it('stopping closes the session', forms.count(), 0)
     it('and closes the client side too', #closed, 1)
 end
 
