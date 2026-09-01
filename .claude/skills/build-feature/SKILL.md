@@ -46,6 +46,11 @@ proposed again.
 
 ## 4. Write it, then the four gates, every time
 
+**`code-expert`** writes it — it reads the `code-standards` skill first, and it is
+the one that knows what the change drags with it. **`test-agent`** runs the gates
+and adds the coverage. Delegating both is the normal path; the gates are the same
+either way.
+
 ```bash
 luacheck . --formatter plain --codes
 lua scripts/gen_docs.lua --check      # doc/api.md matches lib/api.lua

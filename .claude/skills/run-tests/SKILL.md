@@ -134,7 +134,38 @@ is repaired by the next run. Worth knowing if an old config still looks wrong:
 `head -c 3 "$APPDATA/Minetest/minetest.conf" | od -An -tx1` should not be
 `ef bb bf`.
 
+## What a good spec looks like here
+
+A spec earns its place by failing when the behaviour breaks and at no other time.
+Concretely, in this suite:
+
+- **Assert the behaviour, not the implementation.** A spec pinned to a helper's
+  name breaks on a rename that changed nothing a player can see, and then gets
+  edited to match — which is how a suite stops testing anything.
+- **One reason to fail per case.** A case asserting four things reports the first
+  and hides the rest.
+- **Nothing that needs a map, a player or a user directory.** The suite runs at
+  mod load, before any of those exist. A test that appears to cover a formspec, a
+  file read or a node write is passing vacuously — the honest move is a
+  `PLAYTEST.md` entry, which `project-manager` writes.
+- **Keep a spec standalone if it can be.** Six of the nine run under bare Lua 5.1
+  in CI, and that is the only thing that catches plain 5.1 differing from the
+  engine's LuaJIT. A new spec that pulls in `core` loses that for no gain unless
+  it genuinely needs the engine.
+- **An `xfail` is a recorded defect, not a parked test.** It gets a finding id in
+  `AUDIT.md`, and a comment naming it. An `xfail` with no id is a defect nobody
+  is tracking.
+- **Test the boundary case that the finding was about.** Most findings here are
+  off-by-one at a limit, an absent field, or a value that means two things — not
+  a wrong formula.
+
 ## Related
+
+The three gates below plus this suite are the four every change passes. A fifth
+is coming: `settingtypes.txt` is the third hand-kept mirror and the only one
+without a generator and a `--check` (decided 2026-08-28, not yet built). Until it
+exists, a change to a limit in `lib/config.lua` is verified against that file by
+reading both.
 
 `scripts/gen_docs.lua --check` verifies the API reference is current,
 `scripts/gen_locale.lua --check` verifies `locale/template.txt` lists exactly the
