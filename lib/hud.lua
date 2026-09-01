@@ -125,11 +125,11 @@ local DESCRIPTIONS = {
     nodes = function() return S('How many blocks this program has placed.') end,
     runtime = function()
         return S(
-                   'Time the server actually gave the drone, which is far less than the time you watch pass.')
+            'Server CPU time used by your drone.')
     end,
     map = function()
         return S(
-                   'World the program holds in memory. Here the drone waits rather than stopping, and it frees itself.')
+            'World the program holds in memory. Here the drone waits rather than stopping, and it frees itself.')
     end,
     heap_kb = function()
         return S('The most memory the program has grown by at any point.')
@@ -172,8 +172,8 @@ end
 
 --- `n` with a K/M/G suffix once it stops being readable, else as an integer.
 --
--- max_nodes_written is 1e8 at codelevel 4, so the panel was printing a
--- nine-digit integer against another nine-digit integer and nobody read either.
+-- max_nodes_written is 1e7 at codelevel 4, so the panel was printing an
+-- eight-digit integer against another eight-digit integer and nobody read either.
 -- Thresholded rather than always applied: 850 is clearer than 0.9K. (F8)
 function hud.short_number(n)
     local abs = n < 0 and -n or n
@@ -322,9 +322,9 @@ function hud.tick(dtime)
             if rec then
 
                 set_line(player, rec, 1, S('@1 : @2', drone.file or '?.lua',
-                                           (drone.paused and S('paused') or
-                                               S('running'))))
-                set_line(player, rec, 2, S('Budget usage:'))
+                    (drone.paused and S('paused') or
+                        S('running'))))
+                set_line(player, rec, 2, S('Budget usage'))
 
                 -- Which of the three will be reached first, so exactly one of
                 -- them can be marked amber. It is never the map footprint: that
@@ -340,9 +340,9 @@ function hud.tick(dtime)
                 for i, what in ipairs(HUD_ROWS) do
                     local f = at[what] or 0
                     set_line(player, rec, 2 + i,
-                             S('- @1: @2%', SHORT_LABELS[what](),
-                               math.floor(f * 100 + 0.5)),
-                             hud.pct_colour(f, what == worst))
+                        S('@1: @2%', SHORT_LABELS[what](),
+                            math.floor(f * 100 + 0.5)),
+                        hud.pct_colour(f, what == worst))
                 end
 
             end

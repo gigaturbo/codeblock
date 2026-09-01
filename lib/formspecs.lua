@@ -164,7 +164,11 @@ local file_editor = {
     get_form = function(meta)
 
         local ud = get_user_data(meta.name)
-        local fs = "size[20,10.5]"
+        -- 10 rather than 10.5: the half unit was the row the three preference
+        -- checkboxes sat on at y=10, and with them on the Settings panel it was
+        -- background below every element. Nothing is positioned by this - a
+        -- legacy form does not clip to it - so it only trims the empty band.
+        local fs = "size[20,10]"
 
         -- styles
         fs = fs .. 'style[remove;bgcolor=red]'
@@ -375,15 +379,17 @@ local file_editor = {
             -- first two ended up when there was nowhere else and where the third
             -- followed them. Hidden while the block list is open, because that
             -- textlist is drawn over this space. (F8, playtest H3)
+            -- No heading: this whole panel is the settings panel, so a
+            -- "Preferences" label above three checkboxes on it named the panel
+            -- twice. The rows moved up into the space it held.
             if not meta.picking then
-                fs = fs .. 'label[14.5,2.5;' .. S('Preferences') .. ']'
-                fs = fs .. 'checkbox[14.5,3.1;loe;' ..
+                fs = fs .. 'checkbox[14.5,2.5;loe;' ..
                          S('Load program on exit') .. ';' ..
                          (meta.loe and 'true' or 'false') .. ']'
-                fs = fs .. 'checkbox[14.5,3.7;sos;' ..
+                fs = fs .. 'checkbox[14.5,3.1;sos;' ..
                          S('Save on tab switch') .. ';' ..
                          (meta.sos and 'true' or 'false') .. ']'
-                fs = fs .. 'checkbox[14.5,4.3;dhud;' ..
+                fs = fs .. 'checkbox[14.5,3.7;dhud;' ..
                          S('Show the drone HUD') .. ';' ..
                          (meta.dhud and 'true' or 'false') .. ']'
             end
@@ -885,6 +891,12 @@ local DESC_DY = 0.3
 local HARD_ROWS = 3
 local BUTTON_Y = ROW_Y + HARD_ROWS * ROW_H + 0.35
 
+-- The drone's state in the panel header. Deliberately not the amber and red of
+-- pct_colour below: those two say how close a limit is to stopping the run, and
+-- reusing either for "paused" would make one colour mean two things on one form.
+local RUNNING_COLOUR = '#5FD35F'
+local PAUSED_COLOUR = '#FFE84D'
+
 -- The percentage, coloured by how much trouble the row is in.
 --
 -- The rule and the two colours live in lib/hud.lua, which applies them to the
@@ -943,9 +955,26 @@ local drone_panel = {
             return fs
         end
 
+        -- The header: file name in bold, state in green or yellow.
+        --
+        -- Concatenated rather than built from the S('@1 : @2') key the HUD uses,
+        -- because only half of it is coloured and core.colorize has to wrap the
+        -- state alone. lua_api.md allows exactly this - "string concatenation
+        -- will still work as expected (note that you should only use this for
+        -- things like formspecs) ... and operations such as core.colorize which
+        -- are also concatenation" - and what is concatenated here is a filename,
+        -- a separator and a status word, not a sentence broken into parts.
+        --
+        -- style_type makes the whole label bold, the font being per element: the
+        -- state is bold as well as coloured, which is what the corner display
+        -- does with the same line.
+        fs = fs .. 'style_type[label;font=bold]'
         fs = fs .. 'label[0.6,0.8;' ..
-                 S('@1 : @2', formspec_escape(drone.file or '?.lua'),
-                   (drone.paused and S('paused') or S('running'))) .. ']'
+                 formspec_escape(drone.file or '?.lua') .. ' : ' ..
+                 core.colorize(drone.paused and PAUSED_COLOUR or RUNNING_COLOUR,
+                               drone.paused and S('paused') or S('running')) ..
+                 ']'
+        fs = fs .. 'style_type[label;font=normal]'
 
         -- Which limit will be reached first, used to colour its percentage
         -- rather than to print a sentence. Only the spent resources compete: the

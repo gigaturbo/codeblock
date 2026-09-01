@@ -2,508 +2,285 @@
 
 The manual checks the automated suite cannot reach. The nine specs run **at mod
 load**, before a map, a player or a user directory exists, so the editor, drone
-placement, the filesystem and every write into the world have no spec coverage at
-all and cannot have. Six findings closed in Phase 7 rest on reading the code
-only. This file is where that gap is written down, so it can be reviewed rather
-than rediscovered from prose scattered across `ROADMAP.md` and `AUDIT.md`.
+placement, the filesystem and every write into the world have no spec coverage
+and cannot have.
 
-`PLAYTEST.md` has its own `export-ignore` line in `.gitattributes`, so this file
-never ships to a player.
+This file has its own `export-ignore` line, so it never ships to a player.
 
 ## How to record a result
-
-Each check carries a **Result** line. Leave it as `unchecked` until someone
-actually does it in a running world, then replace it with:
 
 ```
 Result: pass — <commit> · engine <version> · <YYYY-MM-DD> — <one line of detail>
 ```
 
 `fail` and `partial` take the same shape. **Always keep the commit and the
-date**: a pass recorded three phases ago is not evidence about today's code, and
-the point of the line is that a stale pass reads as stale rather than as current.
-A `fail` is not a finding — report it and let `AUDIT.md` allocate or widen an id.
+date**: a pass recorded three phases ago is not evidence about today's code. A
+`fail` is not a finding — report it and let `AUDIT.md` allocate or widen an id.
+Reasoning lives in `AUDIT.md` under the bracketed id, or `ROADMAP.md` for an `F`.
 
-Reference the finding or feature id in brackets after the title; the reasoning is
-in `AUDIT.md` under that id, or in `ROADMAP.md` for an `F` id.
+## Where it stands
+
+**50 checks.** Everything carries a result except the two new on 2026-08-30.
+
+- **Group `H` (HUD and panel): seven of nine due a second run.** `F8` rewrote the
+  behaviour they describe, and `H2` and `H4` have never been performed in their
+  current form at all. This is the last unproven work before v1.0.0.
+- **`R4` and `F-5`: never run**, both new with the 2026-08-30 limit retuning.
+- **`E2` is permanently partial** while `B34` is won't-fix.
+- **`D2` case 2 is partial**, aimed at twice and missed twice — the recipe is the
+  suspect, not the code. It is the only route to `B10`'s refusal and the only
+  thing on the audit's *not verified anywhere* list.
+- **`F-3` case 2's log half is unlooked-at** — one grep of `debug.txt`.
+- **`W3` needs codelevel 4 now**, not 3: its shape exceeds level 3's new ceiling.
 
 ---
 
 ## Editor
 
-**Run of 2026-08-27.** E1–E7 were all run in one session, against the tree at
-`3293a2c` **plus uncommitted F1 changes** — the editor was not stock `3293a2c`;
-`lib/formspecs.lua` already carried the Settings panel. Engine Luanti 5.17.0, in
-the author's own test game `codeblock_test` (flat terrain, a simplified codecube,
-the mod linked in by junction). Five passes, one partial (E2), one fail (E5).
-What they turned up: **B34** newly filed, **B33 widened to three losing paths**.
-
-**Second run, 2026-08-27, after the fixes.** Against the code that became
-`500dd85` — run before the commit, identical content — engine Luanti 5.17.0. The player confirmed the two
-symptoms they had reported are gone: the tab selection coming back wrong after
-**Load and close** (E5, now a pass) and the typed text disappearing on a help
-panel button (E11, new). **E8, E9, E10 and E12 are new and unrun** — the
-disconnect and shutdown halves of B33 and the checkbox defaults are the paths
-still carrying no evidence.
-
-**Third run, 2026-08-27, at `dee0bc7`**, engine Luanti 5.17.0 — five checks: **E8**
-pass, **E9** pass, **E10** fail, **E12** fail, **E13** now a full pass. (`90cfb70`,
-F3's `sleep`, landed after this run and touches nothing the editor does.) **E9 is
-the pass that mattered**: it was the one path in B33's fix resting on an assumption
-about the engine rather than on read code — that player meta written from
-`register_on_shutdown` is still saved — and it is now observed. All three of B33's
-losing paths are confirmed fixed in a running world.
-
-The two fails produced **B36** (the new-player initialiser wrote a `0` into the
-preference keys, so the ticked default was unreachable) and, from diagnosing the
-second of them, **B37** (three scroll branches shadowing four others, including
-the one that saves the tabs on ESC). Both are fixed at `1f7cd97`; **E12 is
-recorded as not reproduced rather than as fixed**, and both checks say what a
-re-run needs. **E14** and **E15** are new with `1f7cd97` and cover the two paths
-B37 had made dead — closing with ESC, and Enter in *New file*.
-
-**Fourth run, 2026-08-27, at `f274245`**, engine Luanti 5.17.0 — **E14** pass,
-**E15** pass, **E10** pass with a fresh player name, **E12** fail again. B36 and
-B37 are both confirmed fixed in a running world, which closes the editor section
-except for E12. **E12 has now failed three times and been traced twice without
-finding a write**, so the check has been rewritten to ask for the file's size or
-timestamp read from outside the game — the one observation none of the three runs
-made. No id is allocated for it until there is that evidence.
-
-The same run took the **Drone** and **Filesystem** sections for the first time and
-found two real defects there, **B38** and **B39**; both are fixed at the commit
-this paragraph was added in.
-
-**Fifth run, 2026-08-27, at `246bb37`**, engine Luanti 5.17.0 — **E12** at last,
-and it is a **pass**. The player ran it as written and reported the sequence
-whole: edit A, switch to B, switch back to A — the edit is still in the text area
-— then ESC, reopen, and *the edit is gone*. That last half is the observation the
-three earlier runs never made, and it settles claim 1 by itself: had the tab
-switch written, reopening would show the edit. Nothing was written. No finding is
-allocated, and the editor section is now complete.
-
-What the three fails were is claim 2 read as a save — the edit surviving a switch
-**in memory**. The player's own reading: *"not really a bug but something not
-expected in the user experience"*. Agreed and decided (2026-08-27): the retention
-stays, because discarding a player's typing on a tab switch is the loss B35 was
-filed for, and what is actually missing is any sign that a tab is unsaved. That
-is `F7`.
+E1–E16. Runs of 2026-08-27 and 2026-08-28, engine 5.17.0, in the author's test
+game. They produced `B33` (widened to three losing paths), `B34`, `B35`, `B36`
+and `B37`.
 
 ### E1 · Open, save and close a program [A9, B13, B17]
 
-Open the editor, open a file, type, save, close with the Save button, reopen.
+Open a file, type, save, close with **Save**, reopen.
 
 **Pass:** the edit is on disk and comes back; no `set_string` error in the log
 (B13 passed nil, B17 passed a number).
 
-Result: pass — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27 — the edit
-round-tripped, no `set_string` error in the log.
+Result: pass — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27.
 
 ### E2 · Create and remove a file [B14, A9]
 
-Create a new file from the chooser, then remove it. **Then try to remove a file
-that was never opened in this session** — and note that on current code you
-cannot: the four file buttons (Save, Load and close, Remove file, Close file) are
-drawn only inside `if meta.active ~= 0 then`, so a file must be opened before it
-can be removed. That is **B34**.
+Create a new file from the chooser, then remove it. Then try to remove a file
+never opened this session — and note that you cannot: the four file buttons are
+drawn only inside `if meta.active ~= 0 then`. That is `B34`.
 
 **Pass, first half:** create and remove of an open file both succeed.
 
-**Second half — unreachable, and now permanently.** The author has decided B34
-will not be fixed ("won't fix now, not really needed"), so the *Remove file*
-button stays behind an open file and this half of the check can never be
-performed from the editor. It was the point of this check:
-B14 was `write_file` and `remove_file` indexing the per-player cache without
-populating it, so the path that matters is the one where the cache is *cold*.
-Opening the file first populates the cache, so every removal the editor can
-perform is a warm-cache removal. **B14 therefore stays committed-but-unproven in
-a running world** — this check cannot settle it. What would: fixing B34 and
-re-running — which is now ruled out — or removing a file immediately after a
-rejoin, the reconnect that empties the cache being B14's actual trigger. That
-rejoin route is the only one left, and it is the one to use.
+**Second half — unreachable, permanently.** `B34` is won't-fix, so every removal
+the editor can perform is a *warm*-cache one, and `B14`'s cold path is what
+mattered. **`B14` therefore stays committed-but-unproven.** The one route left is
+removing a file immediately after a rejoin, the reconnect being `B14`'s trigger.
 
 Result: partial — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27 —
-create and remove of an open file pass; removing a never-opened file is
-impossible from the UI (B34 filed), so B14's cold-cache path was not exercised.
+create and remove of an open file pass; the cold-cache path was not exercised.
 
 ### E3 · Tabs [B33]
 
-Open three files, switch between them, close the middle one, close the last one.
+Open three files, switch between them, close the middle one, then the last.
 
 **Pass:** each tab shows its own content, the active tab is sensible after a
-close, and closing the last file leaves an empty editor rather than an error.
+close, and closing the last leaves an empty editor rather than an error.
 
-Result: pass — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27 — content
-per tab, sane active tab after a close, empty editor after the last close.
+Result: pass — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27.
 
-### E4 · Tab state survives ESC [B33 — this is the check that settled it]
+### E4 · Tab state survives ESC [B33]
 
-Open two files, leave both open, close the editor with **ESC** (not the Save
-button, not a disconnect). Reopen the editor.
+Open two files, close with **ESC**, reopen.
 
 **Pass:** both files are open again and the active tab is restored.
+`save_editor_state()` is called from exactly one branch, `fields.quit == 'true'`;
+whether ESC reaches it could not be established by reading. **It does.** Settled
+— only re-run if that branch changes.
 
-`save_editor_state()` is called from exactly one branch, `fields.quit == 'true'`.
-Whether ESC reaches that branch could not be established by reading. **It does.**
-This check is settled and only wants re-running if that branch changes.
-
-Result: pass — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27 — ESC
-reaches the `fields.quit == 'true'` branch; both tabs and the active tab were
-restored. This is the evidence that B33 does not affect the ESC path.
+Result: pass — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27.
 
 ### E5 · Tab state after **Load and close** [B33]
 
-Open two files, leave both open, and leave the editor with the **Load and close**
-button. Reopen the editor.
+Open two files and leave with the **Load and close** button. Reopen.
 
-**Pass:** both files are open again and the active tab is the one you were on.
-The `fields.load` branch now calls `save_editor_state()` before `exit()`, which
-it did not: `exit()` goes through `core.close_formspec`, and a server-side close
-sends no field table back, so the `fields.quit` branch never ran for this path.
-The file's *contents* were always saved here; only the tab layout was lost.
+**Pass:** both files are open and the active tab is the one you were on. `exit()`
+goes through `core.close_formspec`, and a server-side close sends no field table
+back, so the `fields.quit` branch never ran for this path. The file's *contents*
+were always saved; only the tab layout was lost.
 
-**Scope narrowed after the fix.** This check originally carried all three exits
-that skipped `save_editor_state()`; the disconnect and shutdown halves are now
-**E8** and **E9**, because they are fixed in a different file and one of them
-cannot be re-run without restarting a server.
+Result: pass — `500dd85` content, run pre-commit · engine 5.17.0 · 2026-08-27.
 
-Result: pass — `500dd85` content, run pre-commit · engine 5.17.0 ·
-2026-08-27 — the player's reported symptom is gone: tab A is still the active tab
-after **Load and close** and a reopen.
-
-Earlier: fail — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27 — all
-three exits lost the tabs. Path 3 was the one nobody had listed, and it is what
-widened B33 from one losing path to three rather than a new id being allocated.
-Kept because it is the evidence the fix answers.
+Earlier: fail — `3293a2c` + uncommitted F1 · 2026-08-27 — all three exits lost
+the tabs. That is what widened `B33` from one losing path to three.
 
 ### E6 · The two checkboxes [B5]
 
-Toggle **Load program on exit** (`loe`) and **Save on tab switch** (`sos`), close
-the editor, reopen, and check each does what it says.
+Toggle **Load program on exit** and **Save on tab switch**, close, reopen.
 
-**Pass:** both persist and both take effect. With `sos` **off**, editing a file
-and switching tab must discard the edit — that is the half B5 was destroying
-work through, because `0` is truthy in Lua and the box was stuck on.
+**Pass:** both persist and both take effect. With *Save on tab switch* **off**,
+editing and switching tab must discard the edit — the half `B5` destroyed work
+through, `0` being truthy in Lua.
 
-Note: a third box, `Save on exit` (`soe`), is commented out in the formspec while
-its meta key is still written on close. **It is deliberately dead — do not
-restore it.** The author decided against resurrecting it after this run: what is
-wanted instead is a warning when the editor is closed with unsaved changes. That
-intention is in `TODO.md`; it is not a finding and not part of F1.
+The third box, *Save on exit*, is commented out and **deliberately dead — do not
+restore it.** What is wanted instead is a warning on unsaved changes (`TODO.md`).
 
-Result: pass — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27 — both
-boxes persist and both take effect, including `sos` off discarding the edit on a
-tab switch.
+Result: pass — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27.
 
-### E7 · The four help panels [A2, B22]
+### E7 · The help panels [A2, B22]
 
-Open Blocks (`cubes`), Plants (`plants`), Wools (`wools`) and API (`commands`) in
-turn. Scroll each of the first three to the bottom.
+Open Blocks, Plants, Wools, API and Settings in turn; scroll the first three to
+the bottom.
 
-**Pass:** every panel draws, every item shows a texture, each of the three block
-panels keeps its own scroll position independently, and the API panel's hypertext
-renders — it is generated from `lib/api.lua` by `api.to_hypertext`, the same
-source as `doc/api.md`.
+**Pass:** every panel draws, every item shows a texture, the three block panels
+keep independent scroll positions, and the API hypertext renders — generated from
+`lib/api.lua`, the same source as `doc/api.md`.
 
-Result: pass — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27 — all four
-panels drew, textures present, the three scroll positions independent, the
-hypertext rendered. Five panels since F1; the fifth has its own check below.
+Result: pass — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27 — four
+panels; the fifth (Settings) has its own check below.
 
 ### E8 · Tab state survives a disconnect [B33]
 
-Open two files, leave both open, and **disconnect** — quit to menu, or pull the
-connection. Rejoin and open the editor.
+Open two files and **disconnect**. Rejoin and open the editor.
 
-**Pass:** both files are open again and the active tab is restored.
-`register_on_leaveplayer` in `lib/forms.lua` now sends the handler the engine's
-own `{quit = 'true'}` before forgetting the session, so the editor writes what it
-holds. Load order is load-bearing here: `forms.lua`'s leave callback must run
-before `register.lua`'s, which drops the player's file list the editor's quit path
-reads.
+**Pass:** both files are open and the active tab is restored.
 
-Result: pass — `dee0bc7` · engine 5.17.0 · 2026-08-27 — both files came back and
-the active tab was restored. Note what this path does *not* exercise: the engine
-callback hands the handler a `{quit = 'true'}` the mod builds itself, with no
-scrollbar field in it, so it was never exposed to B37 — which is why it passed at
-`dee0bc7` while closing the same editor with ESC did not (E14).
+Result: pass — `dee0bc7` · engine 5.17.0 · 2026-08-27. **What this does not
+exercise:** the engine callback hands the handler a `{quit = 'true'}` the mod
+builds itself, with no scrollbar field, so it was never exposed to `B37` — which
+is why it passed while ESC did not (`E14`).
 
-### E9 · Tab state survives a server shutdown [B33 — now observed]
+### E9 · Tab state survives a server shutdown [B33]
 
-Open two files with the editor open, shut the server down cleanly, restart, and
-open the editor.
+Open two files, shut the server down cleanly, restart, open the editor.
 
-**Pass:** both files are open again and the active tab is restored. `register_on_shutdown`
-reaches every open session through the same `close_session`. That **player meta
+**Pass:** both files are open and the active tab is restored. That **player meta
 written from `on_shutdown` is still saved** was an assumption about the engine's
-shutdown order rather than read code; this check is what settled it. If it ever
-fails, the finding is the write being dropped, not the callback not firing — check
-the log for the handler running at all before concluding.
+shutdown order; this check settled it. If it ever fails, check the log for the
+handler running at all before concluding the callback never fired.
 
-Result: pass — `dee0bc7` · engine 5.17.0 · 2026-08-27 — **the significant pass.**
-The meta write from `register_on_shutdown` survives, observed rather than inferred,
-so all three of B33's losing paths are now confirmed fixed in a running world. Same
-caveat as E8: the shutdown path builds its own field table and so was not exposed
-to B37.
+Result: pass — `dee0bc7` · engine 5.17.0 · 2026-08-27 — **the significant pass**,
+observed rather than inferred. Same `B37` caveat as `E8`.
 
 ### E10 · The checkboxes for a player who has never set them [B36]
 
-Join as a player who has **never existed in this world before** — a genuinely new
-name, or a fresh world — and open the editor. Then untick one, close the editor,
-and reopen it.
+Join as a player who has **never existed in this world** — a genuinely new name
+or a fresh world. Untick one, close, reopen.
 
-**Pass:** both boxes start **ticked**; the one you unticked is still unticked when
-you come back. Both keys are read with `get_string`, where an absent key is `""`
-and a stored `0` reads back as `'0'` — `get_int` returned 0 for both cases and
-could not tell them apart. `soe` uses the same string read but keeps its `false`
-default and its checkbox stays commented out (E6).
+**Pass:** both boxes start **ticked**; the untick survives.
 
 **The fresh name is not optional.** Any player who joined before `1f7cd97` still
-carries the `0` that `register_on_newplayer` used to write, and reads back as a
-deliberate untick — correctly. Re-running this as an existing player will look
-like a failure and is not one. If the boxes start unticked for a name that has
-never joined, that is B36 again.
+carries the `0` `register_on_newplayer` used to write, correctly honoured as a
+deliberate untick. Re-running as an existing player will look like a failure and
+is not one.
 
-Result: fail — `dee0bc7` · engine 5.17.0 · 2026-08-27 — "both boxes are unchecked
-with new player join, their state persists upon disconnect/reconnect". The first
-half is **B36**: `register_on_newplayer` wrote `set_int(..., 0)` into all three
-preference keys the moment a player was created, so the `get_string` read that
-exists to tell "never chosen" from "unticked" (B5) saw a stored `0` for every
-player who had ever existed, and the ticked default was unreachable. The second
-half is the *other* half of this check passing — a stored `0` being honoured
-across a relog. Fixed at `1f7cd97`: the three keys are no longer written at birth
-and the reader owns the default. **Re-run against `1f7cd97` with a fresh player
-name.**
+Result: pass — `f274245` · engine 5.17.0 · 2026-08-27 — re-run with a fresh name;
+both halves. `B36` confirmed fixed.
 
-Result: pass — `f274245` · engine 5.17.0 · 2026-08-27 — re-run with a fresh
-player name. Both boxes start ticked and an untick survives the relog, which is
-both halves of the check. B36 confirmed fixed in world.
+Earlier: fail — `dee0bc7` · 2026-08-27 — both boxes unchecked for a new player.
+That is `B36`.
 
 ### E11 · Typing survives every button that is not Save [B35]
 
-Open a file, type something, and press each of **Blocks**, **Plants**, **Wools**,
-**API** and **Settings** in turn without saving.
+Type into a file, then press each of **Blocks**, **Plants**, **Wools**, **API**
+and **Settings** without saving.
 
-**Pass:** the text is still in the text area after every one. Every redraw
-re-renders the text area from `meta.contents[meta.active]`, and only three of
-eleven branches used to capture `fields.content` first — so a help panel, a
-checkbox, the F1 block picker or `+` discarded everything typed since the last
-save. The capture is now one guarded read before the branch chain.
+**Pass:** the text is still there after every one.
 
-Result: pass — `500dd85` content, run pre-commit · engine 5.17.0 ·
-2026-08-27 — the player's reported symptom is gone: the text survived the panel
-buttons.
+Result: pass — `500dd85` content, run pre-commit · engine 5.17.0 · 2026-08-27.
 
 ### E12 · **Save on tab switch** off really does not write to disk [B35]
 
-Untick **Save on tab switch**. Edit tab A without saving, switch to tab B, switch
-back to A — and then leave the editor **with ESC only**. Reopen it and reopen A.
+Untick it. Edit tab A without saving, switch to B, switch back, leave with **ESC
+only**. Reopen and reopen A.
 
-**Pass**, two claims, and they are not equally strong:
+**Two claims, not equally strong:**
 
-1. **The strong one, and what this check is for:** the edit is **absent** from
-   disk. Nothing on the tab-switch path may write. `write_file` is the only route
-   to disk and `lib/formspecs.lua` calls it from exactly three places —
-   `save_active`, `create_file`, `copy_active` — and the tab-switch branch's call
-   is gated on `meta.sos`.
-2. **The weak one, and the one that reads as a failure:** the edit to A is still
-   in the text area when you switch back, whether or not it reached disk. The
-   option gates only `save_active()`; it used to gate the in-memory capture as
-   well, so switching tabs with it off lost the edit outright. **That retention
-   is intended and stays** — an unsaved tab holds its edit, as any tabbed editor
-   does. Three runs of this check called it a save, so read it as what it is: a
-   dirty buffer with no sign that it is dirty, which is `F7`'s job.
+1. **The strong one:** the edit is **absent** from disk. Nothing on the tab-switch
+   path may write.
+2. **The weak one, which reads as a failure:** the edit is still in the text area
+   when you switch back. **That retention is intended and stays** — an unsaved tab
+   holds its edit. Three runs called it a save; it is a dirty buffer with no sign
+   that it is dirty, which is `F7`'s job.
 
-**Leave by ESC and nothing else.** *Load and close* and *Save* both call
-`save_active()` unconditionally and by design, so the file reaches disk however
-the box is set — leaving by either and then finding the edit on disk is correct
-behaviour, not a failure of this check. And **before `1f7cd97` this check could
-not be run correctly at all**: ESC never reached its own branch (B37), so the tab
-list was not written either.
+**Leave by ESC and nothing else.** *Load and close* and *Save* both write
+unconditionally by design.
 
-**Look at the file itself, not at the editor.** This is the third run of this
-check and reopening the editor has not settled it, so read the file from outside
-the game:
+**Look at the file itself, not at the editor** — read
+`<worldpath>/codeblock_files/<playername>/<file>.lua` from outside the game and
+note its size or mtime. That is the only observation that separates the two
+claims, and it is what the first two runs were missing.
 
-```
-<worldpath>/codeblock_files/<playername>/<file>.lua
-```
-
-Note its size or modification time before the edit and again after leaving. That
-is the only observation that distinguishes the two claims above, and it is what
-the previous two runs were missing. Type something unmistakable — `-- E12` on the
-first line — so the answer does not depend on remembering what was there.
-
-Result: fail — `dee0bc7` · engine 5.17.0 · 2026-08-27 — "code is **saved** when
-box is cheched OR unchecked". **Not reproduced by reading, and not claimed fixed.**
-The three `write_file` call sites and the `meta.sos` gate were re-read at
-`1f7cd97`; with the box unticked a tab switch cannot write. Two explanations fit
-what was seen, and a re-run should choose between them: either the edit was seen
-surviving *in memory* — which the check's old wording ("whether or not it reached
-disk") invited being called a save — or the editor was left by *Load and close* or
-*Save*, both of which write by design. B37, fixed in the same commit, does not
-explain it either: its effect on this path was that ESC failed to save the **tab
-list**, not that anything extra was written. The check is reworded above to
-separate the two claims. **Re-run against `1f7cd97`, leaving by ESC.**
-
-Result: fail — `f274245` · engine 5.17.0 · 2026-08-27 — "fails, saved on both
-cases". **Still not reproduced by reading, and no finding id is allocated for
-it.** The whole write path was traced again at `f274245`, one layer wider than
-last time: `core.safe_file_write` is called from exactly one place in the mod
-(`lib/filesystem.lua`), `write_file` is called from four (`save_active`,
-`create_file`, `copy_active`, `generate_examples`), and none of them is on the
-ESC path — the `quit` branch calls `load_active` and `save_editor_state` and
-neither writes a file. `Drone.set_file` does not write. Reopening the editor does
-read the disk: `show` calls `read_file(..., true)`, which rebuilds the listing
-and so drops every cached content. `forms.on_receive_fields` drops the session on
-`quit`, so a reopened editor cannot be holding the old `meta.contents` either.
-
-So either the write is happening somewhere none of that covers, or what is being
-observed is not a write. The check above now asks for the one observation that
-tells those apart — the file's size or timestamp, read outside the game. Reading
-has now failed twice to settle this; the next step is evidence, not a third
-reading.
-
-Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — edit A, switch to B,
-switch back to A (the edit is there), ESC, reopen: **the edit is gone**. Reopening
-is the read this check wanted and it is decisive — a tab switch that had written
-would show the edit back. The three earlier fails were claim 2, the in-memory
-retention, reported as a save. Retention kept by decision; `F7` makes it visible.
+Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — after ESC and a reopen,
+**the edit is gone**. The three earlier fails (`dee0bc7`, `f274245`) were claim 2
+reported as a save. **No finding id was ever allocated, correctly.**
 
 ### E13 · **Create a copy** [F2]
 
-Open a file in the editor, type something without saving, and click **Create a
-copy** (bottom-left, below the file list — it appears only with a file open).
-Then copy the copy, several times. Then reopen the original.
+With an unsaved edit, click **Create a copy**. Then copy the copy, several times.
+Then reopen the original.
 
-**Pass**, six parts:
+**Pass**, six parts: the copy is `<name>_1.lua` containing **what was on screen**;
+it opens as the active tab; copying increments without nesting suffixes or losing
+a character; the **original is unchanged on disk**; past ten copies the list reads
+`_9`, `_10`, `_11`, not alphabetically; and the button's **right edge sits flush**
+with the file list and `+` — a legacy `button` is 0.2 units narrower than its `W`
+says, hence `3.2` and `0.95` against a 3-wide list.
 
-1. The copy is named `<name>_1.lua`, and its contents are **what was on screen**,
-   including the unsaved edit.
-2. It opens as the **active tab**.
-3. Copying the copy gives `<name>_2.lua`, `<name>_3.lua` — it increments; it does
-   not nest suffixes and does not lose a character each round.
-4. The **original is unchanged on disk**: nothing is saved to it, so reopening it
-   shows the last version you saved, not what was on screen when you copied.
-5. Past ten copies the list is ordered `_2` … `_9`, `_10`, `_11` — not
-   alphabetically.
-6. The button's **right edge sits flush** with the file list above it and with
-   `+` below it. This is the part with a history: a legacy-coordinate `button` is
-   0.2 units narrower than its `W` says, so the widths are `3.2` and `0.95`
-   against a 3-wide list. See `F1`'s legacy-coordinate notes in `ROADMAP.md`.
-
-Not spec-reachable at all: `forms_spec` stubs `core.show_formspec` and stops at
-the session layer, never reaching `formspecs.lua`'s `on_close`.
-
-Result: pass — `dee0bc7` · engine 5.17.0 · 2026-08-27 — all six parts, the flush
-right edge included; that was the outstanding one, corrected after the geometry
-was wrong twice and now looked at in-world. Supersedes the earlier *partial*,
-which had parts 3 and 5 from F2's build only.
+Result: pass — `dee0bc7` · engine 5.17.0 · 2026-08-27 — all six, the flush edge
+included after the geometry was wrong twice.
 
 ### E14 · Closing the editor with **ESC** saves the open tabs [B37, B33]
 
-Open two files, switch to one of them, leave the help panel on **Blocks** — the
-panel the editor opens on — and close with **ESC** or the window **X**. Reopen the
-editor.
+Open two files, leave the help panel on **Blocks**, close with **ESC** or the
+window **X**. Reopen.
 
-**Pass:** both files are open again and the active tab is the one you were on. The
-`quit` branch is the only place `save_editor_state()` runs on this path, and it is
-also where *Load program on exit* is honoured, so with that box ticked the drone
-should have been handed the active file as well.
+**Pass:** both files are open and the active tab is the one you were on.
 
-**This is the path that had no check, which is how B37 hid.** A scrollbar reports
-its position on *every* submit, so the three help-panel scroll branches — sitting
+**This is the path that had no check, which is how `B37` hid.** A scrollbar
+reports its position on *every* submit, so the three help-panel scroll branches —
 above `quit` in one `elseif` chain — swallowed the quit event whenever Blocks,
-Plants or Wools was showing. E8 and E9 passed at the same commit because leave and
-shutdown build their own field table with no scrollbar in it: the two paths with
-checks were the two that worked. Run this with each of the five panels open, not
-just Blocks; **Settings** and **API** draw no scrollbar and were never affected.
+Plants or Wools was showing. Run this with each of the five panels open;
+**Settings** and **API** draw no scrollbar and were never affected.
 
-Result: pass — `f274245` · engine 5.17.0 · 2026-08-27 — B37 confirmed fixed in
-world on the exit that had no check.
+Result: pass — `f274245` · engine 5.17.0 · 2026-08-27.
 
 ### E15 · **Enter** in the New file field creates the file [B37]
 
-With the help panel on **Blocks**, type a name into the **New file** field and
-press **Enter** rather than clicking `+`.
+With the panel on **Blocks**, type a name into **New file** and press **Enter**
+rather than clicking `+`.
 
 **Pass:** the file is created and opens as the active tab, exactly as `+` does.
 The branch is keyed on `fields.key_enter_field == 'newfile'`, which the engine
-sets to the field's name on `EGET_EDITBOX_ENTER`; `field_close_on_enter[newfile;false]`
-is what keeps the form open so the handler sees it. Before `1f7cd97` this branch
-was both shadowed by the panel scrollbars and keyed on the field merely being
-non-empty, so it fired on unclaimed events instead of on Enter. `+` worked
-throughout — its branch sits above the scrollbars.
+sets on `EGET_EDITBOX_ENTER`; `field_close_on_enter[newfile;false]` keeps the
+form open so the handler sees it.
 
 Result: pass — `f274245` · engine 5.17.0 · 2026-08-27.
 
 ### E16 · The unsaved marker on a tab [F7]
 
-Open a file. Type into it, then press anything that is **not Save** — a help
-panel button, a checkbox, `+`, the block picker, another tab. Look at the tab
-label. Then press **Save** and look again.
-
-Then, with an unsaved tab open, leave with **ESC**, reopen the editor, and look
-at the file: the edit is gone and the tab is unmarked, which is correct and is
-the thing the marker exists to warn about.
+Type into a file, then press anything that is **not Save**. Look at the tab label.
+Press **Save** and look again. Then leave an unsaved tab with **ESC**, reopen, and
+look at the file.
 
 **Pass:** the tab reads `thing.lua*` while the buffer differs from the file, and
-`thing.lua` once it has been written. It clears on **Save**, on a tab switch with
-*Save on tab switch* ticked, and on **Load and close**. It does *not* clear on a
-tab switch with that option unticked, because nothing was written.
+`thing.lua` once written. It clears on **Save**, on a tab switch with *Save on tab
+switch* ticked, and on **Load and close** — not on a tab switch with that option
+off, because nothing was written.
 
-Three things worth checking beyond that first pass:
+Three more things:
 
-- **The mark is legible on a tab.** A `tabheader` sizes itself to its labels, so
-  a marked tab is one character wider than an unmarked one and the row shifts as
-  you type. That is the cost of the design and this is where it is seen.
-- **The file is still called `thing.lua`.** Save a marked tab and look at the
-  file list on the left: a file named `thing.lua*` means the marker reached
-  `meta.tabs`, which is what `integration_spec` pins and what would corrupt the
-  player's directory. Nothing should ever create one.
-- **Create a copy leaves the source marked.** With an unsaved edit, press
-  *Create a copy*: the copy opens **unmarked**, because what was written to it is
-  what is in the buffer, and the source tab **stays marked**, because its own
-  file was deliberately not saved.
+- **The mark is legible on a tab.** A `tabheader` sizes itself to its labels, so a
+  marked tab is one character wider and the row shifts as you type. That is the
+  cost of the design and this is where it is seen.
+- **The file is still called `thing.lua`.** A file named `thing.lua*` in the list
+  means the marker reached `meta.tabs`, which would corrupt the player's
+  directory.
+- **Create a copy leaves the source marked** and the copy unmarked.
 
-**A known and accepted wrongness, not a fail:** type a character and undo it, and
-the tab stays marked until the next save. The flag records *the buffer changed*,
-not *the buffer differs from disk* — a diff would need a pristine copy of every
-open file, which was rejected for a cosmetic mark. Report it only if the mark
-appears without any typing at all, which would mean it is being set from the
-field arriving rather than from the text differing.
+**A known and accepted wrongness, not a fail:** type a character and undo it and
+the tab stays marked until the next save. Report it only if the mark appears
+without any typing at all — that would mean it is set from the field arriving.
 
-Result: pass — `afbe504` · engine 5.17.0 · 2026-08-28 — the marker works in a
-running world, the day it shipped. **`F7` is confirmed**, and with it the flag's
-transitions across tab and file operations, which no spec reaches: only the drawn
-label and the undecorated `meta.tabs` are pinned by `integration_spec`.
+Result: pass — `afbe504` · engine 5.17.0 · 2026-08-28 — the day it shipped.
+**`F7` confirmed.**
 
 ---
 
 ## Drone placement and the setter tool
 
-**First run, 2026-08-27, at `f274245`**, engine Luanti 5.17.0 — one pass, two
-fails, one partial, and the partial turned out to be this document being wrong
-rather than the code. Both fails were in code nobody had exercised in a running
-world since it was written: **B38** (aiming at nothing is silently ignored,
-because the engine calls a different callback than `on_place`) and **B39** (the
-first join after installing the mod wipes the inventory).
-
-**Second run, 2026-08-27, at `246bb37`** — B38 and B39 both confirmed fixed in a
-world, D3 complete at last, and the group is a pass but for D2's second case,
-which was aimed at and missed. It also turned up a defect no check was looking
-for: cancelling the file chooser leaves a drone that cannot run, now **B41** and
-**D5**.
-
-**Third and fourth runs, 2026-08-28** — `D5` passes on all three parts at
-`326f739`+fixes, confirming `B41`, and turns up `B44` by doing the obvious next
-thing to the drone it left on screen; `D6` then passes at `6fea453`, confirming
-that one too. **The group's only outstanding item is `D2` case 2**, aimed at
-twice and missed twice, and the recipe is the suspect rather than the code.
+D1–D6. Runs of 2026-08-27 and 2026-08-28. They produced `B38`, `B39`, `B41` and
+`B44` — all four in code nobody had exercised in a running world.
 
 ### D1 · Place a drone and run a program [B10, A11]
 
-Point at loaded ground with the setter, place a drone, pick a file, watch it run
-to completion.
+Point at loaded ground with the setter, place, pick a file, watch it finish.
 
 **Pass:** one completion message, from `Drone.finish` and only there.
 
@@ -511,576 +288,333 @@ Result: pass — `f274245` · engine 5.17.0 · 2026-08-27.
 
 ### D2 · Place a drone at nothing [B10, B38]
 
-Two cases, and they are different paths. With the **poser**:
+Two cases, two different paths. With the **poser**:
 
-1. Aim into the sky or past what the client has loaded, so there is **no node**
-   under the crosshair, and press place.
-2. Aim at a node the client is showing but the **server** has unloaded — far out
-   over ground you flew past. Harder to arrange, and mostly reachable by flying
-   away and coming back before the area is re-emerged.
+1. Aim into the sky, so there is **no node** under the crosshair, and place.
+2. Aim at a node the client shows but the **server** has unloaded.
 
-**Pass:** both are refused in chat, (1) with *"Please target a node"* and (2) with
-*"Cannot place the drone there, move closer"*, and no record is created. Case 2 is
-the `add_entity`-returns-nil path; `Drone.new` must create no record, because a
-record with no object is a drone that silently never runs (B10).
-
-Case 1 is what B38 was: the engine calls `on_secondary_use` and **not** `on_place`
-when there is no node under the crosshair, and the poser's was an empty function.
-So the one gesture a player makes to find the tool's reach was the one that
-answered nothing, and B10's message could only ever be seen by arranging case 2.
-It is now routed into the same `Drone.on_place` call with no position, so there is
-one refusal and not two — and that check was moved above the busy check, because
-with no node it is the aim that failed and not the drone.
-
-Result: fail — `f274245` · engine 5.17.0 · 2026-08-27 — "no message when clicking
-far away, I think I never implemented this". Correct: case 1 had no
-implementation at all. **B38**, fixed at the commit this line was added in.
-Re-run both cases.
-
-Result: partial — `246bb37` · engine 5.17.0 · 2026-08-27 — "hard to tell, the sky
-part works". **Case 1 passes and B38 is confirmed fixed in a world.** Case 2 was
-attempted with view distance set to 30 and was *not* reached: the drone placed
-and then took a moment to appear, which is the client drawing an entity in a
-mapblock it has not received yet — the server placed it, so this is the success
-path, not `add_entity` returning nil.
+**Pass:** (1) *"Please target a node"*, (2) *"Cannot place the drone there, move
+closer"*, and no record created either way. Case 2 is the
+`add_entity`-returns-nil path: a record with no object is a drone that silently
+never runs (`B10`).
 
 **A recipe for case 2, since aiming far away is not it.** Lowering the *client's*
-view distance shows the client less, and this case needs the client to show
-*more* than the server holds. Set `server_unload_unused_data_timeout = 5` in
-`minetest.conf` and keep `active_block_range` small, stand still while an area you
-already have the mesh for falls outside it, wait past the timeout, and place at a
-node you can still see. **Pass:** *"Cannot place the drone there, move closer"*
-and no record created. This is the only route to B10's message and so to the
-`add_entity`-returns-nil path; case 1 gives *"Please target a node"* and is a
-different branch.
+view distance shows the client less; this case needs the client to show **more**
+than the server holds. Set `server_unload_unused_data_timeout = 5`, keep
+`active_block_range` small, stand still while an area you have the mesh for falls
+outside it, wait past the timeout, and place at a node you can still see.
 
-Result: partial — `326f739` + uncommitted B41/C18 fixes · engine 5.17.0 ·
-2026-08-28 — case 2 attempted again with the recipe above and **still not
-reached**: "hard to produce case 2, looks not unloaded". The area stayed resident,
-so the placement kept landing on the success path. Case 1 remains a pass.
+Result: pass (case 1) / partial (case 2) — `326f739` + uncommitted fixes · engine
+5.17.0 · 2026-08-28. Case 1 passed at `246bb37`, confirming `B38`. **Case 2 has
+now been attempted twice and reached neither time** — *"hard to produce case 2,
+looks not unloaded"*.
 
-**Case 2 is now two attempts old, and the recipe is the suspect rather than the
-tester.** `server_unload_unused_data_timeout` bounds when the engine *may* drop an
-idle mapblock, not when it does, and a block stays resident while anything keeps
-it active — a nearby player, an active object, the drone already standing there.
-Before spending a third session on it, read what actually holds a block: the next
-attempt wants a way to *observe* that the server has let go, rather than waiting a
-timeout and hoping. Until then `B10`'s refusal stays committed and unproven, which
-is where it has been since Phase 7, and this check is the only route to it.
+**The recipe is the suspect, not the tester.**
+`server_unload_unused_data_timeout` bounds when the engine *may* drop an idle
+mapblock, not when it does, and a block stays resident while anything keeps it
+active. **Do not spend a third session waiting out a timeout and hoping** — find
+a way to *observe* that the server has let go first.
+
+Earlier: fail — `f274245` · 2026-08-27 — case 1 had no implementation at all.
+That is `B38`.
 
 ### D3 · Replace a drone under the same name [B29, B30]
 
-Two things, and the first is not what this check used to say.
+1. Place a drone, run a program, and try to place a second **before** it
+   finishes. **Pass:** refused with *"Drone is busy, please wait!"*. Then place
+   again after it finishes: that works.
+2. The re-entrancy window `B29` is about is reached with the **setter**, which
+   removes a drone mid-run and is allowed to. Remove a running drone with it and
+   place a new one in the same second. **Pass:** the replacement survives and runs
+   to its own end, and the removed run announces its statistics **once** —
+   `Drone.on_remove` calls `Drone.finish(drone, 'completed')` on purpose. What
+   must **not** appear is *"The drone has disappeared, program stopped"*.
 
-1. Place a drone, run a program, and try to place a second drone **before** the
-   first has finished. **Pass:** it is refused with *"Drone is busy, please
-   wait!"* — `Drone.on_place` returns early while `drone.cor` is non-nil, so a
-   run cannot be yanked out from under itself by a stray click. Then place again
-   after it finishes: that works.
-2. The re-entrancy window B29 and B30 are actually about is reached with the
-   **setter**, which removes a drone mid-run and is allowed to. Remove a running
-   drone with the setter and immediately place a new one in the same second.
-   **Pass:** the replacement survives and runs to its own end, and the removed
-   run announces its statistics **once** — `Drone.on_remove` calls
-   `Drone.finish(drone, 'completed')` on purpose, so a stats line there is the
-   design and not a fault. What must **not** appear is *"The drone has
-   disappeared, program stopped"*, and the replacement must not die. That is the
-   whole of B29: `ObjectRef:remove()` takes effect at the end of the step, so
-   `on_deactivate` fires *after* the replacement is installed under the same
-   name, and `on_lost` would then finish and remove the new drone. The serial is
-   what protects it, not the clear-before-remove ordering.
+Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — both parts. **`B29`'s
+serial guard is confirmed in a running world**; this was the one path to it.
 
-Result: partial — `f274245` · engine 5.17.0 · 2026-08-27 — "when placing during
-run it says '... wait busy...', after a run it works". That is part 1 passing.
-**The check was wrong, not the code**: it asked for a replacement mid-run, which
-`on_place` refuses on purpose, and so pointed at a path that cannot reach B29's
-window at all. No finding id — nothing in committed code is defective here.
-Part 2 is unchecked and is the one that tests the serial guard.
-
-Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — both parts. Part 1:
-*"drone busy, wait"* during a run, and placing works once it ends. Part 2:
-removing a running drone with the setter and placing another in the same second
-worked, "just stating the stats of the program" — one statistics line, no
-*"disappeared"* message, and the replacement ran. **B29's serial guard is now
-confirmed in a running world**; this was the one path to it and the last thing
-the guard rested on reading alone. The pass wording above was corrected in the
-same edit: it demanded that *nothing* be announced for the removed run, which
-`Drone.on_remove` announces by design. **Second wrong pass condition in this
-check** — both were the record, not the code.
+Earlier: partial — `f274245` · 2026-08-27 — part 1 only. **The check was wrong,
+not the code**: it asked for a mid-run replacement, which `on_place` refuses on
+purpose. No id. The pass condition was wrong a second time too, demanding that
+nothing be announced for the removed run. **Both errors were the record.**
 
 ### D4 · Join with a full inventory [B16, B39]
 
-Two cases, and the second is the one that was broken:
+1. Join a world that already has the mod, carrying items. **Pass:** nothing is
+   removed.
+2. Take a world **without** this mod, collect items, quit, add the mod, join.
+   **Pass:** the two tools are added and **nothing else is removed**. This is
+   `B39` — the one case `B16`'s narrowing left behind.
 
-1. Join a world that already has the mod, carrying items in the hotbar and main
-   inventory. **Pass:** nothing is removed. Every join used to wipe the inventory
-   (B16).
-2. Take a world **without** this mod, collect some items, quit, add the mod, and
-   join again. **Pass:** the poser and setter are added and **nothing else is
-   removed**.
+Worth trying once with a **completely full** main inventory: the refusal — *"No
+room for the drone tools, free a slot and rejoin"* — is answered in the code but
+that branch has never been seen run.
 
-Case 2 is B39. `set_tools` used to empty `main`, `craft`, `craftpreview` and
-`craftresult` before adding the two tools, and B16 narrowed that to "only when a
-tool is missing" — which is exactly and only the first join after an install, so
-the wipe survived in the one case where the player has something to lose. It now
-adds whichever tool is missing and clears nothing.
+Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — both cases; the tools are
+added after the player's own items. **`B39` confirmed fixed.**
 
-Also worth trying with a **completely full** main inventory: there is no room for
-the tools, and the refusal is now said in chat rather than passed over, because a
-player with no drone tools and no explanation has no way in.
-
-Result: fail — `f274245` · engine 5.17.0 · 2026-08-27 — "I started a minetest
-game, added items to inventory, quit then added codeblock mod and then inventory
-was replaced with the 2 drone tools and the rest was empty". That is case 2
-exactly. **B39**, fixed at the commit this line was added in.
-
-Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — both cases. Case 1 still
-passes; case 2 now adds the two tools "after the hotbar item" and removes
-nothing. **B39 confirmed fixed in a running world.**
-
-The full-inventory question the run raised is already answered in the code, and
-the answer is the one the player expected: `set_tools` adds nothing and says *"No
-room for the drone tools, free a slot and rejoin"* in chat. It reads `add_item`'s
-leftover, so a tool is added or it is not — never half. Worth doing once as a
-check anyway, since it has never been run.
+Earlier: fail — `f274245` · 2026-08-27 — case 2 exactly: *"inventory was replaced
+with the 2 drone tools and the rest was empty"*. That is `B39`.
 
 ### D5 · Cancelling the file chooser [B41]
 
-Place the poser with no previously loaded file — a fresh player, or one whose
-`codeblock:last_file` names a file that is gone. The chooser opens. Press
-**Cancel**. Then place again and press **ESC** instead.
-
-Then a third time: place, and this time **choose a file** — the drone must stay.
+Place the poser with no previously loaded file; the chooser opens. Press
+**Cancel**. Place again and press **ESC**. A third time, **choose a file** — the
+drone must stay.
 
 **Pass:** neither Cancel nor ESC leaves a drone standing, and choosing a file
-still leaves one that runs. Before `B41`'s fix both declining paths left a drone
-nametagged `[<player>] ?.lua` that answered *"Not a valid file"* on every use.
-Placing again was not refused, so it cost the player nothing but a puzzle.
+still leaves one that runs. **The third part is the one to actually do**: the fix
+removes the drone whenever the chooser closes with no file set, so a bug in it
+would take away the drone the player *did* choose for.
 
-The third part is the one to actually do: the fix removes the drone whenever the
-chooser closes with no file set, so a bug in it would take away the drone the
-player *did* choose for.
+Result: pass — `326f739` + uncommitted fixes · engine 5.17.0 · 2026-08-28 — all
+three parts. **`B41` confirmed**, its ESC half observed for the first time.
 
-Result: fail — `246bb37` · engine 5.17.0 · 2026-08-27 — reported unprompted: "when
-no program selected, try place, it opens the dialog to choose, click cancel: it
-place a drone with ?.lua and refuses to run with invalid file". **B41**, fixed on
-2026-08-28.
-
-Result: pass — `326f739` + uncommitted B41/C18 fixes · engine 5.17.0 · 2026-08-28
-— **all three parts**. Cancel leaves no drone, ESC leaves no drone, and choosing a
-file still leaves one that runs. **B41 is confirmed fixed in a running world**,
-and its ESC half is observed for the first time: that path was reasoned from the
-field table from the day the finding was filed, through the fix, until this run.
-
-That session turned up a defect no check was looking for, in the same class:
-place a drone, open the editor, **remove the file the drone is holding**, close
-the editor — the drone stands there naming a file that no longer exists, and is
-only taken away when you run it. **B44**, and `D6` below.
+Earlier: fail — `246bb37` · 2026-08-27, reported unprompted. That is `B41`.
 
 ### D6 · Removing the file a drone is holding [B44]
 
-Place a drone and give it a file, so its nametag reads `[<player>] thing.lua`.
-Open the editor, open that file, **Remove file**, and close the editor. Look at
+Place a drone and give it a file. Open the editor, **Remove file**, close. Look at
 the drone. Then run it.
 
-**Pass:** removing the file does not leave a drone naming it — either the drone
-goes with the file, or its nametag stops claiming a program it cannot run. Today
-neither happens: `remove_file` deletes the file and refreshes the player's cache
-and knows nothing about drones, so `drone.file` still holds the name. The drone
-is taken away on the *run*, where `get_safe_coroutine` fails to read it — so the
-error and the disappearance both arrive one gesture later than the cause.
+**Pass:** the drone goes **with the file**, at the removal — not one gesture later
+on the run.
 
-Also check the other order, which is the one that has a guard already: remove the
-file, then place a **new** drone. That is fine — `Drone.on_place` tests
-`codeblock:last_file` against the player's file list before using it, so a stale
-last-file is ignored and the chooser opens instead.
+Also check the other order, which has a guard already: remove the file, then place
+a **new** drone. `Drone.on_place` tests `codeblock:last_file` against the player's
+file list, so a stale last-file opens the chooser.
 
-Result: fail — `326f739` + uncommitted B41/C18 fixes · engine 5.17.0 · 2026-08-28
-— found while running `D5`: "if I pose the drone, open editor, remove the file,
-then close editor, drone is now here with a file that does not exists (drone
-removed on run)". **B44**, fixed the same day; this line predates the fix and the
-check is due a re-run. The drone is now removed when the file it holds is the one
-deleted, so the pass to look for is the drone going *with* the file — and the
-second half above, placing a new drone after a removal, must still open the
-chooser rather than do nothing.
+Result: pass — `6fea453` · engine 5.17.0 · 2026-08-28. **`B44` confirmed.**
 
-Result: pass — `6fea453` · engine 5.17.0 · 2026-08-28 — the drone now goes with
-the file, at the removal rather than one gesture later on the run. `B44` is
-confirmed in a running world, and with `D5` the mod answers *a drone with no
-usable file* the same way in both places it can happen.
+Earlier: fail — `326f739` + uncommitted fixes · 2026-08-28 — found while running
+`D5`, by doing the obvious next thing. That is `B44`.
 
 ---
 
 ## The drone HUD and panel
 
-**First run, 2026-08-29, at `729c255`**, engine Luanti 5.17.0 — **six pass, three
-partial**, and it produced two findings, four wanted changes and then two further
-revisions from screenshots. **Seven of the nine checks are now due a second run**,
-because what they describe has changed under them. This group
-carries more unverifiable surface than any other here: the specs reach the
-binding-constraint arithmetic (`limits_spec`), the pause field (`stepper_spec`)
-and the panel's session routing (`forms_spec`), and reach **none** of the
-drawing, the cadence, the colour, the toggle, the setter gesture or anything a
-player actually sees.
+H1–H9. **First run 2026-08-29 at `729c255`: six pass, three partial.** It produced
+`B45` and `B46` and four wanted changes; `F8` then shipped the same day and was
+revised twice more from screenshots. **Seven of the nine are due a second run**,
+and `H2` and `H4` have never been performed in their current form.
 
-**What it found.** `B45` — the HUD almost always names *map memory*, because
-`limits.binding` compares a held resource against spent ones and a held one sits
-at its ceiling by design, so the display cannot do the one job it exists for.
-`B46` — *Running time* is charged CPU, not wall clock, and neither surface says
-so. Both are presentation over correct arithmetic, and **neither is reachable by
-any spec**: the gates were green and ten minutes in a world found two.
+This group carries more unverifiable surface than any other: the specs reach the
+binding arithmetic (`limits_spec`), the pause field (`stepper_spec`) and the
+panel's session routing (`forms_spec`), and reach **none** of the drawing, the
+cadence, the colour, the toggle or the setter gesture.
 
-**Two more passes on 2026-08-29, each from a screenshot.** The panel's
-descriptions were clipped at the right edge in French, so names became bold and
-left-aligned with descriptions that wrap over two lines, the *Will stop on…*
-summary was deleted, the table was cut to **hard limits only**, the fullest
-percentage went amber with anything at 80% or more red, *Cancel* and *Remove
-drone* merged into one **Stop** (they were the same call all along), and closing
-moved to an `x` in the corner. Then the HUD: misaligned and still naming one
-limit, it became a **five-line block** flush to the top-right corner with a bold
-header and one short line per hard limit. **None of either pass is checked** —
-`H1`, `H2`, `H4`, `H5`, `H7` and `H8` all describe it.
-
-**Two things worth carrying forward.** The pause-then-fast-restart in `H6` looked
-like a third bug and is not one — it is `B45`'s root cause seen from another
-angle, and chasing it before filing is what kept the record from carrying an
-invented defect.
-
-And **the run rewrote its own checks.** `F8` landed the same day with both fixes
-and four wanted changes, so **five of the nine now describe behaviour that did not
-exist when they were first run**: `H2` (the comparison is possible for the first
-time), `H3` (the boxes moved to *Settings*), `H4` (the gesture is unconditional
-and removal is a button), `H5` (K/M/G, per-row percentages, describing lines) and
-`H8` (the idle view, and a procedure that can actually distinguish case 1). **Six
-of nine are due a second run**, and that is the group working rather than
-churning: a pass here meant *it did what was asked*, and what was asked turned out
-to be wrong in five places.
-
-A note on all of these: the HUD draws **top-right**. If nothing is there, check
-*Show the drone HUD* in the editor and `codeblock_drone_hud` in `minetest.conf`
-before assuming it is broken.
+If nothing is top-right, check *Show the drone HUD* in the editor's *Settings*
+panel and `codeblock_drone_hud` in `minetest.conf` before assuming it is broken.
 
 ### H1 · The HUD appears, updates and goes [F4, F8]
 
-Run a program that takes ten seconds or so — a large cube at codelevel 4, or any
-loop with `sleep(0.2)` in it.
+Run a program that takes ten seconds or so.
 
-**Pass:** a **five-line block** appears top-right the moment the program starts:
+**Pass:** a **five-line block** appears top-right the moment it starts:
 
 ```
 mosely.lua : running          <- bold
-Budget usage:
-- Blocks: 72%
-- CPU: 0%
-- Memory: 4%
+Budget usage
+Blocks: 72%
+CPU: 0%
+Memory: 4%
 ```
 
-The filename is right, the block is **flush to the top-right corner** with even
-line spacing, the percentages move while it builds, and **every line disappears
-when the program ends** — without a reload and without a leftover from the
-previous run. The header is bold and the other four are not.
+The filename is right, the block is **flush to the top-right corner**, the
+percentages move, and **every line disappears when the program ends** — without a
+reload and without a leftover from the previous run. The header is bold and the
+other four are not.
 
 Result: pass for the `F4` version — `729c255` · engine 5.17.0 · 2026-08-29 — two
-lines appeared on start, tracked the run and went when it ended. **`F8` replaced
-it entirely** after a screenshot showed it sitting away from the corner and naming
-only one limit, so the layout above is unchecked.
+lines appeared, tracked the run and went. **`F8` replaced it entirely** after a
+screenshot showed it away from the corner and naming only one limit, so the layout
+above is unchecked.
 
 ### H2 · The binding limit is the one it names, and it changes [F4, B26, B45]
 
-**Rewritten after `B45`, and this check has still never actually been performed** —
-map memory saturated the comparison both times it was attempted. That resource no
-longer competes, so the comparison is now possible for the first time.
+**This check has never actually been performed** — map memory saturated the
+comparison both times it was attempted. That resource no longer competes, so it
+is possible for the first time.
 
 Run two programs at the same codelevel: one that writes a great many nodes
-quickly, and one that spends time without writing much (a long loop of
-arithmetic, or `sleep`).
+quickly, and one that spends time without writing much.
 
 **Pass:** in the panel, the first is closest on **Blocks placed** and the second
-on **Server time used**; on the HUD the same two lead. **Map held cannot appear at
-all** — it is neither compared nor listed on either surface, which is `B45` plus
-the author's *"only list hard limits"*.
+on **Server time used**; on the HUD the same two lead. **Map held cannot appear
+at all** — neither compared nor listed on either surface, which is `B45` plus the
+author's *"only list hard limits"*.
 
-The colouring is what to read now that no sentence names the winner: **exactly one
-percentage is amber** — the fullest of the three — and any at 80% or more is
-**red**, red winning. A run nowhere near a ceiling shows three plain percentages
-and no colour at all, on both surfaces, saying the same thing.
-The percentage rises toward 100 as each approaches its ceiling, and the colour
-goes green, amber, red as it fills. If a single program crosses over — nodes
-early, time later — the named limit changes mid-run rather than sticking.
-
-This is the check that the display is telling a player something true rather than
-always naming the first row.
-
-Result: partial — `729c255` · engine 5.17.0 · 2026-08-29 — **the check could not
-be observed, and that is the finding.** The author's words: *"not so easy to
-observe because « mémoire de la carte » almost always saturates at 100%."* Map
-memory wins the comparison nearly always, so the display cannot teach which
-resource a program spends — which is the whole point of it. **`B45`**, since fixed.
-The cause was that `limits.binding` compared a *held* resource against *spent*
-ones: `use_map` loops on `limits.hold`, pushing `used.map` right up to `caps.map`
-and holding it there while a drone keeps loading mapblocks, so 100% on that row
-means *being throttled as intended*, not *about to fail*.
-
-Result: unchecked — **due, and the only check here that has never been performed.**
-`B45` was fixed the same day in `lib/limits.lua`; the comparison this check exists
-for is possible for the first time. Run it against the rewritten text above.
+Result: unchecked in this form. Earlier: partial — `729c255` · 2026-08-29 —
+*"pas si facile à observer parce que « mémoire de la carte » sature presque
+toujours à 100 %"*. That is `B45`.
 
 ### H3 · The toggle, whose choice wins, and where it lives [F4, B5, C18, F8]
 
-**The tick moved in `F8`: it is on the editor's *Settings* panel now**, beside the
-default-block picker and with *Load program on exit* and *Save on tab switch*,
-under a *Preferences* label. All three used to sit loose along the bottom edge of
-the form. So case 0 is new, and cases 1–4 are unchanged behaviour in a new place.
+0. **Where it is:** *Show the drone HUD* is on the editor's **Settings** panel,
+   beside the default-block picker, with *Load program on exit* and *Save on tab
+   switch*. `F8` moved all three off the form's bottom edge.
+1. Untick it with a program running: the HUD goes at once and stays gone across a
+   relog.
+2. Set `codeblock_drone_hud = false` server-side. **Pass:** a player who has
+   never expressed a preference sees no HUD; a player who ticked it **does** —
+   the player's own choice wins over the server default.
 
-0. Open the editor, click **Settings**. All three checkboxes are there and show
-   the right state. Open the block list with *Default block* — the three are
-   hidden while it is open, because the list is drawn over that space — and close
-   it again: they come back with their state intact. Switch to Blocks / Plants /
-   Wools / API and back.
-1. Untick *Show the drone HUD* **while a program is running**. The HUD goes
-   **within half a second**, not at the next run and not when the editor closes.
-2. Tick it again: it comes back on the next tick.
-3. Untick it, leave the game, rejoin, run a program. **It stays off.** An
-   unticked box that reads as "never chosen" on rejoin is exactly the `B5` trap.
-4. Set `codeblock_drone_hud = false` in `minetest.conf` and restart, with a
-   player who has **never touched the box**. No HUD. Then tick the box for that
-   player: the HUD appears, because a player's own choice beats the server's
-   default.
+The `get_string` read is what makes case 2 expressible at all: `get_int` cannot
+tell an unset key from a stored `0` (`B5`).
 
-Cases 1–4 also have to keep working for the **other two** boxes now that they have
-moved — *Load program on exit* is the one with a history (`B33`, `B36`), and its
-own checks are `E8`–`E10`.
-
-Result: pass — `729c255` · engine 5.17.0 · 2026-08-29 — all four cases, including
-the rejoin that would have caught the `B5` trap. **Behaviour confirmed, location
-since changed:** `F8` moved all three boxes onto the *Settings* panel the same
-day, so case 0 above and the other two boxes' new home are unchecked. The
-preference logic itself needs no re-proving.
+Result: pass for the `F4` version — `729c255` · engine 5.17.0 · 2026-08-29 —
+including the rejoin that would have caught the `B5` trap. **Behaviour confirmed,
+location since changed:** case 0 and the two other boxes' new home are unchecked.
 
 ### H4 · The setter's left click always opens the panel [F4, F8, B39]
 
-**Rewritten in `F8`. The gesture has meant three things in turn** — it removed the
-drone, then `F4` split it by state, and that split lasted exactly one playtest
-before this check killed it: an effect that depends on state the player cannot see
-is one they have to guess at, and the guess destroys a build. It now always opens
-the panel, and removal is a button in there.
+**Rewritten in `F8`.** The gesture has meant three things in turn — it removed the
+drone, then `F4` split it by state, and that split lasted exactly one playtest:
+**an effect that depends on state the player cannot see is one they have to guess
+at, and the guess destroys a build.**
 
 Left click with the **setter** in each of three states:
 
 1. **No drone at all.** The panel opens and says *You have no drone*, offering
-   only *Close*. The gesture answers instead of doing nothing silently.
-2. **An idle drone.** The panel opens naming the file it holds, with **Stop**
-   and the close `x` — and **nothing is removed until Stop is pressed**.
+   only *Close*.
+2. **An idle drone.** The panel opens naming the file it holds, with **Stop** and
+   the close `x` — and **nothing is removed until Stop is pressed**.
 3. **A running drone.** The panel opens with the three hard limits, **Pause**,
-   **Stop** and the `x`. The drone keeps building; the run is **not** cancelled by
-   opening the panel.
+   **Stop** and the `x`. The run is **not** cancelled by opening the panel.
 
-Then the button itself, which is where the old gesture went:
+Then the button:
 
 4. **Stop** on an **idle** drone: it goes, silently, as the old left click did.
 5. **Stop** on a **running** drone: it goes and the run is announced — **exactly
-   one message**. `Drone.on_remove` is the only route, so two messages or none
-   would be `B12`/`B30` returning.
-
-**Pass:** all five. Cases 1 and 2 are the new behaviour; case 4 is the old
-behaviour still reachable, which is the thing that must not have been lost.
+   one message**. Two or none would be `B12`/`B30` returning.
 
 There is **one** destructive button on purpose. *Cancel* and *Remove drone*
 shipped together for one afternoon and called the same function; if two ever
 reappear, that is the defect, not the fix.
 
 Result: unchecked — **the check that superseded itself.** The `F4` version passed
-at `729c255` on 2026-08-29 (both meanings behaved, and an idle drone was still
-taken away), and that pass is what decided the split had to go: the author's
-words were *"we'll change behavior to: always show the info panel."* `F8` did it
-the same day, so all five cases above are new and none is run. Removal now lives
-on a button, which is the part most worth checking.
+at `729c255` on 2026-08-29, and that pass is what decided the split had to go:
+*"we'll change behavior to: always show the info panel."* All five cases are new.
 
 ### H5 · The panel's numbers, and its own refresh [F4, F8, B46]
 
-With a long program running, open the panel and leave it open. Do it at
-**codelevel 4**, where `max_nodes_written` is 1e8 — that is the case the number
-formatting exists for.
+With a long program running, open the panel and leave it open, at **codelevel 4**
+where `max_nodes_written` is 1e7 — the case the number formatting exists for.
 
 **Pass:** **three rows** — blocks, server time, Lua memory — each with what the
 run has spent against its ceiling, in the units `minetest.conf` uses: seconds and
 megabytes, not microseconds and mapblocks. The numbers **update while the panel
 sits open**, without touching anything.
 
-What the second layout pass added, all of it unchecked:
+What the later passes added, all of it unchecked:
 
 - **Three rows, not four.** *Map held* is **not listed at all**: it stops nothing,
   and a table mixing it with three ceilings that do end a run is what `B45` was
-  about. There is also **no *Will stop on…* line** any more.
-- **Long counts are readable.** The blocks row shows something like `1.2K /
-  100.0M`, not `1247 / 100000000`. The threshold is 10 000, so a small count still
-  reads as a plain integer.
-- **Each name is bold, and the description under it starts at the same left
-  edge.** The description is allowed **two lines** and must not be cut off at the
-  panel edge — check this **in French**, which is where the single-line version
-  clipped.
+  about. There is **no *Will stop on…* line** any more.
+- **Long counts are readable** — `1.2K / 10.0M`, not `1247 / 10000000`. The
+  threshold is 10 000, so a small count still reads as a plain integer.
+- **Each name is bold, and its description starts at the same left edge.** The
+  description is allowed **two lines** and must not be cut off at the panel edge
+  — check this **in French**, which is where the single-line version clipped.
+- **The heading is bold and its state coloured** — `running` green, `paused`
+  yellow, checked by pressing *Pause* and watching the word change colour as well
+  as text. Neither may be the amber or red used on the rows. It is one label, so
+  the state is bold too; that is expected, a label's font being per element.
 - **The *Server time used* description says it is not clock time.** That is
   `B46`'s fix and the reason the row was renamed.
-- **The percentage is coloured, and at most one thing is coloured amber.** Amber
-  marks the limit that will be reached first; **red at 80% or more** and red wins.
-  A run nowhere near any ceiling shows three plain percentages.
+- **The percentage is coloured, and at most one thing is amber.** Amber marks the
+  limit reached first; **red at 80% or more** and red wins. A run nowhere near any
+  ceiling shows three plain percentages.
 
 Result: pass for the `F4` version — `729c255` · engine 5.17.0 · 2026-08-29 — four
-rows, ceilings in the player's units, updating live, agreeing with the HUD. **Every
-point above is unchecked**, and all of it came out of that session and the
-screenshot after it: *"make long numbers readable (K, M, G blocks for example,
-plus a percentage), add small line describing the limit"*, then bold names, shared
-left edge, two-line descriptions, no summary line, hard limits only, and the
-colour rule.
+rows, ceilings in the player's units, updating live, agreeing with the HUD.
+**Every point above is unchecked.**
 
 ### H6 · Pause and Resume [F4, F3, B46]
 
 Pause a running program from the panel.
 
-**Pass:** the drone stops building. The HUD says **paused**. The button becomes
-*Resume*. Leave it paused a full minute, then resume: it carries on from where it
-was and **does not** report running out of time — a pause is charged no runtime.
-A second drone running alongside it keeps its full pace while the first is
-paused, rather than sharing a step with a drone that is not using one.
+**Pass:** the drone stops building, the HUD says **paused**, the button becomes
+*Resume*. Leave it a full minute, then resume: it carries on and **does not**
+report running out of time — a pause is charged no runtime. A second drone keeps
+its full pace while the first is paused.
 
-Then the interaction with `F3`: pause a program **while it is inside a
-`sleep(10)`**, wait past the ten seconds, and resume. It should resume promptly
-rather than sleeping ten more seconds — the sleep expired while it was held.
+Then the `F3` interaction: pause a program **inside a `sleep(10)`**, wait past the
+ten seconds, and resume. It should resume promptly rather than sleeping ten more.
 
 **Two things this check must not report as bugs, both settled 2026-08-29:**
 
-- **A drone resuming from a long pause races before settling.** That is the map
-  footprint having drained: it decays over the engine's own
-  `server_unload_unused_data_timeout` (29 s), so a two-minute pause leaves nothing
-  held and the drone builds unthrottled until it rebuilds. The engine really did
-  unload those mapblocks. Not `B45`, not a pause defect, and not to be filed a
-  third time.
+- **A drone resuming from a long pause races before settling.** The map footprint
+  decays over `server_unload_unused_data_timeout` (29 s), so a two-minute pause
+  leaves nothing held. The engine really did unload those mapblocks. Not `B45`,
+  not a pause defect, **and not to be filed a third time**.
 - **The time figure advancing at roughly a tenth of the clock.** *Server time
-  used* is what the drone was actually given — 8 ms of a 90 ms server step at
-  codelevel 4 — so ~0.1 s per elapsed second is correct. What `B46` fixed is the
-  wording; the arithmetic was never wrong. **The row's describing line should now
-  say so, and checking that it does is part of this check.**
+  used* is what the drone was actually given — 8 ms of a 90 ms step at codelevel
+  4. `B46` fixed the wording; the arithmetic was never wrong. **The row's
+  describing line should now say so, and checking that it does is part of this
+  check.**
 
 Result: partial — `729c255` · engine 5.17.0 · 2026-08-29 — Pause, Resume and the
-`sleep` interaction behave. **Two observations, one finding, and the second
-observation is not a bug.**
-
-`B46`, since fixed: the runtime figure is charged CPU and read as wall clock.
-`mosely.lua` showed **22 s** against a completion line saying **180 s duration**,
-climbing at about **0.1 s per second**. That ratio is by construction — a
-codelevel-4 drone gets `step_budget_us` 8 ms of a 0.09 s server step — and both
-`doc/api.md` and `lib/config.lua` already state the semantics. The HUD and the
-panel are where a player meets the number without the documentation and say
-neither. Consequence: `max_runtime_s` 1800 at codelevel 4 is roughly **five hours
-of wall clock**.
-
-The **pause then fast restart** — held two minutes, resumed, the drone runs
-quickly and the figure jumps before settling — was chased and **is correct
-behaviour, not a recovery of paused time**. The map footprint decays over
-`map_window_s`, the engine's own `server_unload_unused_data_timeout` (29 s by
-default), so a two-minute pause drains it to nothing and the drone resumes with
-no throttle until it rebuilds. The engine really did unload those mapblocks.
-Same root cause as `B45`; deliberately **not** filed twice.
-
-`B46` was fixed the same day: the row is *Server time used* now and carries a line
-saying it is not clock time. **The renamed row and its description are unchecked**
-— re-run the pause cases and read the words this time.
+`sleep` interaction behave. The two observations above produced `B46` and the
+`B45` explanation. **The renamed row and its description are unchecked** — re-run
+and read the words this time.
 
 ### H7 · Stop [F4, F8, B12, B30]
 
-Press **Stop** on a running program from the panel. Then the same on an idle
-drone.
+Press **Stop** on a running program, then on an idle drone.
 
-**Pass:** the drone goes both times, the panel closes, and on the running one
-there is **exactly one** message in chat — the same completion line the setter's
-old left click produced. Not two, and not none. On the idle one, no message, the
-drone simply goes.
+**Pass:** the drone goes both times and the panel closes. On the running one,
+**exactly one** message in chat — not two, not none. On the idle one, no message.
 
-Result: pass for the `F4` version, then named *Cancel* — `729c255` · engine 5.17.0
-· 2026-08-29 — the drone goes, the panel closes, exactly one message. **`F8`
-merged *Cancel* and *Remove drone* into this one button** (they were the same
-`Drone.on_remove` call all along), so the button is renamed and the idle case is
-new and unchecked.
+Result: pass for the `F4` version, then named *Cancel* — `729c255` · engine
+5.17.0 · 2026-08-29. **`F8` merged *Cancel* and *Remove drone* into this one
+button**, so it is renamed and the idle case is new and unchecked.
 
 ### H8 · The panel over the editor, and a run that ends under it [F4, F8, B33, B29]
 
-Three ways the panel can be outlived:
-
-1. Open the panel, then open the editor with the setter's **right click**. The
-   editor draws normally. **Nothing pushes the panel's content into it** half a
-   second later — that is the exact defect the `forms_spec` case guards, and the
-   spec cannot see the screen.
-2. Open the panel and let the program **finish on its own** while it is open. The
-   panel **switches to the idle view** — the file it holds, **Stop**, and the
-   close `x` — rather than freezing on stale numbers or throwing.
-3. Open the panel, then cancel the run, and while the panel is still open place
-   a **new** drone under the same name and run something. Nothing from the old
-   run leaks into the new panel or the new HUD (`B29`'s serial guard).
-4. **New in `F8`:** open the panel on an idle drone, press **Stop**, and watch
-   the panel it was showing. It closes; it does not sit there describing a
-   drone that no longer exists, and the next left click says *You have no drone*.
+1. Open the panel, then open the editor with the setter's **right click**.
+   **Nothing pushes the panel's content into it** half a second later — the exact
+   defect the `forms_spec` case guards, which no spec can see on a screen.
+2. Let the program **finish on its own** while the panel is open. It **switches to
+   the idle view** rather than freezing on stale numbers or throwing.
+3. Cancel the run, and with the panel still open place a **new** drone under the
+   same name and run something. Nothing from the old run leaks in (`B29`).
+4. **New in `F8`:** open the panel on an idle drone and press **Stop**. It closes;
+   it does not sit there describing a drone that no longer exists, and the next
+   left click says *You have no drone*.
 
 **How to tell case 1 apart from "it happened to be harmless."** The defect would
 show as the *editor* being replaced by the panel's content about half a second
-after opening it. So open the editor over the panel, then **wait two seconds
-without touching anything** and look at the form. Still the editor, unchanged, is
-the pass. That is the observable the first run could not name.
+after opening it. So open the editor over the panel, **wait two seconds without
+touching anything**, and look. Still the editor, unchanged, is the pass.
 
 Result: partial — `729c255` · engine 5.17.0 · 2026-08-29 — **case 1 inconclusive
 by the author's own reading**: *"unsure — can use 'open the editor' while in a
-panel."* Opening the editor over the panel worked and the editor was not
-corrupted, which is the pass condition; what could not be confirmed from the
-outside is that the stale watch was dropped rather than merely harmless. The
-`forms_spec` case asserts it and a spec cannot see a screen, so this stayed
-partial rather than being called a pass. Cases 2 and 3 not reported. **Rewritten
-in `F8`**: case 2 now expects the idle view, case 4 is new, and case 1 has a
-procedure that can actually distinguish a pass.
+panel."* Cases 2 and 3 not reported. **Rewritten in `F8`**; case 1 now has a
+procedure that can distinguish a pass.
 
 ### H9 · Leaving and rejoining with a program running [F4]
 
-Run a long program, then disconnect while it runs. Rejoin.
+Run a long program, disconnect while it runs, rejoin.
 
-**Pass:** no orphaned HUD line on rejoin, and no error in the server log about a
-HUD element belonging to a player who is gone.
+**Pass:** no orphaned HUD line, and no error in the log about a HUD element
+belonging to a player who is gone.
 
-Result: pass — `729c255` · engine 5.17.0 · 2026-08-29 — no orphaned HUD line on
-rejoin, nothing in the log.
+Result: pass — `729c255` · engine 5.17.0 · 2026-08-29.
 
 ---
 
 ## Filesystem and example generation
 
-**First run, 2026-08-27, at `f274245`**, engine Luanti 5.17.0 — one pass, one
-partial, one that could not be run because no procedure was written for it. The
-partial is **C17**: the behaviour is right and the words are in the wrong
-language. F-3 now has two recipes, which is what it was missing.
-
-**Second run, 2026-08-27, at `246bb37`** — F-2 passes in French, and F-3's first
-recipe found the worst defect this project has recorded against committed code:
-the file is read **whole**, with no bound, and then sent to the client. **B40**,
-open. `F-4` is new and is that finding's own check.
-
-**Third run, 2026-08-28, against `246bb37` plus B40's uncommitted fix** — `F-4`
-passes: the file that took the server to 14 GB is now refused. `F-3` case 1
-passes too, at last, and only because of that fix: the size bound refuses a
-168 MB file before the bytecode branch, so a small `luac5.1` chunk is what
-reaches it. **This group is now green apart from `F-3` case 2**, the unreadable
-file, which nothing has ever exercised.
-
-**Fourth run, 2026-08-28, at `6fea453`** — `F-3` case 2 passes and **the group is
-green**. It took three attempts: the first was blocked by a `cmd` recipe run in
-PowerShell, the second passed on behaviour and failed on its message and opened
-`S7`, and this one reads *"Impossible de lire le fichier ..."* — translated, with
-the filename and no absolute path. What is not yet looked at is the server log,
-where `S7` put the operating system's real reason.
+F-1 – F-5. Four runs across 2026-08-27 and 2026-08-28, which produced `B40` — the
+worst defect this project has recorded against committed code — and `S7`.
 
 ### F-1 · `/codegenerate` on your own files [B8, B15]
 
-Run `/codegenerate` as an unprivileged player, twice.
+Run it as an unprivileged player, twice.
 
-**Pass:** the examples appear the first time; the second run leaves existing
-files alone rather than overwriting them, and needs no privilege for your own
-files.
+**Pass:** the examples appear the first time; the second run leaves existing files
+alone, and needs no privilege for your own files.
 
 Result: pass — `f274245` · engine 5.17.0 · 2026-08-27.
 
@@ -1088,330 +622,222 @@ Result: pass — `f274245` · engine 5.17.0 · 2026-08-27.
 
 Run it against another player's files, with and without the `codeblock`
 privilege. **Run it once with the game in French**, since half of what this check
-now covers is only visible there.
+covers is only visible there.
 
 **Pass:** refused without the privilege; with it, the files land under the named
 player, not the caller — the old argument pattern read a bare number as a player
-name. And every line it prints is in the game's language: the refusal, the
-`@1: @2 examples written, @3 already present` summary, the usage line, and the
-failure line.
+name. And every line it prints is in the game's language.
 
-Result: partial — `f274245` · engine 5.17.0 · 2026-08-27 — "test pass but text
-shown for the refusal without privilege is in EN and no FR if game in FR". The
-privilege behaviour passes; the language is **C17**. That refusal's key was built
-with `..` from two literals, so nothing reading the source for strings to
-translate could see it and it was never in `locale/template.txt` at all. It was
-one of twelve, and three of the twelve were worse — translated once, then
-unhooked by a one-character edit to the key (a trailing space, a plural, a
-capital). Fixed at the commit this line was added in, along with a
-`scripts/gen_locale.lua --check` in CI so the template cannot drift again.
-**Re-run in French.**
+Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — *"everything in french"*.
+**`C17` confirmed**, including the refusal whose key was built with `..` and so
+had never been translatable at all.
 
-Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — "everything in french".
-**C17 confirmed fixed in a running world**, including the refusal whose key was
-built with `..` and so had never been translatable at all.
+Earlier: partial — `f274245` · 2026-08-27 — privilege behaviour passed, the words
+came out in English. That is `C17`.
 
 ### F-3 · A file that cannot be read [B7, B15]
 
-`read_file` refuses in two ways and both name the file. The cheap one first:
+`read_file` refuses in two ways and both must name the file.
 
-1. **A precompiled chunk.** Put a file whose first byte is `0x1B` into
-   `<worldpath>/codeblock_files/<playername>/` — `luac5.1 -o bytecode.lua
-   any.lua` makes one, or any binary renamed to `.lua` — then open the editor and
-   click it in the file list. `luac5.1` is in WSL on this machine, with the
-   worlds under `/mnt/c/Users/lacba/AppData/Roaming/Minetest/worlds`:
+**1. A precompiled chunk.** A file whose first byte is `0x1B`:
 
-   ```bash
-   cd .../worlds/<world>/codeblock_files/<player>
-   echo 'place(blocks.stone)' > src.lua && luac5.1 -o bytecode.lua src.lua
-   rm src.lua && head -c 4 bytecode.lua | xxd   # 1b4c7561 - the 0x1B is the point
-   ```
+```bash
+cd .../worlds/<world>/codeblock_files/<player>
+echo 'place(blocks.stone)' > src.lua && luac5.1 -o bytecode.lua src.lua
+rm src.lua && head -c 4 bytecode.lua | xxd   # 1b4c7561 - the 0x1B is the point
+```
 
-   It must be **small**, or `max_file_kb` refuses it first and this branch is
-   never reached (B40). **Pass:** the chat says *"Compilation error in
-   bytecode.lua: Binary bytecode prohibited"*, naming the file, and the editor
-   carries on with the rest of the list. This is the branch that runs after
-   `handle:close()`, so it is also where a leaked handle would show.
-2. **A genuinely unreadable file**, which is the awkward one. On Windows, deny
-   yourself read on one of your `.lua` files and reopen the editor. **In
-   PowerShell**, which is the shell on this machine:
+It must be **small**, or `max_file_kb` refuses it first and this branch is never
+reached (`B40`). **Pass:** *"Compilation error in bytecode.lua: Binary bytecode
+prohibited"*, naming the file, and the editor carries on with the rest of the
+list. This is the branch after `handle:close()`, so it is also where a leaked
+handle would show.
 
-   ```powershell
-   $f = "<worldpath>\codeblock_files\<playername>\test.lua"
-   icacls $f /deny "$($env:USERNAME):(R)"     # now unreadable
-   icacls $f /remove:d $env:USERNAME          # put it back
-   ```
+**2. A genuinely unreadable file.** On Windows, **in PowerShell**:
 
-   **Write it that way and not the `cmd` way.** The obvious
-   `icacls ... /deny "%USERNAME%":(R)` is a `cmd.exe` line and PowerShell
-   mis-parses it twice over: `%USERNAME%` is not expanded, and the bare `(R)` is
-   read as a **subexpression**, so PowerShell runs `R` — an alias for
-   `Invoke-History` — and answers *"Most recent history not found"* without ever
-   calling `icacls`. Hence `$($env:USERNAME):(R)` inside one quoted string, where
-   the subexpression is explicit and the parentheses are literal. Verified as a
-   round trip on 2026-08-28: deny, read refused with `UnauthorizedAccessException`,
-   `/remove:d`, readable again.
+```powershell
+$f = "<worldpath>\codeblock_files\<playername>\test.lua"
+icacls $f /deny "$($env:USERNAME):(R)"     # now unreadable
+icacls $f /remove:d $env:USERNAME          # put it back
+```
 
-   The deny must name **your own** account, because the server runs as you. Put
-   the `/remove:d` back afterwards, or that file stays unreadable to everything.
+**Write it that way and not the `cmd` way.** The obvious
+`icacls ... /deny "%USERNAME%":(R)` is a `cmd.exe` line: PowerShell does not
+expand `%USERNAME%`, and the bare `(R)` parses as a **subexpression**, so it runs
+`R` — an alias for `Invoke-History` — and answers *"Most recent history not
+found"* without ever calling `icacls`. Hence `$($env:USERNAME):(R)` inside one
+quoted string. The deny must name **your own** account, because the server runs as
+you, and the `/remove:d` must go back or that file stays unreadable to everything.
 
-   **Pass:** the message names `test.lua`, and no other file in the list is lost
-   with it — a single bad file must not cost the player the session.
+**Pass:** the message names `test.lua` — no path, translated if the game is — and
+no other file in the list is lost with it.
 
-Do case 1 at least; case 2 opportunistically rather than blocking a release on it.
+Result: pass — `6fea453` · engine 5.17.0 · 2026-08-28 — both cases. Case 2 reads
+*"Impossible de lire le fichier ..."*, showing both halves of `S7`'s fix at once:
+a translation key, so it came out in French, and the filename rather than the
+server's install layout. Case 1 passed at `246bb37` + `B40`'s fix, confirming
+`B7` a phase after it was fixed.
 
-Result: unchecked — "not sure what to do to test" at `f274245`, which is a
-procedure that was not written down rather than a defect. No finding id. The two
-recipes above are new with the commit this line was added in.
+**The log half is not confirmed.** `S7` moved `io.open`'s real reason to
+`warning` rather than discarding it, and no run has looked. One grep of
+`debug.txt`, next time an unreadable file is to hand.
 
-Result: fail — `246bb37` · engine 5.17.0 · 2026-08-27 — case 1 run with a 168 MB
-executable renamed `test.lua`. Selecting it in the list is fine; **opening it read
-the whole file**, took Luanti to about 14 GB resident, froze the game on exit and
-froze it again the next time the editor was opened. The text area then showed
-`MZ` — the executable's first two bytes — because the file is not bytecode, so the
-`0x1B` refusal never fires and 168 MB went into a formspec. A `.jpg` and a `.pdf`
-renamed `.lua` were read as text and reached a compilation error, which is the
-same path one step further on.
-
-**That is B40, not a failure of the bytecode refusal.** The refusal was checked
-*after* `handle:read('*a')`, so even the case that works paid the whole read
-first. Case 1 with a genuine `luac5.1` chunk is still unrun and is the one this
-check was written for; the size defect has its own check below. Case 2 unrun.
-
-B40 was fixed on 2026-08-28: the read stops one byte past `max_file_kb`, so a
-168 MB file is now refused by name and never reaches a string. **Re-running case 1
-is the point** — a `luac5.1` chunk is small, so it goes past the size bound and
-lands on the `0x1B` refusal this check was written for, which the size defect has
-been standing in front of.
-
-Result: pass — `246bb37` + B40's and B42's fixes, uncommitted · engine 5.17.0 ·
-2026-08-28 — **case 1**, with a real `luac5.1` chunk. The bytecode refusal names
-the file and the editor carries on with the rest of the list, so the branch after
-`handle:close()` is exercised for the first time and **B7** is confirmed in a
-running world. Case 2, the unreadable file, is still unrun.
-
-Result: unchecked — 2026-08-28 — **case 2 attempted and blocked by the recipe,
-not by the mod.** The `icacls` line as written was `cmd` syntax run in PowerShell,
-which answered `R : Historique le plus récent introuvable.` — PowerShell had read
-`(R)` as a subexpression and run the `r` alias for `Invoke-History` instead of
-calling `icacls` at all. **The recipe above is corrected and the round trip is
-verified**; the check itself is still to do. No finding: nothing in the mod was
-reached.
-
-Result: partial — `326f739` + uncommitted B41/C18 fixes · engine 5.17.0 ·
-2026-08-28 — case 2, with the corrected recipe. **The behaviour passes**: the
-file stays in the list, opening it reports the failure, and no other file is
-lost with it, so `B7`'s half of this check is confirmed for the second branch.
-
-**But the message is wrong twice over, and that is `S7`.** It read
-*"&lt;full path&gt; ... permission denied"* — the server's **absolute filesystem
-path**, in English with the game in any language. `read_file` returns `io.open`'s
-own error string for this one branch (`return nil, err or unreadable`), where
-every other refusal beside it uses `S()` and names the bare filename. So the
-pass condition as written — *the message names `test.lua`* — is not met: it names
-the whole path instead.
-
-Case 2 stays **partial** until `S7` is fixed and the message names the file.
-
-**`S7` was fixed the same day, so this is due a re-run.** What to look for now:
-*"Cannot read file test.lua"* and nothing else — no path, and translated if the
-game is in French. The real reason still exists, at `warning` level in the
-server log with the filename beside it, which is where an operator should look
-and where a path is not a disclosure. Check the log too: the point of the fix is
-that the detail moved, not that it was thrown away.
-
-Result: pass — `6fea453` · engine 5.17.0 · 2026-08-28 — case 2 re-run after
-`S7`. The message now reads *"Impossible de lire le fichier ..."* — the
-translated form of `Cannot read file`, in the player's language, with the
-filename and **no absolute path**. Both halves of the fix are visible in one
-line: it is a translation key, so it came out in French, and it names the file
-rather than the server's install layout. `F-3` is a full pass at last, both
-cases, and `S7` and `B7` are each confirmed in a running world.
-
-**The log half is not confirmed.** The fix moved `io.open`'s real reason to
-`warning` level rather than discarding it, and this run reported only what the
-player saw. Nothing suggests it is missing; it is simply unlooked-at. Whoever
-next has an unreadable file to hand can settle it in one grep of `debug.txt`.
+Earlier, and worth keeping: fail — `246bb37` · 2026-08-27 — case 1 run with a
+168 MB executable renamed `test.lua` took Luanti to ~14 GB and froze it twice.
+**That is `B40`, not a failure of the bytecode refusal** — the refusal was checked
+*after* `handle:read('*a')`. And unchecked — 2026-08-28 — case 2 blocked by the
+`cmd` recipe above. **A recipe written for one shell and run in another is a
+procedure defect, not a finding**; that is twice a recipe here has cost a session
+(`D2` case 2 is the other), so a recipe added here names the shell it is for.
 
 ### F-4 · A file too large to open [B40]
 
-Put a large file — tens of megabytes is enough, and it need not be valid Lua —
-into `<worldpath>/codeblock_files/<playername>/` with a `.lua` name, then open the
-editor and click it.
+Put a large file — tens of megabytes, need not be valid Lua — into
+`<worldpath>/codeblock_files/<playername>/` with a `.lua` name and click it.
 
-**Pass:** the file is refused by name and by size — *"File @1 is too large: over
-128 kB"* at the default `codeblock_max_file_kb` — the way a bytecode file is, and
-the editor carries on with the rest of the list. **Fail is anything that reads
-it**: watch the server process's resident memory while clicking, not just the
-screen.
+**Pass:** refused by name and by size — *"File @1 is too large: over 128 kB"* —
+and the editor carries on. **Fail is anything that reads it**: watch the server
+process's resident memory, not just the screen.
 
-**The bound is in `read_file`**, which is the only route from disk to a string, so
-checking it there covers the editor, `Drone.set_file` and the sandbox at once. The
-run path is a separate gesture and worth making: load the same file onto a drone
-rather than opening it in the editor, and the refusal must name the size — before
-this fix the sandbox threw away `read_file`'s message and said *"not found"* for
-every refusal.
+Two more gestures: load the same file onto a **drone** (the refusal must name the
+size — the sandbox used to say *"not found"* for every refusal); and check an
+ordinary save still works. Exceeding the ceiling from an unmodified client cannot
+be reached at all, the engine dropping any submission whose fields total 640 kB.
 
-A third gesture, for the write half: with a file open, the editor must not be able
-to save more than the ceiling either. From an unmodified client this cannot be
-reached — the engine drops a formspec submission whose fields total 640 kB — so
-what is actually being checked is that an ordinary save of an ordinary program
-still works.
+Result: pass — `246bb37` + `B40`'s fix · engine 5.17.0 · 2026-08-28 — the file
+that took the server to 14 GB is refused instead of read. Which of the three
+gestures were made is not recorded, so the **run path is worth a pass of its
+own**.
 
-Result: fail — `246bb37` · engine 5.17.0 · 2026-08-27 — no bound existed yet; see
-the F-3 result above for what was observed.
+### F-5 · Every bundled example finishes at codelevel 2 [S6]
 
-Result: pass — `246bb37` + B40's fix, uncommitted · engine 5.17.0 · 2026-08-28 —
-the file that took the server to 14 GB is refused instead of read. Reported as a
-pass by the author; which of the three gestures were made is not recorded, so the
-run path — the same file loaded onto a drone — is worth a pass of its own.
+**New 2026-08-30, never run.** The limits were retuned and `planet.lua`,
+`death_star.lua` and `mosely.lua` shrank so the whole set fits the level a server
+hands out. **That claim is arithmetic, not observation.**
+
+`/codegenerate`, set yourself to **codelevel 2**, run all fourteen.
+
+**Pass:** every one completes. None stops with *"Maximum number of nodes
+written"*, *"Maximum running time"* or *"Memory limit exceeded"*.
+
+The counted margins, so a failure can be read against them: `planet.lua` is
+largest at roughly 353k of level 2's 5e5 nodes, then `death_star.lua` at ~207k;
+everything else is under 100k. **A node-limit failure on a *third* example means
+the counting method is wrong**, not that one example needs shrinking.
+
+**What the counting cannot see:**
+
+- **Runtime, not nodes, may be what bites.** `torus.lua` issues ~63k single-node
+  commands and `density.lua` ~45k loop iterations; at level 2's 5 ms pace that is
+  minutes of wall clock. Pace is not charged to `max_runtime_s`, but the advancing
+  time is, and nothing has measured it.
+- **Map footprint throttles rather than fails**, so `forest(100)` — ~340 mapblocks
+  over a 200-node square — should simply be slow. If it *errors*, that is a single
+  request larger than the whole ceiling and a real defect.
+- **`planet.lua` uses `random()`**, so its count varies. The 353k is the worst
+  case; run it more than once.
+
+**Codelevel 1 is deliberately not in scope**: `planet.lua` and `death_star.lua`
+are both over its 1e5 and always were. Changing that is a decision about the
+examples, not a defect in them.
+
+Result: unchecked.
 
 ---
 
 ## Writing to the world
 
+W1–W3, played 2026-08-28. The group **settled questions rather than finding
+defects**: `W2` answered `A4`, the oldest thing on the audit's *not verified
+anywhere* list.
+
 ### W1 · `place()` far from spawn [A4, S5, B25]
 
 Fly a long way out, place a drone, and run a program that walks and places one
-node at a time across several mapblocks and back over ground it already visited.
+node at a time across several mapblocks **and back over ground it already
+visited**.
 
-**Pass:** no holes. Every node is where the program said. `place_block` calls
-`core.load_area` before `set_node`, memoised per mapblock — and the memo is
-cleared before every yield, **per resume, not per run**, which is exactly what
-this check exercises.
+**Pass:** no holes.
 
-**Run it at codelevel 1 or 2, not 3 or 4.** The pass condition is only *no
-holes*, but what this check is *for* is the per-resume memo reset, and the
-codelevel decides how often that runs. `end_command` yields after **every**
-command while `pace_ms > 0` — levels 1 and 2 — and only when the step budget is
-spent when pace is 0. So a 2000-command program clears and rebuilds the memo
-2000 times at level 1 and a handful of times at level 4. The high-codelevel run
-proves the writes land; the low-codelevel run is the one that exercises the
-thing the check exists for.
-
-Result: pass — `43e95a8` · engine not recorded · 2026-08-25 — the mapblock memo,
-the per-crossing footprint charge and the per-resume reset all behaved. Measured
-over a 400-block sweep: **16.3 kB resident per mapblock**, and the engine served
-about **1700 loads a second**. Recorded in the audit under S5 and quoted again as
-the measurement that forced Phase 6's `map_memory_mb`. The engine version was not
-written down at the time; the audit cites `lua_api.md` 5.17.0 for `load_area` not
-triggering mapgen.
-
-Result: pass — `326f739` + uncommitted B41/C18 fixes · engine 5.17.0 ·
-2026-08-28 — **no holes**, at a codelevel above 2. Two 1000-node lines, the
-second offset by `right(5)` and built in a different block after
-`default_block(blocks.brick)`, so the return leg re-crosses about 63 mapblocks
-the outward leg had already written into — which is the case the memo is for.
-This clears the re-run the 2026-08-25 line was flagged for: it now postdates the
-Phase 6 and Phase 7 rewrites of `lib/cost.lua`.
-
-Both lines appearing **instantly is the program's speed, not a shortcut**: at
-codelevels 3 and 4 `pace_ms` is 0, so the drone never waits between commands and
-2000 of them fit in a few server steps. 2000 nodes is also nothing against
-`max_nodes_written`, which is 1e7 at level 3. Nothing about the speed weakens
-the *no holes* result — but per the note above, the memo reset is barely
-exercised at that pace, so **a level 1 or 2 re-run is still worth one session**.
+**Run it at codelevel 1 or 2, not 3 or 4.** The pass condition is only *no holes*,
+but what this check is *for* is the per-resume memo reset, and the codelevel
+decides how often that runs: `end_command` yields after **every** command while
+`pace_ms > 0`, and only when the step budget is spent when pace is 0. A
+2000-command program clears and rebuilds the memo 2000 times at level 1 and a
+handful of times at level 4.
 
 Past about 2000 nodes in one direction the program stops with *"The drone cannot
-leave the world (@1 nodes)"*. **That is the world-edge guard working, not a
-limit being hit** — `lib/commands.lua` keeps the drone inside `mapgen_limit`,
-because past that edge a write silently does nothing, which is the lost write
-`load_area` exists to stop. It is `B25`'s half of this check and it reports the
-edge by name. The number depends on the world's own `mapgen_limit`, so a build
-world with a small one stops sooner than the engine's 31000 default.
+leave the world"*. **That is the world-edge guard working, not a limit being
+hit** — the number depends on the world's own `mapgen_limit`.
+
+Result: pass — `326f739` + uncommitted fixes · engine 5.17.0 · 2026-08-28 — no
+holes, at a codelevel above 2. Two 1000-node lines, the second offset so the
+return leg re-crosses ~63 mapblocks the outward leg had written into. **A level 1
+or 2 re-run is still worth one session**, the memo reset being barely exercised at
+that pace.
+
+Earlier: pass — `43e95a8` · engine not recorded · 2026-08-25 — where `S5`'s
+measurements come from: **16.3 kB resident per mapblock** over a 400-block sweep,
+and about **1700 loads a second** served.
 
 ### W2 · A node written into never-generated ground [A4]
 
 Place a node in an area that has never been generated, leave, come back so the
 area generates, and look.
 
-**Pass:** the node is still there. This was **unknown either way** and was one of
-the things v1.0.0 was going to ship not knowing.
+**Pass:** the node is still there. This was **unknown either way**.
 
-Result: pass — `326f739` + uncommitted B41/C18 fixes · engine 5.17.0 ·
-2026-08-28 — the node survives. **`A4`'s open question is answered**: mapgen does
-not overwrite a node already written into ground it had not generated. That
-question had been on the audit's *not verified anywhere* list since Phase 4 and
-is the oldest thing on it to be settled. `place_block`'s `core.load_area` call
-is what makes the write real in the first place; this says the engine then
-treats the block as generated and leaves it alone.
+Result: pass — `326f739` + uncommitted fixes · engine 5.17.0 · 2026-08-28 —
+**`A4`'s open question is answered**: mapgen does not overwrite it. `load_area`
+plus `set_node` does not merely make the write land — the engine then treats the
+block as generated and leaves it alone.
 
 ### W3 · A large bulk shape [A5, A15]
 
-Run `cube(200, 200, 200)` or similar at codelevel 4 and watch the server.
+Run `cube(200, 200, 200)` **at codelevel 4** and watch the server.
 
 **Pass:** the shape appears slab by slab and the server stays responsive. It must
-not freeze — a 150-node cube stalled it for 0.44 s before shapes were written in
-mapblock-aligned slabs.
+not freeze — a 150-node cube stalled it for 0.44 s before shapes were sliced.
 
-Result: pass — `326f739` + uncommitted B41/C18 fixes · engine 5.17.0 ·
-2026-08-28 — `cube(200, 200, 200)` in **0.34 s**, server responsive.
+Result: pass — `326f739` + uncommitted fixes · engine 5.17.0 · 2026-08-28 —
+**0.34 s**, server responsive.
 
-**What that shape costs, since the 0.34 s is the smallest part of it.** Worked
-out from the code and the one measured constant, `16.3 kB` resident per mapblock
-(`S5`); the timing is the only measured number here.
+**What that shape costs, since the 0.34 s is the smallest part of it.** Arithmetic
+over the source and the one measured constant (16.3 kB a block); the timing is the
+only measurement.
 
-- **8,000,000 nodes**, against `max_nodes_written` = 1e7 at codelevel 3. It fits
-  with a fifth to spare, so `cube(215,215,215)` would not.
-- **~13 mapblocks on each axis**, so a cross-section of ~169 and a total of
-  **~2200 mapblocks** emerged. `SLICE_BLOCKS` is 16, so `layers` computes to 0
-  and is clamped to 1: **every slab is one mapblock thick and 169 across**. This
-  is the "large in two dimensions" case slicing cannot reduce — a slab is 169
-  blocks whatever the axis.
-- **~36 MB of server RAM pinned**, decaying over the engine's 29 s unload
-  window. Against `map_memory_mb` that is 4096 blocks allowed at level 3 and
-  8192 at level 4, so ~2200 never comes near the ceiling and the run never
+- **8,000,000 nodes** against `max_nodes_written` = 1e7, which since 2026-08-30 is
+  **codelevel 4 only**. It fits with a fifth to spare — `cube(216,216,216)` is
+  1.008e7 and would not. **At codelevel 3 this shape is now refused outright**,
+  the ceiling there being 1e6.
+- **~2200 mapblocks emerged**, ~13 on each axis. `SLICE_BLOCKS` is 16 and the
+  cross-section ~169, so `layers` clamps to 1: **every slab is one mapblock thick
+  and 169 across** — the "large in two dimensions" case slicing cannot reduce.
+- **~36 MB pinned**, against 8192 blocks allowed at level 4, so it never
   throttles. That is why it did not wait.
-- **CPU**: 13 slabs, each a VoxelManip read, a full-volume fill and a write over
-  ~692k nodes — about 18M Lua table stores in total. 0.34 s is consistent with
-  that under LuaJIT, so the number is what the model predicts rather than a
-  surprise.
+- **CPU:** 13 slabs, each a VoxelManip read, a full-volume fill and a write over
+  ~692k nodes — about 18M Lua table stores. 0.34 s is what the model predicts.
 
-**What nothing charges for.** The 0.34 s is the *program's* time, and the budget
-covers nodes, runtime and footprint. Serialising ~2200 mapblocks into the map
-database, and pushing them to every client in range, happen **outside the run
-and are charged to nobody** — they land after the program has already reported
-`completed`. Neither was measured here. That is not this shape misbehaving; it
-is the shape of the limits model, and it is noted under `S5` rather than filed,
-because every mod writing to the map has it and `map_memory_mb` is the closest
-thing to a proxy.
+**What nothing charges for.** Serialising ~2200 mapblocks into the map database
+and pushing them to every client happen **outside the run and are charged to
+nobody**. Neither was measured. Noted under `S5` rather than filed.
 
 ---
 
 ## Pacing, slabs and the footprint throttle
 
-**First run, 2026-08-27, at `246bb37`**, engine Luanti 5.17.0 — three passes and
-one fail, and the fail is **B42**: a shape wider than the footprint ceiling
-raises instead of waiting, and which way the drone is facing decides whether it
-happens. Everything else in the group behaves as the audit said it would from
-reading alone: the pacing, the slab progression and the shared step budget.
-
-**Second run, 2026-08-28, at `febf16f`** — `P3` passes, and with it the group.
-The throttle has now been seen throttling, which is the one thing `S5` claimed
-from reading and no run had reached: the same `cube(2, 2, 30000)` that died
-before completed in 93 s, a rate consistent with the ceiling divided by the
-engine's unload window. The run also turned up that **how long it takes depends
-on which way the drone faces** — every orientation completes, so not `B42`
-returning. Timing three of them settled it and opened **`B43`**: 78 s, 160 s and
-183 s for the same call from the same spot, two of the three landing on what a
-doubled or quadrupled emerge predicts. **A measurement, not a failure, is what
-found that one**, and it is the first finding here to arrive that way.
-
-**Third run, 2026-08-28, at `6fea453`** — `P3` re-timed against `B43`'s fix, and
-the spread is gone: **78 s and 95 s** at codelevel 1, where a doubled emerge
-would have cost 183 s. The group stays green and `B43` is closed by the same
-kind of evidence that opened it. Two facings, not four, and 23% of the gap is
-still unaccounted for; both are written into the result below rather than
-smoothed over.
+P1–P4. Three runs across 2026-08-27 and 2026-08-28, which produced `B42` and —
+from a *measurement* rather than a failure, the only finding here with that
+provenance — `B43`.
 
 ### P1 · `pace_ms` at the low codelevels [S5, B26]
 
 Run the same loop at codelevel 1, then 2, then 4.
 
 **Pass:** level 1 visibly waits about 250 ms between commands and level 2 about
-15 ms, so a beginner can watch the loop happen; levels 3 and 4 do not wait.
+5 ms, so a beginner can watch the loop happen; levels 3 and 4 do not wait.
 
-Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27.
+Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27, when level 2 was 15 ms.
 
 ### P2 · Slab progression under the step budget [A5, B26]
 
@@ -1419,114 +845,43 @@ Run a shape large enough to take many slabs and watch the server step time.
 
 **Pass:** the deadline is honoured at every drone command and before every slab.
 The known overshoot is **one slab** — a VoxelManip pass cannot be interrupted,
-which is the deliberate trade that lets a shape be any size.
+the deliberate trade that lets a shape be any size.
 
 Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27.
 
 ### P3 · The footprint throttle actually throttling [S5]
 
-Run a program that exceeds `map_memory_mb` — a long sweep at a low codelevel.
+Run `cube(2, 2, 30000)` at codelevel 1, **both facings**.
 
 **Pass:** the drone **waits** and then continues. It must not die: over the
 ceiling `limits.hold` returns how long to wait, because the engine frees idle
-mapblocks by itself. The audit records the throttle's live behaviour under a
-program that genuinely exceeds the ceiling as still unmeasured, and the decay as
-an estimate by construction.
+mapblocks by itself. **Facing does not matter any more**, and checking that it
+does not is half of this check (`B42`).
 
-Use a shape that is long in one dimension — `cube(2, 2, 30000)` at codelevel 1
-does it. **Facing does not matter any more**, and checking that it does not is
-half of this check now: the run used to die facing east or west, where the
-extents land on x and nothing sliced along it (**B42**, fixed). Run it both ways.
+Result: pass — `6fea453` · engine 5.17.0 · 2026-08-28 — the re-timing that proved
+`B43`'s fix, at codelevel 1, view distance 500: **78 s one way, 95 s the other**,
+where a doubled emerge would have cost 183 s. Before the fix the same shape spread
+**78 / 160 / 183 s** across three facings. The factor of two is gone.
 
-Result: fail — `246bb37` · engine 5.17.0 · 2026-08-27 — `cube(2, 2, 30000)` at
-codelevel 1 ended with *"Empreinte mémoire maximale de la carte dépassée"*. The
-drone died where the whole point of this ceiling is that it waits. **B42**, open:
-`lib/shapes.lua` slices along z only, so with the shape running along x the
-cross-section is about 1877 mapblocks against codelevel 1's ceiling of 512, and
-`limits.hold` returns nil — the case its own comment says a slicing caller never
-reaches. Nothing was written, because `charge` runs before the pass. **The
-throttle itself is still unmeasured**: re-run facing north, where each slab is 16
-blocks and the wait is what should be observed.
+Result: pass — `febf16f` · engine 5.17.0 · 2026-08-28 — **the first measurement of
+the throttle**, which `S5` had claimed from reading since Phase 5: the shape
+completed in **93 s** against a predicted ≈80 s (512 mapblocks decaying over 29 s
+is 17.7 a second; the shape emerges ~1877 with the first 512 free). Consistent,
+the gap in the direction the estimate is coarse.
 
-Result: pass — `febf16f` · engine 5.17.0 · 2026-08-28 — `cube(2, 2, 30000)` at
-codelevel 1 **completed, in 93 s**. The drone waited instead of dying, which is
-what this check is for and what no run had ever reached. **The first measurement
-of the throttle**, and it matches the design: codelevel 1 holds 8 MB, which is
-512 mapblocks, decaying over the engine's 29 s unload window, so the rate it
-should settle at is 512/29 ≈ 17.7 mapblocks a second. The shape emerges about
-1877 mapblocks, the first 512 of them free, which predicts ≈ 80 s against the
-93 s observed — consistent, with the gap in the direction the estimate is coarse
-(`limits.hold` decays linearly rather than tracking each block, and the server
-steps in between).
+Earlier: fail — `246bb37` · 2026-08-27 — the drone died where the ceiling exists
+to make it wait. That is `B42`.
 
-Re-run at codelevel 2, same commit and day: **both orientations complete**, so
-`B42` is closed either way, but the *cadence differs by orientation* — in one the
-blocks appear and then the drone pauses, in the other the drone pauses until the
-blocks appear. At codelevel 1 nothing appeared at all until the drone was
-stopped, and then part of it did.
+**Two things this leaves, recorded rather than filed.** The 95 s is 23% over the
+78 s and the emerge model does not explain it — the multipliers can only be 1, 2
+or 4. And only two of four facings were timed, at a different codelevel from the
+pre-fix run. **Neither is `B43` returning**; the doubling is what the numbers rule
+out.
 
-**What it was.** Not a deferred write: `lib/shapes.lua` calls `write_to_map()` in
-every pass, and **nothing in this mod touches the map when a drone stops** —
-`Drone.finish` sends a chat line and removes the drone. Two candidates were
-open, and a number rather than an impression told them apart:
-
-1. **What the client drew.** The shape grows along a different axis each way, so
-   one run grows across the player's view and the other away from it, and the
-   view distance decides how much of either is on screen. It was set to 30 for
-   `D2`.
-2. **A real difference in the work.** The emerged box covers one node more than
-   the shape on every axis, so a 2-node extent covers 3 and straddles a mapblock
-   boundary at twice as many positions; which extent is where changes with the
-   angle, because `bounds.cube` centres `w` on x and `l` on z while
-   `drone_place_cube` gives each angle its own origin.
-
-**Settled, and it is the second.** Timed at three facings from one spot,
-codelevel 2, **view distance 500** so nothing was hidden: **78 s, 160 s, 183 s**.
-Codelevel 2 holds 1024 mapblocks decaying over 29 s, so it settles at 35.3 blocks
-a second; the long axis is about 1877 mapblocks and each short axis multiplies by
-1 or 2, giving predicted times of 24 s, 77 s and 184 s. **78 and 183 land on two
-of those to within one per cent**, so the work really does differ with the
-facing — that is **`B43`**, filed. The 160 s run fits none of them and is
-recorded as fitting none: the products can only be 1, 2 or 4.
-
-At view distance 500 the shape was visible as it built, so the codelevel-1 run
-above — nothing appearing until the drone was stopped — was the client and not
-the server. No id for that half.
-
-**Due a re-timing, and this is the check that proves `B43`'s fix.** The
-subtraction landed on 2026-08-28: `bounds.cube` and `bounds.cylinder` no longer
-run a node past the shape. Repeat the three facings from one spot at codelevel 2,
-view distance 500. **Pass:** the three times are within noise of each other and
-near the 78 s end, because a 2-node extent now covers 2 nodes and straddles a
-boundary at 1 position in 16 rather than 2 — the factor-of-two spread between
-facings should be gone. The specs pin the charge arithmetic and were checked
-against the old bounds so they are not vacuous, but **only this check can say
-whether the time a player waits actually changed**, which is what the finding was
-about.
-
-Result: pass — `6fea453` · engine 5.17.0 · 2026-08-28 — the re-timing, **at
-codelevel 1**, view distance 500: **78 s one way, 95 s the other**. The
-factor-of-two the finding was about is gone. At codelevel 1 the hold is 512
-mapblocks decaying over 29 s, so the rate is 17.7 a second and the first 512 are
-free; against a long axis of about 1877 mapblocks that predicts **77 s at
-multiplier 1 and 183 s at multiplier 2**. Both facings land at the multiplier-1
-end. Before the fix the same shape spread 78 / 160 / 183 s across three facings.
-
-Two things to keep straight about this as evidence. It was run at **codelevel 1
-where the pre-fix timing was at codelevel 2**, so the absolute seconds are not a
-like-for-like pair — but the *ratio between facings* is what `B43` is about, and
-that ratio barely moves with codelevel: the free initial hold makes a doubling
-cost 2.37x at level 1 against 2.05x at level 2, so if anything this run was the
-sharper test. And **only two of the four facings were timed**; the other two are
-untimed, as is the third that was 160 s before.
-
-The 95 s is 23% over the 78 s and the emerge model does not explain it — the
-multipliers can only be 1, 2 or 4, and 1.23 is none of them. Recorded rather
-than filed, as the old 160 s was: the coarse linear decay in `limits.hold`, the
-drone's own traverse and whatever else the server was doing all live in that
-gap, and none of them is the doubled emerge this check was looking for. The
-93 s codelevel-1 run at `febf16f` sits beside today's 95 s, but its facing was
-never recorded, so it is not a before/after pair either.
+**Also observed, no id:** at codelevel 1, view distance 30, nothing of the shape
+appeared until the drone was stopped. Not a deferred write — nothing here touches
+the map when a drone stops — and at view distance 500 it was visible as it built,
+so it is most likely what the client drew.
 
 ### P4 · Several drones at once [A5]
 
@@ -1535,8 +890,7 @@ Run four or more drones simultaneously.
 **Pass:** they share one slice of each server step rather than taking one budget
 each, and a waiting drone takes no share.
 
-Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — four drones shared the
-steps.
+Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — four drones shared.
 
 ---
 
@@ -1544,157 +898,118 @@ steps.
 
 ### R1 · The archive contains no `tests/` [C16, C10]
 
-```bash
-git archive HEAD | tar -t | grep tests
-```
+**Pass:** no `tests/` directory. ContentDB builds releases with `git archive`, and
+nothing in CI checks `.gitattributes`.
 
-**Pass:** no `tests/` directory. ContentDB builds releases with `git archive`,
-and nothing in CI checks `.gitattributes`.
-
-**The grep is not the pass condition — read what it prints.** `lib/examples/`
-contains a player-facing example named `tests.lua`, so this command has a match
-even when the archive is correct. It is one of the fourteen example programs a
-player can open and run, and it exercises every API command in one go, which is
-exactly why it is called that. What would be a fail is a path *beginning*
-`tests/`. Better to list the top level and read it whole:
+**The obvious command misleads.** `git archive HEAD | tar -t | grep tests` prints
+`lib/examples/tests.lua` even when the archive is correct — a player-facing
+example, the one that exercises every API command. Read as a bare pass/fail it
+says *fail*. What answers the question is listing the top level:
 
 ```bash
 git archive --format=tar HEAD | tar -t | awk -F/ '{print $1}' | sort -u
 ```
 
-Result: pass — `afbe504` · 2026-08-28 — run in WSL by the author. `grep tests`
-returned `lib/examples/tests.lua` and nothing else, which is the example, not the
-suite. Listed in full the archive holds eleven top-level entries, all
-player-facing: `CHANGELOG.md`, `LICENSE`, `README.md`, `doc`, `init.lua`, `lib`,
-`locale`, `mod.conf`, `screenshot.png`, `settingtypes.txt`, `textures`. No
-`.claude/`, `.reports/`, `.github/`, `tests/`, `scripts/`, and **none of the
-record** — `AUDIT.md`, `PLAYTEST.md`, `ROADMAP.md`, `TODO.md` and `CLAUDE.md` are
-all absent. `screenshot.png` survives, which it must: Luanti shows it in the
-Mods tab. **`C10` is confirmed for the first time** — `.gitattributes` was doing
-its job, but nothing had ever looked.
+Result: pass — `afbe504` · engine 5.17.0 · 2026-08-28 — eleven top-level entries,
+all player-facing, **none of the record**. `screenshot.png` survives, which it
+must. **`C10` confirmed**, the rules having been right for the project's whole
+life with nothing ever having looked.
 
 ### R2 · A real install with the test flag set [C16]
 
-Install the built archive as a package and set `codeblock_run_tests = true` in
-`minetest.conf`, then start the game.
+Extract the archive into a game's `mods/` as a player would, set
+`codeblock_run_tests = true`, and start.
 
 **Pass:** the mod loads normally and logs *"codeblock_run_tests is set, but this
-build ships no tests/ directory"*. Before C16 this was nine bare `dofile`s and the
-whole mod refused to load.
+build ships no tests/ directory"*. **Fail is the mod refusing to load** — nine
+bare `dofile`s of files the archive does not contain.
 
-Building the archive is the same command ContentDB uses, so `.gitattributes`
-applies:
-
-```bash
-git archive --format=zip --prefix=codeblock/ -o codeblock.zip HEAD
-```
-
-Extract it where the engine will find it — **not** the junction `run_tests.ps1`
-creates, or the repository's `tests/` comes back and the check proves nothing.
-`vector3` has to be installed beside it, and the host game has to supply `default`
-and `wool`, so `minetest_game` rather than the `cbtest` fixture.
-
-Result: pass — `7c5bceb` · engine 5.17.0 · 2026-08-28 — the archive was extracted
-into `minetest_game`'s own `mods/`, beside `vector3`, and a world on that game
-started with `codeblock_run_tests = true`. The mod loaded normally, logged
-*"codeblock_run_tests is set, but this build ships no tests/ directory"* at
-`warning`, and the server came up and gave the world its `codeblock_files`
-directory. **`C16` is confirmed on the one path it was filed for**, and the
-release-archive pair is complete.
+Result: pass — `7c5bceb` · engine 5.17.0 · 2026-08-28 — extracted into
+`minetest_game`'s `mods/` beside `vector3`; loaded and warned. **`C16` confirmed**
+— the one thing only an install could show.
 
 ### R3 · The sky belongs to the game [C18]
 
-Install the mod into a game that has an ordinary day/night cycle — anything but
-`codecube` — and join. Then set `codeblock_flat_sky = true` in `minetest.conf`,
-restart, and join again.
+Install into a game with an ordinary day/night cycle — anything but `codecube` —
+and join. Then set `codeblock_flat_sky = true`, restart, join again.
 
-**Pass:** the first join leaves the sky alone — the cycle runs, the sun, moon and
-stars are where the game put them, clouds are drawn. The second join has daylight
-held at noon with none of them visible. Before the fix every joining player got
-the second sky and there was no way to ask for the first.
+**Pass:** the first join leaves the sky alone; the second holds daylight at noon
+with sun, moon, stars and clouds gone. The setting is read once at mod load, so
+**a restart is part of the check**.
 
-The setting is read once at mod load, so a restart is part of the check and not an
-impatience. Nothing needs undoing between the two: the overrides are per-player
-and re-applied on join.
+Result: pass — `326f739` + uncommitted fixes · engine 5.17.0 · 2026-08-28 — both
+positions. **`C18` confirmed**, and the first time its player-visible half was
+*seen* rather than inferred: inside `codecube` the flat sky is the game's own
+design and looks correct.
 
-Result: pass — `326f739` + uncommitted B41/C18 fixes · engine 5.17.0 · 2026-08-28
-— both positions. With the setting absent the game's own sky is left alone; with
-`codeblock_flat_sky = true` the daylight is held and the sun, moon, stars and
-clouds are gone. **C18 is confirmed fixed in a running world**, and this is the
-first time the finding's player-visible half has been seen at all: that a joining
-player loses the day/night cycle was read from the source for the whole life of
-the finding, because inside `codecube` the flat sky is the game's own design and
-looks correct.
+### R4 · A brand new world hands out the right codelevel [S6]
+
+**New 2026-08-30, never run.** The singleplayer default moved from 4 to 3, and
+`register_on_newplayer` is the only place it is written — so **a world with any
+history in it proves nothing here**. Create a fresh world each time.
+
+1. **Singleplayer, fresh world.** `/codelevel` with no argument. **Pass: 3.**
+2. **A server, fresh world, a joiner who has never connected.** **Pass: 2.**
+3. **Either, with `codeblock_default_auth_level = 4`** and a restart. **Pass: 4**
+   — the setting wins over both built-in defaults.
+4. **An existing player in an existing world, after upgrading the mod.** **Pass:
+   unchanged.** The write is on *new player*, so an upgrade must neither demote
+   nor promote anyone — the half of `S6` that surprises people.
+
+Worth reading the log once while you are there: `codeblock_default_auth_level = 9`
+must warn and fall back rather than giving a player nil limits.
+
+Result: unchecked.
 
 ---
 
 ## Per-feature checks
 
-Added as each feature lands, for the paths that feature puts beyond the specs.
-
-**Run of 2026-08-27, at `246bb37`** — all three pass. `F1` and `F3` are now proven
-in a running world and nothing is outstanding for either.
+Added as each feature lands, for the paths it puts beyond the specs.
 
 ### F1 · The Settings panel [F1]
 
 Open the editor and click **Settings** beside Blocks / Plants / Wools / API.
 
 **The control is not what the plan first described.** The panel draws the chosen
-block's texture plus one button reading **`Default block: <name>`**. Clicking the
-button opens a `textlist` of block names; clicking a row selects that block and
-closes the list; clicking the button again closes it unselected. A
-`scroll_container` of `item_image_button` rows — the help panels' rendering — was
-abandoned: this formspec is in legacy coordinates, where a container maps its
-contents into a different space and clips them to its own rectangle, and an
-`item_image_button` inside one gets a hit area that does not match where it is
-drawn. The price is that the rows are names only, with the texture of the chosen
-block shown above them.
+block's texture plus a button reading **`Default block: <name>`**; clicking it
+opens a `textlist` of names. A `scroll_container` of `item_image_button` rows was
+abandoned — this formspec is legacy coordinates, where a container clips to its
+own rectangle and a button inside one gets a hit area that does not match where it
+is drawn. The price is that the rows are names only.
 
-**Pass:** the button shows the current default; clicking it opens the list and
-clicking it again closes it; selecting a row changes both the name on the button
-and the texture beside it; `air` is offered and selectable; switching to Blocks /
-Plants / Wools / API and back leaves the panel usable. Not spec-reachable — it is
-a formspec.
+**Pass:** the button shows the current default; clicking it opens and closes the
+list; selecting a row changes both the name and the texture; `air` is offered and
+selectable; switching panels and back leaves it usable.
 
 Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27.
 
 ### F1 · The preference survives a relog [F1]
 
-Pick a block in the Settings panel, close the editor with **ESC**, disconnect,
-rejoin, and run a program whose `place()` names no block.
+Pick a block, close with **ESC**, disconnect, rejoin, run a program whose
+`place()` names no block.
 
-**Pass:** the chosen block is what gets built. The meta write happens the moment
-a row is selected, not on form close — precisely so the preference does not
-depend on the editor-state save path. **Expect this to pass even though E5 fails**
-on three exits: that is by design, not an inconsistency between the two checks.
-Selecting a row through **Load and close**, or a disconnect straight after
-picking, should also keep the preference while losing the tabs.
+**Pass:** the chosen block is what gets built. The meta write happens the moment a
+row is selected, not on form close — precisely so the preference does not depend
+on the editor-state save path.
 
 Then change the preference mid-run: **pass** is that the running program keeps
-building the block it started with, because the preference is read once per run
-into `drone.default_block`.
+building the block it started with, the preference being read once per run.
 
-Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — with the panel check
-above, **F1 is now proven in a running world** and nothing is outstanding for it.
+Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27.
 
 ### F3 · `sleep(seconds)` in a running world [F3]
 
 Run a program that places a node, calls `sleep(1)`, and repeats — at codelevel 3
-or 4, where `pace_ms` is 0 and the wait is therefore the only thing pacing it.
-Then run one asking for far more time than the codelevel allows, `sleep(1e9)`.
+or 4, where `pace_ms` is 0 and the wait is the only thing pacing it. Then run one
+asking `sleep(1e9)`.
 
 **Pass:** the drone visibly builds one node a second; the server stays responsive
-and any other drone keeps building at its own rate while this one waits; and the
-unbounded ask ends the program with the same timeout message a program that never
-finishes gets, rather than parking the drone for ever. The wait is charged against
-`max_runtime_s` before it starts, which is that limit's one exception.
+and any other drone keeps its own rate while this one waits; and the unbounded ask
+ends the program with the same timeout message a program that never finishes gets,
+rather than parking the drone for ever.
 
-`stepper_spec` and `integration_spec` cover the skip and the charge without a
-world; what only a world shows is the *pace* being watchable and other drones
-being unaffected.
-
-Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — **F3 is now proven in a
-running world.**
+Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27.
 
 ---
 

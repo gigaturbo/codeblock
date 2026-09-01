@@ -1,4 +1,4 @@
-local R1 = 30
+local R1 = 25
 local R2 = R1
 
 local mvt = vector(-1, -1, -1)

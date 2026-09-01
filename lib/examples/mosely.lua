@@ -46,4 +46,4 @@ end
 --
 
 up()
-mosely(pow(3,4), blocks.snowblock)
+mosely(pow(3, 3), blocks.snowblock)

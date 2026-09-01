@@ -1,18 +1,16 @@
 # Roadmap — CodeBlock
 
-What to do next, in order, and **what has been agreed** — the shape of a feature
-as settled in conversation, a part argued out, a rewording, a default chosen.
-Those decisions are recorded nowhere else: git holds the code and `CHANGELOG.md`
-holds what shipped, but neither says why a question is settled, so without this
-file a settled question gets re-litigated. Compressed as it grows; only the
-minimum past information stays.
+What to do next, and **what has been agreed** — a feature's shape as settled, a
+part argued out, a default chosen. Those decisions are recorded nowhere else: git
+holds the code and `CHANGELOG.md` holds what shipped, but neither says why a
+question is settled. Compressed as it grows; only the minimum past information
+stays.
 
 Findings and their reasoning are in `AUDIT.md`. Manual checks are in
 `PLAYTEST.md`. Intentions not yet planned are in `TODO.md`.
 
-Numbering, so a commit message always resolves: phases are `Phase 0`–`Phase 10`,
-features are `F1`–`F8`, and finding ids are `B`/`S`/`C`/`A`. **Nothing is ever
-renumbered.**
+Phases are `Phase 0`–`Phase 10`, features `F1`–`F8`, findings `B`/`S`/`C`/`A`.
+**Nothing is ever renumbered.**
 
 Three releases, settled 2026-08-28. **`Phase 8` is v1.0.0** — a correct sandbox,
 no unmaintained dependencies, documentation generated from the code, tests enough
@@ -23,295 +21,49 @@ thinking rather than a queue position.
 
 ## Now
 
-**Playtest group `H` ran on 2026-08-29 at `729c255` — six pass, three partial —
-it opened two findings, `B45` and `B46`, and `F8` shipped the same day with both
-fixed and four changes the run asked for.** Both findings were `F4`'s, both were
-about what the new display *said* rather than what it computed, and **neither was
-reachable by any spec** as observed: the four gates were green and ten minutes in
-a world found two. That is the shape this project keeps meeting, and it is the
-argument for the rule about running an unrun group before writing the next
-feature.
+**Phase 8 is feature-complete: six features shipped, no finding open.** Code
+pushed through `60dc8dd`, CI green there (run 42, all three jobs). Two things
+remain before v1.0.0:
 
-**What is spec-reachable now is the contract.** `limits_spec` asserts that a
-budget pinned at the map ceiling still reports a *spent* limit, reports it as
-barely used, and that the map row is nonetheless still returned by
-`limits.report`. The resource was never the problem; the comparison was.
+1. **A second run of playtest group `H`** — seven of its nine checks describe
+   behaviour that did not exist when they were first run, and `H2` and `H4` have
+   never been performed in their current form.
+2. **`settingtypes.txt`'s generator and `--check`**, decided yes 2026-08-28. The
+   third hand-kept mirror and the only one without one.
 
-- **`B45` · medium · fixed** — the HUD almost always named *map memory* as the
-  binding limit, so the one thing `F4` exists to teach was drowned out.
-  `limits.binding` compared a **held** resource against **spent** ones, and a held
-  one sits at its ceiling by design: `use_map` loops on `limits.hold` until there
-  is room, which pins `used.map` to `caps.map` for as long as a drone keeps
-  loading mapblocks. `lib/limits.lua`'s own header draws that distinction and this
-  code ignored it. Fixed by comparing only the three spent resources. The row is
-  still returned by `limits.report` with a new `held` flag, but **neither surface
-  lists it** any more — the author's call the same day, *"only list hard limits"*,
-  after a *throttled* label shipped and read as one more thing to learn.
-- **`B46` · medium · fixed** — *Running time* was charged CPU, not wall clock, and
-  neither surface said so. `mosely.lua` read **22 s** against a **180 s**
-  completion line, climbing at ~0.1 s/s, because a codelevel-4 drone gets 8 ms of
-  a 90 ms server step. `doc/api.md` and `lib/config.lua` both already state the
-  semantics; the HUD and the panel are where a player meets the number without
-  them. **The number was right and the word was wrong** — fixed as *Server time
-  used* plus a describing line, never by charging wall clock.
+Plus two new checks from the 2026-08-30 retuning, neither run: **`R4`** (the
+default codelevel on a fresh world) and **`F-5`** (every bundled example
+completing at codelevel 2).
 
-**One thing the session nearly filed twice.** `H6`'s pause-then-fast-restart —
-hold a drone two minutes, resume, and it races before settling — looked like a
-third defect and is `B45`'s root cause from another angle: the footprint decays
-over `map_window_s` (the engine's own `server_unload_unused_data_timeout`, 29 s),
-so a long pause drains it and the drone resumes unthrottled. The engine really did
-unload those mapblocks. Chasing it before writing it down is what kept an invented
-bug out of the record.
+**The lesson group `H` produced, which is why the re-run matters.** `F4` shipped
+with four green gates and the first ten minutes in a world found two defects —
+`B45` and `B46`, both about what the display *said* rather than what it computed,
+and neither reachable by any spec. `F8` then rewrote enough of `F4` that **a pass
+in that first run means *it did what was asked*, not *it is settled***. What was
+asked turned out to be wrong in five places, and only playing it showed that.
 
-**`F8` shipped the same day, and then twice more from screenshots.** It carries
-both fixes plus what the session asked for: the panel unconditional with the
-setter's click meaning *drone info*, `K`/`M`/`G` on long numbers, a percentage and
-a description per row, and the three preference checkboxes moved onto the
-*Settings* panel. Its blocking question was settled first — removal became a
-button, since the gesture change took away the only way to remove one.
+**The 2026-08-30 retuning.** The per-codelevel limits changed, the bundled
+examples shrank to fit codelevel 2, and the singleplayer default moved 4 → 3. The
+reasoning is under *Other decisions worth not re-litigating*. It invalidated one
+recorded result: `W3` measured `cube(200,200,200)` at codelevel 3, where the
+ceiling is now 1e6 and that shape is refused — the measurement stands, the level
+it is reproducible at is now 4.
 
-**Then the author photographed it twice, and each screenshot cost a revision.**
-The panel's descriptions were clipped at the right edge in French, so names went
-bold and left-aligned with descriptions that now wrap over two lines in an *area
-label*; the *Will stop on…* summary went; the table dropped to hard limits only;
-the fullest percentage went amber and anything at 80% or more red. And the two
-destructive buttons became one **Stop** — the author asked what the difference
-between *Cancel* and *Remove drone* was, and **there was none: both called
-`Drone.on_remove`.** Closing moved to an `x` in the corner.
-
-The second screenshot was the HUD, misaligned and still two lines. It is now a
-five-line block hanging from the top-right corner: the file and its state in bold,
-`Budget usage:`, and one short line per hard limit with the same colour rule as
-the panel.
-
-**The run rewrote five of its own nine checks**, which is the group working rather
-than churning. `H2` was never actually performed — map memory saturated the
-comparison both times — and is possible for the first time; `H3`'s boxes moved;
-`H4` was replaced outright; `H5` gained the four formatting points; `H8` gained the
-idle view and, at last, a procedure that can tell its first case apart from *it
-happened to be harmless*. **Six of the nine are due a second run.**
-
-The *gates green, unproven in a world* list holds `B14`, blocked on `B34` being
-won't-fix, and now `F8` — whose own checking is those six.
-
-**Earlier context, still true.** The playtest run of 2026-08-27 at `246bb37`
-closed the backlog of *checking* and opened one of *fixing*; that backlog emptied,
-and so did the one after it. Six findings came out of that phase's playtests, **all
-six fixed**, and on 2026-08-28 at `6fea453` the last three were confirmed in a
-world by their own checks — `D6` for `B44`, `F-3` case 2 for `S7`, and a re-timed
-`P3` for `B43`, which spread **78 s and 95 s** where the same shape spread
-78 / 160 / 183 before.
-
-**`C19` was filed and fixed the same day, and it is the only finding here ever
-raised by a published rule rather than by a defect.** The long description was
-`README.md` verbatim and broke six of ContentDB's *do not include* rules — worst
-of them, its nine images reach nobody browsing in-game, and five were tool icons
-used *inline in the instructions*, so those sentences lost their object. It now
-has its own source, `CONTENTDB.md`, which the generator embeds instead. **No gate
-in this repository could have caught it**, because the rules live on a page
-nothing here reads; `release-check` gate 9 now carries them, which is what would
-catch the next one.
-
-**Write `CONTENTDB.md`, never `.cdb.json`.** ContentDB reads `long_description`
-from that JSON only, and a JSON string cannot hold a newline, so the shipped
-field is one enormous escaped line. That is the artefact and not the source —
-anyone finding it unreadable and reaching for a multi-line format is about to
-break the upload.
-
-**`F7` shipped the same day and `E16` passed it the same day** — a `*` on a tab
-whose buffer differs from the file, confirmed in a running world at `afbe504`.
-`F6` is no longer one of them: Blockly is `Phase 10` and v2.0.0.
-
-**`F4` shipped 2026-08-28 at `729c255`, CI run 37 green on all three jobs.** A HUD
-and a formspec panel showing what a running program spends, plus Pause, Resume and
-Cancel. Its group `H` ran the next day — six pass, three partial, two findings —
-and `F8` then rewrote enough of it that **a pass in that first run means *it did
-what was asked*, not *it is settled***. That distinction is the most useful thing
-the run produced: what was asked turned out to be wrong in five places, and only
-playing it showed that.
-
-**`F5` was dropped unbuilt on 2026-08-29**, the author's call: *"not very
-interesting in the end."* Nothing was written. Its entry stays, marked dropped,
-because the two rules inside it outlive the feature — a codelevel control must be
-privilege-gated per press, and a mid-run budget rebuild must carry `used` across
-or re-levelling becomes a limit bypass.
-
-**`PLAYTEST.md` stands at 48 checks, 47 with a result** — **42 pass, 5 partial,
-one unchecked** (`H4`, rewritten by `F8` after its own pass decided the behaviour
-had to change). `R2` passed on 2026-08-28 and closed `C16`'s
-install guard: the archive extracted into
-`minetest_game`'s own `mods/` beside `vector3`, with `codeblock_run_tests = true`,
-loaded normally and logged the warning instead of refusing to load. The one thing
-still unproven anywhere is `B14`, and it is blocked on `B34` being won't-fix
-rather than on anyone finding time.
-
-**`R1` passed on 2026-08-28** and took **`C10`** with it — `.gitattributes` was
-doing its job for the project's whole life and nothing had ever looked. The
-archive holds eleven top-level entries, all player-facing, and none of the
-record. Worth keeping from that run: **the check's own command is misleading.**
-`git archive HEAD | tar -t | grep tests` prints `lib/examples/tests.lua` even
-when the archive is correct — it is one of the fourteen example programs, the one
-that exercises every API command. Reading `grep` output as a pass/fail is how
-that reads as a fail; listing the top level is what actually answers it, and the
-check now says so.
-
-Two loose ends worth naming, neither of them blocking:
-
-- **`S7`'s log line is unlooked-at.** `F-3` case 2 confirmed what the player
-  sees — *"Impossible de lire le fichier ..."*, translated and naming the file —
-  but not that `io.open`'s real reason is at `warning` in `debug.txt`. One grep,
-  next time an unreadable file is to hand.
-- **`P3` left a 23% gap unexplained**, 78 s against 95 s across two of four
-  facings. The emerge multipliers can only be 1, 2 or 4, so it is not `B43`
-  returning; it is recorded in `PLAYTEST.md` and `AUDIT.md` rather than filed,
-  the same way the old unexplained 160 s was.
-
-Then `F4` — shipped 2026-08-29 — `settingtypes.txt`'s generator, and v1.0.0.
-`F5` was dropped rather than built.
-
-**The three fixed on 2026-08-28 after the world group, all three now confirmed.**
-
-- **`S7` · low** — a failed file open handed the player `io.open`'s own string,
-  so the server's **absolute path** reached them, in English whatever language
-  the game was in. Fixed by returning the message built four lines above and
-  unreachable until now, with `err` logged at `warning`. **The class matters more
-  than the line**: an error value passed straight through from an engine or C
-  call is a player-facing string that is not a translation key, and
-  `gen_locale.lua --check` cannot see it — the next one will not be reported
-  either.
-- **`B44` · low** — removing a file left the drone holding it standing there
-  naming a program that was gone, going away only on the next run. Fixed in the
-  editor's *Remove file* handler, **not** in `lib/filesystem.lua`, which has no
-  drone dependency and must not gain one. It takes the drone with the file, the
-  same answer `B41` gave for a cancelled chooser: the two had to agree.
-- **`B43` · low** — one subtraction per axis in `bounds.cube`, one along the
-  length in `bounds.cylinder`. Three `shapes_spec` cases were **recomputed from
-  the geometry and then run against the old bounds to prove they were not fitted
-  to the new output**: they fail there with exactly the old numbers. The
-  subtraction made `cube(0,0,0)` produce an inverted box, so `build` now returns
-  before the loop when any axis is inverted — that guard and the subtraction go
-  together.
-
-**The pattern worth naming: three of those six came from a session going one step
-past the written procedure.** `B41` was reported while checking something else;
-`B44` came out of re-running `B41`'s own check and then doing the obvious next
-thing to a drone; and `S7` came out of a check that **passed on behaviour and
-failed on its message**, which no pass/fail line on its own would have caught.
-Read what the game actually said, not just whether it did the right thing.
-
-**Fixed earlier in the phase, both confirmed in a world.**
-
-- **`B40` · high · `62cf464`, confirmed by `F-4` and `F-3` case 1** — `read_file`
-  read a file whole with no bound and the editor sent it to the client; a 168 MB
-  file took Luanti to ~14 GB and froze it. It now reads one byte past the ceiling
-  and refuses the file by name, and `write_file` refuses at the same size so the
-  editor cannot save what it would then decline to open. The ceiling is a new
-  setting, `codeblock_max_file_kb`, **128 kB** by default. Its open question is
-  answered too: the engine drops a formspec submission whose fields total 640 kB,
-  from **5.7.0** on and not before, so a modified client's route in is real,
-  bounded, and now closed on this side as well.
-- **`B42` · medium · `febf16f`, confirmed by `P3`** — `lib/shapes.lua` sliced
-  along z only, so a shape long in x asked for more mapblocks than the whole
-  ceiling and the run *died* where the ceiling exists to make it *wait*:
-  `cube(2, 2, 30000)` at codelevel 1 worked facing north and failed facing east.
-  Slabs now follow the longest axis, and the fillers clip on all three rather
-  than on z alone — which the finding had assumed they already did. The same run
-  **measured the throttle for the first time**: 93 s for that shape, against the
-  ≈ 80 s the ceiling over the unload window predicts. `S5` had claimed that
-  behaviour from reading since Phase 5.
-
-**Nothing is unrun any more.** `R1` and `R2`, the release-archive pair and the
-last two checks with no result, both passed on 2026-08-28, taking `C10` and
-`C16`'s install guard with them. `E16`, new with `F7` the same day, passed the day
-it was written. The world group — `W1`, `W2`, `W3` — was
-played on 2026-08-28 and all three passed, the last group to have had nothing in
-it.
-
-**That run settled questions rather than finding defects, which is new here.**
-`W2` **answers `A4`**: mapgen does not overwrite a node written into ground it
-had not generated. That had been on the audit's *not verified anywhere* list
-since Phase 4, was the oldest entry it ever had, and its departure leaves that
-list holding one thing — `B10`'s refusal. `W1` passed at current code, so `S5`'s
-16.3 kB measurement no longer rests on a run predating the Phase 6 and Phase 7
-rewrites of `lib/cost.lua`. `W3` priced a large shape, written up under `S5`.
-
-**The one thing `W3` is worth remembering for.** `cube(200, 200, 200)` took
-0.34 s of program time — and that is the *smallest* part of what it cost. The
-budget charges nodes, runtime and footprint; serialising ~2200 mapblocks into the
-map database and pushing them to every client happen **after the run reports
-`completed` and are charged to nobody**. Neither was measured. Not a defect and
-not filed as one, but a limit added later must not be sold as bounding what a
-shape costs the server, because none of them do.
-
-**`F-3` case 2 cost two sessions before it passed on behaviour**, and the second
-of those is a lesson. The `icacls` recipe was `cmd` syntax run in PowerShell,
-which read the bare `(R)` as a subexpression and ran the `r` alias for
-`Invoke-History` instead of calling `icacls` at all. **A recipe written for one
-shell and run in another is a procedure defect, not a finding** — that is twice a
-`PLAYTEST.md` recipe has cost a session (`D2` case 2 is the other), so a recipe
-added here names the shell it is for. The corrected one is verified as a round
-trip. Case 1 **passed on 2026-08-28** — reachable at last because an oversized
-file is refused before the bytecode branch, which also confirmed `B7` a phase
-after it was fixed.
-
-**`D2` case 2 has now been aimed at twice and missed twice**, the second time
-with the written recipe: *"hard to produce case 2, looks not unloaded"*. The
-recipe is the suspect, not the tester — `server_unload_unused_data_timeout`
-bounds when the engine *may* drop an idle mapblock, not when it does. Do not
-spend a third session waiting out a timeout and hoping; find a way to observe
-that the server has let go first. It is the only route to `B10`'s refusal.
-
-**One number decided `B43`, and it is worth remembering how.** `P3` turned up
-that the facing changed the run, and there were two explanations — what the
-client drew, or a real difference in the work — that no amount of watching could
-separate. Timing three facings did it in one go: 78 s and 183 s land within one
-per cent of a doubled and a quadrupled emerge. **Ask for the number the two
-explanations disagree on.** The 160 s run fits neither and is recorded as
-fitting neither, rather than rounded into the story.
-
-**`C18` was decided on 2026-08-28: one setting, defaulting off** — the middle of
-the three options the finding put up, and the one it recommended. The mod touches
-nobody's sky unless asked; a game that wants a flat, sunless one says so in its
-own `minetest.conf`. The cost lands outside this repository and is one line:
-`codecube` sets `codeblock_flat_sky = true` when it adopts a release with this in
-it, or its world gets an ordinary day/night cycle back. **The author accepted
-that cost on 2026-08-28** — *"when codecube will be updated it will take this
-into account"* — so nothing here is waiting on the game and nothing here should
-change to accommodate it. The one thing to keep: this repository does not track
-whether that line was added, so a `codecube` release that adopts a version with
-`C18` in it and forgets it looks like a regression in the game's sky. That
-belongs to the game's own record, not to this one.
-
-**The ContentDB rules were read into the tooling on 2026-08-28, before the
-release rather than during it.** The author supplied the guidance
-(<https://content.luanti.org/help/appealing_page/>, the index at
-<https://content.luanti.org/help/>) and the intention to configure a release
-webhook (<https://content.luanti.org/help/release_webhooks/>). Both are now in
-`release-check` as gates 9 and 10 and in the `release-codeblock` skill, so they
-are checked rather than remembered. Reading them turned up `C19`: **the long
-description is `README.md` verbatim and breaks six of the *do not include* rules
-at once.** The webhook's one decision is written down — **the trigger is *Branch
-or tag creation*, not push**, because this project tags; push events would
-publish every commit on `master` as a release.
-
-**Four things the author settled on 2026-08-28**, all of them recorded where they
-apply rather than only here: `C18`'s cost accepted by `codecube` (above);
-`settingtypes.txt` **gets a generator**, on the grounds that it unifies a process
-`doc/api.md` and `locale/template.txt` already share (`C7`, `C17`, and the phase
-list); **Blockly becomes v2.0.0** with `Phase 9` for v1.x.y in between (`F6`, and
-the milestone list); and `F7` takes **the flag, not the pristine copy** — built
-the same day.
+**Two loose ends, neither blocking.** `S7`'s log line is unlooked-at — one grep of
+`debug.txt`, next time an unreadable file is to hand. And `P3` left a 23% gap
+unexplained, 78 s against 95 s across two of four facings; the emerge multipliers
+can only be 1, 2 or 4, so it is not `B43` returning.
 
 ## Milestones
 
-Phases 0–7 are closed; one line each, with the findings they covered — `AUDIT.md`
-holds the reasoning.
+Phases 0–7 are closed; one line each, with the findings they covered.
+`AUDIT.md` holds the reasoning.
 
 - **0 · Make change safe** — done (2/2). Run on the current engine, put the
   riskiest code under test, restore linting. (C8, A12)
-- **1 · Ship the compliance fixes** — done (4/4). Installable and honest: the
-  ContentDB version ceiling gone, licensing settled, the user-visible command and
-  editor bugs fixed. (C1, B5, B8, B9)
+- **1 · Ship the compliance fixes** — done (4/4). The ContentDB version ceiling
+  gone, licensing settled, the user-visible command and editor bugs fixed.
+  (C1, B5, B8, B9)
 - **2 · Rewrite the sandbox preprocessor** — done (11/11). Instrumentation over a
   token stream, per-run environment snapshots with unassignable API names, the
   blacklist retired to a diagnostics aid, the string metatable bounded.
@@ -320,112 +72,63 @@ holds the reasoning.
   gone, and with it the only code patching the engine namespace; documentation
   generated from `lib/api.lua` landed alongside. (A1, A2, B22)
 - **4 · Performance** — done (4/4). The drone builds at the speed the hardware
-  allows, bulk shapes are one VoxelManip pass each, the WorldEdit fork is gone
-  entirely. (A5, B12, A4, A15)
+  allows, bulk shapes are one VoxelManip pass each, the WorldEdit fork is gone.
+  (A5, B12, A4, A15)
 - **5 · Limits that track real load** — done (4/4), `43e95a8`. Gave each limit a
   resource to stand for, made the step budget a shared pool, added
   `settingtypes.txt`. (S5, S6, C7, C13)
-- **6 · Limits for what the server spends** — done (3/3), `2647228`. Eleven
-  proxy limits became seven real ones, each in a unit a player reads, converted
-  once in `lib/limits.lua`. (B25, B26, C14)
-- **7 · Clear the way for features** — done (26/26), `742a1ca`–`191b533`.
-  Removed the duplication that made every feature cost more than it should. Two
-  reviews of the range then opened seven findings, five of them regressions the
-  phase itself introduced. (A3, A6, A9, A11, A16, C6, C10–C12, B7, B10, B11,
-  B13–B18, B21, B27–B32, C16)
+- **6 · Limits for what the server spends** — done (3/3), `2647228`. Eleven proxy
+  limits became seven real ones, each in a unit a player reads, converted once in
+  `lib/limits.lua`. (B25, B26, C14)
+- **7 · Clear the way for features** — done (26/26), `742a1ca`–`191b533`. Removed
+  the duplication that made every feature cost more than it should. Two reviews
+  of the range then opened seven findings, five of them regressions the phase
+  itself introduced. (A3, A6, A9, A11, A16, C6, C10–C12, B7, B10, B11, B13–B18,
+  B21, B27–B32, C16)
 
 "Done" through Phase 7 means the findings are closed and the gates green, **not**
 that the editor and drone paths were exercised by hand. Phase 8's playtests have
 since found **twelve** defects in code earlier phases called done (B36–B44, C17,
 C18, S7) — the newest of them were the largest. **All twelve are fixed.**
 
-### 8 · Features for v1.0.0 — feature-complete (6/6 shipped · 17 findings closed, none open)
+### 8 · Features for v1.0.0 — feature-complete (6/6 shipped, 17 findings closed, none open)
 
 The last phase before v1.0.0 and the only one that adds rather than repairs.
-Ordered easiest to hardest, one at a time. **The pacing and world groups have now
-been played**, which is what `F4` was waiting on — between them they produced
-`B42` and `B43`, and answered `A4`.
+Started as seven features: `F6` moved out on 2026-08-28 (Blockly is `Phase 10`)
+and `F5` was **dropped unbuilt on 2026-08-29** — *"not very interesting in the
+end."*
 
-**Two features left this phase rather than shipping in it.** `F6` moved out on
-2026-08-28: Blockly is `Phase 10` and v2.0.0. `F5` was **dropped unbuilt on
-2026-08-29** — the author's call, "not very interesting in the end". So the phase
-was seven features, then six, and is five, **all five shipped**.
+Shipped: `F1` `500dd85`, `F2` `dee0bc7`, `F3` `90cfb70`, `F7` `afbe504`,
+`F4` `729c255`, `F8` `d619fba` revised `60dc8dd`.
 
-**Group `H` ran on 2026-08-29 — six pass, three partial — and `F8` shipped the
-same day carrying both findings it opened (`B45`, `B46`) and the four changes it
-asked for.** That makes six features, all shipped, and no finding open. **What
-remains before v1.0.0 is a second run of group `H`** — `F8` rewrote the behaviour
-five of its nine checks describe — **and `settingtypes.txt`'s `--check`.**
+Left in the phase: the group `H` re-run, `settingtypes.txt`'s `--check`, `R4` and
+`F-5`, and **`D2` case 2** — the last half nothing has exercised, needing a way to
+observe the server has released a mapblock rather than another session. (B10)
 
-Shipped, gates green, pushed and CI-green at `b8b30e3`:
-
-- `F1` default block — a Settings panel plus a run-local `default_block(block)`.
-  `500dd85`.
-- `F2` *Create a copy*, and a file list sorting `foo_2` before `foo_10`.
-  `dee0bc7`.
-- `F3` `sleep(seconds)`, charged against `max_runtime_s` up front. `90cfb70`.
-
-Shipped, gates green, and **confirmed in a world by `E16`** at `afbe504`:
-
-- `F7` a `*` on a tab whose buffer differs from the file.
-
-**The playtest backlog this phase carried is gone.** `R1` and `R2`, the
-release-archive pair, both passed on 2026-08-28 and took `C10` and `C16` with
-them; `D6`, `F-3` case 2 and a re-timed `P3` were run at `6fea453` the same day
-and all three pass, confirming `B44`, `S7` and `B43`. Nothing in the phase waits
-on a code change any more.
-
-Left in the phase:
-
-- `D2` case 2 — the last half nothing has exercised. Aimed at twice and missed
-  twice; it needs a way to observe the server has released a mapblock, not
-  another session. (B10)
-- Give `settingtypes.txt` a generator and a `--check`, **decided yes** on
-  2026-08-28: it is the third hand-kept mirror and the only one without one, and
-  a generator unifies a process the other two already share. (C7, C17)
-- **Rewrite the ContentDB long description so it stops being `README.md`.** The
-  README broke six of ContentDB's own *do not include* rules at once, and the
-  worst of them was that its nine images are not visible inside Luanti — five
-  being tool icons used *inline in the instructions*, so those sentences lost
-  their object rather than just their decoration. **Done 2026-08-28**:
-  `long_description` now comes from `CONTENTDB.md`. Its shape was the author's
-  — a short lead, main features, a quick start that reaches a visible result in
-  three steps, the limits worth warning about, and recent changes as
-  advertising. (C19)
-- **Keep `CONTENTDB.md`'s *Recent changes* current at each release.** It is a
-  hand-kept summary of `CHANGELOG.md` and nothing checks the two agree — the same
-  family as `doc/api.md` and `locale/template.txt`, and it will drift the same
-  way. The release skill names it as a step, which is a note about remembering,
-  and this project's own lesson is that those do not hold. (C19)
-- **Run playtest group `H` a second time** — six of its nine checks describe
-  behaviour that did not exist when they were first run, and `H2` and `H4` have
-  never been performed in their current form at all. This is the last unproven
-  work in the phase.
-- Build `settingtypes.txt`'s `--check`, the third hand-kept mirror. It is the only
-  thing left before v1.0.0 that is not checking.
+Also standing, and unchecked by anything: **keep `CONTENTDB.md`'s *Recent
+changes* current at each release.** It is a hand-kept summary of `CHANGELOG.md`
+— the same family as `doc/api.md` and `locale/template.txt`, and it will drift
+the same way. The release skill names it as a step, which is a note about
+remembering, and this project's own lesson is that those do not hold. (C19)
 
 ### 9 · v1.x.y — features and defects after the release
 
-**Allocated 2026-08-28**, when `F6` moved to its own phase. Everything that is
-not 1.0.0 and not Blockly lands here: features too late for the release, defects
-the release itself turns up, and the playtest groups that only a shipped version
-can reach. It has no fixed content on purpose — a phase for what comes back from
-players is worth more empty than filled in advance.
+**Allocated 2026-08-28.** Everything that is not 1.0.0 and not Blockly: features
+too late for the release, defects the release turns up, and the playtest groups
+only a shipped version can reach. **No fixed content on purpose** — a phase for
+what comes back from players is worth more empty than filled in advance.
 
-The one thing already in it: **the first release under real use is where a
-finding series meets people who did not write it.** Everything in `AUDIT.md` was
-found by the author, one reviewer or one spec. That is a narrow sample and this
-phase is where it widens.
+The one thing already in it: **the first release under real use is where a finding
+series meets people who did not write it.** Everything in `AUDIT.md` was found by
+the author, one reviewer or one spec. That is a narrow sample.
 
 ### 10 · v2.0.0 — the Blockly editor
 
-**Allocated 2026-08-28.** `F6` alone, and a major version because it is the
-change that most plausibly breaks how a program is stored and edited. Its four
-obstacles are written up under `F6` and **none of them has an answer yet** — no
-HTTP allowance a ContentDB package can arrange, mod security on the write side,
-where the assets come from, and what a generated program is stored as. The
-author's own framing is the point: *time to plan and think*, not a queue
-position. **Do not start building it because the phase exists.**
+**Allocated 2026-08-28.** `F6` alone, and a major version because it is the change
+that most plausibly breaks how a program is stored and edited. Its four obstacles
+are under `F6` and **none has an answer yet**. The author's framing is the point:
+*time to plan and think*, not a queue position. **Do not start building it because
+the phase exists.**
 
 ## The features
 
@@ -435,9 +138,8 @@ led to it is in git and `CHANGELOG.md`.
 
 ### F1 · small · shipped `500dd85` — the default block for a bare `place()`
 
-A bare `place()` built `default:stone` always. Now the player picks a default in a
-Settings panel in the editor, stored per player in meta under
-`codeblock:default_block`, and a program can override it for its own run with
+The player picks a default in a Settings panel in the editor, stored per player
+under `codeblock:default_block`; a program overrides it for its own run with
 `default_block(block)`. **Two levels deliberately:** *what do I usually build
 with* belongs to the player and outlives the session; *what does this program
 build with* belongs to the program and travels with it when shared.
@@ -446,217 +148,150 @@ build with* belongs to the program and travels with it when shared.
 
 - **The picker is a `textlist`, not item rows in a `scroll_container`.** The
   editor formspec is in **legacy coordinates**, where a `scroll_container` maps
-  its contents into a different space from the elements around it and clips them
-  to its own rectangle, and an `item_image_button` inside one gets a hit area that
-  does not match where it is drawn. The help panels get away with a container only
-  because `item_image` takes no clicks. Do not "restore" the item-row plan without
-  first converting the whole editor to the new coordinate system.
+  its contents into a different space and clips them to its own rectangle, and an
+  `item_image_button` inside one gets a hit area that does not match where it is
+  drawn. The help panels get away with a container only because `item_image`
+  takes no clicks. Do not "restore" the item-row plan without first converting
+  the whole editor to the new coordinate system.
 - **A legacy button's `W` is not a width.** From `src/gui/guiFormSpecMenu.cpp` at
-  tag 5.17.0: a `button` gets `geom.X = W*spacing.X - (spacing.X - imgsize.X)`
-  while a `textlist` gets `geom.X = W*spacing.X`, with `spacing = imgsize * 5/4`.
-  So a button is short by a fixed **0.2 units whatever `W` is** — the offset does
-  not scale. Hence `F2`'s *Create a copy* is `3.2` against a 3-wide file list and
-  `+` is `0.95`. `H` is not a height either: the height is fixed and `H` only
-  shifts it down. **`lua_api.md` 5.17.0 records none of this**, so the reference
-  cannot settle a misalignment here.
+  5.17.0: a `button` gets `geom.X = W*spacing.X - (spacing.X - imgsize.X)` while
+  a `textlist` gets `geom.X = W*spacing.X`, with `spacing = imgsize * 5/4`. So a
+  button is short by a fixed **0.2 units whatever `W` is** — the offset does not
+  scale. Hence `F2`'s *Create a copy* is `3.2` against a 3-wide file list and `+`
+  is `0.95`. `H` is not a height either: the height is fixed and `H` only shifts
+  it down. **`lua_api.md` records none of this**, so the reference cannot settle
+  a misalignment here.
 - **One panel, not a second form.** `lib/forms.lua` holds one form per player, so
-  a settings form would displace the editor. Every future setting adds a row to
-  this panel.
-- **Not privileged, unlike everything beside it.** No setting, no
-  `settingtypes.txt` entry, no codelevel row: codelevel is privileged because it
-  bounds resource use, and block choice does not — stone and red wool cost the
-  server the same. `air` is selectable, being already legal for `place()`, so a
-  bare `place()` can erase; visible at once, and useful for carving.
+  a settings form would displace the editor. Every future setting adds a row here.
+- **Not privileged, unlike everything beside it.** Codelevel is privileged
+  because it bounds resource use; block choice does not — stone and red wool cost
+  the server the same. `air` is selectable, so a bare `place()` can erase.
 - **The preference is read once per run** into `drone.default_block`, so a mid-run
-  change cannot split one build between two blocks, and the resolution is a plain
-  field `integration_spec` can set without a player. **The read validates through
-  `blocks` and falls back to stone** — meta outlives a palette change, and without
-  the fallback the failure surfaces as *"Cannot place this block"* on a line that
-  named no block. Validate *through* `blocks`, not around it, or a default
-  arriving from a form becomes a way to place any node name. **Because the
-  fallback is mandatory, no init line was added** to the meta block in
+  change cannot split one build between two blocks. **The read validates through
+  `blocks` and falls back to stone** — meta outlives a palette change, and
+  validating *through* `blocks` rather than around it is what stops a default
+  arriving from a form becoming a way to place any node name. Because the
+  fallback is mandatory, **no init line was added** to the meta block in
   `lib/register.lua`, unlike its neighbours. **Meta is written on click**, not on
-  form close, which is what kept the preference immune to `B33`.
-- **Argued out: a `persist` flag on `default_block()`.** Cut on four grounds — it
-  would be the only API call whose effect outlives its run; a shared program would
-  silently rewrite the reader's saved preference with no undo; in a loop it is a
-  meta write per iteration from inside a budgeted run; and no spec could reach it.
-  If persistence from a program is ever wanted it gets its own command, not a flag
-  on an innocuous-looking call.
+  form close, which kept the preference immune to `B33`.
+- **Argued out: a `persist` flag on `default_block()`.** It would be the only API
+  call whose effect outlives its run; a shared program would silently rewrite the
+  reader's saved preference with no undo; in a loop it is a meta write per
+  iteration from inside a budgeted run; and no spec could reach it. If
+  persistence from a program is ever wanted it gets its own command.
 
-Its two `PLAYTEST.md` checks — the Settings panel and the preference surviving a
-relog — both passed at `246bb37` on 2026-08-27. Nothing is outstanding.
+Both `PLAYTEST.md` checks passed at `246bb37`.
 
 ### F2 · small · shipped `dee0bc7` — open a copy of a program
 
-A *Create a copy* button in the editor, bottom-left beside `+`, drawn only with a
-file open. It writes what is on screen to a derived name and opens it, so a player
-can try a variation without touching the version that works. Plus, asked for after
-the first playtest: the file list is sorted so `foo_2` precedes `foo_10`.
+*Create a copy* writes what is on screen to a derived name and opens it. Plus,
+asked for after the first playtest: the file list sorts `foo_2` before `foo_10`.
 
 **Agreed, and load-bearing.**
 
-- **The naming derivation.** `foo.lua` → `foo_1.lua` → `foo_2.lua`, scanning for
-  the first free *N* up to 99. **Numeric because the author asked for it
-  explicitly:** language-agnostic, so the name does not depend on the server's
-  locale. **Strip a trailing `_%d+` before appending**, and never widen either
-  strip to match mid-name — both are anchored to the end, as `lib/examples.lua`'s
-  `.lua` strip is. The first implementation used a `_copy` suffix and took the
-  whole stem, so the previous suffix became part of the next base; since the base
-  is also what gets trimmed to `create_file`'s 15-character limit, each round both
-  nested and lost a character (`spirals_c__copy.lua`, `spirals_co_copy.lua`).
-  Trimming the suffix instead of the base is not an option — it hands back the
-  original name for any stem already at the limit.
-- **Two behaviours are deliberate.** A freed number is reused: copying
-  `foo_2.lua` with `foo_1.lua` deleted gives `foo_1.lua`. And a name already at
-  the 15-character limit shifts base at the tenth copy
-  (`spirals_conce_9` → `spirals_conc_10`), so copying *that* starts a new family;
-  fixing it would let copies past the length rule every other filename obeys.
-- **The four scope decisions.** Bottom-left, **not** the Save/Remove/Close row —
-  that row already runs to `x=14.08` against a help row starting at 14, so a fifth
-  button there means re-laying-out four that work. The copy contains **what is on
-  screen, not what is on disk**. The name is **derived, not typed**. The drone's
-  file chooser does **not** get the button.
-- **Argued out:** saving the original before copying it — a copy is a copy, and
-  the original is left exactly as it is; and a `filesystem.copy_file` helper — a
-  copy is a derived name plus `write_file`, already the module's one write path, so
-  a helper called from one branch would hide ownership of a write and be a second
-  write path.
+- **The naming derivation.** `foo.lua` → `foo_1.lua` → `foo_2.lua`, first free
+  *N* up to 99. **Numeric because the author asked for it explicitly:**
+  language-agnostic, so the name does not depend on the server's locale. **Strip
+  a trailing `_%d+` before appending**, and never widen either strip to match
+  mid-name — both are anchored to the end. The first implementation used `_copy`
+  and took the whole stem, so the previous suffix became part of the next base;
+  since the base is also what gets trimmed to the 15-character limit, each round
+  both nested and lost a character. Trimming the suffix instead is not an option
+  — it hands back the original name for any stem already at the limit.
+- **Two behaviours are deliberate.** A freed number is reused. And a name already
+  at the limit shifts base at the tenth copy, so copying *that* starts a new
+  family; fixing it would let copies past the length rule every other filename
+  obeys.
+- **Scope.** Bottom-left, **not** the Save/Remove/Close row — that row already
+  runs to `x=14.08` against a help row starting at 14. The copy contains **what
+  is on screen, not what is on disk**. The name is **derived, not typed**. The
+  drone's file chooser does not get the button.
+- **Argued out:** saving the original before copying — a copy is a copy; and a
+  `filesystem.copy_file` helper — a copy is a derived name plus `write_file`,
+  already the module's one write path, so a helper called from one branch would
+  hide ownership of a write.
 - **The natural sort key** lives in `lib/filesystem.lua` and prefixes each digit
   run with its own length (`('%03d'):format(#digits) .. digits`), so `foo_2`
-  precedes `foo_10` **without guessing a padding width**. Case is not folded, so
-  the rest of the ordering is the byte order it has always been; the key is
-  injective, so no tie-break is needed. The drone's file chooser reads the same
-  `ud.list` and is sorted with it for free — one sort, two consumers, which is why
-  the key belongs in the filesystem layer and not in the form.
+  precedes `foo_10` **without guessing a padding width**. The key is injective,
+  so no tie-break is needed. The drone's file chooser reads the same `ud.list` —
+  one sort, two consumers, which is why the key belongs in the filesystem layer.
 
-No spec reaches it and none was added: `forms_spec` stubs `core.show_formspec` and
-tests the session layer only, so driving this would need a stubbed filesystem and
-a stubbed player. Evidence is the code plus `PLAYTEST.md` `E13`, pass.
+No spec reaches it and none was added: `forms_spec` stubs `core.show_formspec`.
+Evidence is `PLAYTEST.md` `E13`, pass.
 
 ### F3 · medium · shipped `90cfb70` — `sleep(seconds)`
 
-`sleep(2)` parks the drone for two seconds and hands the step back, so a program
-builds at a pace it chooses rather than the codelevel's. Defaults to one second,
-takes fractions. The mechanism was already there — `drone.wake_at`, which
-`pace_ms` and the map throttle both use — so this is a new API name plus a charge,
-not new machinery. **Named `sleep`, not the `wait` first specified.**
+Parks the drone and hands the step back, so a program builds at a pace it chooses
+rather than the codelevel's. Defaults to one second, takes fractions. The
+mechanism was already there — `drone.wake_at`. **Named `sleep`, not the `wait`
+first specified.**
 
 **Agreed, and load-bearing.**
 
 - **The risk was wall time, not CPU, and it is answered by charging up front.**
   `max_runtime_s` charges the time a *step* spent, so a sleeping drone is charged
   nothing and an unbounded wait would let a program live for ever holding a
-  record, an entity and a slot in the shared pool. The wait is therefore charged
-  against `max_runtime_s` *before* it starts: `sleep(1e9)` puts the run past its
-  ceiling and the stepper reports the same timeout a program that never finishes
-  gets. **That is `max_runtime_s`'s one exception** — it now bounds time the
-  program did not spend on CPU — and both places it is documented say so.
+  record, an entity and a slot in the shared pool. The wait is charged *before*
+  it starts: `sleep(1e9)` puts the run past its ceiling and the stepper reports
+  the same timeout a program that never finishes gets. **That is
+  `max_runtime_s`'s one exception** — it now bounds time the program did not
+  spend on CPU — and both places it is documented say so.
 - **Argued out: a per-codelevel cap on `sleep`.** The up-front charge bounds it
-  without another limit, so no new limit, no `settingtypes.txt` mirror and no
-  `doc/api.md` codelevel row were needed.
+  without another limit, mirror row or documented row.
 - **Argued out: routing it through `end_command`.** That writes `wake_at` from
-  `pace_ms` and the last writer wins, so a sleep routed through it would be
-  overwritten or would overwrite the pace. **A sleep is not a command:** it pays
-  no pace and is not counted as one.
+  `pace_ms` and the last writer wins. **A sleep is not a command:** it pays no
+  pace and is not counted as one.
 - **It must keep yielding through `release()`** — the only `coroutine.yield` in
   `lib/cost.lua`, which clears the mapblock memo first. Yielding any other way
   reintroduces `B25`'s silent lost write.
 - **Adding a name is breaking even though nothing was renamed.** `env.new_env`
   raises on assignment to any name the API defines, so a saved program using
   `sleep` as its own global now fails on that line. The edit spans `lib/api.lua`,
-  `impls` in `lib/sandbox.lua`, regenerated `doc/api.md` and `api_spec`'s explicit
-  name list. **`api_spec` needs no reverse "no unexpected name" check** — that
-  would duplicate `api.build` and turn every future API addition into a spec edit.
+  `impls` in `lib/sandbox.lua`, regenerated `doc/api.md` and `api_spec`'s name
+  list.
 
-Spec coverage is unusually good: `integration_spec` gained nine assertions
-(98 → 107), and `stepper_spec` already injects the clock and the budget, so "a
-sleeping drone is skipped and takes no share" is assertable without a world. What
-only a world shows is the pace being watchable and other drones being unaffected —
-`PLAYTEST.md` `F3`, which passed at `246bb37` on 2026-08-27.
+`PLAYTEST.md` `F3` passed at `246bb37`.
 
-### F4 · large · shipped in the commit this entry was added in, playtest unrun — a live drone panel
+### F4 · large · shipped `729c255` — a live drone panel
 
-Two surfaces, because one of them cannot do the other's job. A **HUD** carries the
-live read-out while a program runs; a small **formspec panel** carries the
-per-limit breakdown and the two buttons. Today a player learns all of this only
-from `Drone.finish`'s one completion line.
+Two surfaces, because one cannot do the other's job. A **HUD** carries the live
+read-out while a program runs; a **formspec panel** carries the per-limit
+breakdown and the buttons.
 
 **Merged from three `TODO.md` lines, because they are one feature:** the drone
-info UI, "show the program's budget while it runs" (the original Phase 8 item),
-and the player-side half of "option to pause the drone" (the timed, in-program
-half is `F3`). Splitting them would mean two features editing the same surface
-and the second rewriting the first.
+info UI, "show the program's budget while it runs", and the player-side half of
+"option to pause the drone" (the in-program half is `F3`).
 
-**Settled 2026-08-28, in conversation with the author.**
+**Settled 2026-08-28.**
 
-- **A HUD cannot carry buttons, and that is what splits the feature.** The
-  element types in 5.17.0 are `image`, `text`, `statbar`, `inventory`, `hotbar`,
-  `waypoint`, `image_waypoint`, `compass` and `minimap` — there is no button, and
-  **no HUD click callback exists anywhere in the API**.
-  `register_on_player_receive_fields` is formspec-only. The only input a HUD can
-  answer is polling `get_player_control()`, which is key *state*, not "which
-  element was clicked".
-- **The HUD is nevertheless the right surface for the read-out**, and it dissolves
-  the two risks the original entry named. `hud_change(id, stat, value)` updates
-  one field: no formspec string, **no input focus reset**, and it does not go
-  through `lib/forms.lua`, so it does not collide with the one-form-per-player
-  rule. The editor can stay open with the HUD live over it.
-- **The HUD shows only while that player's own drone is running** — it appears
-  when a program starts and goes when it ends. Nothing on screen otherwise:
-  a permanent status area is decoration, and decoration imposed on every game
-  that installs this mod is exactly the `C18` shape.
-- **On screen: the state and the binding constraint, and nothing else.** Which
-  file, running or paused, and the one limit closest to its ceiling as a
-  percentage — so a player learns which limit their program actually spends. The
-  full count-beside-limit table is the panel's, not the HUD's, which keeps the
-  live tick to two `hud_change` calls.
-- **Player toggle over a server default.** A `flag` in `lib/config.lua`, the
-  boolean sibling `flat_sky` already uses, overridden per player in player meta —
-  read with `get_string`, because `get_int` cannot tell an unset key from a stored
-  `0` (`B5`). Costs one `settingtypes.txt` mirror row and one toggle in the editor.
-- **0.5 s cadence, only while running.** Affordable now that a tick is a
-  `hud_change` per field that actually moved rather than a whole formspec.
-- **The panel opens by left-clicking a *running* drone with the setter** — the
-  gesture that today cancels the run. Left-clicking an idle drone still removes
-  it, unchanged. **The consequence is deliberate: stopping a runaway program
-  becomes two clicks rather than one**, and the accidental cancel that gesture
-  allowed becomes impossible.
-- **Pause/Resume and Cancel, no Start.** The poser's left-click is the gesture
-  that starts a run; a second one means a second entry into the one place a
-  drone's budget, coroutine and block preference are built.
-
-**Constraints and risks.**
-
-- **The data is already shaped for it.** `lib/limits.lua` keeps `caps` and `used`
-  in one table on `drone.budget` precisely so it can be printed. Two numbers are
-  missing rather than hidden: **peak heap is never retained** (`heap_mb` is
-  sampled and compared, never kept), and the charged-CPU figure was dropped from
-  the completion line in Phase 6 as meaningless against a ceiling in minutes — it
-  belongs here as a **share** of the budget (`B26`). Both are wanted, so the
-  binding-constraint function is total over what it can see.
+- **A HUD cannot carry buttons, and that is what splits the feature.** 5.17.0 has
+  nine element types — `image`, `text`, `statbar`, `inventory`, `hotbar`,
+  `waypoint`, `image_waypoint`, `compass`, `minimap` — none is a button, and **no
+  HUD click callback exists anywhere in the API**.
+  `register_on_player_receive_fields` is formspec-only; `get_player_control` is
+  key *state*, not a click target.
+- **The HUD is nevertheless right for the read-out.** `hud_change(id, stat,
+  value)` updates one field: no formspec string, **no input focus reset**, and it
+  does not go through `lib/forms.lua`, so it does not collide with the
+  one-form-per-player rule. The editor can stay open with the HUD live over it.
+- **It shows only while that player's own drone is running.** A permanent status
+  area is decoration, and decoration imposed on every game that installs this mod
+  is exactly the `C18` shape.
+- **Player toggle over a server default.** A `flag` in `lib/config.lua`,
+  overridden per player in meta — read with `get_string`, because `get_int`
+  cannot tell an unset key from a stored `0` (`B5`).
+- **Pause is not `wake_at`.** Reusing it would clobber a pending `sleep()`:
+  resuming sets `wake_at = nil` and the drone wakes early. A separate
+  `drone.paused`, checked in `stepper.awake`, leaves a sleeping program's own wake
+  time intact — and a paused drone already takes no share of the step pool.
 - **Do not reintroduce the dependency `A11` removed.** `lib/drone.lua` does not
-  know forms exist, and must not learn that a HUD exists either. Drive both from
-  the other side, reading `drone.budget`. `Drone.on_place` is the precedent: it
-  *returns* whether a file is needed and `register.lua` shows the chooser.
-- **Pause is not `wake_at`.** Reusing it would clobber a pending `sleep()` from
-  `F3`: resuming sets `wake_at = nil` and the drone wakes early. A separate
-  `drone.paused`, checked in `stepper.awake`, leaves a sleeping program's own
-  wake time intact — and a paused drone already takes no share of the step pool,
-  because `Drone.on_step` counts only drones that are awake.
-- **Cancel must go through `Drone.finish`**, the single place an outcome is
+  know forms exist and must not learn that a HUD exists either. Drive both from
+  the other side, reading `drone.budget`.
+- **Stop must go through `Drone.finish`**, the single place an outcome is
   announced, or the player gets two messages or none (`B12`, `B30`). Anything
   reading a drone by name from a callback must respect the **serial guard**
-  (`B29`): read the record fresh, as `lib/drone_entity.lua` does — a panel that
-  caches a drone table across redraws hits exactly that, and so does a panel left
-  open while the run it describes ends.
-- No API name, no codelevel change; one new `flag` setting. Spec coverage
-  partial: `limits_spec` for the binding-constraint arithmetic (**keep it a pure
-  function of `caps` and `used`** so it can be), `stepper_spec` for pause,
-  `forms_spec` for the panel's session and handler routing. **The HUD itself, the
-  cadence, the drawing and the setter gesture cannot be spec'd at all** — they
-  need a player, a screen and a world — so this one wants its playtest group run
-  first and carries more `PLAYTEST.md` weight than any feature so far.
+  (`B29`): read the record fresh — a panel that caches a drone table across
+  redraws hits exactly that, and so does a panel left open while its run ends.
 
 **Argued out, so it is not proposed again.**
 
@@ -665,293 +300,196 @@ and the second rewriting the first.
 - **An admin view of another player's drone.** No one asked, and it adds a
   privilege surface to a feature that otherwise has none.
 - **A `statbar` for the percentage.** It needs a texture pair and draws in
-  half-image steps; a colorized `text` says the same thing to the pixel and costs
-  no asset.
+  half-image steps; a coloured `text` says the same thing to the pixel.
 - **A live-refreshing panel that reproduces the HUD.** The panel refreshes on the
-  same tick — it has no text field, so a redraw costs no focus — but it does not
-  duplicate the HUD's job. Two surfaces, one each.
+  same tick but does not duplicate the HUD's job. Two surfaces, one each.
 - **Two destructive buttons.** *Cancel* and *Remove drone* shipped side by side
   for one afternoon and were **the same `Drone.on_remove` call** under different
-  labels and colours. The author asked what the difference was; there was none.
-  One action gets one button, now *Stop*. A second button that offers a
-  distinction the code does not make is worse than no button.
+  labels. The author asked what the difference was; there was none. **A second
+  button that offers a distinction the code does not make is worse than no
+  button.**
 
 ### F5 · large · dropped 2026-08-29 — change a codelevel while a program runs
 
-**Cut by the author, unbuilt, in the author's words: "not very interesting in the
-end."** No code was written and none is wanted. It is kept here rather than
-deleted because the analysis below is the reason a future proposal to build it
-should be weighed against, not because it is queued — and because a feature with
-no recorded reason for its absence gets proposed again.
-
-What it would have been: `/codelevel` takes effect on the next run, because
-`limits.new` converts the seven ceilings once when the run starts. This would have
-let a level change reach a run already in progress — most usefully to slow a drone
-down to watch it, since `pace_ms` is the level-1 and level-2 pacing. `F4` covers
-the watching half of that want, which is part of why the rest stopped being
-interesting.
-
-**What the analysis was worth keeping for.** Two of these outlive the feature: the
-privilege rule holds for anything that ever exposes a codelevel control, and the
-counter-carrying rule is a limit-bypass shape rather than an `F5` detail.
+**Cut by the author, unbuilt:** *"not very interesting in the end."* `F4` covers
+the watching half of what it was for. Kept because two of its rules outlive the
+feature, and because a feature with no recorded reason for its absence gets
+proposed again.
 
 - **Codelevel is privileged, and this is the feature most able to break that.** An
   intermediate version once removed privs so players could set their own level — a
-  privilege escalation, reverted before it shipped (`B9`). A player must not be
-  able to raise their own level, and if it is ever exposed in `F4`'s panel the
-  button has to be privilege-gated **per press, not per form**. `F4` shipped
-  without any such control, which is now the settled position.
+  privilege escalation, reverted before it shipped (`B9`). If a codelevel control
+  is ever exposed in `F4`'s panel it must be privilege-gated **per press, not per
+  form**.
 - **The subtler hole is the counters, not the privilege.** Rebuilding the budget
   from a new codelevel mid-run **must carry `used` across**; a rebuild that resets
   it turns re-levelling into a way to spend `max_nodes_written` or
-  `max_runtime_s` twice over — a limit bypass through a legitimate command. That
-  is the assertion to write first.
-- The **held** resource is harder than the spent ones: the map footprint decays
-  over `map_window_s` and is compared against a converted mapblock count, so
-  lowering `map_memory_mb` under a run already over the new ceiling must make the
-  drone **wait**, the existing behaviour, rather than fail. And `pace_ms` takes
-  effect at the next `end_command`, so a level change while the drone sleeps does
-  not shorten the sleep already scheduled — decide whether that matters.
-- **Where it lands:** `lib/limits.lua` is dependency-free and does all the unit
-  conversion, so add a re-derive there; nothing outside that file should do the
-  arithmetic. No API name, no new limit, no new setting; it touches neither the
-  serial guard nor the mapblock memo. Spec coverage good — `limits_spec` runs
-  standalone and can pin the whole thing; the privilege path in
-  `lib/register.lua` is not spec-reachable.
+  `max_runtime_s` twice over — a limit bypass through a legitimate command.
 
 ### F6 · Phase 10 / v2.0.0 · planned — Blockly web-based editor
 
-Build programs by dragging blocks in a browser instead of typing Lua — the obvious
-next step for the educational goal, and the reason it keeps coming back.
+Build programs by dragging blocks in a browser instead of typing Lua.
 
-**Settled on 2026-08-28: `F6` is `Phase 10` and v2.0.0**, not the first item after
-1.0.0. It keeps its `F6` id, which is never renumbered. The author's reason is
-that it needs thinking rather than scheduling, and a major version gives it the
-room: *"Blockly will be 2.0.0 so I have time to plan and think."* `Phase 9` —
-`v1.x.y` features and defect work — comes between, so the release after 1.0.0 does
-not have to wait on the largest unanswered design question in the project. The
-four obstacles below are that question, and none of them has moved.
-
-Why it is last, and what would have to be true first:
+**Settled 2026-08-28: `F6` is `Phase 10` and v2.0.0.** The author's reason is that
+it needs thinking rather than scheduling: *"Blockly will be 2.0.0 so I have time
+to plan and think."* Four obstacles, none of which has moved:
 
 - **This mod has no HTTP allowance and cannot give itself one.**
   `core.request_http_api` only returns a table for a mod named in the server's
   `secure.http_mods` or `secure.trusted_mods` — the administrator's setting, not
-  something a ContentDB package can arrange, and something many servers refuse. A
-  feature that silently does nothing on a correctly configured server is worse
-  than one that is absent.
+  something a ContentDB package can arrange. **A feature that silently does
+  nothing on a correctly configured server is worse than one that is absent.**
 - **Mod security blocks the write side.** A mod may not write into its own
-  directory — the same restriction that makes `codeblock_gen_docs` write
-  `api.md` into the world directory. So generated Lua would have to land in the
-  player's file area through `lib/filesystem.lua`, which has no spec coverage.
+  directory, so generated Lua would land in the player's file area through
+  `lib/filesystem.lua`, which has no spec coverage.
 - **The assets have to come from somewhere.** Blockly is JavaScript and the engine
   has no browser. Either the player loads a page hosted elsewhere — a third-party
   runtime dependency for an offline single-player game, and a licensing and
   privacy question under AGPL-3.0-only — or something in-tree serves it, which is
-  a server this mod does not have and `.gitattributes` would have to exclude from
-  the archive.
-- **What would settle whether it is feasible at all:** one written-down answer to
-  *where do the assets live and who allows the HTTP call*, before any code. None of
-  v1.0.0's goals depend on it.
+  a server this mod does not have.
+- **What would settle feasibility:** one written-down answer to *where do the
+  assets live and who allows the HTTP call*, before any code.
 
 ### F7 · small · shipped `afbe504`, confirmed by `E16` — show which tabs are unsaved
 
-A tab whose buffer differs from what is on disk is drawn with a trailing `*`, so
-a player can see the editor is holding an edit they have not saved. Nothing
-showed it before.
+A tab whose buffer differs from what is on disk gets a trailing `*`.
 
 **Why it exists.** `E12` failed three times and was traced twice for a write that
-was never happening. What the player was seeing each time was the unsaved edit
-surviving a tab switch — correct, and what any tabbed editor does — and then
-vanishing on ESC, which is also correct with *Save on tab switch* unticked. The
-sequence is only surprising because nothing in the form says the buffer is dirty.
-Reported as *"not really a bug but more something not expected in the user
-experience"* (2026-08-27).
+was never happening. What the player saw each time was the unsaved edit surviving
+a tab switch — correct — and then vanishing on ESC, also correct with *Save on tab
+switch* unticked. The sequence is only surprising because nothing said the buffer
+was dirty.
 
-**The alternative was rejected, and stays rejected.** Resetting the text area to
-the file's content on a tab switch would make the state visible by throwing the
-player's typing away. That is exactly `B35`: gating the in-memory capture on
-`meta.sos` alongside the write lost the edit outright, and the comment on that
-branch in `lib/formspecs.lua` says so. **Do not gate the capture again.** Warning
-before a discard is a fair follow-up, but a marker makes the warning optional
-rather than necessary, which is why it comes first.
+**The alternative stays rejected.** Resetting the text area to the file's content
+on a tab switch would make the state visible by throwing the player's typing away.
+That is exactly `B35`. **Do not gate the capture again.**
 
 **Constraints.**
 
 - **The marker is render-only.** `meta.tabs[i]` holds the filename `write_file`,
   `read_file` and `remove_file` are handed; a `*` appended there would create a
   file named `foo.lua*`. Decorate the label as the `tabheader` is built and
-  nowhere else. `fields.tabs` is an index, so no branch reads the label back.
-- **Where the flag is set is already decided by `B35`.** `fields.content` is
-  captured once, before the branch chain, and that is where a buffer becomes
-  dirty. `save_active` and `create_file` are where it becomes clean. `copy_active`
-  writes a *different* file, so it clears nothing on the source tab.
-- **A flag, not a comparison, unless the pristine text is kept.** Keeping a second
-  copy of every open file to diff against doubles the editor's memory for a
-  cosmetic mark; a set-on-edit flag costs one boolean per tab and is wrong only in
-  the harmless direction (typing a character and undoing it leaves the tab
-  marked). Pick one deliberately.
-- No API name, no new limit, no codelevel change. `forms_spec` can cover the flag
-  transitions through the handler; **the drawing cannot be spec'd**, so this needs
-  a `PLAYTEST.md` entry beside `E12` — and `E12` itself is unaffected, since the
-  behaviour it checks does not change.
+  nowhere else.
+- **A flag, not a diff against a kept pristine copy** — chosen by the author: one
+  boolean per tab against doubling the editor's memory for a cosmetic mark.
+  `meta.dirty` is a third array beside `meta.tabs` and `meta.contents`,
+  maintained at the same four sites and **kept dense rather than sparse**, because
+  `table.remove` on a table with nil holes has no defined behaviour in Lua 5.1.
+- **The flag cannot be set from `fields.content` *arriving*** — the textarea
+  reports itself on every submit, so that would mark every tab on the first button
+  press. It is set from `fields.content ~= meta.contents[active]`, compared before
+  the buffer is overwritten. So the mark means *differs from what was last
+  written*, not *differs from disk*: type a character and undo it and the tab
+  stays marked, which is the harmless direction.
+- `save_active` clears the flag **only on a write that happened**: a refused save
+  leaves the buffer differing from the file, which is what the mark is for.
 
-**Built on 2026-08-28, the flag, as chosen by the author.** `meta.dirty` is a
-third array beside `meta.tabs` and `meta.contents`, one boolean per tab, and the
-three are maintained at the same four sites — inserted together in `show` and
-`open`, removed together in `remove_active` and `close_active`. **Kept dense
-rather than sparse** for exactly one reason: `table.remove` on a table with nil
-holes has no defined behaviour in Lua 5.1, and the removals are what keep the
-flag with its tab when the indices shift.
-
-**One thing the constraint above did not say, and it decides whether the mark
-means anything.** The flag cannot be set from `fields.content` *arriving*: the
-textarea reports itself on every submit, so that would mark every tab on the
-first button press. It is set from `fields.content ~= meta.contents[active]`,
-compared before the buffer is overwritten. That is **not** the pristine-copy
-design rejected above — the buffer is a copy already held, so it costs no memory
-— but it does mean the mark says *differs from what was last written*, not
-*differs from disk*. Typing a character and undoing it leaves the tab marked
-until the next save, which is the harmless direction the constraint asked for.
-
-`save_active` clears the flag **only on a write that happened**: a refused save
-leaves the buffer differing from the file, which is what the mark is for.
-
-`integration_spec` pins the two things that fail silently — the label carries the
-`*` and `meta.tabs` does not — by calling `get_form` on a built meta and reading
-the `tabheader` back out. What a player can see was `E16`, **passed at `afbe504`
-on 2026-08-28**, the day this shipped.
-
-### F8 · medium · shipped `d619fba`, revised `60dc8dd`, playtest due — make the drone panel readable, and settle where things live
+### F8 · medium · shipped `d619fba`, revised `60dc8dd`, playtest due — make the drone panel readable
 
 Everything `F4`'s first playtest asked for, in one feature because all of it edits
-the same two surfaces. Four wanted changes from the session of 2026-08-29, plus
-the two findings that session filed.
+the same two surfaces: the two findings that session filed (`B45`, `B46`) and the
+changes it asked for, then two more passes from screenshots.
 
-**The two findings come first, because they are defects and the rest is polish.**
+**Settled, and load-bearing.**
 
-- **`B45`** — drop the map footprint from `limits.binding`. It is a *held*
-  resource and sits at its ceiling by design, so it wins the comparison nearly
-  always and the HUD cannot do its one job. `lib/limits.lua`'s header already
-  draws the spent/held distinction; `binding` should compare only the three spent
-  ones (nodes, runtime, heap). The map row stays in `limits.report` — a player
-  still wants to see it — but as a **state**, not a race: at 100% the honest
-  words are *"throttled"*, not *"99% of the way to failing"*.
-- **`B46`** — stop calling charged CPU *Running time*. It is a fraction of wall
-  clock by construction (8 ms of a 90 ms server step at codelevel 4), which makes
-  `max_runtime_s` 1800 read as half an hour when it is nearer five. Rename it and
-  say what it counts. Do **not** change what is counted.
-
-**The four wanted changes.**
-
-- **The panel becomes unconditional, and the setter's left click means *drone
-  info*** — from `H4` and `H8`. No more two-meanings-by-state: click, get the
-  panel, and if nothing is running the panel says so (it already does). This
-  removes the branch `H4` was written to protect and simplifies
-  `register.lua`'s `on_use` to one call.
-  **Settled 2026-08-29: removal becomes a *Remove drone* button in the panel.**
-  All four setter gestures were taken and left click on an idle drone was the only
-  way to remove one, so the gesture change had to give removal a home. The button
-  is shown whatever the drone is doing — on a running drone it means
-  cancel-and-remove, which is exactly what `Drone.on_remove` already does — so
-  there is one place to look for anything to do with a drone, which is the point
-  of making the panel unconditional. `on_punch` was considered and rejected: a
-  stray punch destroying a long build is the objection that moved Cancel into the
-  panel to begin with.
-- **Long numbers get `K`/`M`/`G`, and every row gets its own percentage** — from
-  `H5`. `max_nodes_written` is 1e8 at codelevel 4, so the panel currently prints
-  a nine-digit integer against another nine-digit integer and no player reads
-  that. Suffix the pair and put the fraction beside it, which also means the
-  binding line stops being the only place a percentage appears.
-- **A second pass on the layout, from the author's screenshot of the first one.**
-  Settled 2026-08-29: the limit name is **bold** and shares its left edge with the
-  description; the description is an **area label** (`label[x,y;w,h;text]`), which
-  the engine wraps to two lines and gives no scrollbar, because the single-line
-  version was cut off at the panel edge in French. The *Will stop on: …* summary
-  line is **gone entirely** — the binding limit is now shown by colouring its
-  percentage **amber**, with **red** at 80% or more, so there is either nothing to
-  look at or one thing. And the panel lists **hard limits only**, three rows.
-- **One destructive button, and a close `x` in the corner.** *Cancel* and *Remove
-  drone* were the same call; they are now **Stop**. Closing moved to an `x` at the
-  top right, where a window's close control belongs, rather than a fourth button
-  competing with the two that do something.
-- **The HUD became a five-line block, from a second screenshot.** Settled
-  2026-08-29: it hangs from the top-right corner and reads
-  `<file> : running` in bold, `Budget usage:`, then `- Blocks: n%`,
-  `- CPU: n%`, `- Memory: n%` — the three limits that can stop a program, with
-  the same colour rule as the panel. **The two-line version that named only the
-  binding limit is gone**: naming one was meant to teach which resource a program
-  spends, and in a world it only meant the other two were invisible while the
-  answer was nearly always the same.
-  Three facts made it cheap. A HUD `text` element has a **`style` bitfield**
-  (1 bold, 2 italic, 4 monospace), so the header can be bold. Colour is per
-  element through `number`, which every client honours, so **one element per line**
-  gives per-line colour without needing `core.colorize` and its protocol-44
-  floor. And `alignment = {x = -1, y = 1}` hangs the block down-and-left from the
-  corner, which is what fixes the alignment the screenshot showed.
-  The HUD gets its **own short names** — `Blocks`, `CPU`, `Memory` — and that
+- **The panel is unconditional and the setter's left click means *drone info***
+  — from `H4` and `H8`. No two-meanings-by-state: click, get the panel, and if
+  nothing is running it says so. **An effect that depends on state the player
+  cannot see is one they have to guess at, and the guess destroyed builds.**
+  `on_punch` was considered and rejected: a stray punch destroying a long build is
+  the objection that moved Cancel into the panel to begin with.
+- **One destructive button.** *Cancel* and *Remove drone* were the same call; they
+  are now **Stop**, with **Pause/Resume** beside it and closing moved to an `x` at
+  the top right.
+- **Hard limits only, three rows.** The map footprint is a throttle that sits at
+  its ceiling by design (`B45`); listing it beside three ceilings that do end a
+  run invites exactly the misreading. The *Will stop on: …* summary line is gone —
+  the binding limit is shown by colouring its percentage **amber**, with **red**
+  at 80% or more, so there is either nothing to look at or one thing.
+- **Layout, from the author's screenshot.** The limit name is **bold** and shares
+  its left edge with the description; the description is an **area label**
+  (`label[x,y;w,h;text]`), which the engine wraps and gives no scrollbar, because
+  the single-line version was cut off at the panel edge in French.
+- **Long numbers get `K`/`M`/`G`** and every row its own percentage, threshold
+  10 000 so a small count still reads as a plain integer.
+- **Every limit gets a describing line** — where `B46`'s fix lands. This is the
+  panel earning its space over the HUD: the HUD is four words and a number, the
+  panel can afford a sentence.
+- **The panel's heading is bold, its state coloured** — settled 2026-08-30:
+  `running` **green**, `paused` **yellow**, deliberately neither of the amber and
+  red used on the rows below. **One colour meaning two things on one form is worse
+  than no colour.** Built by **concatenation**, not from the `S('@1 : @2')` key
+  the HUD still uses, because only half the line is coloured. `lua_api.md` permits
+  exactly that — *"string concatenation will still work as expected (note that you
+  should only use this for things like formspecs) … and operations such as
+  `core.colorize` which are also concatenation"*. A label's `font` is **per
+  element**, so the state is bold too; splitting it would need a second label at a
+  guessed x, nothing in Lua being able to measure rendered text. `bold` is a
+  documented `font` value for `label` (a *font modification option*), and `halign`
+  works on labels **only** in the area-label form.
+- **The HUD is a five-line block** hanging from the top-right corner:
+  `<file> : running` in bold, `Budget usage`, then `Blocks: n%`, `CPU: n%`,
+  `Memory: n%`, with the same colour rule as the panel. The `- ` prefixes and the
+  heading's `:` were dropped on 2026-08-30 — a fixed-width corner block three
+  items long is already a list. **The two-line version that named only the binding
+  limit is gone**: naming one was meant to teach which resource a program spends,
+  and in a world it only meant the other two were invisible while the answer was
+  nearly always the same.
+  Three facts made it cheap: a HUD `text` element has a **`style` bitfield**
+  (1 bold, 2 italic, 4 monospace); colour is per element through `number`, which
+  every client honours, so **one element per line** gives per-line colour without
+  `core.colorize` and its protocol-44 floor; and `alignment = {x = -1, y = 1}`
+  hangs the block down-and-left from the corner.
+- **The HUD gets its own short names** — `Blocks`, `CPU`, `Memory` — and that
   duplication is deliberate: the panel's row is a heading over a sentence, the
   HUD's is one line of five. `Server time used` earns its length beside an
   explanation; on the HUD it would be the whole line.
-- **Every limit gets a describing line** — from `H5`, and it is where `B46`'s fix
-  lands. One short sentence per row saying what the resource is and why it has a
-  ceiling. This is the panel earning its space over the HUD: the HUD is four words
-  and a number, the panel can afford a sentence.
-- **The HUD tick moves to a settings page, with the other two checkboxes** — from
-  `H3`. *Show the drone HUD*, *Load program on exit* and *Save on tab switch* all
-  live loose at the bottom of the editor form; they belong together on the
-  existing *Settings* panel beside Blocks / Plants / Wools / API, which `F1` built
-  and which already holds the default-block picker.
+- **The three preference checkboxes moved onto the *Settings* panel**, beside the
+  default-block picker, from the editor form's bottom edge.
 
 **Constraints.**
 
 - **The editor form is legacy coordinates and the panel is `formspec_version[4]`.**
-  Moving three checkboxes into the Settings panel is work inside the legacy form,
-  so the button-width and `scroll_container` traps in `CLAUDE.md` apply; the
-  number formatting is inside the panel and does not.
-- **`limits.report` and `limits.binding` stay pure functions of `caps` and `used`**
-  so `limits_spec` keeps pinning them. The `K`/`M`/`G` formatting is presentation
-  and belongs with the display, not in `lib/limits.lua` — that file converts
-  units, it does not choose words.
-- **Three playtest checks need rewriting, not just re-running.** `H3` moves with
-  the setting, `H4`'s two-meanings split stops existing, and `H8` case 1 changes
-  shape. `H2` needs a genuine re-run: its comparison has never actually been made,
-  because map memory drowned it out both times.
-
-**Argued out already.**
-
-- **Charging wall clock instead of CPU** to make the runtime figure intuitive. It
-  would punish a program for a busy server and for its own pace, which is exactly
-  why `max_calls` was replaced. The number is right; the word is wrong.
-- ~~**Dropping the map row from the panel** along with removing it from
-  `binding`.~~ **Reversed 2026-08-29 on the author's call — *"only list hard
-  limits"*.** The first answer was to keep it with the word *throttled* in place
-  of a percentage; that shipped and was dropped the same day. The reason is
-  `B45`'s own reason: one table holding three ceilings that end a run and one that
-  does not invites the misreading, and a special word asks the player to learn a
-  distinction the table's shape denies. **The row is still in `limits.report`**
-  with its `held` flag, so the data is complete and only this surface declines to
-  draw it. Known consequence, recorded rather than smoothed over: **nothing now
-  tells a player why a drone is slow**, which is the `H6` pause confusion waiting
-  to come back.
+  Work inside the editor is subject to the button-width and `scroll_container`
+  traps in `CLAUDE.md`; the panel is not.
+- **`limits.report` and `limits.binding` stay pure functions of `caps` and
+  `used`** so `limits_spec` keeps pinning them. `K`/`M`/`G` formatting is
+  presentation and belongs with the display — `lib/limits.lua` converts units, it
+  does not choose words.
+- **The panel tick must check the session is still the panel's.** `lib/forms.lua`
+  is one form per player, so opening the editor over an open panel silently
+  replaces the session; the tick compares the stored meta table against
+  `forms.get_meta(name)` before redrawing. Pinned by `forms_spec`.
 
 ## Other decisions worth not re-litigating
 
-- **Building `F5`, changing a codelevel mid-run** — dropped unbuilt 2026-08-29,
-  the author's words: *"not very interesting in the end."* `F4` covers the
-  watching half of what it was for. Do not re-propose it as a small addition to
-  the drone panel: the privilege gating and the counter-carrying below its entry
-  are what make it large.
-- **Putting a button in a HUD** — impossible, not merely unwise. 5.17.0 has nine
-  HUD element types and none is a button, and no HUD click callback exists;
-  `register_on_player_receive_fields` is formspec-only, and `get_player_control`
-  is key state, not a click target. Anything interactive is a formspec. (`F4`)
+- **The per-codelevel numbers, retuned 2026-08-30, and the singleplayer default
+  with them.** `max_nodes_written` came down an order of magnitude at every level
+  — `1e5 / 5e5 / 1e6 / 1e7` — because the old top of 1e8 was a hundred million
+  nodes nobody had ever asked a program for, and a ceiling that cannot be reached
+  teaches nothing about what a program costs. `max_runtime_s` became
+  `250 / 500 / 1000 / 2000`. Level 2 gained in three places at once — `pace_ms`
+  15 → 5 ms, `map_memory_mb` 16 → 32, `max_string_mb` 4 → 8 — because it is the
+  level a server hands out and it was the awkward one: paced enough to feel slow
+  without the room to finish anything.
+  The **singleplayer default went 4 → 3**, `S6` narrowed rather than reversed: the
+  original argument proves too much, arguing for the *unpaced* levels, and 3 is
+  already unpaced. Level 4 is every ceiling at its widest at once, and nothing
+  should sit there without someone asking.
+  The bundled examples were shrunk to match: **every one now completes at
+  codelevel 2**, the largest being `planet.lua` at about 71% of that level's node
+  budget. Two consequences before nudging any of these again — `planet.lua` and
+  `death_star.lua` do **not** fit codelevel 1's 1e5 and never did, and
+  `cube(200,200,200)` now needs codelevel 4.
+- **Building `F5`** — dropped unbuilt 2026-08-29. Do not re-propose it as a small
+  addition to the drone panel: the privilege gating and the counter-carrying under
+  its entry are what make it large.
+- **Putting a button in a HUD** — impossible, not merely unwise. See `F4`.
 - **Batching `place()` into `core.bulk_set_node`** — not for 1.0.0. 1.3x against
   five flush sites whose omission is a silently wrong build; the arithmetic wants
   redoing since Phase 6 changed the yield cadence. (A4)
-- **Letting a file be removed without opening it first** — won't fix, the author's
-  words: "won't fix now, not really needed". `B14`'s cold path stays unreachable
-  as a result. (B34)
+- **Letting a file be removed without opening it first** — won't fix: "not really
+  needed". `B14`'s cold path stays unreachable as a result. (B34)
 - **Resurrecting the `soe` checkbox** — deliberately dead. A warning on unsaved
   changes is what is wanted instead (in `TODO.md`).
 - **Chasing the remaining `minetest` names** — what is left must stay: the config
@@ -967,7 +505,13 @@ the two findings that session filed.
   `api.build` and make every API addition a spec edit. (A16, F1)
 - **Converting the editor form to the new coordinate system** — a change to the
   whole editor, unverifiable from a headless server, and not part of any feature
-  that has needed it so far. (A1, F1)
+  that has needed it. (A1, F1)
+- **Writing `.cdb.json` by hand** — never. ContentDB reads `long_description`
+  from that JSON only and a JSON string cannot hold a newline, so the shipped
+  field is one enormous escaped line: the artefact, not the source. Edit
+  `CONTENTDB.md` and run the generator. (C19)
+- **The release webhook's trigger is *Branch or tag creation*, not push**, because
+  this project tags; push events would publish every commit on `master`.
 
 ## What ships broken
 
@@ -975,67 +519,42 @@ the two findings that session filed.
   still burn CPU inside a single `find` or `match`. (S2)
 - The step budget is never checked *inside* one VoxelManip pass, so a single slab
   — around 65k nodes, under 10 ms — still overshoots it. (A5)
+- A shape large in **two** dimensions still asks for more mapblocks than the
+  footprint ceiling in a single pass, and the run dies instead of waiting. Only
+  one axis can be sliced away. (B42)
 - The map footprint decays linearly over the unload window rather than tracking
   each block, so it estimates what is resident rather than measuring it. (S5)
+- Nothing charges for writing a shape to the map database or pushing it to
+  clients: both happen after a run reports `completed`. Not a defect — every mod
+  writing to the map has it — but no limit bounds what a large shape costs the
+  server, and none should be sold as if it did. (S5, from `W3`)
+- **Nothing on screen says why a drone is slow.** The map row was dropped from
+  both surfaces deliberately (`B45`), which leaves the `H6` pause confusion able
+  to return. A known gap, not an oversight.
 - `place()` writes one node per call; the four bulk shapes do not. (A4)
 - A file cannot be removed from the editor without opening it first, so `B14`'s
   cold-cache removal is unreachable for good. (B34, B14)
 - A copy of a name already at the 15-character limit shifts base at the tenth
   copy — fixing it would let copies past the length rule. (F2)
+- The unsaved-tab mark is a flag, not a diff, so typing a character and undoing it
+  leaves the tab marked until the next save. (F7)
 - A player created before `1f7cd97` keeps the stored "off" for both editor
   checkboxes; the ticked default reaches new players only. (B36)
 - `save_on_exit` is read, written and acted on nowhere: the checkbox stays
   commented out.
 - A file over `max_file_kb` — 128 kB by default — cannot be opened or saved at
-  all: the refusal names the file and the size, and there is no way to raise the
-  ceiling from inside the game. That is the price of not reading it whole. (B40)
-- A shape large in **two** dimensions still asks for more mapblocks than the
-  footprint ceiling in a single pass, and the run dies instead of waiting. Only
-  one axis can be sliced away, so the fix for a shape long in one dimension does
-  not reach this. (B42)
-- Cancelling the drone's file chooser removes the drone it placed, rather than
-  never placing one — the tidier shape, deferring `Drone.new` until a file is
-  picked, is a larger change and was not taken. Fixed and confirmed in a world,
-  `D5` on 2026-08-28. (B41)
-- Removing the file a standing drone is holding takes the drone with it, rather
-  than clearing its name and leaving it asking for another — the same answer
-  `B41` gave, and the two had to agree. Fixed and confirmed in a world, `D6` on
-  2026-08-28. (B44)
-- A tab whose buffer is unsaved is marked with a trailing `*`, so an edit
-  surviving a tab switch and then vanishing on ESC no longer reads as a lost
-  save. It never was one — `E12` passed at `246bb37`; what was missing was
-  anything saying the buffer was dirty. Shipped 2026-08-28 at `afbe504`,
-  and confirmed in a world by `E16` the same day. (F7)
-- The mark is a **flag, not a diff against a kept pristine copy**, chosen by the
-  author on 2026-08-28: one boolean per tab against doubling the editor's memory
-  for a cosmetic mark. It is therefore wrong in the harmless direction — type a
-  character, undo it, and the tab stays marked until the next save. (F7)
-- **All 39 `PLAYTEST.md` checks carry a result** — 37 pass, 2 partial, nothing
-  failing and nothing unrun; the partials are `E2`, permanent while `B34` is
-  won't-fix, and `D2` case 2. `R1` and `R2` both passed on 2026-08-28: the archive
-  holds eleven player-facing entries and none of the record (`C10`), and installed
-  as a package with `codeblock_run_tests = true` it loads and warns instead of
-  refusing to load (`C16`). The footprint throttle left this list on 2026-08-28,
-  having been on it since Phase 5: `P3` measured it, and then re-timed it against
-  `B43`'s fix.
-- A failed file open names the file and logs the operating system's reason at
-  `warning` rather than showing the player the server's absolute path. Fixed and
-  confirmed in a world, `F-3` case 2 on 2026-08-28 — though only the player's
-  half; the log line is still unlooked-at. **The class is the thing to
-  remember:** an
-  error value passed through from an engine or C call is a player-facing string
-  that is not a translation key, and nothing reports it. (S7)
-- `settingtypes.txt` mirrors `lib/config.lua` by hand and nothing checks it — the
-  third such mirror, and the only one without a `--check`. (C7, C17)
-- The flat, sunless sky is now `codeblock_flat_sky`, off by default, so
-  **`codecube` must set it in its own `minetest.conf`** when it adopts a release
-  with this in it or its world gets an ordinary day/night cycle. One line in the
-  game, nothing here. Confirmed in a world, `R3` in both positions on
-  2026-08-28. (C18)
-- Nothing charges for writing a shape to the map database or pushing it to
-  clients: both happen after a run reports `completed`. Not a defect — every mod
-  writing to the map has it — but no limit bounds what a large shape costs the
-  server, and none should be sold as if it did. (S5, from `W3`)
+  all, and the ceiling cannot be raised from inside the game. That is the price of
+  not reading it whole. (B40)
+- Cancelling the file chooser removes the drone it placed, rather than never
+  placing one; removing a file takes the drone holding it. Both deliberate, and
+  the two had to agree. (B41, B44)
+- **`codecube` must set `codeblock_flat_sky = true`** in its own `minetest.conf`
+  when it adopts a release with `C18` in it, or its world gets an ordinary
+  day/night cycle. One line in the game, nothing here. This repository does not
+  track whether it was added, so forgetting it looks like a regression in the
+  game's sky — which belongs to the game's record, not this one.
+- `settingtypes.txt` mirrors `lib/config.lua` by hand and nothing checks it. (C7,
+  C17)
 - `tests/game/mods/vector3/mod.conf` still carries a 5.5 version ceiling —
   separate repository, not fixable from here. (C1)
 - `scripts/gen_cdb_json.sh` is verified by nothing and escapes neither `"` nor a
@@ -1049,36 +568,28 @@ the two findings that session filed.
 - **Run a playtest group that has never been run before writing the next
   feature.** Eight sessions on the editor found four findings; the one session
   that finally left the editor found three, including the worst defect this
-  project has recorded against committed code (`B39`).
+  project has recorded against committed code (`B39`). `F4` repeated the lesson:
+  four green gates, and ten minutes in a world found two more.
 - **Play the mod outside its own game before a release.** `B38`, `B39` and `C18`
   are all invisible in `codecube`, where a player carries nothing but the two
   drone tools and the sunless sky is the game's design.
 - **A check is a starting point, not a script — do the obvious next thing to
   whatever it leaves on screen.** `B41` was reported while a session was checking
   something else, and `B44` came out of re-running `B41`'s own check and then
-  removing the file the drone was holding. Neither is in any written procedure,
-  and no check would have caught either. The written steps are what stops a
+  removing the file the drone was holding. The written steps are what stops a
   session forgetting; they are not what finds things.
 - **Read what the game actually said, not just whether it did the right thing.**
-  `F-3` case 2 passed on behaviour — the file listed, the failure reported, the
-  session intact — and the message it printed was the server's absolute
-  filesystem path in English. That is `S7`, and a pass/fail line on its own
-  would have buried it.
+  `F-3` case 2 passed on behaviour and printed the server's absolute filesystem
+  path in English. That is `S7`, and a pass/fail line would have buried it.
 
 ---
 
-2026-08-29 · codeblock `60dc8dd` (master), pushed · CI green, **run 42, all three
-jobs** — the run covering `F8`'s second and third passes; run 40 covered `B45`,
-`B46` and `F8`'s first, and run 37 before it covered `F4`. Only the record
-commits above it are unseen by CI.
-Local gates green there too, engine 5.17.0, read from output rather than
-exit codes: luacheck silent, `doc/api.md` and `locale/template.txt` up to date,
-`locale/*.tr` covering all 79 messages, nine in-engine specs **439 passed, 0
-failed, 1 xfail, 0 xpass**, six standalone specs green under plain Lua 5.1.
+2026-08-30 · codeblock `60dc8dd` (master), pushed, CI green (run 42, all three
+jobs), plus the uncommitted limit retuning. Local gates green, engine 5.17.0,
+read from output rather than exit codes: luacheck silent, `doc/api.md` and
+`locale/template.txt` up to date, `locale/*.tr` covering all 79 messages, nine
+in-engine specs **439 passed, 0 failed, 1 xfail, 0 xpass**.
 
-**No defect is open. What is left in the phase is one re-run and one generator.**
-`PLAYTEST.md` stands at 48 checks, 47 with a result — 42 pass, 5 partial, one
-unchecked. **Six of the nine `H` checks are due a second run**, because `F8`
-rewrote the behaviour five of them describe, and `H2` and `H4` have never been
-performed in their current form. After that, `settingtypes.txt`'s `--check`, then
+**No defect is open.** `PLAYTEST.md` stands at 50 checks: seven of group `H` due a
+second run, `R4` and `F-5` never run. Then `settingtypes.txt`'s `--check`, then
 v1.0.0.

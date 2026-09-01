@@ -1,16 +1,16 @@
 # Codelevel
 
-Drone capacities depends on the user's _codelevel_ which can be set with the `/codelevel` [command](https://github.com/gigaturbo/codeblock#chat-commands) (see below). High codelevels should be given carefully to users as program could overload the server and crash it. A new player starts at codelevel `4` in singleplayer, where the player is the administrator, and at `2` on a server — set `codeblock_default_auth_level` to override either.
+Drone capacities depends on the user's _codelevel_ which can be set with the `/codelevel` [command](https://github.com/gigaturbo/codeblock#chat-commands) (see below). High codelevels should be given carefully to users as program could overload the server and crash it. A new player starts at codelevel `3` in singleplayer, where the player is the administrator but has no use for the widest ceilings there are, and at `2` on a server — set `codeblock_default_auth_level` to override either.
 
 | codelevel         | 1 (novice) | 2 (intermediate) | 3 (advanced) | 4 (poweruser) | description                                                    |
 |-------------------|------------|------------------|--------------|---------------|----------------------------------------------------------------|
-| pace_ms           |        250 |               15 |            0 |             0 | wait after each drone command, in milliseconds (0 = no wait)   |
+| pace_ms           |        250 |                5 |            0 |             0 | wait after each drone command, in milliseconds (0 = no wait)   |
 | step_budget_us    |       1000 |             2000 |         4000 |          8000 | time (µs) one drone may spend running per server step          |
-| max_runtime_s     |        300 |              300 |          600 |          1800 | total running time (s) one program gets                        |
-| max_nodes_written |        2e5 |              1e6 |          1e7 |           1e8 | nodes one program may write, and so the size of a single shape |
-| map_memory_mb     |          8 |               16 |           64 |           128 | map footprint (MB) one program may hold at once                |
+| max_runtime_s     |        250 |              500 |         1000 |          2000 | total running time (s) one program gets                        |
+| max_nodes_written |        1e5 |              5e5 |          1e6 |           1e7 | nodes one program may write, and so the size of a single shape |
+| map_memory_mb     |          8 |               32 |           64 |           128 | map footprint (MB) one program may hold at once                |
 | heap_mb           |         16 |               64 |          128 |           512 | Lua heap growth (MB) one program run may cause                 |
-| max_string_mb     |          1 |                4 |           16 |            64 | size (MB) of the largest string a single call may produce      |
+| max_string_mb     |          1 |                8 |           16 |            64 | size (MB) of the largest string a single call may produce      |
 
 Every limit above can be changed from the settings menu, under Mods → codeblock,
 or by setting it in `minetest.conf` — the names and formats are in
@@ -40,8 +40,8 @@ so nothing else could bound it, and a program that waits for ever is the same
 runaway as one that loops for ever.
 
 `max_nodes_written` is the build budget, and doubles as the largest shape a
-codelevel can place — 2e5 nodes is a 58-node cube or a radius-36 sphere, 1e8 a
-464-node cube. Neither a shape's dimensions nor the drone's distance from home is
+codelevel can place — 1e5 nodes is a 46-node cube or a radius-28 sphere, 1e7 a
+215-node cube. Neither a shape's dimensions nor the drone's distance from home is
 limited: a big shape is written in slabs of a few thousand nodes with a pause
 between them, so it is slow rather than a frozen server, and flying away costs
 map memory, which is charged below.

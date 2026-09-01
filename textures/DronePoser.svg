@@ -8,7 +8,7 @@
    version="1.1"
    id="svg1"
    inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
-   sodipodi:docname="DronePoser_2.svg"
+   sodipodi:docname="DronePoser.svg"
    xml:space="preserve"
    inkscape:export-filename="drone_poser.png"
    inkscape:export-xdpi="96"
@@ -27,8 +27,8 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      inkscape:zoom="4.288551"
-     inkscape:cx="36.609102"
-     inkscape:cy="83.594669"
+     inkscape:cx="11.892129"
+     inkscape:cy="81.0297"
      inkscape:window-width="1920"
      inkscape:window-height="1111"
      inkscape:window-x="-9"
@@ -66,7 +66,7 @@
        y="44.744194" /><g
        style="fill:#1055a0;fill-opacity:1"
        id="g3"
-       transform="matrix(0.4,0,0,0.4,-29.856042,47.194125)"><path
+       transform="matrix(0.55,0,0,0.55,-31.656042,45.394125)"><path
          fill-rule="evenodd"
          clip-rule="evenodd"
          d="M 12,22 C 17.5228,22 22,17.5228 22,12 22,6.47715 17.5228,2 12,2 6.47715,2 2,6.47715 2,12 2,17.5228 6.47715,22 12,22 Z m -1.3065,-6.1542 4.7202,-2.7868 c 0.7817,-0.4616 0.7817,-1.6564 0,-2.118 L 10.6935,8.15419 C 9.93371,7.70561 9,8.28947 9,9.21316 v 5.57364 c 0,0.9237 0.93371,1.5076 1.6935,1.059 z"
@@ -75,7 +75,7 @@
          style="fill:#1055a0;fill-opacity:1" /></g><g
        style="fill:none"
        id="g4"
-       transform="matrix(0.4,0,0,0.4,-15.35618,47.194125)"><path
+       transform="matrix(0.55,0,0,0.55,-17.15618,45.394125)"><path
          fill-rule="evenodd"
          clip-rule="evenodd"
          d="M 12,22 C 17.5228,22 22,17.5228 22,12 22,6.47715 17.5228,2 12,2 6.47715,2 2,6.47715 2,12 2,17.5228 6.47715,22 12,22 Z M 12.75,9 C 12.75,8.58579 12.4142,8.25 12,8.25 11.5858,8.25 11.25,8.58579 11.25,9 v 2.25 H 9 c -0.41421,0 -0.75,0.3358 -0.75,0.75 0,0.4142 0.33579,0.75 0.75,0.75 h 2.25 V 15 c 0,0.4142 0.3358,0.75 0.75,0.75 0.4142,0 0.75,-0.3358 0.75,-0.75 V 12.75 H 15 c 0.4142,0 0.75,-0.3358 0.75,-0.75 0,-0.4142 -0.3358,-0.75 -0.75,-0.75 h -2.25 z"

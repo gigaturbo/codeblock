@@ -19,9 +19,10 @@
 [Codelevel]
 
 #    Codelevel a player is given on first join. 1 to 4.
-#    Leave empty for the built-in default, which is 4 in singleplayer - where the
-#    player is the administrator - and 2 on a server, where an unvetted joiner
-#    would otherwise arrive holding every limit below at its widest.
+#    Leave empty for the built-in default, which is 3 in singleplayer - where the
+#    player is the administrator, but has no use for the widest ceilings there
+#    are - and 2 on a server, where an unvetted joiner would otherwise arrive
+#    holding a large share of every limit below.
 codeblock_default_auth_level (Default codelevel) string
 
 [Files]
@@ -39,7 +40,7 @@ codeblock_max_file_kb (Maximum program file size) int 128 1 640
 #    Milliseconds the drone waits after each command. Zero is no wait. This is
 #    what makes the novice codelevels slow enough to watch; it costs the server
 #    nothing, as a waiting drone is not running.
-codeblock_pace_ms (Pace between commands) string 250,15,0,0
+codeblock_pace_ms (Pace between commands) string 250,5,0,0
 
 #    Microseconds one drone may spend advancing its program per server step.
 #    A cap, not an allowance: a drone gets the smaller of this and its share of
@@ -56,11 +57,11 @@ codeblock_server_step_budget_us (Step budget for all drones) int 16000 1000 9000
 #    Seconds of running time one program gets. Counted as time the drone was
 #    actually advanced, not wall clock, so pacing and a busy server do not eat
 #    into it. This is what stops a program that never finishes.
-codeblock_max_runtime_s (Maximum running time) string 300,300,600,1800
+codeblock_max_runtime_s (Maximum running time) string 250,500,1000,2000
 
 #    Nodes one program may write. Also the ceiling on a single shape, since
 #    neither a shape's dimensions nor the drone's distance are limited.
-codeblock_max_nodes_written (Maximum nodes written) string 2e5,1e6,1e7,1e8
+codeblock_max_nodes_written (Maximum nodes written) string 1e5,5e5,1e6,1e7
 
 [Memory limits]
 
@@ -69,7 +70,7 @@ codeblock_max_nodes_written (Maximum nodes written) string 2e5,1e6,1e7,1e8
 #    that: the heap limit below measures Lua memory, and a mapblock is not on the
 #    Lua heap. The engine unloads an idle mapblock by itself, so a program over
 #    this ceiling is slowed down rather than stopped.
-codeblock_map_memory_mb (Maximum map footprint) string 8,16,64,128
+codeblock_map_memory_mb (Maximum map footprint) string 8,32,64,128
 
 #    Lua heap growth, in megabytes, one program run may cause. Checked when the
 #    drone yields, so it catches a program that accumulates rather than one that
@@ -78,7 +79,7 @@ codeblock_heap_mb (Maximum heap growth) string 16,64,128,512
 
 #    Largest string, in megabytes, a single call may produce. Covers the single
 #    allocation the heap limit cannot see.
-codeblock_max_string_mb (Maximum string size) string 1,4,16,64
+codeblock_max_string_mb (Maximum string size) string 1,8,16,64
 
 [Appearance]
 

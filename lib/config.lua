@@ -107,17 +107,19 @@ codeblock.config.drone_hud = flag('drone_hud', true)
 
 codeblock.config.auth_levels = {1, 2, 3, 4}
 
--- The codelevel a player gets on first join. Level 4 is right for singleplayer,
--- where the player is the administrator and a lower level would only be an
--- annoyance; on a server it would hand an unvetted joiner every ceiling below
--- at its widest. So the default depends on which one this is, and either can be
--- overridden by the setting. (S6)
+-- The codelevel a player gets on first join. Level 3 is right for singleplayer:
+-- the player is the administrator, so a paced level would only be an annoyance,
+-- but level 4 is the widest set of ceilings there is and nothing should sit
+-- there without being asked for - the difference is a headroom nobody needs by
+-- default, not a capability. On a server the default is 2, which builds fast
+-- enough to be useful and cannot hand an unvetted joiner the whole server step.
+-- Either is overridden by the setting. (S6)
 --
 -- Checked against auth_levels rather than trusted: every limit below is indexed
 -- by this, so a level that does not exist would not be a wide limit but a nil
 -- one, and the first command a program ran would fail on arithmetic.
 local singleplayer = engine and engine.is_singleplayer()
-local wanted = singleplayer and 4 or 2
+local wanted = singleplayer and 3 or 2
 local asked = number('default_auth_level', wanted)
 if codeblock.config.auth_levels[asked] then
     wanted = asked
@@ -134,7 +136,7 @@ codeblock.config.default_auth_level = wanted
 -- 1 is deliberately slow and level 2 merely brisk. A paced drone costs the
 -- server almost nothing, which is why the novice levels are cheap to host as
 -- well as easy to follow.
-codeblock.config.pace_ms = {250, 15, 0, 0}
+codeblock.config.pace_ms = {250, 5, 0, 0}
 
 -- How long one program may run in total, in seconds - the bound on a program
 -- that never finishes. Counted as time the drone was actually advanced, not
@@ -147,7 +149,7 @@ codeblock.config.pace_ms = {250, 15, 0, 0}
 -- This replaced max_calls, which bounded the same thing in units nobody could
 -- reason about: a call was neither a second nor a node, and its ceiling had to
 -- be guessed.
-codeblock.config.max_runtime_s = {300, 300, 600, 1800}
+codeblock.config.max_runtime_s = {250, 500, 1000, 2000}
 
 -- The map footprint one program may hold, in megabytes.
 --
@@ -165,16 +167,16 @@ codeblock.config.max_runtime_s = {300, 300, 600, 1800}
 -- divided by that window is the load rate it settles at - 128 MB over 29s is
 -- some 280 mapblocks a second, against the 1700 a second the engine can
 -- actually serve. See lib/limits.lua.
-codeblock.config.map_memory_mb = {8, 16, 64, 128}
+codeblock.config.map_memory_mb = {8, 32, 64, 128}
 
 -- How many nodes one program may write.
 --
 -- The ceiling on a single shape as much as on the run, now that neither a
--- dimension nor a distance is bounded: 2e5 nodes is a 58-node cube or a
--- radius-36 sphere, 1e8 a 464-node cube. Bulk shapes are written in slices, so
+-- dimension nor a distance is bounded: 1e5 nodes is a 46-node cube or a
+-- radius-28 sphere, 1e7 a 215-node cube. Bulk shapes are written in slices, so
 -- a large one is slow rather than a freeze, which is what made bounding their
 -- dimensions unnecessary.
-codeblock.config.max_nodes_written = {2e5, 1e6, 1e7, 1e8}
+codeblock.config.max_nodes_written = {1e5, 5e5, 1e6, 1e7}
 
 -- How long, in microseconds, one drone may spend advancing its program during
 -- a single server step. See lib/stepper.lua.
@@ -205,7 +207,7 @@ codeblock.config.heap_mb = {16, 64, 128, 512}
 -- lib/strguard.lua: only rep and gsub can amplify, and they are bounded rather
 -- than removed, because Lua 5.1 shares one string metatable across every
 -- string and it cannot be hidden from the sandbox.
-codeblock.config.max_string_mb = {1, 4, 16, 64}
+codeblock.config.max_string_mb = {1, 8, 16, 64}
 
 -- The engine's own unload timer, in seconds: how long a mapblock nothing has
 -- touched stays resident. Read from the engine rather than restated, because

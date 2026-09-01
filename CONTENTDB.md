@@ -47,15 +47,16 @@ Experiment and discover with the other examples, or write your own!
   watch a loop happen. Levels 3 and 4 do not wait.
 - **A very large shape takes time and memory on the server.** It is not
   refused — it is paced, and the drone waits when the map is holding too much.
-- A single player starts at the highest codelevel; on a server, new players start
-  lower and an administrator raises it.
+- A single player starts high enough not to wait; on a server, new players start
+  lower and an administrator raises it. The widest ceilings are never given out
+  by default — someone has to ask.
 
 ## Recent changes
 
 - **See what a running program is spending.** A display in the corner while it
   runs, naming the one limit the run will actually stop on. And **left click your
   drone with the drone setter** for the whole picture: every limit with what the
-  run has spent beside it, plus pause, resume, cancel and remove.
+  run has spent beside it, and what each one means, plus pause and stop.
 - **A default block** you pick in the editor, so a bare `place()` builds what you
   chose. A program can override it for its own run with `default_block(block)`.
 - **`sleep(seconds)`**, so a program can build at a pace you choose rather than
