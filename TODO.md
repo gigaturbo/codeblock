@@ -69,12 +69,13 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
       too (audit F9)
 - [x] run E16 — the unsaved-tab marker, new with F7: passed 2026-08-28 at
       `afbe504`, the day it shipped (audit F7)
-- [ ] run H8 cases 2, 3 and 4 — unreported in both runs of that check. Case 1 is
-      now known to be unperformable: a shown formspec holds the pointer, so no
-      tool can be used while the panel is open (audit F8, B29)
-- [ ] run D2 case 2 — a drone placed where the client shows a node the server has
-      unloaded; the recipe is in the check, and it has now been aimed at twice
-      and missed twice, so the recipe is the suspect (audit B10)
+- [x] run H8 cases 2, 3 and 4 — 2 and 4 passed 2026-09-02; cases 1 and 3 are
+      unperformable, a shown formspec holding the pointer, so no tool can be
+      used while the panel is open. Case 3's mechanism moved into `forms_spec`
+      (audit F8, B29)
+- [x] run D2 case 2 — removed as untestable 2026-09-02, after two attempts. It
+      is the only route to `B10`'s refusal, which now has none: reaching it
+      needs a way to observe the server releasing a mapblock (audit B10)
 - [x] build the release archive and install it once, to prove C16's guard —
       playtest R1 and R2, both passed 2026-08-28 at `7c5bceb` (audit C16)
 

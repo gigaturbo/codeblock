@@ -333,6 +333,26 @@ do
        (running_form(4000):find('(' .. S('@1h @2m', 1, 6) .. ')', 1, true) ~= nil),
        true)
 
+    -- An open panel describes the drone that exists now, not the run it was
+    -- opened for: get_form reads the record on every redraw and holds nothing in
+    -- meta, so a replacement under the same name cannot leak the old run's
+    -- numbers into it. (B29)
+    --
+    -- This is what playtest H8 case 3 asked for and could not reach - placing a
+    -- drone is a tool use, and the panel holds the pointer while it is open. The
+    -- mechanism is here instead.
+    local old = running_form(4000)
+    local new = running_form(45)
+    it('a replacement under the same name is what the panel then describes',
+       (new:find('(' .. S('@1s', 45) .. ')', 1, true) ~= nil and
+           new:find('(' .. S('@1h @2m', 1, 6) .. ')', 1, true) == nil), true)
+    it('and the old run was really the one it described before',
+       (old:find('(' .. S('@1h @2m', 1, 6) .. ')', 1, true) ~= nil), true)
+
+    Drone.instances['ivan'] = nil
+    it('a drone removed under an open panel reads as no drone',
+       (panel.get_form({name = 'ivan'}):find('no drone', 1, true) ~= nil), true)
+
     Drone.instances['ivan'] = was
 end
 

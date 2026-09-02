@@ -35,9 +35,18 @@ limit retuning and `F9` have local gates only. What the run left:
 3. **`settingtypes.txt`'s generator and `--check`**, decided yes 2026-08-28. The
    third hand-kept mirror and the only one without one.
 
-Of the two checks the 2026-08-30 retuning added, **`R4` passed on 2026-09-02** —
-the singleplayer default really is 3 on a fresh world — and **`F-5`** (every
-bundled example completing at codelevel 2) has still never run.
+Both checks the 2026-08-30 retuning added **passed on 2026-09-02**: `R4`, so the
+singleplayer default really is 3 on a fresh world, and `F-5`, so every bundled
+example really does complete at codelevel 2 — under the same day's cut of that
+level's `max_runtime_s` to 60 s, which is the number nobody had measured against.
+
+**`PLAYTEST.md` now has one check with no result, `F9`, and one partial, `H8`.**
+Three untestable halves were removed the same day on the author's call — `D2`
+case 2, `E2`'s cold-cache half and `H8` case 3 — each keeping what it was for and
+why nobody can reach it. **A check nobody can perform is not a check**, and
+leaving it standing as a permanent partial makes the file's own summary lie about
+where the work is. What that costs is named: `B10`'s refusal and `B14`'s cold
+path have no route left, and `H8` case 3's mechanism moved into `forms_spec`.
 
 **The run also retuned two limits**, committed in `96dd4bc` with the three
 mirrors moved with them — under *Other decisions worth not re-litigating*.
@@ -114,9 +123,10 @@ added and shipped on 2026-09-02** out of `F8`'s playtest, the second time a
 feature here has come from playing the one before it — and the second time in a
 row that what a display *said* was the thing playing it found.
 
-Left in the phase: `F9`'s playtest, `B47`, `settingtypes.txt`'s `--check`,
-`F-5`, and **`D2` case 2** — the last half nothing has exercised, needing a way
-to observe the server has released a mapblock rather than another session. (B10)
+Left in the phase: `F9`'s playtest, `B47`, and `settingtypes.txt`'s `--check`.
+**`B10`'s refusal is out of the phase rather than done** — its check was removed
+as untestable, and a route to it needs a way to observe the server releasing a
+mapblock, which nothing here has.
 
 Also standing, and unchecked by anything: **keep `CONTENTDB.md`'s *Recent
 changes* current at each release.** It is a hand-kept summary of `CHANGELOG.md`
@@ -718,12 +728,12 @@ wrong. All three are on the two surfaces `F8` owns, so they are one feature.
 
 ---
 
-2026-09-02 · codeblock `cd13414` (master), **not pushed**; the last CI run is 42
-at `60dc8dd`, green on all three jobs. Local gates green, engine 5.17.0, read
-from output rather than exit codes: luacheck silent, `doc/api.md` and
-`locale/template.txt` up to date, `locale/*.tr` covering all 81 messages, nine
-in-engine specs **451 passed, 0 failed, 1 xfail, 0 xpass**.
+2026-09-02 · codeblock `cd13414` (master) plus the record and spec work above it,
+**not pushed**; the last CI run is 42 at `60dc8dd`, green on all three jobs.
+Local gates green, engine 5.17.0, read from output rather than exit codes:
+luacheck silent, `doc/api.md` and `locale/template.txt` up to date, `locale/*.tr`
+covering all 81 messages, nine in-engine specs **453 passed, 0 failed, 1 xfail,
+0 xpass**.
 
-**One defect is open, `B47`.** `PLAYTEST.md` stands at 51 checks, with `F-5` and
-`F9` the two carrying no result. Then `settingtypes.txt`'s `--check`, then
-v1.0.0.
+**One defect is open, `B47`.** `PLAYTEST.md` stands at 51 checks, `F9` the only
+one with no result. Then `settingtypes.txt`'s `--check`, then v1.0.0.

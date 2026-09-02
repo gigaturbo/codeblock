@@ -20,7 +20,8 @@ Reasoning lives in `AUDIT.md` under the bracketed id, or `ROADMAP.md` for an `F`
 
 ## Where it stands
 
-**51 checks.** Everything carries a result except `F-5` and `F9`.
+**51 checks. `F9` is the only one carrying no result**, and `H8` the only one
+carrying a partial.
 
 - **Group `H` (HUD and panel): re-run 2026-09-02 at `8f5bb2e`, eight pass and one
   partial.** `F8`'s display work is proven in a world. It produced `B47` — panel
@@ -29,17 +30,18 @@ Reasoning lives in `AUDIT.md` under the bracketed id, or `ROADMAP.md` for an `F`
 - **`F9` is the newest check and the only one against just-shipped code.** It is
   entirely words and placement, so the suite reaches none of it, and it wants
   doing in French as well as English.
-- **`H8` case 1 is unperformable as it was written** and the case now says so: a
-  shown formspec holds the pointer, so no tool can be used while the panel is
-  open. Its cases 2–4 are still unreported.
-- **`R4` passed 2026-09-02**, so `S6`'s singleplayer 3 is observed. **`F-5` has
-  still never run**, and matters more since the same day: level 2's
-  `max_runtime_s` is 60 s, not 500, so the examples' unmeasured runtime margin is
-  an eighth of what it was.
-- **`E2` is permanently partial** while `B34` is won't-fix.
-- **`D2` case 2 is partial**, aimed at twice and missed twice — the recipe is the
-  suspect, not the code. It is the only route to `B10`'s refusal and the only
-  thing on the audit's *not verified anywhere* list.
+- **`H8` stays partial because two of its four cases cannot be performed**, not
+  because they failed: a shown formspec holds the pointer, so *while the panel is
+  open* rules out any gesture needing a tool. Case 3's mechanism moved into
+  `forms_spec`.
+- **`R4` and `F-5` both passed 2026-09-02**, so `S6`'s singleplayer 3 is observed
+  and the bundled examples fitting codelevel 2 is measured rather than counted —
+  including under the same day's `max_runtime_s` cut to 60 s at that level.
+- **Three untestable halves were removed on 2026-09-02**, all on the author's
+  call: `D2` case 2, `E2`'s cold-cache half and `H8` case 3. Each entry keeps
+  what it was for and why nobody can reach it, because the reasons are what would
+  otherwise get the case written again. `B10`'s refusal and `B14`'s cold path are
+  the two findings left with no route.
 - **`F-3` case 2's log half is unlooked-at** — one grep of `debug.txt`.
 - **`W3` needs codelevel 4 now**, not 3: its shape exceeds level 3's new ceiling.
 
@@ -62,19 +64,20 @@ Result: pass — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27.
 
 ### E2 · Create and remove a file [B14, A9]
 
-Create a new file from the chooser, then remove it. Then try to remove a file
-never opened this session — and note that you cannot: the four file buttons are
-drawn only inside `if meta.active ~= 0 then`. That is `B34`.
+Create a new file from the chooser, then remove it.
 
-**Pass, first half:** create and remove of an open file both succeed.
+**Pass:** both succeed.
 
-**Second half — unreachable, permanently.** `B34` is won't-fix, so every removal
-the editor can perform is a *warm*-cache one, and `B14`'s cold path is what
-mattered. **`B14` therefore stays committed-but-unproven.** The one route left is
-removing a file immediately after a rejoin, the reconnect being `B14`'s trigger.
+Result: pass — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27.
 
-Result: partial — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27 —
-create and remove of an open file pass; the cold-cache path was not exercised.
+**A second half was removed on 2026-09-02 as untestable**, on the author's call.
+It asked for the removal of a file never opened this session — `B14`'s cold-cache
+path — and the editor cannot do it: the four file buttons are drawn only inside
+`if meta.active ~= 0 then`, which is `B34`, won't fix. So every removal the
+editor can perform is a warm-cache one. **`B14` stays committed-but-unproven with
+no route from this check**; the only one left is removing a file immediately after
+a rejoin, the reconnect being its trigger, and that is a different check nobody
+has written.
 
 ### E3 · Tabs [B33]
 
@@ -298,35 +301,27 @@ Result: pass — `f274245` · engine 5.17.0 · 2026-08-27.
 
 ### D2 · Place a drone at nothing [B10, B38]
 
-Two cases, two different paths. With the **poser**:
+With the **poser**, aim into the sky, so there is **no node** under the
+crosshair, and place.
 
-1. Aim into the sky, so there is **no node** under the crosshair, and place.
-2. Aim at a node the client shows but the **server** has unloaded.
+**Pass:** *"Please target a node"*, and no record created.
 
-**Pass:** (1) *"Please target a node"*, (2) *"Cannot place the drone there, move
-closer"*, and no record created either way. Case 2 is the
-`add_entity`-returns-nil path: a record with no object is a drone that silently
-never runs (`B10`).
+Result: pass — `326f739` + uncommitted fixes · engine 5.17.0 · 2026-08-28, and
+at `246bb37` before it, confirming `B38`.
 
-**A recipe for case 2, since aiming far away is not it.** Lowering the *client's*
-view distance shows the client less; this case needs the client to show **more**
-than the server holds. Set `server_unload_unused_data_timeout = 5`, keep
-`active_block_range` small, stand still while an area you have the mesh for falls
-outside it, wait past the timeout, and place at a node you can still see.
+Earlier: fail — `f274245` · 2026-08-27 — it had no implementation at all. That is
+`B38`.
 
-Result: pass (case 1) / partial (case 2) — `326f739` + uncommitted fixes · engine
-5.17.0 · 2026-08-28. Case 1 passed at `246bb37`, confirming `B38`. **Case 2 has
-now been attempted twice and reached neither time** — *"hard to produce case 2,
-looks not unloaded"*.
-
-**The recipe is the suspect, not the tester.**
-`server_unload_unused_data_timeout` bounds when the engine *may* drop an idle
-mapblock, not when it does, and a block stays resident while anything keeps it
-active. **Do not spend a third session waiting out a timeout and hoping** — find
-a way to *observe* that the server has let go first.
-
-Earlier: fail — `f274245` · 2026-08-27 — case 1 had no implementation at all.
-That is `B38`.
+**A second case was removed on 2026-09-02 as untestable**, on the author's call
+after two failed attempts. It asked for a node the client shows but the *server*
+has unloaded — the `add_entity`-returns-nil path, and the only route to `B10`'s
+*"Cannot place the drone there, move closer"*. Producing it needs the client to
+show **more** than the server holds, and `server_unload_unused_data_timeout`
+bounds when the engine *may* drop an idle mapblock, not when it does. Two
+sessions waited out the timeout and found the block still resident. **A check
+nobody can perform is not a check**; `B10`'s refusal is unprovable by hand and
+recorded as such in `AUDIT.md`. Do not write this case again without a way to
+*observe* that the server has let go.
 
 ### D3 · Replace a drone under the same name [B29, B30]
 
@@ -623,8 +618,14 @@ case did not exist.
    guards and no spec can see on a screen.
 2. Let the program **finish on its own** while the panel is open. It **switches to
    the idle view** rather than freezing on stale numbers or throwing.
-3. Cancel the run, and with the panel still open place a **new** drone under the
-   same name and run something. Nothing from the old run leaks in (`B29`).
+3. **Not performable either, for the reason case 1 is not** (2026-09-02): placing
+   a drone is a tool use, and the panel holds the pointer while it is open, so
+   *with the panel still open* cannot be arranged. What it wanted to prove — that
+   a panel left open describes a **replacement** drone under the same name rather
+   than the run it was opened for (`B29`) — is now pinned by `forms_spec`
+   instead, which swaps the record under an open panel between two `get_form`
+   calls. That is the whole of the mechanism; what is lost is only seeing it on a
+   screen.
 4. **New in `F8`:** open the panel on an idle drone and press **Stop**. It closes;
    it does not sit there describing a drone that no longer exists, and the next
    left click says *You have no drone*.
@@ -633,12 +634,18 @@ case did not exist.
 show as the *editor* being replaced by the panel's content about half a second
 after opening it — so the two seconds of waiting, untouched, is the whole check.
 
-Result: partial — `8f5bb2e` · engine 5.17.0 · 2026-09-02 — **case 1 cannot be
-performed as it was written**, which is the run's finding and is now folded into
-the case above: a formspec holds the pointer, so there is no tool use while the
-panel is up. Cases 2, 3 and 4 not reported. The earlier partial at `729c255`
-recorded the author *"unsure — can use 'open the editor' while in a panel"*; the
-answer is that they cannot.
+Result: partial — `8f5bb2e` · engine 5.17.0 · 2026-09-02 — **cases 2 and 4 pass**,
+and **cases 1 and 3 cannot be performed at all**, which is this run's real
+finding: a shown formspec holds the pointer, so *while the panel is open* rules
+out every gesture that needs a tool. Both cases now say so, and case 3's
+mechanism moved into `forms_spec`. The earlier partial at `729c255` recorded the
+author *"unsure — can use 'open the editor' while in a panel"*; the answer is
+that they cannot.
+
+**It stays partial rather than becoming a pass**, because two of its four cases
+are unreachable by hand rather than passing. The thing to take from it: **on this
+form, "with the panel still open, do X with a tool" is never a check** — the two
+that were written that way both died the same death.
 
 ### H9 · Leaving and rejoining with a program running [F4]
 
@@ -735,7 +742,8 @@ Earlier, and worth keeping: fail — `246bb37` · 2026-08-27 — case 1 run with
 *after* `handle:read('*a')`. And unchecked — 2026-08-28 — case 2 blocked by the
 `cmd` recipe above. **A recipe written for one shell and run in another is a
 procedure defect, not a finding**; that is twice a recipe here has cost a session
-(`D2` case 2 is the other), so a recipe added here names the shell it is for.
+(`D2`'s removed second case is the other), so a recipe added here names the shell
+it is for.
 
 ### F-4 · A file too large to open [B40]
 
@@ -758,9 +766,9 @@ own**.
 
 ### F-5 · Every bundled example finishes at codelevel 2 [S6]
 
-**New 2026-08-30, never run.** The limits were retuned and `planet.lua`,
-`death_star.lua` and `mosely.lua` shrank so the whole set fits the level a server
-hands out. **That claim is arithmetic, not observation.**
+**New 2026-08-30, first run 2026-09-02.** The limits were retuned and
+`planet.lua`, `death_star.lua` and `mosely.lua` shrank so the whole set fits the
+level a server hands out. That claim was arithmetic until it was run.
 
 `/codegenerate`, set yourself to **codelevel 2**, run all fourteen.
 
@@ -791,7 +799,11 @@ the counting method is wrong**, not that one example needs shrinking.
 are both over its 1e5 and always were. Changing that is a decision about the
 examples, not a defect in them.
 
-Result: unchecked.
+Result: pass — `cd13414` · engine 5.17.0 · 2026-09-02 — all fourteen complete at
+codelevel 2. **This is now a measurement and not arithmetic**, which is what the
+check was written to change, and it covers the same day's `max_runtime_s` cut at
+that level, 500 s → 60 s: the runtime nobody had measured is inside 60 s of
+charged time for every example, `torus.lua` and `density.lua` included.
 
 ---
 
@@ -1010,11 +1022,18 @@ history in it proves nothing here**. Create a fresh world each time.
 Worth reading the log once while you are there: `codeblock_default_auth_level = 9`
 must warn and fall back rather than giving a player nil limits.
 
-Result: pass — `cd13414` · engine 5.17.0 · 2026-09-02 — reported as a pass for
-the check, without a case-by-case breakdown. **`S6`'s narrowing to 3 in
-singleplayer is now observed rather than reasoned**, which is what this check
-was written for. The out-of-range warning was not reported on and stays
-unlooked-at.
+Result: pass — `cd13414` · engine 5.17.0 · 2026-09-02 — **`S6`'s narrowing to 3
+in singleplayer is now observed rather than reasoned**, which is what this check
+was written for. The out-of-range guard was read in `debug.txt` and is right,
+naming the bound and saying what it did:
+
+```
+2026-09-02 11:50:08: WARNING[ServerStart]: [codeblock] setting
+codeblock_default_auth_level is not a codelevel from 1 to 4; ignored
+```
+
+So an administrator who writes `9` gets the built-in default, not a player with
+nil limits.
 
 ---
 

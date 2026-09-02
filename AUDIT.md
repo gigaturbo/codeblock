@@ -38,11 +38,12 @@ gates over the limit retuning and then over `F9`, all four green both times.
 Every defect the playtests found is fixed except `B47`, which the 2026-09-02
 group `H` re-run filed. That run also **confirmed `B45` and `B46` fixed in a
 world** and proved `F8`'s display work. The one thing **not verified anywhere** is
-`B10`'s refusal, aimed at twice through playtest `D2` case 2 and missed twice —
-the recipe is the suspect. **Gates green, unproven in a world:** `B14`,
-permanently blocked on `B34` being won't-fix; `S7`'s log half; `F9`; and the
-2026-08-30 retuning's effect on the bundled examples, whose check is `F-5`. Its
-other check, `R4`, passed on 2026-09-02 and took `S6` with it.
+`B10`'s refusal, aimed at twice through playtest `D2` and missed twice —
+the recipe is the suspect and its check was removed as untestable on 2026-09-02.
+**Gates green, unproven in a world:** `B14`, permanently blocked on `B34` being
+won't-fix; `S7`'s log half; and `F9`, shipped the same day. `R4` and `F-5` both
+passed on 2026-09-02, which takes `S6` and the retuning's effect on the bundled
+examples off this list.
 
 ---
 
@@ -85,8 +86,9 @@ needed"** — there is a working route (open it, then remove it).
 
 Its permanent second effect is why it was filed: **`B14`'s cold-cache removal
 path can never be reached from the editor**, since opening a file populates the
-cache. Playtest `E2` stays partial for good; the only route left to `B14` is
-removing a file immediately after a rejoin.
+cache. Playtest `E2` carried that as a permanent partial until 2026-09-02, when
+the half was removed as untestable and `E2` became the pass it actually is; the
+only route left to `B14` is removing a file immediately after a rejoin.
 
 **Keep — the fix's shape, so it is not re-derived.** Move *Remove file* out of
 the block, alongside the help-panel switches already outside it, and act on the
@@ -149,13 +151,17 @@ should confirm is a separate question.
   check. Fixed in Phase 7, `742a1ca`: `Drone.new` returns nil and "Cannot place
   the drone there, move closer", creating no record — without an entity nothing
   steps the program, so a record with no object is a drone that silently never
-  runs. Committed, **not verified**: it needs a player pointing at a node the
-  server has unloaded (playtest `D2` case 2).
-  **Keep — two attempts failed and the recipe is the suspect.**
+  runs. Committed, **not verified, and now with no route to verifying it**: it
+  needs a player pointing at a node the server has unloaded, and playtest `D2`'s
+  second case asked exactly that and was **removed as untestable on 2026-09-02**
+  after two failed attempts.
+  **Keep — why nobody could produce it, so a third attempt is not made blind.**
   `server_unload_unused_data_timeout` bounds when the engine *may* drop an idle
-  mapblock, not when it does, and anything keeping the block active holds it. A
-  third attempt wants a way to **observe** that the server has let go rather than
-  waiting out a timeout and hoping.
+  mapblock, not when it does, and anything keeping the block active holds it. Both
+  sessions waited out the timeout and found the block resident. A route wants a
+  way to **observe** that the server has let go — a server-side read of what is
+  loaded, not a guess from the client's side of the glass. The fix itself is three
+  lines and reviewed; what is unproven is the path reaching them.
 - **B11 · medium · resolved** — `on_deactivate` dereferenced `_data` without the
   guard `on_step` had. Fixed in `742a1ca` by removing the cache rather than
   adding the guard: the entity holds a name, so a name that names no drone reads
@@ -169,8 +175,11 @@ should confirm is a separate question.
   `remove_file` indexed the per-player cache without populating it. Fixed in
   `37c416e`: both go through `get_user_data`. The trigger was reconnecting —
   `remove_user_data` on disconnect emptied the cache, so the first save after a
-  rejoin crashed. The warm path passes (`E2`); the cold path is permanently out
-  of reach while `B34` stands.
+  rejoin crashed. The warm path passes (`E2`); **the cold path is permanently out
+  of reach from the editor while `B34` stands**, and `E2`'s half asking for it was
+  removed as untestable on 2026-09-02 rather than left standing as a partial. The
+  one route left is *removing a file immediately after a rejoin* — the reconnect
+  being the trigger — which is a check nobody has written.
 - **B15 · low · resolved** — example loading had no error handling and leaked
   handles. Fixed in `37c416e`: an unreadable example is skipped with a warning
   instead of taking the mod down at load, and the `.lua` strip is anchored to the
@@ -552,7 +561,8 @@ broken.
   proves too much: it argues for the *unpaced* levels, which is 3. Level 4 is
   every ceiling at its widest at once, and the difference is headroom rather than
   capability. Nothing sits at 4 without someone asking. Server default unchanged
-  at 2. Check: `R4`, passed 2026-09-02 - observed, not reasoned.
+  at 2. Checks: `R4` and `F-5`, both passed 2026-09-02 — observed, not reasoned,
+  and the out-of-range guard read in `debug.txt` while there.
 - **S7 · low · resolved** — a failed file open told the player the server's
   absolute path, in English whatever the game's language. From playtest `F-3`
   case 2, which **passed on behaviour and failed on its message**. `read_file`
@@ -835,8 +845,9 @@ document says so.
   gates. **CI never runs the nine in-engine specs**, which is why the editor
   findings rest on the local suite and the playtests.
 - **Verified locally** (engine 5.17.0, read from output rather than exit codes —
-  `$?` does not survive this machine's WSL layer): nine in-engine specs, 439
-  passed / 0 failed / 1 xfail / 0 xpass.
+  `$?` does not survive this machine's WSL layer): nine in-engine specs, 453
+  passed / 0 failed / 1 xfail / 0 xpass at `cd13414` plus the uncommitted `H8`
+  cases.
 - **Verified in a running world.** All 39 `PLAYTEST.md` checks written before
   `F8` carry a result; see that file for the commit and date on each. Between
   them they confirm `A2`, `A9`, `A11`, `B5`, `B7`, `B10`'s happy path, `B13`,
@@ -844,21 +855,29 @@ document says so.
   `B38`, `B39`, `B40`, `B41`, `B42`, `B43`, `B44`, `C10`, `C16`, `C17`, `C18`,
   `S5`'s measurements, `S7`, `F1`, `F2`, `F3` and `F7` — and answer `A4`. The
   group `H` re-run of 2026-09-02 at `8f5bb2e` adds `B45`, `B46` and `F8`, eight
-  of its nine checks passing, and `R4` the same day adds `S6`.
+  of its nine checks passing, and `R4` and `F-5` the same day add `S6` twice
+  over — the default a fresh world hands out, and every bundled example fitting
+  the level a server hands out.
 - **Verified by reading the engine's own source** (`luanti-org/luanti` at 5.6.0,
   5.7.0, 5.8.0, 5.9.0, 5.17.0): the 640 kB formspec-submission cap and the
   version it arrives in (`B40`); `parseScrollBar` and `acceptInput` (`B37`);
   `label`'s `font=bold` and `halign` being area-label only (`F8`).
 - **Gates green, unproven in a world:** `B14`, blocked on `B34` being won't-fix;
-  `S7`'s log line; the retuning's effect on the bundled examples (`F-5`); `H8`'s
-  cases 2–4, unreported in both runs of that check; and **`F9`**, which is words
-  and placement only, so the suite reaches none of it by construction.
-- **Not verified anywhere:** `B10`'s refusal, twice aimed at through `D2` case 2.
-  **That is the whole list.**
+  `S7`'s log line; and **`F9`**, which is words and placement only, so the suite
+  reaches none of it by construction.
+- **Not verified anywhere, and with no route left:** `B10`'s refusal, twice aimed
+  at through `D2`'s second case, which was removed as untestable on 2026-09-02.
+  **That is the whole list**, and it is now a standing gap rather than a queued
+  check.
+- **Unreachable by hand, proven by a spec instead:** that an open drone panel
+  describes a replacement drone under the same name rather than the run it was
+  opened for (`B29`). Playtest `H8` case 3 asked for it and cannot be performed —
+  the panel holds the pointer — so `forms_spec` swaps the record between two
+  `get_form` calls.
 - **Computed, not measured:** `W3`'s cost breakdown under `S5` — mapblock counts,
   slab geometry and the ~36 MB resident are arithmetic over the source and the
-  one measured constant. Only the 0.34 s is a measurement. Also the claim that
-  every bundled example fits codelevel 2 (`F-5`).
+  one measured constant. Only the 0.34 s is a measurement. **The bundled examples
+  fitting codelevel 2 left this list on 2026-09-02**, when `F-5` ran.
 - **Recorded as not fitting the model:** `P3`'s pre-fix 160 s, and the post-fix
   23% between 78 s and 95 s. The spans can only multiply to 1, 2 or 4.
 - **Observed and unattributed:** at codelevel 1 nothing of the shape appeared
