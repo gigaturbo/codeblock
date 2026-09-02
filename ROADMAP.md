@@ -21,23 +21,28 @@ thinking rather than a queue position.
 
 ## Now
 
-**Phase 8 is feature-complete and playtested, and what is left is not feature
-work.** Seven features shipped, `F9` and the paused clock the last of them, and
-`PLAYTEST.md` has a result against all 51 checks. The tree is clean at `7dbe18f`,
-all four local gates are green there, and CI is green through `471526e` — run 44
-at `dc09d48`, the last commit touching code, and run 45 after it. **So the
-remaining distance to v1.0.0 is one decision, one generator, three documents and
-the tag.** That list, in order, is the next section.
+**Nothing is open, and what is left is three documents, one playtest and the
+tag.** `B47` was decided and fixed on 2026-09-02, `settingtypes.txt` has its
+generator and its `--check`, and no finding is in the open state for the first
+time in the project's life. Five gates green, nine in-engine specs **458 passed /
+0 failed / 1 xfail / 0 xpass**. The ordered list is the next section.
 
-**The one decision is `B47`,** the only open finding. A panel button sometimes
-needs a second click, and this is no longer a suspicion: the client destroys and
-rebuilds every element of the form on each 0.5 s refresh, and a button's press
-lives on the object it destroys, so a click held across a refresh is dropped with
-no error anywhere. Four fix directions are in `AUDIT.md` and **none is chosen**,
-because each of them trades away some of the liveness `F8` was built for — which
-makes it the author's call rather than an implementation detail. **Either it is
-fixed or it ships named under *What ships broken*.** What it must not do is stay
-an open finding in a released version with nothing saying so.
+**`B47` was answered by slowing the beat**, `PERIOD` `0.5` → `1` s in
+`lib/hud.lua`, the HUD moving with the panel because they share the one constant
+— *"the HUD also so everything matches"*. It **halves the dead window rather
+than removing it**: roughly one dropped click in ten where it was one in five.
+That is the trade the author took over the three directions that cost more, and
+it is stated as a residue under *What ships broken* rather than sold as a fix.
+**Playtest `H10` is the only thing that can say whether one in ten is still
+noticeable**, and it is the one check with no result.
+
+**Writing the generator found a dead check, `C20`.** `gen_docs.lua`'s guard that
+every per-codelevel limit has a documentation row had been matching **nothing**
+since it was written: Lua's `%w` excludes the underscore, and every limit name
+has one. No documentation was actually missing — the table was kept correct by
+hand for the whole time the guard was dead. Both generators now match `[%w_]+`,
+and both were **made to fail once**, against a fake limit, which is the only
+evidence that separates a check that passes from one that cannot fail.
 
 **Two loose ends, neither blocking.** `S7`'s log line is unlooked-at — one grep of
 `debug.txt`, next time an unreadable file is to hand. And `P3` left a 23% gap
@@ -61,19 +66,18 @@ In order. **Steps 6 to 10 are the `release-codeblock` skill's procedure** and ar
 not restated here; what is below is what *this* version still needs, and
 `release-check` is the gate that says whether it got it.
 
-**The work — five items, none large.**
+**The work — two done on 2026-09-02, three documents left.**
 
-1. **Decide `B47`.** Fix it, or write it into *What ships broken* naming the
-   direction not taken. Fixing it is a change to how often the panel redraws, so
-   it lands with a `PLAYTEST.md` result — a click-loss defect is invisible to the
-   four gates by construction.
-2. **`settingtypes.txt`'s generator and `--check`**, decided yes 2026-08-28. It
-   is the third hand-kept mirror and the only one of the three with neither, and
-   `lib/config.lua` already keeps its tables as plain literals for `gen_docs.lua`
-   to grep, so the same source serves both. Ships with a line in the CI job that
-   already runs the other two `--check`s. **This project's own lesson is the
-   argument for doing it before the release rather than after:** a note about
-   remembering does not hold, a `--check` in CI does. (C7, C17)
+1. **`B47` — done.** Answered by the longest of the four directions' opposites:
+   slow the beat to 1 s rather than stop the self-refresh, quantise, or move to
+   mouse-down. `AUDIT.md` keeps why each of the other three was not taken, and
+   `H10` is the check that says whether it was enough. (B47)
+2. **`settingtypes.txt`'s generator and `--check` — done**, `scripts/gen_settingtypes.lua`,
+   with a step in the CI job that already runs the other two. The defaults come
+   from `lib/config.lua`, the prose and the menu bounds from the script, and it
+   **also fails on a setting `config.lua` reads that the menu does not offer** —
+   the half no hand-kept file could do. It found `C20` on its first run. (C7,
+   C17, C20)
 3. **`CONTENTDB.md`'s *Recent changes* — and it has already drifted, exactly as
    `C19` said it would.** Two claims on that page describe a mod that no longer
    exists: the corner display *"naming the one limit the run will actually stop
@@ -102,10 +106,10 @@ not restated here; what is below is what *this* version still needs, and
    `codecube`. **Play it outside its own game** — `B38`, `B39` and `C18` were all
    invisible in `codecube`.
 7. **`release-check`**, and do not start the tag until it says ready: the nine
-   in-engine specs, the six standalone, luacheck, both `--check` generators, CI
-   green on the tagged commit's own `head_sha`, the licence field, ContentDB's
-   rules against the long description, and a fresh clone that can run its own
-   suite.
+   in-engine specs, the six standalone, luacheck, **all three** `--check`
+   generators, CI green on the tagged commit's own `head_sha`, the licence field,
+   ContentDB's rules against the long description, and a fresh clone that can run
+   its own suite. Plus `H10`, which is the one playtest with no result.
 8. **Strike what the release closed** from `ROADMAP.md` and `TODO.md`, confirm
    `tests/game/mods/vector3`'s pinned commit is pushed, then commit, push, and
    tag `v1.0.0` on `master`.
@@ -157,7 +161,7 @@ that the editor and drone paths were exercised by hand. Phase 8's playtests have
 since found **twelve** defects in code earlier phases called done (B36–B44, C17,
 C18, S7) — the newest of them were the largest. **All twelve are fixed.**
 
-### 8 · Features for v1.0.0 — feature-complete again (7/7 shipped, 18 findings, 1 open `B47`)
+### 8 · Features for v1.0.0 — feature-complete, nothing open (7/7 shipped, 20 findings, 0 open)
 
 The last phase before v1.0.0 and the only one that adds rather than repairs.
 Started as seven features: `F6` moved out on 2026-08-28 (Blockly is `Phase 10`)
@@ -170,10 +174,12 @@ Shipped: `F1` `500dd85`, `F2` `dee0bc7`, `F3` `90cfb70`, `F7` `afbe504`,
 the second time a feature here has come from playing the one before it — and the
 second time in a row that what a display *said* was the thing playing it found.
 
-Left in the phase: `B47`, `settingtypes.txt`'s `--check`, and the three documents
-under *Finalising v1.0.0* above — that section is the ordered list. **`F9` passed
-its playtest on 2026-09-02** — all eight cases in both languages, no defect, and
-one decision reversed: the paused clock, built and re-checked the same day.
+Left in the phase: the three documents under *Finalising v1.0.0* above, and two
+checks in a world — `H10` for `B47`'s fix and `R2` on the release archive. **`F9`
+passed its playtest on 2026-09-02** — all eight cases in both languages, no
+defect, and one decision reversed: the paused clock, built and re-checked the same
+day. **`B47` and `settingtypes.txt` closed the same day**, and writing the second
+found `C20`, a check that had never once matched anything.
 **`B10`'s refusal is out of the phase rather than done** — its check was removed
 as untestable, and a route to it needs a way to observe the server releasing a
 mapblock, which nothing here has.
@@ -700,6 +706,33 @@ wants is how long the build has taken, and a pause is not part of it.
   prose that `gen_docs.lua` does not check the numbers of**, only that every
   limit has a row), `settingtypes.txt`, and the worked example in
   `lib/config.lua`'s own comment.
+- **Slowing the display beat rather than making the panel static**, decided
+  2026-09-02 for `B47`. `PERIOD` `0.5` → `1` s, one constant in `lib/hud.lua`
+  driving both surfaces. It halves a dropped-click window it does not close, and
+  three directions that would have closed it were each rejected for what they
+  cost: *stop the self-refresh* takes away the liveness `F8` was built for,
+  *quantise the string* cannot beat `F9`'s elapsed clock (which at a 1 s beat
+  changes on every beat, so there is nothing left to quantise), and *act on
+  mouse-down* means a `textlist` where *Pause* and *Stop* are buttons — a
+  destructive action on mouse-down being worse than a dropped click. **The
+  fallback is named:** if `H10` says one in ten is still noticeable, the next
+  direction is the static panel, not a shorter beat. `AUDIT.md` holds the
+  engine-source chain behind all of it.
+- **A generator for `settingtypes.txt`, with its prose in the script rather than
+  parsed out of `lib/config.lua`**, built 2026-09-02. Two audiences, two
+  documents: `config.lua`'s comments are for whoever edits the code and cite
+  finding ids, the menu's descriptions are for an administrator. So the script
+  derives the **numbers** and owns the **words**, which is all a generator can
+  honestly promise (`C19`). What it adds beyond the numbers agreeing is a
+  completeness check in both directions — a setting `config.lua` reads and the
+  menu does not offer, or a menu entry nothing reads — and that is the half a
+  hand-kept file could never have.
+- **Making a new check fail once before trusting it**, forced by `C20` on
+  2026-09-02. Two checks in a row here were written, committed, believed and
+  matched nothing: three name prefixes that missed every limit, then a shape
+  match whose `%w+` missed the same names for a different reason. **A check that
+  cannot fail is indistinguishable from a check that passes.** Both generators
+  have now been run against a deliberately undrawn limit and seen to exit 1.
 - **The duration on the HUD as well** — cut from `F9` on 2026-09-02. The corner
   block is four words and a number a line by design, and its first line already
   carries a filename and a state. The two surfaces disagreeing is the objection,
@@ -788,8 +821,10 @@ wants is how long the build has taken, and a pause is not part of it.
   day/night cycle. One line in the game, nothing here. This repository does not
   track whether it was added, so forgetting it looks like a regression in the
   game's sky — which belongs to the game's record, not this one.
-- `settingtypes.txt` mirrors `lib/config.lua` by hand and nothing checks it. (C7,
-  C17)
+- **A panel button still drops roughly one click in ten.** The 1 s beat halves
+  the window rather than closing it, and there is no way to close it without
+  giving up the panel's liveness. A dropped click is silent — `on_close` never
+  runs — so the symptom is a button that needs pressing twice. (B47)
 - `tests/game/mods/vector3/mod.conf` still carries a 5.5 version ceiling —
   separate repository, not fixable from here. (C1)
 - `scripts/gen_cdb_json.sh` is verified by nothing and escapes neither `"` nor a
@@ -819,17 +854,18 @@ wants is how long the build has taken, and a pause is not part of it.
 
 ---
 
-2026-09-02 · codeblock `7dbe18f` (master), clean tree, **pushed**, and **CI green
-on all three jobs at `dc09d48` (run 44) and `471526e` (run 45)**. `dc09d48` is
-the last commit touching code, so it is the one a later run is compared against;
-`7dbe18f` and `471526e` change only the record. **Four gates re-run at `7dbe18f`
-and green**, read from output rather than exit codes: luacheck silent,
-`doc/api.md` and `locale/template.txt` up to date, `locale/*.tr` covering every
-message and nothing else, and the six standalone specs **238 passed, 0 failed, 1
-xfail** under Lua 5.1. The nine in-engine specs were last run at `dc09d48`:
-**458 passed, 0 failed, 1 xfail, 0 xpass**, engine 5.17.0.
+2026-09-02 · codeblock master, `B47`'s beat change and `settingtypes.txt`'s
+generator on top of `7dbe18f`. **CI was last green on all three jobs at
+`dc09d48` (run 44) and `471526e` (run 45)**, so this work has **local gates
+only** until the next run; `dc09d48` was the last commit touching code before it.
+**Five gates green**, engine 5.17.0, read from output rather than exit codes:
+luacheck silent, `doc/api.md`, `locale/template.txt` and **`settingtypes.txt`**
+all up to date, `locale/*.tr` covering every message and nothing else, nine
+in-engine specs **458 passed, 0 failed, 1 xfail, 0 xpass**, and the six
+standalone **238 passed, 0 failed, 1 xfail** under Lua 5.1. Both generators were
+also **made to fail once** against a fake limit.
 
-**One defect is open, `B47`, and its mechanism is now known.** `PLAYTEST.md`
-stands at 51 checks with a result against every one, `R1` re-checked at
-`7dbe18f`. Left is *Finalising v1.0.0* above: `B47`, `settingtypes.txt`'s
-`--check`, three documents, then the tag.
+**Nothing is open** — a first for this project. `PLAYTEST.md` stands at 52
+checks, 51 with a result: `H10` is new for `B47`'s fix and is the one
+outstanding, and `R2` wants re-running on the release archive. Left is
+*Finalising v1.0.0* above: three documents, those two checks, then the tag.

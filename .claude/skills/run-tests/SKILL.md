@@ -174,7 +174,7 @@ messages the code sends, and `luacheck` lints. All three run in CI — the two
 skill:
 
 ```bash
-wsl bash -lc 'cd /mnt/c/Users/lacba/PRogrammation/codeblock && luacheck . --formatter plain --codes && lua5.1 scripts/gen_docs.lua --check && lua5.1 scripts/gen_locale.lua --check'
+wsl bash -lc 'cd /mnt/c/Users/lacba/PRogrammation/codeblock && luacheck . --formatter plain --codes && lua5.1 scripts/gen_docs.lua --check && lua5.1 scripts/gen_locale.lua --check && lua5.1 scripts/gen_settingtypes.lua --check'
 ```
 
 Read what they print rather than the exit code: `$?` does not survive the WSL

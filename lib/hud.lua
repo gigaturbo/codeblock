@@ -50,7 +50,14 @@ local default_on = codeblock.config.drone_hud
 -- that actually changed, and only for a player whose own program is running, so
 -- the cost is bounded by the number of players actually building rather than by
 -- the player count.
-local PERIOD = 0.5
+--
+-- It is also the drone panel's refresh, and that is what fixes its length here.
+-- A formspec re-sent with a changed string makes the client destroy and rebuild
+-- every element, and a button holds its own press, so a click held across a
+-- refresh is dropped with no error anywhere: a ~100 ms press against this period
+-- is how often a panel button needs a second click. Lengthening it is what
+-- reduces that; do not shorten it back for a smoother HUD. (B47)
+local PERIOD = 1
 
 -- Top-right: the one corner the engine draws nothing in by default. Chat is top
 -- left, the hotbar and the health and breath bars are along the bottom, and the

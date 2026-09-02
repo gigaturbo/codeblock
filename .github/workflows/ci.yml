@@ -127,3 +127,10 @@ jobs:
       # to be in, so the .tr report is printed and does not fail the job.
       - name: Check locale/template.txt is up to date
         run: lua scripts/gen_locale.lua --check
+
+      # The third and last of the mirrors. settingtypes.txt only draws the
+      # settings menu, so every value in it was a hand-kept copy of a literal in
+      # lib/config.lua and two retunings had to move it by hand (C7, C17). This
+      # also fails on a setting config.lua reads and the menu does not offer.
+      - name: Check settingtypes.txt is up to date
+        run: lua scripts/gen_settingtypes.lua --check

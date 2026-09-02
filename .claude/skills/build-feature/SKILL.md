@@ -1,6 +1,6 @@
 ---
 name: build-feature
-description: How a feature gets built in the CodeBlock mod — the six-step order F1 established, from shaping it in prose, through the choices only the author can make and the parts argued out, to the four gates, the author's playtest in a real world, and recording what it found. Use when starting a new feature, picking up an F item (F4, F5, F6) mid-way, or deciding whether a feature is done.
+description: How a feature gets built in the CodeBlock mod — the six-step order F1 established, from shaping it in prose, through the choices only the author can make and the parts argued out, to the gates, the author's playtest in a real world, and recording what it found. Use when starting a new feature, picking up an F item (F4, F5, F6) mid-way, or deciding whether a feature is done.
 when_to_use: Starting or resuming any feature or F item in this repository, before writing feature code, when asked "what's next on F4" or whether a feature is finished, and when a feature's playtest has just produced results.
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write, AskUserQuestion
 ---
@@ -44,7 +44,7 @@ cheapest here.
 decisions worth not re-litigating*. An omission with no recorded reason gets
 proposed again.
 
-## 4. Write it, then the four gates, every time
+## 4. Write it, then the gates, every time
 
 **`code-expert`** writes it — it reads the `code-standards` skill first, and it is
 the one that knows what the change drags with it. **`test-agent`** runs the gates
@@ -55,6 +55,7 @@ either way.
 luacheck . --formatter plain --codes
 lua scripts/gen_docs.lua --check      # doc/api.md matches lib/api.lua
 lua scripts/gen_locale.lua --check    # locale/template.txt matches the code
+lua scripts/gen_settingtypes.lua --check   # settingtypes.txt matches lib/config.lua
 ```
 
 ```powershell
@@ -62,8 +63,8 @@ powershell -ExecutionPolicy Bypass -File scripts/run_tests.ps1   # the nine spec
 ```
 
 **Read the output, not the exit code.** `$?` does not survive this machine's WSL
-layer, so a gate is green when it *says* so: luacheck silent,
-`doc/api.md is up to date`, `locale/template.txt is up to date`, and `failed` and
+layer, so a gate is green when it *says* so: luacheck silent, `doc/api.md`,
+`locale/template.txt` and `settingtypes.txt` each *up to date*, and `failed` and
 `xpass` both 0 in the spec run. The `run-tests` skill owns the suite's procedure.
 
 If the feature adds or changes a player-facing name, the edit spans `lib/api.lua`,

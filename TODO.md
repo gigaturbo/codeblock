@@ -32,11 +32,14 @@ Features
       `Drone.elapsed_us` is now the one answer both the panel and the finish
       message read, and `Drone.toggle_pause` the only writer of `paused`.
       Playtested the same day: `F9` case 4, rewritten and passed (audit F9)
-- [ ] BUG: buttons on the drone panel are sometimes unresponsive, a second click
+- [x] BUG: buttons on the drone panel are sometimes unresponsive, a second click
       needed. Cause confirmed in the engine source: the 0.5 s refresh makes the
       client destroy and rebuild every element, and a button's press lives on
       the object it destroys, so a click held across a refresh is dropped with
-      no error. Not the handlers — four fix directions in AUDIT.md (audit B47)
+      no error. Fixed 2026-09-02 the way you asked: the beat is 1 s, HUD and
+      panel together since they share the one constant. It halves the dropped
+      window rather than closing it — about one click in ten, was one in five —
+      so playtest H10 is what says whether that is enough (audit B47)
 - [ ] FEAT: Make possible to change codelevel while running a program (audit F5)
 - [ ] FEAT: stop forcing the two tools into every joining player's inventory —
       a command that hands them out, or a setting so an embedding game decides.
@@ -60,6 +63,11 @@ Features
       release-codeblock skill (no finding; from the author, 2026-08-28)
 - [ ] the ContentDB URLs in README.md are on content.minetest.net, the
       pre-rename domain; it redirects but is stale (audit C19)
+- [ ] rework the screenshots — yours, 2026-09-02. Note what they touch:
+      screenshots/ is export-ignore'd so none of it ships in the archive, and
+      ContentDB loads them from raw GitHub URLs on master, so a rename needs the
+      package page updating too. screenshot.png is the separate one — it does
+      ship, because Luanti draws it in the main menu's Mods tab (no finding)
 
 Decisions wanted from the author
 
@@ -70,13 +78,22 @@ Decisions wanted from the author
       the reasoning is in `ROADMAP.md` (no finding)
 - [x] settingtypes.txt gets a generator and a --check, like doc/api.md and
       locale/template.txt — answered yes, 2026-08-28: "can have a generator if
-      this simplifies and unify the process" (audit C7, C17)
+      this simplifies and unify the process". Built 2026-09-02,
+      scripts/gen_settingtypes.lua, with a CI step beside the other two. Writing
+      it found C20: gen_docs.lua's own limit check had been matching nothing
+      since it was written, Lua's %w excluding the underscore that every limit
+      name has (audit C7, C17, C20)
 - [x] Blockly is out of 1.0.0 — answered 2026-08-28 and made larger than that:
       it is v2.0.0 and Phase 10 on its own, with Phase 9 for v1.x.y in between
       (audit F6)
 
 Checks left in a running world — the checklist is `PLAYTEST.md`
 
+- [ ] run H10 — new with B47's fix, and the only thing that can say whether one
+      dropped click in ten is still noticeable: twenty quick Pause/Resume
+      presses on a running panel, then the same on an idle one as the control.
+      A fail widens B47 rather than opening a finding, and the next direction is
+      a static panel (audit B47)
 - [x] run F9 — passed 2026-09-02 at `029fab9`, all eight cases in both
       languages, and case 4 again after you asked for the opposite: it has now
       passed once each way round (audit F9)

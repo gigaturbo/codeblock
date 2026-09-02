@@ -50,6 +50,9 @@ v1.0.0 is major for several of these at once.
   `lua scripts/gen_locale.lua`. `lua scripts/gen_locale.lua --check` must then
   say *up to date*, and its `.tr` report names any message a translation is
   missing — advisory, since an untranslated string falls back to English.
+- Regenerate `settingtypes.txt` if any default in `lib/config.lua` changed:
+  `lua scripts/gen_settingtypes.lua`. `--check` must then say *up to date*; it
+  also fails on a setting the code reads and the menu does not offer.
 - Regenerate `.cdb.json`: `bash scripts/gen_cdb_json.sh`. It embeds `CONTENTDB.md`,
   so any edit to that file needs this — and **nothing checks it for you**.
 - `ROADMAP.md` and `TODO.md` — strike what this release closed. Or ask

@@ -48,7 +48,8 @@ Two exceptions, both read-only in effect and both necessary:
 - **Cloning to a temporary directory.** The fresh-clone check cannot be done any
   other way.
 - **Running the tests** via the `run-tests` skill, and **`gen_docs.lua --check`**
-  and **`gen_locale.lua --check`**. These read and report. Check `git status`
+  **`gen_locale.lua --check`** and **`gen_settingtypes.lua --check`**. These read
+  and report. Check `git status`
   afterwards to prove the tree is clean.
 
 Never run either generator without `--check`; both write. `run_tests.ps1`
@@ -101,7 +102,8 @@ passing this gate.
 implementations disagree — so a clean boot already proves part of this.
 
 - `lua scripts/gen_docs.lua --check` says *doc/api.md is up to date*, and
-  `lua scripts/gen_locale.lua --check` says the same of `locale/template.txt`.
+  `lua scripts/gen_locale.lua --check` says the same of `locale/template.txt`, and
+  `lua scripts/gen_settingtypes.lua --check` of `settingtypes.txt`.
   Read the output, not the exit code — `$?` does not survive the WSL layer here.
   If no `lua` is reachable, say so and mark these unverified rather than assuming.
 - Every per-codelevel limit in `lib/config.lua` has a row in the codelevel table

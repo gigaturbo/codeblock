@@ -20,45 +20,46 @@ it.
 
 ## Where it stands
 
-**76 findings. 74 resolved, 1 open (`B47`), 1 won't fix (`B34`).**
+**77 findings. 76 resolved, none open, 1 won't fix (`B34`).**
 
 | Category | Count | Open |
 |---|---|---|
-| B bugs | 44 | `B47` (`B34` won't fix) |
+| B bugs | 44 | — (`B34` won't fix, `B47` resolved with a residue) |
 | S sandbox and security | 7 | — |
-| C compliance and packaging | 13 | — |
+| C compliance and packaging | 14 | — |
 | A architecture and performance | 12 | — |
 
-All code pushed, and **CI green on every commit through `471526e` (runs 44 and
-45, all three jobs each)** — so the limit retuning, `F9` and the paused clock are
-covered by CI, not by local gates alone. `dc09d48` is the last commit to touch
-code, which is the one to compare a later run against; a record commit's own run
-can never be named in it. Nine in-engine specs at `dc09d48`: **458 passed / 0 failed / 1 xfail / 0 xpass**,
-up from 439 as `F9`, `H8`'s displaced case and the paused clock added nineteen to
-`forms_spec` — re-run 2026-09-02 with luacheck and both `--check` gates over each
-of those, all four green each time. **Re-checked at `7dbe18f`**, the current head
-and record-only: luacheck silent, both `--check` gates up to date, six standalone
-specs **238 passed / 0 failed / 1 xfail** under Lua 5.1.
+CI was green on all three jobs through `471526e` (runs 44 and 45), so the limit
+retuning, `F9` and the paused clock are covered by CI rather than by local gates
+alone. **`B47`'s fix and `settingtypes.txt`'s generator are newer than that and
+have local gates only**, pending the next run. **Five gates green**, engine
+5.17.0, read from output rather than exit codes: luacheck silent, `doc/api.md`,
+`locale/template.txt` and now `settingtypes.txt` all up to date, nine in-engine
+specs **458 passed / 0 failed / 1 xfail / 0 xpass**, and the six standalone
+**238 passed / 0 failed / 1 xfail** under Lua 5.1. The in-engine count is up from
+439: `F9`, `H8`'s displaced case and the paused clock added nineteen to
+`forms_spec`, and nothing was added for `B47` because **no spec can reach it** —
+the gates call the handler directly and the defect is in the client's menu.
 
-Every defect the playtests found is fixed except `B47`, which the 2026-09-02
-group `H` re-run filed and whose mechanism is now read out of the engine source
-rather than suspected. That run also **confirmed `B45` and `B46` fixed in a
-world** and proved `F8`'s display work. The one thing **not verified anywhere** is
-`B10`'s refusal, aimed at twice through playtest `D2` and missed twice —
-the recipe is the suspect and its check was removed as untestable on 2026-09-02.
-**Gates green, unproven in a world:** `B14`, permanently blocked on `B34` being
-won't-fix, and `S7`'s log half — the two left. `F9` passed the same day it
-shipped, including the paused clock reversed out of that very run, as did `R4`
-and `F-5`, which takes `S6` and the retuning's effect on the bundled examples off
-this list too.
+Every defect the playtests found is fixed. The one thing **not verified anywhere**
+is `B10`'s refusal, aimed at twice through playtest `D2` and missed twice — the
+recipe is the suspect and its check was removed as untestable on 2026-09-02.
+**Gates green, unproven in a world — three:** `B14`, permanently blocked on `B34`
+being won't-fix; `S7`'s log half; and **`B47`'s fix**, which is new and whose
+whole question is whether one dropped click in ten is still noticeable — that is
+playtest `H10`. `F9` passed the same day it shipped, including the paused clock
+reversed out of that very run, as did `R4` and `F-5`, which takes `S6` and the
+retuning's effect on the bundled examples off this list too.
 
 ---
 
 ## Open
 
-**One open: `B47`.** `B34` is the one won't-fix.
+**None open.** `B34` is the one won't-fix, and `B47` is resolved with a residue
+that ships — see *What ships broken* in `ROADMAP.md`. Both are kept here in full
+because their reasoning is still load-bearing.
 
-### B47 · medium · open — a button on the drone panel needs a second click
+### B47 · medium · resolved, residue ships — a button on the drone panel needs a second click
 
 From playtest `H2`–`H7`, 2026-09-02 at `8f5bb2e`: *"buttons on the drone panel may
 be a bit unresponsive at times (second click needed)."* Not reproducible on
@@ -104,9 +105,10 @@ run the string moves on nearly every beat, and `F9`'s elapsed clock is what make
 a **paused** panel move too, where before it stood still. The direction is
 therefore not *detect* a change but *make the string change less often*.
 
-Four directions, none chosen:
+Four directions were open, and the author took the first, 2026-09-02:
 
 - **Slow the beat** — shrinks the window proportionally, removes nothing.
+  **Chosen:** `PERIOD` in `lib/hud.lua` `0.5` → `1`.
 - **Quantise what is drawn** so the string is stable across several ticks.
   Bounded by the elapsed second, which changes on its own.
 - **Stop the self-refresh**: a static panel with an explicit refresh, the live
@@ -117,6 +119,34 @@ Four directions, none chosen:
   `textlist` row is immune to this window entirely — the same legacy element the
   editor's block picker was forced onto for its own reasons. Poor shape for
   *Pause* and *Stop*, but it is the one element here that cannot lose a click.
+
+**Fixed 2026-09-02: the beat is 1 s, on both surfaces.** `PERIOD` is one constant
+in `lib/hud.lua` and `hud.tick` returns whether it actually redrew, which is what
+`lib/register.lua`'s globalstep uses to drive the panel — so the HUD moved with
+it by construction, which is what the author asked for: *"the HUD also so
+everything matches"*. The two surfaces show the same numbers and a player
+watching both must not see them disagree.
+
+**What it costs, stated rather than glossed.** The dead window is the player's
+click hold against the beat, so doubling the beat **halves the loss rather than
+removing it**: roughly one click in ten where it was one in five, on a ~100 ms
+press. That is arithmetic over the mechanism above, not a measurement, and
+whether one in ten is still noticeable is what playtest `H10` is for. The residue
+is in `ROADMAP.md`'s *What ships broken*. The HUD is also half as live, which is
+the price paid and was accepted: three percentages that move every second are
+still a live read-out.
+
+**Keep — why the other three were not taken, so they are not re-proposed as
+better.** Quantising cannot beat the elapsed clock, which `F9` put in the heading
+and which changes on its own every second — at a 1 s beat it changes on *every*
+beat, so there is nothing left to quantise. Stopping the self-refresh removes the
+defect completely and is the direction to take if 1 s proves not enough, at the
+cost of the liveness `F8` was built for. Mouse-down means a `textlist` where
+*Pause* and *Stop* are buttons, and a destructive action on mouse-down is worse
+than a dropped click.
+
+**Keep — do not shorten `PERIOD` for a smoother HUD.** It is the panel's refresh
+as well, and its length *is* the fix. The comment on the constant says so.
 
 **Keep — the reason a live formspec was affordable here at all.** The panel has no
 text field, so a redraw costs no input focus (unlike the editor, which is why it
@@ -147,8 +177,8 @@ should confirm is a separate question.
 
 ## B · Bugs
 
-44 findings, 42 resolved, `B47` open, `B34` won't fix. `B19`, `B20`, `B24` are
-the game's.
+44 findings, 43 resolved, `B34` won't fix. `B19`, `B20`, `B24` are the game's.
+`B47` is resolved with a residue that ships.
 
 - **B1 · critical · resolved** — comment stripping deleted the code between two
   block comments. Fixed in Phase 2 with B2–B4: instrumentation runs over a real
@@ -632,7 +662,7 @@ broken.
 
 ## C · Compliance and packaging
 
-13 findings, all resolved. `C2`–`C5` and `C15` are the game's; `C9` never used.
+14 findings, all resolved. `C2`–`C5` and `C15` are the game's; `C9` never used.
 
 - **C1 · high · resolved** — the version ceiling hid the package from every
   modern user. The engine does not enforce these keys, but **ContentDB filters on
@@ -779,6 +809,31 @@ broken.
   is the note about remembering that failed. It is item 3 of *Finalising v1.0.0*
   in `ROADMAP.md`. The second thing left: every ContentDB URL in `README.md` is
   on `content.minetest.net`, the pre-rename domain; it redirects today.
+- **C20 · medium · resolved** — `gen_docs.lua`'s documented-limit check matched
+  nothing, and had matched nothing since it was written. It greps `config.lua`
+  for `codeblock%.config%.(%w+)%s*=%s*{%s*%d`, and **Lua's `%w` is alphanumeric
+  and excludes the underscore**: every per-codelevel limit has one in its name,
+  so `%w+` stopped at the underscore, the `=` then failed to match, and the loop
+  body never ran. Zero matches against seven limits. Found 2026-09-02 while
+  writing `gen_settingtypes.lua`, whose own completeness check was copied from
+  it and reported every limit as undrawn. Fixed in both: `[%w_]+`.
+  **No documentation was actually missing** — the codelevel table in
+  `doc/api.md` has a row for all seven, kept correct by hand for the whole time
+  the guard was dead. Verified by running the fixed pattern, and proved live by
+  adding a fake limit to `config.lua`: both generators now name it and exit 1.
+  **Keep — what this is really an instance of.** The check exists because
+  `step_budget_us` once shipped undocumented, and its predecessor was replaced
+  *because it listed three name prefixes that matched none of the limits being
+  added*. The replacement failed the same way for the same names, and the
+  comment recording that lesson sat directly above the line repeating it. **A
+  check that cannot fail is indistinguishable from a check that passes**, so a
+  new one is not finished until it has been made to fail once — which is now how
+  both of these are recorded.
+  **Keep — the wider version, since two mirrors turn on it.** `%w` excluding `_`
+  is a Lua 5.1 pattern behaviour, not a typo, and `[%w_]` is the fix wherever an
+  identifier is matched. Both generators depend on `config.lua`'s limit tables
+  staying **plain literals** for this shape match to see them at all; that
+  constraint is commented there and is now load-bearing twice over.
 
 ---
 
@@ -901,12 +956,17 @@ document says so.
 
 - **Verified by machine.** CI run 44 at `dc09d48`, all three jobs green:
   luacheck, the six standalone specs under plain Lua 5.1, and both `--check`
-  gates. **CI never runs the nine in-engine specs**, which is why the editor
-  findings rest on the local suite and the playtests.
+  gates — three now, `settingtypes.txt` having joined them. **CI never runs the
+  nine in-engine specs**, which is why the editor findings rest on the local
+  suite and the playtests.
 - **Verified locally** (engine 5.17.0, read from output rather than exit codes —
-  `$?` does not survive this machine's WSL layer): nine in-engine specs, 453
-  passed / 0 failed / 1 xfail / 0 xpass at `cd13414` plus the uncommitted `H8`
-  cases.
+  `$?` does not survive this machine's WSL layer): nine in-engine specs, **458
+  passed / 0 failed / 1 xfail / 0 xpass**, re-run after `B47`'s beat change and
+  the generator with all five gates green.
+- **Verified by making the check fail.** Both generators' completeness guards,
+  by adding a fake per-codelevel limit to `config.lua` and watching each name it
+  and exit 1 (`C20`). That is the only evidence that distinguishes a check which
+  passes from one which cannot fail, and the reason `C20` existed unnoticed.
 - **Verified in a running world.** All 39 `PLAYTEST.md` checks written before
   `F8` carry a result; see that file for the commit and date on each. Between
   them they confirm `A2`, `A9`, `A11`, `B5`, `B7`, `B10`'s happy path, `B13`,
@@ -920,10 +980,13 @@ document says so.
 - **Verified by reading the engine's own source** (`luanti-org/luanti` at 5.6.0,
   5.7.0, 5.8.0, 5.9.0, 5.17.0): the 640 kB formspec-submission cap and the
   version it arrives in (`B40`); `parseScrollBar` and `acceptInput` (`B37`);
-  `label`'s `font=bold` and `halign` being area-label only (`F8`).
+  `label`'s `font=bold` and `halign` being area-label only (`F8`); and the whole
+  of `B47` — `drawMenu`'s byte-identical short-circuit, `regenerateGui`'s
+  `removeAll`, and a button holding `Pressed` on the object that is destroyed.
 - **Gates green, unproven in a world:** `B14`, blocked on `B34` being won't-fix;
-  `S7`'s log line; and **`F9`**, which is words and placement only, so the suite
-  reaches none of it by construction.
+  `S7`'s log line; and **`B47`'s fix**, whose whole question — whether one
+  dropped click in ten is still noticeable — no spec can ask. Playtest `H10`.
+  `F9` left this list by passing on the day it shipped.
 - **Not verified anywhere, and with no route left:** `B10`'s refusal, twice aimed
   at through `D2`'s second case, which was removed as untestable on 2026-09-02.
   **That is the whole list**, and it is now a standing gap rather than a queued

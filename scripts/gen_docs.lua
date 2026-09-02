@@ -108,7 +108,12 @@ do
     -- here instead, and a limit called pace_ms or heap_mb matched none of them,
     -- which turned the check off for exactly the limits being added.
     -- auth_levels is the list of levels itself, not a limit.
-    for name in cfg:gmatch('codeblock%.config%.(%w+)%s*=%s*{%s*%d') do
+    --
+    -- `[%w_]` and not `%w`, because Lua's %w is alphanumeric and excludes the
+    -- underscore: every limit name has one, so the shape match found none of
+    -- them either and this check was dead from the day it replaced the
+    -- prefixes. (C20)
+    for name in cfg:gmatch('codeblock%.config%.([%w_]+)%s*=%s*{%s*%d') do
         if name ~= 'auth_levels' and
             not current:find('\n| ' .. name .. ' ', 1, true) then
             missing[#missing + 1] = name

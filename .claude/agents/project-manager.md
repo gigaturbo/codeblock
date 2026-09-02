@@ -148,7 +148,7 @@ trusted with.
 | Agent | Owns | Call it when |
 |---|---|---|
 | `code-expert` | `lib/`, `init.lua`, `scripts/`, `settingtypes.txt`, `locale/`, the mod's configuration, and the generators over them | a change, a fix, an audit of the code, or one of the dependencies above needs making |
-| `test-agent` | `tests/*_spec.lua`, the suite, the four gates, and the evidence side of `AUDIT.md` | something needs running or proving, a fix needs coverage, or the record claims a state the code may contradict |
+| `test-agent` | `tests/*_spec.lua`, the suite, the gates, and the evidence side of `AUDIT.md` | something needs running or proving, a fix needs coverage, or the record claims a state the code may contradict |
 
 Four rules:
 

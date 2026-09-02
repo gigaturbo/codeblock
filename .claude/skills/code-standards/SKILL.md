@@ -107,14 +107,20 @@ than by the code, and **drift silently — nothing fails when they are wrong**.
 |---|---|---|
 | a player-facing name | `lib/api.lua`, the `impls` table in `lib/sandbox.lua`, `doc/api.md`, the explicit name list in `tests/api_spec.lua` | `api.build` refuses to load on a mismatch in either direction; `lua scripts/gen_docs.lua --check` |
 | any `S()` literal | `locale/template.txt`, and the orphaned key in every `locale/*.tr` | `lua scripts/gen_locale.lua --check` — template only; a `.tr` gap is legitimate |
-| a codelevel limit or setting | the plain literal in `lib/config.lua`, the hand-kept mirror in `settingtypes.txt`, the codelevel row in `doc/api.md` | the doc row by `gen_docs.lua`, which matches **by shape** — a computed table turns the check off without failing. `settingtypes.txt`: nothing, yet |
+| a codelevel limit or setting | the plain literal in `lib/config.lua`, then regenerate `settingtypes.txt`; the codelevel row in `doc/api.md` is hand-written | `lua scripts/gen_settingtypes.lua --check` and `gen_docs.lua`'s documented-row guard, both matching **by shape** — a computed table turns both off without failing |
 | the ContentDB long description | `CONTENTDB.md`, then `bash scripts/gen_cdb_json.sh` | nothing. Never edit `.cdb.json` |
 | any file added to the tree | `.gitattributes` | nothing. ContentDB builds with `git archive`, so a file with no `export-ignore` rule ships to a player |
 
-Regenerating is part of the change, not a follow-up: `lua scripts/gen_docs.lua`
-and `lua scripts/gen_locale.lua` both run under a bare Lua 5.1 from the repo
-root, and `gen_locale.lua` lists `lib/` through `ls`, so it wants WSL rather than
-PowerShell.
+Regenerating is part of the change, not a follow-up: `gen_docs.lua`,
+`gen_locale.lua` and `gen_settingtypes.lua` all run under a bare Lua 5.1 from the
+repo root, and `gen_locale.lua` lists `lib/` through `ls`, so it wants WSL rather
+than PowerShell.
+
+**A check that cannot fail is indistinguishable from a check that passes.** Two
+of the guards here were written, committed, believed and matched nothing — the
+second because Lua's `%w` excludes the underscore that every limit name contains
+(C20). So `[%w_]` wherever an identifier is matched, and **make a new check fail
+once**, against a deliberately broken input, before trusting it.
 
 A player-facing rename breaks saved player programs, which are data no game can
 migrate. That is a **major version bump**, and it is the author's call before you
@@ -137,6 +143,7 @@ doing exactly that.
 luacheck . --formatter plain --codes          # LUACHECK_STRICT=1 to see what the baseline hides
 lua scripts/gen_docs.lua --check
 lua scripts/gen_locale.lua --check
+lua scripts/gen_settingtypes.lua --check
 ```
 
 The suite is the **`run-tests`** skill's, and in-engine: nine specs, six of which

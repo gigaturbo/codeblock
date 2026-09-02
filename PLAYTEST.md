@@ -20,8 +20,10 @@ Reasoning lives in `AUDIT.md` under the bracketed id, or `ROADMAP.md` for an `F`
 
 ## Where it stands
 
-**51 checks, every one with a result**, and `H8` the only one carrying a partial.
-`F9` carries two, its case 4 having been rewritten and re-run the same day.
+**52 checks, 51 with a result**, and `H8` the only one carrying a partial. The
+one outstanding is **`H10`, new with `B47`'s fix** — the only thing that can say
+whether a dropped panel click is still noticeable, since the fix halves that
+window rather than removing it. `F9` and `R1` each carry two results.
 
 - **Group `H` (HUD and panel): re-run 2026-09-02 at `8f5bb2e`, eight pass and one
   partial.** `F8`'s display work is proven in a world. It produced `B47` — panel
@@ -49,6 +51,10 @@ Reasoning lives in `AUDIT.md` under the bracketed id, or `ROADMAP.md` for an `F`
   first predating a `.gitattributes` change. **`R2` is the one the release still
   wants**: it last ran at `7c5bceb`, before `F4` put `lib/hud.lua` in the
   `dofile` list, and it is the only check that the shipped archive loads at all.
+- **`H10` is new and unrun**, for `B47`'s fix. Its case 2 is a deliberate
+  control: on an idle panel the formspec string never changes, so the engine
+  regenerates nothing and no click can be lost — a drop there would mean the
+  mechanism `AUDIT.md` records is wrong.
 
 ---
 
@@ -660,6 +666,40 @@ Run a long program, disconnect while it runs, rejoin.
 belonging to a player who is gone.
 
 Result: pass — `729c255` · engine 5.17.0 · 2026-08-29.
+
+### H10 · A panel button responds to one click [B47]
+
+**New 2026-09-02, never run.** `B47`'s fix is a longer refresh beat — `PERIOD`
+`0.5` → `1` s — which **halves the dead window rather than removing it**, so this
+check is the only thing that can say whether the residue is still noticeable.
+Nothing in the suite reaches it: the gates call the handler directly and the
+defect is in the client's menu.
+
+With a long program running, open the panel and **click *Pause* and *Resume*
+alternately, twenty times, at an ordinary pace** — not slowly and deliberately,
+which is what hides it. Count the presses that do nothing.
+
+1. **Pass: no dropped click in twenty, or at most one.** Before the fix the rate
+   was roughly one in five on a ~100 ms press; the arithmetic says one in ten
+   now. **A dropped click is silent** — `on_close` never runs, so nothing appears
+   in the log and the only evidence is the state word not changing.
+2. **Now do the same with the panel on an idle drone**, where the string is
+   constant. **Pass: no dropped click at all, however fast.** The engine skips a
+   byte-identical formspec entirely, so this half is the control — a drop here
+   would mean the mechanism in `AUDIT.md` is wrong.
+3. **Check the HUD is still readable at 1 s.** Three percentages that step once a
+   second rather than twice. **Pass: it reads as live**, not as stuck. This is
+   the price the fix paid and the author accepted; a fail here is a reason to
+   take one of `B47`'s other three directions instead.
+4. **The panel and the HUD still agree.** They share the one beat, so a number
+   differing between the two surfaces means `hud.tick`'s return value has stopped
+   driving the panel.
+
+**A fail on case 1 is not a new finding** — it widens `B47`, and the direction to
+take next is *stop the self-refresh*, which removes the defect completely at the
+cost of the liveness `F8` wanted.
+
+Result: —
 
 ---
 
