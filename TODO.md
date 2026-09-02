@@ -67,8 +67,8 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
 - [ ] run F9 — the panel's duration, the idle heading and the HUD's *CPU time*,
       shipped 2026-09-02 and words only, so no spec sees any of it. In French
       too (audit F9)
-- [ ] run E16 — the unsaved-tab marker, new with F7 and never seen by a player
-      (audit F7)
+- [x] run E16 — the unsaved-tab marker, new with F7: passed 2026-08-28 at
+      `afbe504`, the day it shipped (audit F7)
 - [ ] run H8 cases 2, 3 and 4 — unreported in both runs of that check. Case 1 is
       now known to be unperformable: a shown formspec holds the pointer, so no
       tool can be used while the panel is open (audit F8, B29)
