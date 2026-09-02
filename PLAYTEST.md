@@ -45,6 +45,10 @@ Reasoning lives in `AUDIT.md` under the bracketed id, or `ROADMAP.md` for an `F`
   the two findings left with no route.
 - **`F-3` case 2's log half is unlooked-at** — one grep of `debug.txt`.
 - **`W3` needs codelevel 4 now**, not 3: its shape exceeds level 3's new ceiling.
+- **`R1` was re-checked at `7dbe18f` and passes**; it carries two results, the
+  first predating a `.gitattributes` change. **`R2` is the one the release still
+  wants**: it last ran at `7c5bceb`, before `F4` put `lib/hud.lua` in the
+  `dofile` list, and it is the only check that the shipped archive loads at all.
 
 ---
 
@@ -978,6 +982,12 @@ Result: pass — `afbe504` · engine 5.17.0 · 2026-08-28 — eleven top-level e
 all player-facing, **none of the record**. `screenshot.png` survives, which it
 must. **`C10` confirmed**, the rules having been right for the project's whole
 life with nothing ever having looked.
+
+Result: pass — `7dbe18f` · engine n/a · 2026-09-02 — re-checked because
+`.gitattributes` changed at `60dc8dd`, after the first run. The same eleven
+entries, and `textures/` ships four PNGs with the two `.svg` sources excluded.
+No engine is needed for this one: it reads `git archive`, not an install. **That
+is also what it cannot tell you** — whether the archive *loads* is `R2`.
 
 ### R2 · A real install with the test flag set [C16]
 

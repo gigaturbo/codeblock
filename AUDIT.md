@@ -33,10 +33,12 @@ All code pushed, and **CI green on every commit through `471526e` (runs 44 and
 45, all three jobs each)** — so the limit retuning, `F9` and the paused clock are
 covered by CI, not by local gates alone. `dc09d48` is the last commit to touch
 code, which is the one to compare a later run against; a record commit's own run
-can never be named in it. Nine in-engine specs: **458 passed / 0 failed / 1 xfail / 0 xpass**,
+can never be named in it. Nine in-engine specs at `dc09d48`: **458 passed / 0 failed / 1 xfail / 0 xpass**,
 up from 439 as `F9`, `H8`'s displaced case and the paused clock added nineteen to
 `forms_spec` — re-run 2026-09-02 with luacheck and both `--check` gates over each
-of those, all four green each time.
+of those, all four green each time. **Re-checked at `7dbe18f`**, the current head
+and record-only: luacheck silent, both `--check` gates up to date, six standalone
+specs **238 passed / 0 failed / 1 xfail** under Lua 5.1.
 
 Every defect the playtests found is fixed except `B47`, which the 2026-09-02
 group `H` re-run filed and whose mechanism is now read out of the engine source
@@ -762,10 +764,21 @@ broken.
   description and Luanti's content browser renders it again, differently, and
   neither is reachable from here. The rules are the only test there is, so they
   are written into `release-check` as a gate.
-  **Two things this leaves.** `CONTENTDB.md`'s *Recent changes* is a hand-kept
-  summary of `CHANGELOG.md` that nothing checks — the same family again. And
-  every ContentDB URL in `README.md` is on `content.minetest.net`, the pre-rename
-  domain; it redirects today.
+  **Two things this leaves, and the first has now happened.** `CONTENTDB.md`'s
+  *Recent changes* is a hand-kept summary of `CHANGELOG.md` that nothing checks —
+  the same family again — and by 2026-09-02 it had drifted two features behind
+  the code, silently. Two claims describe `F4`'s displays, which `F8` replaced:
+  the corner display *"naming the one limit the run will actually stop on"*
+  (under both *Features* and *Recent changes*), where `F8` put three lines and a
+  colour and deleted the binding-limit line outright; and the panel offering
+  *"pause, resume, cancel and remove"*, where `F8` cut four buttons to **Stop**
+  and **Pause/Resume** with closing moved to an `x`. **What that proves is the
+  narrow point, not the general one:** a page nothing in the repository can read
+  cannot be checked from here (see the *Keep* above), so the only defence
+  available is the release gate — and a step in a skill saying *update this file*
+  is the note about remembering that failed. It is item 3 of *Finalising v1.0.0*
+  in `ROADMAP.md`. The second thing left: every ContentDB URL in `README.md` is
+  on `content.minetest.net`, the pre-rename domain; it redirects today.
 
 ---
 
@@ -849,7 +862,7 @@ introduced.**
   section pins the function surface, the form-layer entry points, the prototype
   callbacks, and that the entity caches no drone.
 - **A12 · low · resolved** — no tests, on the component that most needs them.
-  Fixed from Phase 0 onward: nine specs, **453 passed / 0 failed / 1 xfail / 0
+  Fixed from Phase 0 onward: nine specs, **458 passed / 0 failed / 1 xfail / 0
   xpass** in-engine, six of them also standalone under Lua 5.1, which is how CI
   runs them.
   **Keep — what the suite cannot reach, which every feature inherits.** Nothing

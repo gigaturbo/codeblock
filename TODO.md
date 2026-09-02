@@ -48,8 +48,13 @@ Features
 - [x] a ContentDB long description that is not README.md — done 2026-08-28,
       CONTENTDB.md, with the shape you asked for. Revise the copy freely; edit
       that file and run scripts/gen_cdb_json.sh, never .cdb.json (audit C19)
-- [ ] keep CONTENTDB.md's "Recent changes" current at each release — hand-kept
-      against CHANGELOG.md and nothing checks the two agree (audit C19)
+- [ ] fix CONTENTDB.md, which has drifted two features behind — the corner
+      display "naming the one limit the run will actually stop on" (said twice)
+      and the panel's "pause, resume, cancel and remove" both describe F4's
+      displays, which F8 replaced with three coloured lines and with Stop plus
+      Pause/Resume. Add F9's elapsed clock, then run scripts/gen_cdb_json.sh.
+      Hand-kept against CHANGELOG.md and nothing checks the two agree, which is
+      how it drifted silently (audit C19)
 - [ ] configure the ContentDB release webhook — trigger "Branch or tag
       creation", not push, because this project tags. The procedure is in the
       release-codeblock skill (no finding; from the author, 2026-08-28)
@@ -85,7 +90,13 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
       is the only route to `B10`'s refusal, which now has none: reaching it
       needs a way to observe the server releasing a mapblock (audit B10)
 - [x] build the release archive and install it once, to prove C16's guard —
-      playtest R1 and R2, both passed 2026-08-28 at `7c5bceb` (audit C16)
+      playtest R1 passed at `afbe504` and R2 at `7c5bceb`, both 2026-08-28
+      (audit C16)
+- [ ] re-run R2 on the archive built from the release commit — R1 was
+      re-checked at `7dbe18f` and still passes, but R2 last ran before F4 added
+      lib/hud.lua and before .gitattributes changed at `60dc8dd`. Install it in
+      a game that is not codecube: B38, B39 and C18 were all invisible there
+      (audit C16, C10)
 
 Elsewhere
 

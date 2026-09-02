@@ -21,58 +21,104 @@ thinking rather than a queue position.
 
 ## Now
 
-**Group `H` was re-run on 2026-09-02 at `8f5bb2e`: eight pass, one partial.**
-`F8`'s display work is proven in a world and `B45` and `B46` with it. **Everything
-is pushed and CI is green through `471526e`** — run 44 at `dc09d48`, the last
-commit touching code, and run 45 after it — so the limit retuning, `F9` and the
-paused clock are all covered by CI rather than by local gates alone. **The paused clock the run asked for is built and its check has
-passed** — see `F9`. What is left:
+**Phase 8 is feature-complete and playtested, and what is left is not feature
+work.** Seven features shipped, `F9` and the paused clock the last of them, and
+`PLAYTEST.md` has a result against all 51 checks. The tree is clean at `7dbe18f`,
+all four local gates are green there, and CI is green through `471526e` — run 44
+at `dc09d48`, the last commit touching code, and run 45 after it. **So the
+remaining distance to v1.0.0 is one decision, one generator, three documents and
+the tag.** That list, in order, is the next section.
 
-1. **`B47`** — a panel button sometimes needing a second click, the only open
-   finding. **No longer a suspicion:** the client destroys and rebuilds every
-   element of the form on each 0.5 s refresh, and a button's press lives on the
-   object it destroys, so a click held across a refresh is silently dropped. Four
-   fix directions in `AUDIT.md`, none chosen.
-2. **`settingtypes.txt`'s generator and `--check`**, decided yes 2026-08-28. The
-   third hand-kept mirror and the only one without one.
-
-Both checks the 2026-08-30 retuning added **passed on 2026-09-02**: `R4`, so the
-singleplayer default really is 3 on a fresh world, and `F-5`, so every bundled
-example really does complete at codelevel 2 — under the same day's cut of that
-level's `max_runtime_s` to 60 s, which is the number nobody had measured against.
-
-**`PLAYTEST.md` now has a result against all 51 checks, and one partial, `H8`.**
-Three untestable halves were removed the same day on the author's call — `D2`
-case 2, `E2`'s cold-cache half and `H8` case 3 — each keeping what it was for and
-why nobody can reach it. **A check nobody can perform is not a check**, and
-leaving it standing as a permanent partial makes the file's own summary lie about
-where the work is. What that costs is named: `B10`'s refusal and `B14`'s cold
-path have no route left, and `H8` case 3's mechanism moved into `forms_spec`.
-
-**The run also retuned two limits**, committed in `96dd4bc` with the three
-mirrors moved with them — under *Other decisions worth not re-litigating*.
-
-**The lesson group `H` produced, twice over.** `F4` shipped with four green gates
-and the first ten minutes in a world found two defects — `B45` and `B46`, both
-about what the display *said* rather than what it computed, and neither reachable
-by any spec. `F8` rewrote enough of `F4` that a pass in that first run meant *it
-did what was asked*, not *it is settled*. The re-run of `F8` then did the same
-thing again at a smaller scale: the behaviour passed everywhere and the **words**
-were wrong in three more places (`F9`), plus one thing no spec could ever see
-(`B47`). **Displays are the part of this mod that only playing can check**, and a
-second playtest of a rewritten display is not a formality.
-
-**The 2026-08-30 retuning.** The per-codelevel limits changed, the bundled
-examples shrank to fit codelevel 2, and the singleplayer default moved 4 → 3. The
-reasoning is under *Other decisions worth not re-litigating*. It invalidated one
-recorded result: `W3` measured `cube(200,200,200)` at codelevel 3, where the
-ceiling is now 1e6 and that shape is refused — the measurement stands, the level
-it is reproducible at is now 4.
+**The one decision is `B47`,** the only open finding. A panel button sometimes
+needs a second click, and this is no longer a suspicion: the client destroys and
+rebuilds every element of the form on each 0.5 s refresh, and a button's press
+lives on the object it destroys, so a click held across a refresh is dropped with
+no error anywhere. Four fix directions are in `AUDIT.md` and **none is chosen**,
+because each of them trades away some of the liveness `F8` was built for — which
+makes it the author's call rather than an implementation detail. **Either it is
+fixed or it ships named under *What ships broken*.** What it must not do is stay
+an open finding in a released version with nothing saying so.
 
 **Two loose ends, neither blocking.** `S7`'s log line is unlooked-at — one grep of
 `debug.txt`, next time an unreadable file is to hand. And `P3` left a 23% gap
 unexplained, 78 s against 95 s across two of four facings; the emerge multipliers
 can only be 1, 2 or 4, so it is not `B43` returning.
+
+**What group `H` and `F9` taught, kept because the next release will be tempted
+to skip it.** `F4` shipped with four green gates and the first ten minutes in a
+world found two defects — `B45` and `B46`, both about what the display *said*
+rather than what it computed, neither reachable by any spec. `F8` rewrote enough
+of `F4` that its first pass meant *it did what was asked*, not *it is settled*,
+and the re-run did the same thing again at a smaller scale: the behaviour passed
+everywhere and the **words** were wrong in three more places (`F9`), plus one
+thing no spec could ever see (`B47`). **Displays are the part of this mod that
+only playing can check**, and a second playtest of a rewritten display is not a
+formality. The other four rules the phase paid for are at the bottom of this file.
+
+## Finalising v1.0.0
+
+In order. **Steps 6 to 10 are the `release-codeblock` skill's procedure** and are
+not restated here; what is below is what *this* version still needs, and
+`release-check` is the gate that says whether it got it.
+
+**The work — five items, none large.**
+
+1. **Decide `B47`.** Fix it, or write it into *What ships broken* naming the
+   direction not taken. Fixing it is a change to how often the panel redraws, so
+   it lands with a `PLAYTEST.md` result — a click-loss defect is invisible to the
+   four gates by construction.
+2. **`settingtypes.txt`'s generator and `--check`**, decided yes 2026-08-28. It
+   is the third hand-kept mirror and the only one of the three with neither, and
+   `lib/config.lua` already keeps its tables as plain literals for `gen_docs.lua`
+   to grep, so the same source serves both. Ships with a line in the CI job that
+   already runs the other two `--check`s. **This project's own lesson is the
+   argument for doing it before the release rather than after:** a note about
+   remembering does not hold, a `--check` in CI does. (C7, C17)
+3. **`CONTENTDB.md`'s *Recent changes* — and it has already drifted, exactly as
+   `C19` said it would.** Two claims on that page describe a mod that no longer
+   exists: the corner display *"naming the one limit the run will actually stop
+   on"* (twice, once under *Features* and once under *Recent changes*) was `F4`'s
+   two-line HUD, which `F8` replaced with three lines and a colour; and *"pause,
+   resume, cancel and remove"* was the four-button panel, which `F8` cut to
+   **Stop** and **Pause/Resume** with closing moved to an `x`. Nothing checks
+   this file against the code or against `CHANGELOG.md`, so it drifted silently
+   for two features. Fix both, add `F9`'s elapsed clock, then
+   `bash scripts/gen_cdb_json.sh` — **never `.cdb.json` by hand**. (C19)
+4. **`CHANGELOG.md` loses `(unreleased)` from its heading**, and its *Known
+   limitations* section gains `B47` if step 1 ships it rather than fixing it.
+5. **`README.md`'s ContentDB URLs are on `content.minetest.net`**, the pre-rename
+   domain. It redirects, so this is stale rather than broken — but the README
+   ships in the archive. (C19)
+
+**The release.**
+
+6. **Re-run `R2` on the archive built from the release commit.** `R1` was
+   re-checked at `7dbe18f` and passes — eleven top-level entries, `textures/`
+   shipping PNGs only, no `tests/` or `scripts/`. `R2` is the one that matters
+   more and is older: it last ran at `7c5bceb`, before `F4` added
+   `lib/hud.lua` to the `dofile` list and before `.gitattributes` changed at
+   `60dc8dd`. The `C16` probe itself is untouched, so the guard is not in doubt;
+   what is unproven is that *this* archive loads in a game that is not
+   `codecube`. **Play it outside its own game** — `B38`, `B39` and `C18` were all
+   invisible in `codecube`.
+7. **`release-check`**, and do not start the tag until it says ready: the nine
+   in-engine specs, the six standalone, luacheck, both `--check` generators, CI
+   green on the tagged commit's own `head_sha`, the licence field, ContentDB's
+   rules against the long description, and a fresh clone that can run its own
+   suite.
+8. **Strike what the release closed** from `ROADMAP.md` and `TODO.md`, confirm
+   `tests/game/mods/vector3`'s pinned commit is pushed, then commit, push, and
+   tag `v1.0.0` on `master`.
+9. **Upload to ContentDB**, long description from the regenerated `.cdb.json`.
+10. **Configure the release webhook** — trigger **Branch or tag creation**, not
+    push, because this project tags and push would publish every commit on
+    `master`.
+
+**After the tag, and deliberately not before.** `Phase 9` opens on what comes
+back from players; `codecube` adopts the release on its own schedule and must set
+`codeblock_flat_sky = true` in its own `minetest.conf` when it does (`C18`).
+`Phase 10` is Blockly and needs the four obstacles under `F6` answered in writing
+before any code.
 
 ## Milestones
 
@@ -124,18 +170,20 @@ Shipped: `F1` `500dd85`, `F2` `dee0bc7`, `F3` `90cfb70`, `F7` `afbe504`,
 the second time a feature here has come from playing the one before it — and the
 second time in a row that what a display *said* was the thing playing it found.
 
-Left in the phase: `B47` and `settingtypes.txt`'s `--check`. **`F9` passed its
-playtest on 2026-09-02** — all eight cases in both languages, no defect, and one
-decision reversed: the paused clock, built and re-checked the same day.
+Left in the phase: `B47`, `settingtypes.txt`'s `--check`, and the three documents
+under *Finalising v1.0.0* above — that section is the ordered list. **`F9` passed
+its playtest on 2026-09-02** — all eight cases in both languages, no defect, and
+one decision reversed: the paused clock, built and re-checked the same day.
 **`B10`'s refusal is out of the phase rather than done** — its check was removed
 as untestable, and a route to it needs a way to observe the server releasing a
 mapblock, which nothing here has.
 
-Also standing, and unchecked by anything: **keep `CONTENTDB.md`'s *Recent
-changes* current at each release.** It is a hand-kept summary of `CHANGELOG.md`
-— the same family as `doc/api.md` and `locale/template.txt`, and it will drift
-the same way. The release skill names it as a step, which is a note about
-remembering, and this project's own lesson is that those do not hold. (C19)
+**`CONTENTDB.md`'s *Recent changes* has now drifted, which settles the argument
+rather than illustrating it.** It is a hand-kept summary of `CHANGELOG.md` — the
+same family as `doc/api.md` and `locale/template.txt` — and two of its claims
+describe `F4`'s displays, which `F8` replaced two features ago. Nothing failed,
+nothing reported it, and the release skill's step naming the file is precisely
+the note about remembering that this project has twice found does not hold. (C19)
 
 ### 9 · v1.x.y — features and defects after the release
 
@@ -656,11 +704,14 @@ wants is how long the build has taken, and a pause is not part of it.
   block is four words and a number a line by design, and its first line already
   carries a filename and a state. The two surfaces disagreeing is the objection,
   and they do not: the panel says more than the HUD everywhere else too.
-- **Freezing the duration while a run is paused** — cut with it. It would need a
-  paused-time accumulator on the drone, and the number would then disagree with
-  the `duration:` the finish message prints. *How long since I started this* is
-  answerable from `tstart` alone; *how long was it actually building* is what the
-  *Server time used* row is for.
+- **Freezing the duration while a run is paused** — cut with it, then **reversed
+  the same day on seeing it in a world**, and it is the entry here that has
+  changed. The objection was a paused-time accumulator disagreeing with the
+  `duration:` the finish message prints; what answers it is `Drone.elapsed_us`,
+  one call both surfaces read, with `tstart` shifted forward on resume rather
+  than a second field kept correct. So the decision that stands is **the clock
+  stops** — *how long has this build taken* rather than *how long since I started
+  it*. The reasoning is under `F9`; do not re-cut it from this line.
 - **Unbolding the duration by splitting it off into its own label** — decided
   against 2026-09-02, after it shipped that way for an hour. A label's font is
   per element, so *adjacent* and *not bold* cannot both hold; the author chose
@@ -768,14 +819,17 @@ wants is how long the build has taken, and a pause is not part of it.
 
 ---
 
-2026-09-02 · codeblock `cd13414` (master) plus the paused clock and the record
-and spec work above it, **pushed**, and **CI green on all three jobs at
-`dc09d48` (run 44) and `471526e` (run 45)**. `dc09d48` is the last commit
-touching code. Local gates green too, engine 5.17.0, read from output rather than
-exit codes: luacheck silent, `doc/api.md` and `locale/template.txt` up to date,
-`locale/*.tr` covering all 81 messages, nine in-engine specs **458 passed, 0
-failed, 1 xfail, 0 xpass**, and the six standalone specs green under Lua 5.1.
+2026-09-02 · codeblock `7dbe18f` (master), clean tree, **pushed**, and **CI green
+on all three jobs at `dc09d48` (run 44) and `471526e` (run 45)**. `dc09d48` is
+the last commit touching code, so it is the one a later run is compared against;
+`7dbe18f` and `471526e` change only the record. **Four gates re-run at `7dbe18f`
+and green**, read from output rather than exit codes: luacheck silent,
+`doc/api.md` and `locale/template.txt` up to date, `locale/*.tr` covering every
+message and nothing else, and the six standalone specs **238 passed, 0 failed, 1
+xfail** under Lua 5.1. The nine in-engine specs were last run at `dc09d48`:
+**458 passed, 0 failed, 1 xfail, 0 xpass**, engine 5.17.0.
 
 **One defect is open, `B47`, and its mechanism is now known.** `PLAYTEST.md`
-stands at 51 checks with a result against every one. Left: `B47`,
-`settingtypes.txt`'s `--check`, then v1.0.0.
+stands at 51 checks with a result against every one, `R1` re-checked at
+`7dbe18f`. Left is *Finalising v1.0.0* above: `B47`, `settingtypes.txt`'s
+`--check`, three documents, then the tag.
