@@ -22,17 +22,18 @@ thinking rather than a queue position.
 ## Now
 
 **Group `H` was re-run on 2026-09-02 at `8f5bb2e`: eight pass, one partial.**
-`F8`'s display work is proven in a world and `B45` and `B46` with it. Code is at
-`cd13414`; the last CI run is 42 at `60dc8dd`, green on all three jobs, so the
-limit retuning and `F9` have local gates only. What the run left:
+`F8`'s display work is proven in a world and `B45` and `B46` with it. **Everything
+is pushed and CI run 44 at `dc09d48` is green on all three jobs**, so the limit
+retuning, `F9` and the paused clock are all covered by CI rather than by local
+gates alone. **The paused clock the run asked for is built and its check has
+passed** — see `F9`. What is left:
 
-1. **`F9` shipped the same day**, `8869d8c` revised `cd13414`, with four gates
-   green — the three display changes it asked for. **Its playtest is due**, and
-   it is words and placement only, so no spec reaches any of it: the check is
-   `PLAYTEST.md`'s `F9`, in French as well as English.
-2. **`B47`** — a panel button sometimes needing a second click, the only open
-   finding. The suspect is the panel's own 0.5 s refresh, not the handlers.
-3. **`settingtypes.txt`'s generator and `--check`**, decided yes 2026-08-28. The
+1. **`B47`** — a panel button sometimes needing a second click, the only open
+   finding. **No longer a suspicion:** the client destroys and rebuilds every
+   element of the form on each 0.5 s refresh, and a button's press lives on the
+   object it destroys, so a click held across a refresh is silently dropped. Four
+   fix directions in `AUDIT.md`, none chosen.
+2. **`settingtypes.txt`'s generator and `--check`**, decided yes 2026-08-28. The
    third hand-kept mirror and the only one without one.
 
 Both checks the 2026-08-30 retuning added **passed on 2026-09-02**: `R4`, so the
@@ -40,7 +41,7 @@ singleplayer default really is 3 on a fresh world, and `F-5`, so every bundled
 example really does complete at codelevel 2 — under the same day's cut of that
 level's `max_runtime_s` to 60 s, which is the number nobody had measured against.
 
-**`PLAYTEST.md` now has one check with no result, `F9`, and one partial, `H8`.**
+**`PLAYTEST.md` now has a result against all 51 checks, and one partial, `H8`.**
 Three untestable halves were removed the same day on the author's call — `D2`
 case 2, `E2`'s cold-cache half and `H8` case 3 — each keeping what it was for and
 why nobody can reach it. **A check nobody can perform is not a check**, and
@@ -123,7 +124,9 @@ Shipped: `F1` `500dd85`, `F2` `dee0bc7`, `F3` `90cfb70`, `F7` `afbe504`,
 the second time a feature here has come from playing the one before it — and the
 second time in a row that what a display *said* was the thing playing it found.
 
-Left in the phase: `F9`'s playtest, `B47`, and `settingtypes.txt`'s `--check`.
+Left in the phase: `B47` and `settingtypes.txt`'s `--check`. **`F9` passed its
+playtest on 2026-09-02** — all eight cases in both languages, no defect, and one
+decision reversed: the paused clock, built and re-checked the same day.
 **`B10`'s refusal is out of the phase rather than done** — its check was removed
 as untestable, and a route to it needs a way to observe the server releasing a
 mapblock, which nothing here has.
@@ -488,7 +491,7 @@ for three more display changes, which are `F9`, and filed `B47`.
   replaces the session; the tick compares the stored meta table against
   `forms.get_meta(name)` before redrawing. Pinned by `forms_spec`.
 
-### F9 · small · shipped `8869d8c`, revised `cd13414`, playtest due — say the state and the time in the same words
+### F9 · small · shipped `8869d8c`, revised `cd13414`, playtested `029fab9` — say the state and the time in the same words
 
 From the group `H` re-run of 2026-09-02, in the same relation to `F8` as `F8` was
 to `F4`: the behaviour passed, and playing it showed three things the words get
@@ -540,7 +543,8 @@ wrong. All three are on the two surfaces `F8` owns, so they are one feature.
   same day once it was on screen. The entry below says what that forced.
 - **It keeps counting through a pause**, staying one honest answer to *how long
   since I started this*. The state word beside it already says nothing is
-  advancing, and it needs no accumulator on the drone.
+  advancing, and it needs no accumulator on the drone. **Reversed 2026-09-02
+  after the playtest — see below.**
 - **The panel only, not the HUD.** This is the panel earning its space: the corner
   block is four words and a number a line.
 
@@ -569,6 +573,42 @@ wrong. All three are on the two surfaces `F8` owns, so they are one feature.
   `1m 30s` fails, and so does one that asserts on `@1m @2s`; `forms_spec` builds
   its expected value with the same `S()` call instead. Three assertions were
   written the wrong way first and the suite caught all three.
+
+**Playtested 2026-09-02 at `029fab9`: pass, all eight cases, both languages.** No
+defect, and one reversal.
+
+**The clock stops while a run is paused — asked for 2026-09-02 on seeing it,
+built the same day with four gates green.** Case 4 checked the opposite and
+passed; the decision above is what changed, not the code's fidelity to it. *How
+long since I started this* turned out to be the wrong question for a paused run,
+the same way *CPU* was the wrong word for `used.runtime`: the number a player
+wants is how long the build has taken, and a pause is not part of it.
+
+- **`max_runtime_s` already ignored a pause**, which is why this was small.
+  `stepper.advance` returns at once for a drone that is not awake and charges
+  only the time it spent advancing, so the wall clock was the one figure a pause
+  inflated. Now the two agree.
+- **`Drone.elapsed_us(drone)` is the single answer**, and both surfaces read it:
+  the panel's heading through `elapsed`, which now formats microseconds instead
+  of reading `tstart` itself, and the finish message through `__tostring`. The
+  live number and the final one are the same call, not two expressions that have
+  to be kept equal — which is what `F9` case 8 is checking.
+- **`tstart` is shifted forward on resume, rather than a `paused_us` being
+  accumulated.** One field to keep correct instead of two, and every reader still
+  reads `tstart`: one that forgot `paused_at` would be right except while paused.
+  The whole of it is `(paused_at or now) - (tstart or now)`.
+- **`Drone.toggle_pause` is the only thing that may write `drone.paused`**, since
+  the two fields are one fact in halves — stated on both, and the reason the
+  toggle moved out of the formspec handler into the file that owns the run's
+  timing. `on_run` clearing both is the only other writer.
+- **What it costs:** a drone paused an hour and resumed reports the build's time,
+  not the time since it was started. That is the point.
+- **Proved by five `forms_spec` assertions**, and the hold is *fabricated* — the
+  stamps are the whole of a paused reading, no wall clock enters it, which is
+  what makes 105 s of elapsed wall time showing as `45s` assertable at all.
+- **Checked in a world the same day**: `PLAYTEST.md`'s `F9` case 4, rewritten and
+  passed. So that case has passed once each way round, which is the clearest
+  evidence there is that this was a decision and not a defect.
 
 ## Other decisions worth not re-litigating
 
@@ -728,12 +768,13 @@ wrong. All three are on the two surfaces `F8` owns, so they are one feature.
 
 ---
 
-2026-09-02 · codeblock `cd13414` (master) plus the record and spec work above it,
-**not pushed**; the last CI run is 42 at `60dc8dd`, green on all three jobs.
-Local gates green, engine 5.17.0, read from output rather than exit codes:
-luacheck silent, `doc/api.md` and `locale/template.txt` up to date, `locale/*.tr`
-covering all 81 messages, nine in-engine specs **453 passed, 0 failed, 1 xfail,
-0 xpass**.
+2026-09-02 · codeblock `cd13414` (master) plus the paused clock and the record
+and spec work above it, **pushed**, and **CI run 44 at `dc09d48` green on all
+three jobs**. Local gates green too, engine 5.17.0, read from output rather than
+exit codes: luacheck silent, `doc/api.md` and `locale/template.txt` up to date,
+`locale/*.tr` covering all 81 messages, nine in-engine specs **458 passed, 0
+failed, 1 xfail, 0 xpass**, and the six standalone specs green under Lua 5.1.
 
-**One defect is open, `B47`.** `PLAYTEST.md` stands at 51 checks, `F9` the only
-one with no result. Then `settingtypes.txt`'s `--check`, then v1.0.0.
+**One defect is open, `B47`, and its mechanism is now known.** `PLAYTEST.md`
+stands at 51 checks with a result against every one. Left: `B47`,
+`settingtypes.txt`'s `--check`, then v1.0.0.

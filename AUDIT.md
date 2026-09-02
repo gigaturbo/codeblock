@@ -29,22 +29,24 @@ it.
 | C compliance and packaging | 13 | — |
 | A architecture and performance | 12 | — |
 
-Code pushed through `60dc8dd`, **CI green there (run 42, all three jobs)**; only
-record commits above it are unseen by CI. Nine in-engine specs: **453 passed / 0
-failed / 1 xfail / 0 xpass**, up from 439 as `F9` and `H8`'s displaced case
-added fourteen to `forms_spec` — re-run 2026-09-02 with luacheck and both
-`--check` gates over the limit retuning, over `F9`, and over the new cases, all
-four green each time.
+All code pushed, **CI green at the tip (run 44 at `dc09d48`, all three jobs)** —
+so the limit retuning, `F9` and the paused clock are covered by CI, not by local
+gates alone. Nine in-engine specs: **458 passed / 0 failed / 1 xfail / 0 xpass**,
+up from 439 as `F9`, `H8`'s displaced case and the paused clock added nineteen to
+`forms_spec` — re-run 2026-09-02 with luacheck and both `--check` gates over each
+of those, all four green each time.
 
 Every defect the playtests found is fixed except `B47`, which the 2026-09-02
-group `H` re-run filed. That run also **confirmed `B45` and `B46` fixed in a
+group `H` re-run filed and whose mechanism is now read out of the engine source
+rather than suspected. That run also **confirmed `B45` and `B46` fixed in a
 world** and proved `F8`'s display work. The one thing **not verified anywhere** is
 `B10`'s refusal, aimed at twice through playtest `D2` and missed twice —
 the recipe is the suspect and its check was removed as untestable on 2026-09-02.
 **Gates green, unproven in a world:** `B14`, permanently blocked on `B34` being
-won't-fix; `S7`'s log half; and `F9`, shipped the same day. `R4` and `F-5` both
-passed on 2026-09-02, which takes `S6` and the retuning's effect on the bundled
-examples off this list.
+won't-fix, and `S7`'s log half — the two left. `F9` passed the same day it
+shipped, including the paused clock reversed out of that very run, as did `R4`
+and `F-5`, which takes `S6` and the retuning's effect on the bundled examples off
+this list too.
 
 ---
 
@@ -59,18 +61,58 @@ be a bit unresponsive at times (second click needed)."* Not reproducible on
 demand, and no spec can see it — the four gates exercise the handlers, not the
 client's menu.
 
-**The suspect is the panel's own refresh.** It is the one form here that redraws
-itself unprompted: `formspecs.tick` re-sends the whole formspec through
-`core.show_formspec` every `PERIOD` (0.5 s in `lib/hud.lua`), on the same beat as
-the HUD. A re-send of the same form name makes the client rebuild the menu, and a
-press in flight when that happens has nothing to complete against. Two clicks a
-second of dead window in the worst case is exactly *"at times"*.
+**The cause is the panel's own refresh, and the mechanism is now read out of the
+engine** (5.17.0 source, not `lua_api.md`, which describes none of this). The
+panel is the one form here that redraws itself unprompted: `formspecs.tick`
+re-sends the whole formspec through `core.show_formspec` every `PERIOD` (0.5 s in
+`lib/hud.lua`), on the same beat as the HUD. The chain from there:
 
-That makes it a **cadence-versus-liveness trade**, not a handler bug, so the fix
-is not in `on_close`. Three directions, none chosen yet: slow the refresh while
-the pointer is over a button (nothing in Lua knows that), refresh only when a
-drawn number actually changed, or split the live rows onto a slower beat than the
-buttons — which a single formspec cannot do.
+1. `GameFormSpec::showFormSpec` → `GUIFormSpecMenu::create`, which for a menu
+   already open takes its `else` branch and only swaps the form *source*
+   (`src/client/game_formspec.cpp:235`, `src/gui/guiFormSpecMenu.cpp:142`).
+2. `GUIFormSpecMenu::drawMenu` then compares the new string with the one it holds
+   and **does nothing at all if they are byte-identical**; otherwise it clears
+   `m_is_form_regenerated` and calls `regenerateGui`
+   (`guiFormSpecMenu.cpp:3691`).
+3. `regenerateGui` preserves table state and the focused element *by field name*,
+   and then calls `removeAll()` → `removeAllChildren()`: every element in the
+   form is destroyed and built again (`guiFormSpecMenu.cpp:3161`, `:3057`).
+4. A button records its own press **on the object**. `EMIE_LMOUSE_PRESSED_DOWN`
+   sets `Pressed = true`; `EMIE_LMOUSE_LEFT_UP` sends `EGET_BUTTON_CLICKED` only
+   if `wasPressed` was true (`guiButton.cpp:185`–`228`). The replacement button
+   has `Pressed = false`, so the release arrives at a button that was never
+   pressed, no event is sent, and nothing anywhere reports it.
+
+So the dead window is **the player's own click hold**: a ~100 ms press against a
+500 ms beat loses roughly one click in five. `on_close` never runs, so no amount
+of work in the handler can see it, and the four gates cannot either — they call
+the handler directly.
+
+**What this rules out, and what it changes about the fix.** It is not focus:
+focus *is* carried across a regeneration, which is why the "no text field, so a
+redraw costs no input focus" reasoning was true and still missed this. Input
+focus and a press in flight are different questions.
+
+And *"refresh only when a drawn number changed"* is already the engine's own
+behaviour, from step 2 — which is why the **idle** and **no-drone** panels never
+lose a click: their string is constant, so the tick regenerates nothing. During a
+run the string moves on nearly every beat, and `F9`'s elapsed clock is what makes
+a **paused** panel move too, where before it stood still. The direction is
+therefore not *detect* a change but *make the string change less often*.
+
+Four directions, none chosen:
+
+- **Slow the beat** — shrinks the window proportionally, removes nothing.
+- **Quantise what is drawn** so the string is stable across several ticks.
+  Bounded by the elapsed second, which changes on its own.
+- **Stop the self-refresh**: a static panel with an explicit refresh, the live
+  figures left to the HUD, which never touches the menu. Kills the defect and
+  costs the liveness `F8` wanted.
+- **Act on mouse-down instead.** `GUITable::OnEvent` selects and sends
+  `EGET_TABLE_CHANGED` while `isLeftPressed()` (`guiTable.cpp:870`–`930`), so a
+  `textlist` row is immune to this window entirely — the same legacy element the
+  editor's block picker was forced onto for its own reasons. Poor shape for
+  *Pause* and *Stop*, but it is the one element here that cannot lose a click.
 
 **Keep — the reason a live formspec was affordable here at all.** The panel has no
 text field, so a redraw costs no input focus (unlike the editor, which is why it
@@ -842,7 +884,7 @@ Never blurred. **Verified** means a run or a reading demonstrates it,
 **committed** means the code is there and unproven, **claimed** means only a
 document says so.
 
-- **Verified by machine.** CI run 42 at `60dc8dd`, all three jobs green:
+- **Verified by machine.** CI run 44 at `dc09d48`, all three jobs green:
   luacheck, the six standalone specs under plain Lua 5.1, and both `--check`
   gates. **CI never runs the nine in-engine specs**, which is why the editor
   findings rest on the local suite and the playtests.
@@ -918,6 +960,6 @@ document says so.
 
 ---
 
-2026-09-02 · describes codeblock at `cd13414`, not pushed · CI green at
-`60dc8dd` (run 42, all three jobs), so the limit retuning (`96dd4bc`) and `F9`
-have local gates only.
+2026-09-02 · describes codeblock at `dc09d48`, pushed · CI green there (run 44,
+all three jobs), so the limit retuning (`96dd4bc`), `F9` and the paused clock are
+all covered by CI.

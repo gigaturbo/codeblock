@@ -372,6 +372,19 @@ misalignment here — `src/gui/guiFormSpecMenu.cpp` can. Anything new in this fo
 has to know all of this, and converting it to the new coordinate system is a
 change to the whole editor.
 
+**Re-showing a form destroys and rebuilds every element in it, and a button's
+press does not survive that.** `show_formspec` onto an open form of the same name
+regenerates it — but only when the new string differs byte for byte, which the
+client checks in `drawMenu`. `regenerateGui` then carries table state and focus
+across *by field name* and removes every child, so a `button` that recorded
+`Pressed = true` on mouse-down is gone by mouse-up and its click is dropped with
+no error anywhere. A `table`/`textlist` acts on mouse-**down** and is the one
+element immune to it. So a form that refreshes itself under the player loses
+roughly one click in five per 0.5 s beat (audit B47), and *no text field, so no
+focus to lose* does not make a live form safe — input focus and a press in flight
+are different questions. `lua_api.md` documents none of this; `guiFormSpecMenu.cpp`,
+`guiButton.cpp` and `guiTable.cpp` do.
+
 **`get_int` cannot tell an unset key from a stored `0`** — both come back 0. Read
 a boolean preference out of player meta with `get_string`, where an absent key is
 `""`, so a default of *on* is expressible and a deliberate untick still reads as

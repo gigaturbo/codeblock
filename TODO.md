@@ -25,10 +25,18 @@ Features
       inactif` like the running one; the heading carries the run's clock time,
       `<program> : <state> (<duration>)` — shipped the same day with four gates
       green, the duration bold and just after the state on your second look;
-      playtest `F9` is the in-world check (audit F9)
+      playtest `F9` passed 2026-09-02 at `029fab9`, both languages (audit F9)
+- [x] FEAT: stop the panel's elapsed clock while a run is paused — asked for
+      2026-09-02 on seeing `F9` in a world, reversing that feature's decision
+      that it should keep counting. Built the same day with four gates green:
+      `Drone.elapsed_us` is now the one answer both the panel and the finish
+      message read, and `Drone.toggle_pause` the only writer of `paused`.
+      Playtested the same day: `F9` case 4, rewritten and passed (audit F9)
 - [ ] BUG: buttons on the drone panel are sometimes unresponsive, a second click
-      needed. The suspect is the panel's own 0.5 s refresh re-sending the
-      formspec under the press, not the handlers (audit B47)
+      needed. Cause confirmed in the engine source: the 0.5 s refresh makes the
+      client destroy and rebuild every element, and a button's press lives on
+      the object it destroys, so a click held across a refresh is dropped with
+      no error. Not the handlers — four fix directions in AUDIT.md (audit B47)
 - [ ] FEAT: Make possible to change codelevel while running a program (audit F5)
 - [ ] FEAT: stop forcing the two tools into every joining player's inventory —
       a command that hands them out, or a setting so an embedding game decides.
@@ -64,9 +72,9 @@ Decisions wanted from the author
 
 Checks left in a running world — the checklist is `PLAYTEST.md`
 
-- [ ] run F9 — the panel's duration, the idle heading and the HUD's *CPU time*,
-      shipped 2026-09-02 and words only, so no spec sees any of it. In French
-      too (audit F9)
+- [x] run F9 — passed 2026-09-02 at `029fab9`, all eight cases in both
+      languages, and case 4 again after you asked for the opposite: it has now
+      passed once each way round (audit F9)
 - [x] run E16 — the unsaved-tab marker, new with F7: passed 2026-08-28 at
       `afbe504`, the day it shipped (audit F7)
 - [x] run H8 cases 2, 3 and 4 — 2 and 4 passed 2026-09-02; cases 1 and 3 are

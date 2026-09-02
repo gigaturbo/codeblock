@@ -20,16 +20,17 @@ Reasoning lives in `AUDIT.md` under the bracketed id, or `ROADMAP.md` for an `F`
 
 ## Where it stands
 
-**51 checks. `F9` is the only one carrying no result**, and `H8` the only one
-carrying a partial.
+**51 checks, every one with a result**, and `H8` the only one carrying a partial.
+`F9` carries two, its case 4 having been rewritten and re-run the same day.
 
 - **Group `H` (HUD and panel): re-run 2026-09-02 at `8f5bb2e`, eight pass and one
   partial.** `F8`'s display work is proven in a world. It produced `B47` — panel
   buttons sometimes needing a second click — and three wanted display changes,
   which are `F9`.
-- **`F9` is the newest check and the only one against just-shipped code.** It is
-  entirely words and placement, so the suite reaches none of it, and it wants
-  doing in French as well as English.
+- **`F9` passed 2026-09-02, in both languages**, which closes the three display
+  changes `H2`–`H7` asked for. Its case 4 is the one place a check passed and the
+  behaviour changed anyway — the elapsed clock now stops while a run is paused —
+  so it carries a second result, at `dc09d48`.
 - **`H8` stays partial because two of its four cases cannot be performed**, not
   because they failed: a shown formspec holds the pointer, so *while the panel is
   open* rules out any gesture needing a tool. Case 3's mechanism moved into
@@ -1100,9 +1101,11 @@ defects showed first.
 3. **A running panel's heading carries the elapsed time in parentheses**,
    immediately after the state word and **bold with the rest of the line** — only
    the state is coloured, the parentheses and the number are not.
-4. **It counts up while the panel sits open**, matches a stopwatch, and **keeps
-   counting through a pause** — press *Pause*, wait, and the number still moves
-   while the state word says paused.
+4. **It counts up while the panel sits open**, matches a stopwatch, and **stops
+   dead while the run is paused** — press *Pause*, watch a minute go by, and the
+   number does not move while the state word says paused. Press *Resume* and it
+   carries on from that number rather than jumping the minute forward. Rewritten
+   2026-09-02: this checked the opposite until the author saw it in a world.
 5. **It reads `43s`, then `6m 27s`, then `1h 12m`** as the run passes a minute
    and an hour. The last needs a long program or a paused one left alone.
 6. **The duration and the `Server time used` row disagree, by a lot** — some 4.6%
@@ -1113,10 +1116,20 @@ defects showed first.
    15-character cap, in French, and look: it is one label, so a long line runs on
    rather than overlapping anything, and the panel edge is what it can reach.
 8. **When the run ends, the `duration:` in the chat message matches the last
-   number the panel showed.** They are the same `tstart`, and a mismatch means one
-   of the two is reading something else.
+   number the panel showed.** They are one call to `Drone.elapsed_us`, so a
+   mismatch means one of the two is reading something else — and a run paused
+   part-way is the case that tells them apart.
 
-Result: unchecked.
+Result: pass — `029fab9` · engine 5.17.0 · 2026-09-02 — cases 1–3 and 5–8 in both
+languages, against the behaviour `F9` first chose.
+
+Result: pass — `dc09d48` · engine 5.17.0 · 2026-09-02 — case 4 only, in its
+rewritten form: the number stops with the pause and carries on from there.
+Checked on the tree that became that commit.
+
+Case 4 passed twice, once each way round: as `F9` first chose it and then as the
+author asked for on seeing it. Case 8 pairs with it — the panel and the finish
+message read one function, so a pause is out of both.
 
 ---
 
