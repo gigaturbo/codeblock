@@ -35,9 +35,9 @@ limit retuning and `F9` have local gates only. What the run left:
 3. **`settingtypes.txt`'s generator and `--check`**, decided yes 2026-08-28. The
    third hand-kept mirror and the only one without one.
 
-Plus two checks from the 2026-08-30 retuning, neither run: **`R4`** (the default
-codelevel on a fresh world) and **`F-5`** (every bundled example completing at
-codelevel 2).
+Of the two checks the 2026-08-30 retuning added, **`R4` passed on 2026-09-02** —
+the singleplayer default really is 3 on a fresh world — and **`F-5`** (every
+bundled example completing at codelevel 2) has still never run.
 
 **The run also retuned two limits**, committed in `96dd4bc` with the three
 mirrors moved with them — under *Other decisions worth not re-litigating*.
@@ -114,10 +114,9 @@ added and shipped on 2026-09-02** out of `F8`'s playtest, the second time a
 feature here has come from playing the one before it — and the second time in a
 row that what a display *said* was the thing playing it found.
 
-Left in the phase: `F9`'s playtest, `B47`, `settingtypes.txt`'s `--check`, `R4`
-and `F-5`, and **`D2` case 2** — the last half nothing has exercised, needing a
-way to observe the server has released a mapblock rather than another session.
-(B10)
+Left in the phase: `F9`'s playtest, `B47`, `settingtypes.txt`'s `--check`,
+`F-5`, and **`D2` case 2** — the last half nothing has exercised, needing a way
+to observe the server has released a mapblock rather than another session. (B10)
 
 Also standing, and unchecked by anything: **keep `CONTENTDB.md`'s *Recent
 changes* current at each release.** It is a hand-kept summary of `CHANGELOG.md`
@@ -719,12 +718,12 @@ wrong. All three are on the two surfaces `F8` owns, so they are one feature.
 
 ---
 
-2026-08-30 · codeblock `60dc8dd` (master), pushed, CI green (run 42, all three
-jobs), plus the uncommitted limit retuning. Local gates green, engine 5.17.0,
-read from output rather than exit codes: luacheck silent, `doc/api.md` and
-`locale/template.txt` up to date, `locale/*.tr` covering all 79 messages, nine
-in-engine specs **439 passed, 0 failed, 1 xfail, 0 xpass**.
+2026-09-02 · codeblock `cd13414` (master), **not pushed**; the last CI run is 42
+at `60dc8dd`, green on all three jobs. Local gates green, engine 5.17.0, read
+from output rather than exit codes: luacheck silent, `doc/api.md` and
+`locale/template.txt` up to date, `locale/*.tr` covering all 81 messages, nine
+in-engine specs **451 passed, 0 failed, 1 xfail, 0 xpass**.
 
-**No defect is open.** `PLAYTEST.md` stands at 50 checks: seven of group `H` due a
-second run, `R4` and `F-5` never run. Then `settingtypes.txt`'s `--check`, then
+**One defect is open, `B47`.** `PLAYTEST.md` stands at 51 checks, with `F-5` and
+`F9` the two carrying no result. Then `settingtypes.txt`'s `--check`, then
 v1.0.0.

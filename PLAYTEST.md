@@ -20,8 +20,7 @@ Reasoning lives in `AUDIT.md` under the bracketed id, or `ROADMAP.md` for an `F`
 
 ## Where it stands
 
-**51 checks.** Everything carries a result except the two new on 2026-08-30 and
-`F9`, new on 2026-09-02.
+**51 checks.** Everything carries a result except `F-5` and `F9`.
 
 - **Group `H` (HUD and panel): re-run 2026-09-02 at `8f5bb2e`, eight pass and one
   partial.** `F8`'s display work is proven in a world. It produced `B47` — panel
@@ -33,9 +32,10 @@ Reasoning lives in `AUDIT.md` under the bracketed id, or `ROADMAP.md` for an `F`
 - **`H8` case 1 is unperformable as it was written** and the case now says so: a
   shown formspec holds the pointer, so no tool can be used while the panel is
   open. Its cases 2–4 are still unreported.
-- **`R4` and `F-5`: never run**, both new with the 2026-08-30 limit retuning.
-  **`F-5` matters more since 2026-09-02**: level 2's `max_runtime_s` is 60 s, not
-  500, so the examples' unmeasured runtime margin is an eighth of what it was.
+- **`R4` passed 2026-09-02**, so `S6`'s singleplayer 3 is observed. **`F-5` has
+  still never run**, and matters more since the same day: level 2's
+  `max_runtime_s` is 60 s, not 500, so the examples' unmeasured runtime margin is
+  an eighth of what it was.
 - **`E2` is permanently partial** while `B34` is won't-fix.
 - **`D2` case 2 is partial**, aimed at twice and missed twice — the recipe is the
   suspect, not the code. It is the only route to `B10`'s refusal and the only
@@ -1010,7 +1010,11 @@ history in it proves nothing here**. Create a fresh world each time.
 Worth reading the log once while you are there: `codeblock_default_auth_level = 9`
 must warn and fall back rather than giving a player nil limits.
 
-Result: unchecked.
+Result: pass — `cd13414` · engine 5.17.0 · 2026-09-02 — reported as a pass for
+the check, without a case-by-case breakdown. **`S6`'s narrowing to 3 in
+singleplayer is now observed rather than reasoned**, which is what this check
+was written for. The out-of-range warning was not reported on and stays
+unlooked-at.
 
 ---
 

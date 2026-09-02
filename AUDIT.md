@@ -40,8 +40,9 @@ group `H` re-run filed. That run also **confirmed `B45` and `B46` fixed in a
 world** and proved `F8`'s display work. The one thing **not verified anywhere** is
 `B10`'s refusal, aimed at twice through playtest `D2` case 2 and missed twice —
 the recipe is the suspect. **Gates green, unproven in a world:** `B14`,
-permanently blocked on `B34` being won't-fix; `S7`'s log half; and the 2026-08-30
-limit retuning, whose checks are `R4` and `F-5`.
+permanently blocked on `B34` being won't-fix; `S7`'s log half; `F9`; and the
+2026-08-30 retuning's effect on the bundled examples, whose check is `F-5`. Its
+other check, `R4`, passed on 2026-09-02 and took `S6` with it.
 
 ---
 
@@ -551,7 +552,7 @@ broken.
   proves too much: it argues for the *unpaced* levels, which is 3. Level 4 is
   every ceiling at its widest at once, and the difference is headroom rather than
   capability. Nothing sits at 4 without someone asking. Server default unchanged
-  at 2. Check: `R4`, new and never run.
+  at 2. Check: `R4`, passed 2026-09-02 - observed, not reasoned.
 - **S7 · low · resolved** — a failed file open told the player the server's
   absolute path, in English whatever the game's language. From playtest `F-3`
   case 2, which **passed on behaviour and failed on its message**. `read_file`
@@ -843,15 +844,15 @@ document says so.
   `B38`, `B39`, `B40`, `B41`, `B42`, `B43`, `B44`, `C10`, `C16`, `C17`, `C18`,
   `S5`'s measurements, `S7`, `F1`, `F2`, `F3` and `F7` — and answer `A4`. The
   group `H` re-run of 2026-09-02 at `8f5bb2e` adds `B45`, `B46` and `F8`, eight
-  of its nine checks passing.
+  of its nine checks passing, and `R4` the same day adds `S6`.
 - **Verified by reading the engine's own source** (`luanti-org/luanti` at 5.6.0,
   5.7.0, 5.8.0, 5.9.0, 5.17.0): the 640 kB formspec-submission cap and the
   version it arrives in (`B40`); `parseScrollBar` and `acceptInput` (`B37`);
   `label`'s `font=bold` and `halign` being area-label only (`F8`).
 - **Gates green, unproven in a world:** `B14`, blocked on `B34` being won't-fix;
-  `S7`'s log line; the 2026-08-30 limit retuning (`R4`, `F-5`); `H8`'s cases 2–4,
-  unreported in both runs of that check; and **`F9`**, which is words and
-  placement only, so the suite reaches none of it by construction.
+  `S7`'s log line; the retuning's effect on the bundled examples (`F-5`); `H8`'s
+  cases 2–4, unreported in both runs of that check; and **`F9`**, which is words
+  and placement only, so the suite reaches none of it by construction.
 - **Not verified anywhere:** `B10`'s refusal, twice aimed at through `D2` case 2.
   **That is the whole list.**
 - **Computed, not measured:** `W3`'s cost breakdown under `S5` — mapblock counts,
