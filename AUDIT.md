@@ -31,9 +31,9 @@ it.
 
 Code pushed through `60dc8dd`, **CI green there (run 42, all three jobs)**; only
 record commits above it are unseen by CI. Nine in-engine specs: **439 passed / 0
-failed / 1 xfail / 0 xpass**, re-run 2026-09-02 over the uncommitted
-`max_runtime_s` / `max_nodes_written` retuning with luacheck and both `--check`
-gates, all four green.
+failed / 1 xfail / 0 xpass**, and **451 / 0 / 1 / 0** after `F9` added twelve
+cases to `forms_spec` — re-run 2026-09-02 with luacheck and both `--check`
+gates over the limit retuning and then over `F9`, all four green both times.
 
 Every defect the playtests found is fixed except `B47`, which the 2026-09-02
 group `H` re-run filed. That run also **confirmed `B45` and `B46` fixed in a
@@ -849,8 +849,9 @@ document says so.
   version it arrives in (`B40`); `parseScrollBar` and `acceptInput` (`B37`);
   `label`'s `font=bold` and `halign` being area-label only (`F8`).
 - **Gates green, unproven in a world:** `B14`, blocked on `B34` being won't-fix;
-  `S7`'s log line; the 2026-08-30 limit retuning (`R4`, `F-5`); and `H8`'s
-  cases 2–4, unreported in both runs of that check.
+  `S7`'s log line; the 2026-08-30 limit retuning (`R4`, `F-5`); `H8`'s cases 2–4,
+  unreported in both runs of that check; and **`F9`**, which is words and
+  placement only, so the suite reaches none of it by construction.
 - **Not verified anywhere:** `B10`'s refusal, twice aimed at through `D2` case 2.
   **That is the whole list.**
 - **Computed, not measured:** `W3`'s cost breakdown under `S5` — mapblock counts,

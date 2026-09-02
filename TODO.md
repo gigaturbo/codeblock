@@ -20,10 +20,11 @@ Features
       not just its totals at the end — shipped as `F4`, made readable by `F8`,
       and playtested 2026-09-02: eight of nine `H` checks pass. The three
       wordings that run asked for are `F9` below (audit F4, F8)
-- [ ] FEAT: the panel and HUD in the words asked for on 2026-09-02 — HUD `CPU`
+- [x] FEAT: the panel and HUD in the words asked for on 2026-09-02 — HUD `CPU`
       becomes *CPU time* / *Temps CPU*; the idle panel reads `<program> :
       inactif` like the running one; the heading carries the run's clock time,
-      `<program> : <state> (<duration>)`, duration not bold (audit F9)
+      `<program> : <state> (<duration>)`, duration not bold — shipped the same
+      day with four gates green; playtest `F9` is the in-world check (audit F9)
 - [ ] BUG: buttons on the drone panel are sometimes unresponsive, a second click
       needed. The suspect is the panel's own 0.5 s refresh re-sending the
       formspec under the press, not the handlers (audit B47)
@@ -48,10 +49,11 @@ Features
 
 Decisions wanted from the author
 
-- [ ] is `max_runtime_s` to come down? A 387 s program spent about 18 s of server
-      time, so the 2000 s ceiling at codelevel 4 is nowhere near binding — either
-      it comes down to where it means something, or it is deliberately a
-      runaway-only backstop. Observed in playtest `H1`, 2026-09-02 (no finding)
+- [x] is `max_runtime_s` to come down? Yes, answered by doing it, 2026-09-02:
+      `30 / 60 / 120 / 300`, with level 4's `max_nodes_written` `1e7` → `5e7`
+      going the other way. A 387 s program spent about 18 s of server time, so
+      2000 s of charged time was eleven hours of building. From playtest `H1`;
+      the reasoning is in `ROADMAP.md` (no finding)
 - [x] settingtypes.txt gets a generator and a --check, like doc/api.md and
       locale/template.txt — answered yes, 2026-08-28: "can have a generator if
       this simplifies and unify the process" (audit C7, C17)
@@ -61,6 +63,9 @@ Decisions wanted from the author
 
 Checks left in a running world — the checklist is `PLAYTEST.md`
 
+- [ ] run F9 — the panel's duration, the idle heading and the HUD's *CPU time*,
+      shipped 2026-09-02 and words only, so no spec sees any of it. In French
+      too (audit F9)
 - [ ] run E16 — the unsaved-tab marker, new with F7 and never seen by a player
       (audit F7)
 - [ ] run H8 cases 2, 3 and 4 — unreported in both runs of that check. Case 1 is
@@ -82,17 +87,15 @@ Elsewhere
 
 - [ ] FEAT: Blockly web-based editor (audit F6) — planned, deliberately not in
       1.0.0
+- [ ] FEAT: Allow disconnect issues on servers, drone paused and can be resumed
+- [ ] BUG : fix light on large builds (minetest.fix_light(pos1, pos2))
+- [ ] FEAT : protect areas (minetest.is_protected(pos, name))
+- [ ] FEAT : allow save and place schematic files
 
 
 # Other ideas
 
-- minetest.set_timeofday(val)
-- minetest.fix_light(pos1, pos2)
-- minetest.is_protected(pos, name)
-- minetest.place_schematic(pos, schematic, rotation, replacements, force_placement, flags)
-- minetest.create_schematic(p1, p2, probability_list, filename, slice_prob_list)
-- HTTPApiTable.fetch(HTTPRequest req, callback)
-- format lua when saving ? https://github.com/LuaDevelopmentTools/luaformatter/blob/master/formatter.lua
+- format lua programs when saving ? https://github.com/LuaDevelopmentTools/luaformatter/blob/master/formatter.lua
 - render code with html widget? (highlight)
 - show line error on save?
 - colored concrete instead of wool? : https://github.com/nikolaus-albinger/colored_concrete - block list is the mod's, the nodes come from the game

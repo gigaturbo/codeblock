@@ -25,8 +25,10 @@ thinking rather than a queue position.
 `F8`'s display work is proven in a world and `B45` and `B46` with it. Code is
 still `60dc8dd`, CI green there (run 42, all three jobs). What the run left:
 
-1. **`F9`** — the three display changes it asked for, specified under *The
-   features* and not started.
+1. **`F9` shipped the same day** with four gates green — the three display
+   changes it asked for. **Its playtest is due**, and it is words and placement
+   only, so no spec reaches any of it: the check is `PLAYTEST.md`'s `F9`, in
+   French as well as English.
 2. **`B47`** — a panel button sometimes needing a second click, the only open
    finding. The suspect is the panel's own 0.5 s refresh, not the handlers.
 3. **`settingtypes.txt`'s generator and `--check`**, decided yes 2026-08-28. The
@@ -36,9 +38,8 @@ Plus two checks from the 2026-08-30 retuning, neither run: **`R4`** (the default
 codelevel on a fresh world) and **`F-5`** (every bundled example completing at
 codelevel 2).
 
-**The run also retuned two limits** — under *Other decisions worth not
-re-litigating*. Uncommitted in the working tree at the time of writing, with the
-three mirrors moved with it.
+**The run also retuned two limits**, committed in `96dd4bc` with the three
+mirrors moved with them — under *Other decisions worth not re-litigating*.
 
 **The lesson group `H` produced, twice over.** `F4` shipped with four green gates
 and the first ten minutes in a world found two defects — `B45` and `B46`, both
@@ -99,7 +100,7 @@ that the editor and drone paths were exercised by hand. Phase 8's playtests have
 since found **twelve** defects in code earlier phases called done (B36–B44, C17,
 C18, S7) — the newest of them were the largest. **All twelve are fixed.**
 
-### 8 · Features for v1.0.0 — 6 of 7 shipped, 18 findings, 1 open (`B47`)
+### 8 · Features for v1.0.0 — feature-complete again (7/7 shipped, 18 findings, 1 open `B47`)
 
 The last phase before v1.0.0 and the only one that adds rather than repairs.
 Started as seven features: `F6` moved out on 2026-08-28 (Blockly is `Phase 10`)
@@ -107,11 +108,13 @@ and `F5` was **dropped unbuilt on 2026-08-29** — *"not very interesting in the
 end."*
 
 Shipped: `F1` `500dd85`, `F2` `dee0bc7`, `F3` `90cfb70`, `F7` `afbe504`,
-`F4` `729c255`, `F8` `d619fba` revised `60dc8dd`. **`F9` was added on 2026-09-02**
-out of `F8`'s playtest, the second time a feature here has come from playing the
-one before it.
+`F4` `729c255`, `F8` `d619fba` revised `60dc8dd`. **`F9` was added and shipped on
+2026-09-02** out of `F8`'s playtest, the second time a feature here has come from
+playing the one before it — and the second time in a row that what a display
+*said* was the thing playing it found.
 
-Left in the phase: `F9`, `B47`, `settingtypes.txt`'s `--check`, `R4` and `F-5`,
+Left in the phase: `F9`'s playtest, `B47`, `settingtypes.txt`'s `--check`, `R4`
+and `F-5`,
 and **`D2` case 2** — the last half nothing has exercised, needing a way to
 observe the server has released a mapblock rather than another session. (B10)
 
@@ -475,7 +478,7 @@ for three more display changes, which are `F9`, and filed `B47`.
   replaces the session; the tick compares the stored meta table against
   `forms.get_meta(name)` before redrawing. Pinned by `forms_spec`.
 
-### F9 · small · specified, not started — say the state and the time in the same words
+### F9 · small · shipped, playtest due — say the state and the time in the same words
 
 From the group `H` re-run of 2026-09-02, in the same relation to `F8` as `F8` was
 to `F4`: the behaviour passed, and playing it showed three things the words get
@@ -515,6 +518,46 @@ wrong. All three are on the two surfaces `F8` owns, so they are one feature.
 - **Renaming `CPU` is an `S()` key change**, so the `.tr` files and
   `locale/template.txt` move with it or the existing translation is orphaned with
   no error anywhere — the `C17` rule.
+
+**The author's four choices, 2026-09-02.**
+
+- **The idle state is bold and not coloured.** Green and yellow on that line mean
+  *a run is happening*; idle is the absence of one, and a third colour would
+  quietly change what the colour is for.
+- **`6m 27s`**, seconds alone under a minute and `1h 12m` past an hour. Minutes
+  are the scale a build runs at.
+- **It keeps counting through a pause**, staying one honest answer to *how long
+  since I started this*. The state word beside it already says nothing is
+  advancing, and it needs no accumulator on the drone.
+- **The panel only, not the HUD.** This is the panel earning its space: the corner
+  block is four words and a number a line.
+
+**Built, and load-bearing.**
+
+- **The duration is right-aligned into the gap before the close `x`, not placed
+  after the state word.** Nothing in Lua can measure rendered text, and the x at
+  which `<file> : running` ends depends on the player's font and `gui_scaling` —
+  so an adjacent placement is a guess that overlaps for somebody, while a
+  right-aligned box grows leftwards inside bounds it cannot leave. **This is the
+  one place the build differs from the sketch in the author's note**, and the
+  reason is the same one that made the picker a `textlist` in `F1`.
+- **`halign` and `valign` are area-label-only and both must be reset.**
+  `style_type` persists to every label after it, and each limit row's description
+  *is* an area label — so an unreset `halign=right` right-aligns all three.
+  Confirmed in `lua_api.md` 5.17.0, which marks both properties *"Only applies for
+  area label syntax"*.
+- **A plain label is positioned from the centre of its text and an area label
+  from its top**, so the duration's box is `0.45` high-centred on the heading's
+  `0.8` rather than sharing its `y`.
+- **`elapsed` reads `drone.tstart`, the same `get_us_time` stamp the finish
+  message reports as `duration:`**, so the live figure and the final one cannot
+  disagree.
+- **What a translated string holds server-side is neither the key nor the rendered
+  text.** `core.translate` wraps the whole in `\27(T@codeblock)` and substitutes
+  each `@n` with its argument between `\27F` and `\27E`. A spec that asserts on
+  `1m 30s` fails, and so does one that asserts on `@1m @2s`; `forms_spec` builds
+  its expected value with the same `S()` call instead. Three assertions were
+  written the wrong way first and the suite caught all three.
 
 ## Other decisions worth not re-litigating
 
@@ -558,6 +601,17 @@ wrong. All three are on the two surfaces `F8` owns, so they are one feature.
   prose that `gen_docs.lua` does not check the numbers of**, only that every
   limit has a row), `settingtypes.txt`, and the worked example in
   `lib/config.lua`'s own comment.
+- **The duration on the HUD as well** — cut from `F9` on 2026-09-02. The corner
+  block is four words and a number a line by design, and its first line already
+  carries a filename and a state. The two surfaces disagreeing is the objection,
+  and they do not: the panel says more than the HUD everywhere else too.
+- **Freezing the duration while a run is paused** — cut with it. It would need a
+  paused-time accumulator on the drone, and the number would then disagree with
+  the `duration:` the finish message prints. *How long since I started this* is
+  answerable from `tstart` alone; *how long was it actually building* is what the
+  *Server time used* row is for.
+- **Placing the duration immediately after the state word** — not possible, not
+  merely avoided. See `F9`.
 - **Building `F5`** — dropped unbuilt 2026-08-29. Do not re-propose it as a small
   addition to the drone panel: the privilege gating and the counter-carrying under
   its entry are what make it large.

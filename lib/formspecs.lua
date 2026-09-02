@@ -903,6 +903,24 @@ local PAUSED_COLOUR = '#FFE84D'
 -- same numbers on the corner display: a player looking at both must not be told
 -- two different things about one figure. That function answers in the integer a
 -- HUD element takes, so it is formatted here for core.colorize.
+-- How long the run has been going, in clock time, for the panel's heading.
+--
+-- Clock time and deliberately not the charged runtime the rows show: after B46
+-- renamed that row to say it is not a stopwatch, nothing on either surface could
+-- answer *how long has this been building*. This is the same figure the finish
+-- message reports as `duration:`, so the live number and the final one agree.
+--
+-- It keeps counting through a pause: it answers "how long since I started this",
+-- which the state word beside it already qualifies. (F9)
+local function elapsed(tstart)
+    local s = math.floor((core.get_us_time() - tstart) / 1e6)
+    if s < 60 then return S('@1s', s) end
+    if s < 3600 then
+        return S('@1m @2s', math.floor(s / 60), s % 60)
+    end
+    return S('@1h @2m', math.floor(s / 3600), math.floor(s % 3600 / 60))
+end
+
 local function pct_label(fraction, is_binding)
     local text = math.floor(fraction * 100 + 0.5) .. '%'
     local colour = pct_colour(fraction, is_binding)
@@ -945,9 +963,16 @@ local drone_panel = {
         end
 
         if not running then
-            fs = fs .. 'label[0.6,0.9;' ..
-                     S('Drone idle, holding @1',
-                       formspec_escape(drone.file or '?.lua')) .. ']'
+            -- Built like the running heading below rather than as a sentence,
+            -- so one panel does not describe two states in two shapes. No
+            -- colour: green and yellow there say *a run is happening*, and idle
+            -- is the absence of one - a third colour would make the colour mean
+            -- "here is a state" instead, which is F8's rule broken. (F9)
+            fs = fs .. 'style_type[label;font=bold]'
+            fs = fs .. 'label[0.6,0.8;' ..
+                     formspec_escape(drone.file or '?.lua') .. ' : ' ..
+                     S('idle') .. ']'
+            fs = fs .. 'style_type[label;font=normal]'
             -- The same Stop as below: on an idle drone there is no run to end,
             -- so it simply takes the drone away.
             fs = fs .. 'style[stop;bgcolor=red]'
@@ -975,6 +1000,24 @@ local drone_panel = {
                                drone.paused and S('paused') or S('running')) ..
                  ']'
         fs = fs .. 'style_type[label;font=normal]'
+
+        -- The elapsed clock time, on the heading's line and not bold, which is
+        -- what makes it a second element: a label's font is per element.
+        --
+        -- Right-aligned into the gap between the heading and the close x, rather
+        -- than placed just after the state word. Nothing in Lua can measure
+        -- rendered text, and the x that would sit after `<file> : running`
+        -- depends on the player's font and gui_scaling - so an adjacent
+        -- placement is a guess that overlaps for somebody, while a right-aligned
+        -- box grows leftwards inside bounds it cannot leave. halign applies to
+        -- the area-label form only, and valign centres it on the heading's line,
+        -- an area label being positioned from its top and a plain one from its
+        -- centre. Both are reset, or every row's description inherits them. (F9)
+        fs = fs .. 'style_type[label;halign=right;valign=center]'
+        fs = fs .. 'label[5.4,0.45;3.3,0.7;(' ..
+                 formspec_escape(elapsed(drone.tstart or core.get_us_time())) ..
+                 ')]'
+        fs = fs .. 'style_type[label;halign=left;valign=top]'
 
         -- Which limit will be reached first, used to colour its percentage
         -- rather than to print a sentence. Only the spent resources compete: the

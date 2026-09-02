@@ -6,7 +6,7 @@
 --     mosely.lua : running          <- bold
 --     Budget usage:
 --     - Blocks: 72%
---     - CPU: 0%
+--     - CPU time: 0%
 --     - Memory: 4%
 --
 -- The three that can stop a program, as percentages, with the one that will be
@@ -142,11 +142,14 @@ local DESCRIPTIONS = {
 -- A second naming, and the duplication is the point rather than a slip: the
 -- panel's row is a heading over a sentence, the HUD's is an item in a five-line
 -- glance. `Server time used` earns its length beside a description saying it is
--- not clock time; on the HUD it would be most of the line, and `CPU` is what it
--- actually is. (F8)
+-- not clock time; on the HUD it would be most of the line. (F8)
+--
+-- `CPU time`, not `CPU`: on its own the word reads as a load percentage - the
+-- same misreading as B46 one word further along, since every other line here is
+-- a share of a budget. The word `time` is what makes it a duration. (F9)
 local SHORT_LABELS = {
     nodes = function() return S('Blocks') end,
-    runtime = function() return S('CPU') end,
+    runtime = function() return S('CPU time') end,
     heap_kb = function() return S('Memory') end
 }
 

@@ -268,6 +268,74 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- the panel's heading, in both of its shapes (F9)
+--------------------------------------------------------------------------------
+-- get_form is a pure function of the drone record, so the record is faked:
+-- Drone.new wants a world and an entity, and neither is here.
+--
+-- The durations are compared against S() rather than against `1m 30s`, because
+-- what a translated string holds server-side is neither. core.translate wraps
+-- the whole string in \27(T@codeblock) ... and substitutes each @n with the
+-- argument between \27F and \27E, so the key `@1m @2s` is gone and the numbers
+-- are there with escapes between them. Building the expected value the same way
+-- the code does is the only comparison that does not hard-code that encoding.
+
+do
+    local Drone = codeblock.Drone
+    local was = Drone.instances['ivan']
+
+    Drone.instances['ivan'] = {name = 'ivan', serial = '1', file = 'spiral.lua'}
+    local idle = panel.get_form({name = 'ivan'})
+
+    it('the idle heading names the file and its state',
+       (idle:find('spiral.lua : ', 1, true) ~= nil), true)
+    it('with the state word', (idle:find('idle', 1, true) ~= nil), true)
+    it('and not the sentence it replaced',
+       (idle:find('holding', 1, true) == nil), true)
+    it('bold, like the running one',
+       (idle:find('style_type[label;font=bold]', 1, true) ~= nil), true)
+    it('and with no colour on it', (idle:find('#5FD35F', 1, true) == nil and
+           idle:find('#FFE84D', 1, true) == nil), true)
+    it('and no duration, there being no run to time',
+       (idle:find('valign=center', 1, true) == nil), true)
+
+    -- A running record needs a real budget: the rows come from limits.report.
+    local function running_form(seconds)
+        Drone.instances['ivan'] = {
+            name = 'ivan',
+            serial = '1',
+            file = 'spiral.lua',
+            cor = true,
+            budget = codeblock.limits.new(codeblock.config, 4,
+                                          core.get_us_time()),
+            tstart = core.get_us_time() - seconds * 1e6
+        }
+        return panel.get_form({name = 'ivan'})
+    end
+
+    local S = codeblock.S
+    local run = running_form(45)
+    it('under a minute the duration is seconds alone',
+       (run:find('(' .. S('@1s', 45) .. ')', 1, true) ~= nil), true)
+    it('right-aligned rather than placed after the state',
+       (run:find('halign=right', 1, true) ~= nil), true)
+    it('and the alignment is reset, or every row inherits it',
+       (run:find('halign=left', 1, true) ~= nil), true)
+    it('the duration is a second label, so it escapes the heading bold',
+       (run:find('style_type[label;halign=right;valign=center]', 1, true) ~= nil),
+       true)
+
+    it('past a minute it is minutes and seconds',
+       (running_form(90):find('(' .. S('@1m @2s', 1, 30) .. ')', 1, true) ~= nil),
+       true)
+    it('past an hour it is hours and minutes',
+       (running_form(4000):find('(' .. S('@1h @2m', 1, 6) .. ')', 1, true) ~= nil),
+       true)
+
+    Drone.instances['ivan'] = was
+end
+
+--------------------------------------------------------------------------------
 -- restore the real backend, or the editor stops working for the rest of the run
 --------------------------------------------------------------------------------
 

@@ -20,12 +20,16 @@ Reasoning lives in `AUDIT.md` under the bracketed id, or `ROADMAP.md` for an `F`
 
 ## Where it stands
 
-**50 checks.** Everything carries a result except the two new on 2026-08-30.
+**51 checks.** Everything carries a result except the two new on 2026-08-30 and
+`F9`, new on 2026-09-02.
 
 - **Group `H` (HUD and panel): re-run 2026-09-02 at `8f5bb2e`, eight pass and one
   partial.** `F8`'s display work is proven in a world. It produced `B47` — panel
   buttons sometimes needing a second click — and three wanted display changes,
   which are `F9`.
+- **`F9` is the newest check and the only one against just-shipped code.** It is
+  entirely words and placement, so the suite reaches none of it, and it wants
+  doing in French as well as English.
 - **`H8` case 1 is unperformable as it was written** and the case now says so: a
   shown formspec holds the pointer, so no tool can be used while the panel is
   open. Its cases 2–4 are still unreported.
@@ -1057,6 +1061,39 @@ ends the program with the same timeout message a program that never finishes get
 rather than parking the drone for ever.
 
 Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27.
+
+### F9 · The words on the panel and the HUD [F9, B46]
+
+Everything here is words and placement, so **the suite cannot see any of it** —
+`forms_spec` pins the formspec string, not what it looks like drawn. Do this
+**in French as well as English**, which is where the panel's earlier layout
+defects showed first.
+
+1. **The HUD's third line reads *CPU time*, not *CPU*** — *Temps CPU* in French —
+   and the five-line block still fits the corner without wrapping.
+2. **The idle panel reads `<program> : idle`**, filename bold, state bold, **no
+   colour**, and looks like the running heading rather than a sentence. *Drone
+   idle, holding …* is gone.
+3. **A running panel's heading carries the elapsed time in parentheses**, and it
+   is **not bold** while the rest of the line is. It sits to the **right**, in the
+   gap before the close `x` — that is deliberate and not a misalignment; see `F9`
+   for why it cannot be placed after the state word.
+4. **It counts up while the panel sits open**, matches a stopwatch, and **keeps
+   counting through a pause** — press *Pause*, wait, and the number still moves
+   while the state word says paused.
+5. **It reads `43s`, then `6m 27s`, then `1h 12m`** as the run passes a minute
+   and an hour. The last needs a long program or a paused one left alone.
+6. **The duration and the `Server time used` row disagree, by a lot** — some 4.6%
+   of it at codelevel 4 — and that is the pass, not a defect. Two numbers about
+   time on one form is what `B46` was filed for; check the row's describing line
+   still says it is not clock time.
+7. **A long filename does not collide with it.** Open a program at the 15-character
+   cap and look.
+8. **When the run ends, the `duration:` in the chat message matches the last
+   number the panel showed.** They are the same `tstart`, and a mismatch means one
+   of the two is reading something else.
+
+Result: unchecked.
 
 ---
 
