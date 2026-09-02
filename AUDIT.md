@@ -31,10 +31,11 @@ it.
 
 CI was green on all three jobs through `471526e` (runs 44 and 45), so the limit
 retuning, `F9` and the paused clock are covered by CI rather than by local gates
-alone. **`B47`'s fix and `settingtypes.txt`'s generator are newer than that and
-have local gates only**, pending the next run. **Five gates green**, engine
-5.17.0, read from output rather than exit codes: luacheck silent, `doc/api.md`,
-`locale/template.txt` and now `settingtypes.txt` all up to date, nine in-engine
+alone. **`B47`'s fix, `settingtypes.txt`'s generator and `C20` are `d8d44cd` and
+have local gates only**, pending the next run — which also proves the fourth CI
+step that commit adds. **Five gates green**, engine 5.17.0, read from output
+rather than exit codes: luacheck silent, `doc/api.md`, `locale/template.txt` and
+now `settingtypes.txt` all up to date, nine in-engine
 specs **458 passed / 0 failed / 1 xfail / 0 xpass**, and the six standalone
 **238 passed / 0 failed / 1 xfail** under Lua 5.1. The in-engine count is up from
 439: `F9`, `H8`'s displaced case and the paused clock added nineteen to

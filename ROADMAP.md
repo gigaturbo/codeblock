@@ -854,10 +854,12 @@ wants is how long the build has taken, and a pause is not part of it.
 
 ---
 
-2026-09-02 · codeblock master, `B47`'s beat change and `settingtypes.txt`'s
-generator on top of `7dbe18f`. **CI was last green on all three jobs at
-`dc09d48` (run 44) and `471526e` (run 45)**, so this work has **local gates
-only** until the next run; `dc09d48` was the last commit touching code before it.
+2026-09-02 · codeblock `d8d44cd` (master) — `B47`'s beat change,
+`settingtypes.txt`'s generator and `C20`. **CI was last green on all three jobs
+at `dc09d48` (run 44) and `471526e` (run 45)**, so `d8d44cd` has **local gates
+only** until the next run, and it is the commit a later run should be compared
+against. It also adds a fourth CI step, so the first run over it proves the new
+gate as well.
 **Five gates green**, engine 5.17.0, read from output rather than exit codes:
 luacheck silent, `doc/api.md`, `locale/template.txt` and **`settingtypes.txt`**
 all up to date, `locale/*.tr` covering every message and nothing else, nine
