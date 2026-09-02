@@ -22,13 +22,14 @@ thinking rather than a queue position.
 ## Now
 
 **Group `H` was re-run on 2026-09-02 at `8f5bb2e`: eight pass, one partial.**
-`F8`'s display work is proven in a world and `B45` and `B46` with it. Code is
-still `60dc8dd`, CI green there (run 42, all three jobs). What the run left:
+`F8`'s display work is proven in a world and `B45` and `B46` with it. Code is at
+`8869d8c`; the last CI run is 42 at `60dc8dd`, green on all three jobs, so the
+limit retuning and `F9` have local gates only. What the run left:
 
-1. **`F9` shipped the same day** with four gates green — the three display
-   changes it asked for. **Its playtest is due**, and it is words and placement
-   only, so no spec reaches any of it: the check is `PLAYTEST.md`'s `F9`, in
-   French as well as English.
+1. **`F9` shipped the same day**, `8869d8c`, with four gates green — the three
+   display changes it asked for. **Its playtest is due**, and it is words and
+   placement only, so no spec reaches any of it: the check is `PLAYTEST.md`'s
+   `F9`, in French as well as English.
 2. **`B47`** — a panel button sometimes needing a second click, the only open
    finding. The suspect is the panel's own 0.5 s refresh, not the handlers.
 3. **`settingtypes.txt`'s generator and `--check`**, decided yes 2026-08-28. The
@@ -108,15 +109,15 @@ and `F5` was **dropped unbuilt on 2026-08-29** — *"not very interesting in the
 end."*
 
 Shipped: `F1` `500dd85`, `F2` `dee0bc7`, `F3` `90cfb70`, `F7` `afbe504`,
-`F4` `729c255`, `F8` `d619fba` revised `60dc8dd`. **`F9` was added and shipped on
-2026-09-02** out of `F8`'s playtest, the second time a feature here has come from
-playing the one before it — and the second time in a row that what a display
-*said* was the thing playing it found.
+`F4` `729c255`, `F8` `d619fba` revised `60dc8dd`, `F9` `8869d8c`. **`F9` was
+added and shipped on 2026-09-02** out of `F8`'s playtest, the second time a
+feature here has come from playing the one before it — and the second time in a
+row that what a display *said* was the thing playing it found.
 
 Left in the phase: `F9`'s playtest, `B47`, `settingtypes.txt`'s `--check`, `R4`
-and `F-5`,
-and **`D2` case 2** — the last half nothing has exercised, needing a way to
-observe the server has released a mapblock rather than another session. (B10)
+and `F-5`, and **`D2` case 2** — the last half nothing has exercised, needing a
+way to observe the server has released a mapblock rather than another session.
+(B10)
 
 Also standing, and unchecked by anything: **keep `CONTENTDB.md`'s *Recent
 changes* current at each release.** It is a hand-kept summary of `CHANGELOG.md`
@@ -478,7 +479,7 @@ for three more display changes, which are `F9`, and filed `B47`.
   replaces the session; the tick compares the stored meta table against
   `forms.get_meta(name)` before redrawing. Pinned by `forms_spec`.
 
-### F9 · small · shipped, playtest due — say the state and the time in the same words
+### F9 · small · shipped `8869d8c`, playtest due — say the state and the time in the same words
 
 From the group `H` re-run of 2026-09-02, in the same relation to `F8` as `F8` was
 to `F4`: the behaviour passed, and playing it showed three things the words get
