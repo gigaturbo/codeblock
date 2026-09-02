@@ -22,7 +22,7 @@ thinking rather than a queue position.
 ## Now
 
 **Nothing is open, every check has a result, and what is left is three documents,
-two images and the tag.** `B47` was decided, fixed and playtested on 2026-09-02,
+the ContentDB page and the tag.** `B47` was decided, fixed and playtested on 2026-09-02,
 `settingtypes.txt` has its generator and its `--check`, and no finding is in the
 open state for the first time in the project's life. Five gates green, nine
 in-engine specs **458 passed / 0 failed / 1 xfail / 0 xpass**, `PLAYTEST.md` at
@@ -66,11 +66,11 @@ formality. The other four rules the phase paid for are at the bottom of this fil
 
 ## Finalising v1.0.0
 
-In order. **Steps 8 to 12 are the `release-codeblock` skill's procedure** and are
+In order. **Steps 7 to 11 are the `release-codeblock` skill's procedure** and are
 not restated here; what is below is what *this* version still needs, and
 `release-check` is the gate that says whether it got it.
 
-**The work — two done on 2026-09-02; three documents and two images left.**
+**The work — three done on 2026-09-02; three documents and the ContentDB page left.**
 
 1. **`B47` — done, and playtested.** Answered by slowing the beat to 1 s rather
    than stopping the self-refresh, quantising, or moving to mouse-down;
@@ -98,21 +98,13 @@ not restated here; what is below is what *this* version still needs, and
 5. **`README.md`'s ContentDB URLs are on `content.minetest.net`**, the pre-rename
    domain. It redirects, so this is stale rather than broken — but the README
    ships in the archive. (C19)
-6. **`screenshot.png` at the repo root is still the old editor** — one tab, no
-   *Créer une copie*, no panel-button row, and the two checkboxes still along
-   the bottom edge that `F8` moved onto *Settings*. **It is the only image that
-   ships**, Luanti draws it in the Mods tab, and the README embeds it at the
-   top. `screenshots/mozaic.png` was redone against the current editor on
-   2026-09-02 and is the equivalent, but at 1.8 MB against 1.1 MB it would grow
-   the archive by ~0.7 MB, so it wants resizing rather than copying. The
-   author's image to make.
-7. **Upload the new screenshots to the ContentDB page.** They load from raw
+6. **Upload the new screenshots to the ContentDB page.** They load from raw
    GitHub URLs on `master`, so the page needs the new names and the dropped 2021
    file removing. (C19)
 
 **The release.**
 
-8. **Re-run `R2` on the archive built from the release commit**, which is
+7. **Re-run `R2` on the archive built from the release commit**, which is
    `git archive --format=zip --prefix=codeblock/ -o /tmp/codeblock.zip <tag>` —
    the tag rather than `HEAD`, because that is what ContentDB builds from, and
    `export-ignore` is read from the `.gitattributes` at that revision. `R1` was
@@ -124,18 +116,18 @@ not restated here; what is below is what *this* version still needs, and
    what is unproven is that *this* archive loads in a game that is not
    `codecube`. **Play it outside its own game** — `B38`, `B39` and `C18` were all
    invisible in `codecube`.
-9. **`release-check`**, and do not start the tag until it says ready: the nine
+8. **`release-check`**, and do not start the tag until it says ready: the nine
    in-engine specs, the six standalone, luacheck, **all three** `--check`
    generators, CI green on the tagged commit's own `head_sha`, the licence field,
    ContentDB's rules against the long description, and a fresh clone that can run
    its own suite.
-10. **Strike what the release closed** from `ROADMAP.md` and `TODO.md`, confirm
+9. **Strike what the release closed** from `ROADMAP.md` and `TODO.md`, confirm
    `tests/game/mods/vector3`'s pinned commit is pushed, then commit, push, and
    tag `v1.0.0` on `master`.
-11. **Upload to ContentDB**, long description from the regenerated `.cdb.json`.
-12. **Configure the release webhook** — trigger **Branch or tag creation**, not
-    push, because this project tags and push would publish every commit on
-    `master`.
+10. **Upload to ContentDB**, long description from the regenerated `.cdb.json`.
+11. **Configure the release webhook** — trigger **Branch or tag creation**, not
+   push, because this project tags and push would publish every commit on
+   `master`.
 
 **After the tag, and deliberately not before.** `Phase 9` opens on what comes
 back from players; `codecube` adopts the release on its own schedule and must set
@@ -726,6 +718,16 @@ wants is how long the build has taken, and a pause is not part of it.
   prose that `gen_docs.lua` does not check the numbers of**, only that every
   limit has a row), `settingtypes.txt`, and the worked example in
   `lib/config.lua`'s own comment.
+- **A full-size cover in the release archive**, 2026-09-02. `screenshot.png` is
+  the mosaic verbatim, 1.83 MB, which puts the archive at **2.21 MB** — above the
+  1.60 MB the `.gitattributes` work trimmed to 1.42 MB. Deliberate: it is the one
+  image Luanti draws in the Mods tab and the one the README embeds, and it had
+  been four features stale, showing an editor with no tabs, no *Create a copy*
+  and the checkboxes `F8` moved. **A stale cover misrepresents the mod to every
+  player deciding whether to install it; 0.7 MB does not.** If the size ever
+  matters, resize the cover rather than reverting to an old one — and note
+  `screenshots/mozaic.png` is now byte-identical to it, so the repository carries
+  the image twice while only one copy ships.
 - **Slowing the display beat rather than making the panel static**, decided
   2026-09-02 for `B47`. `PERIOD` `0.5` → `1` s, one constant in `lib/hud.lua`
   driving both surfaces. It halves a dropped-click window it does not close, and
@@ -877,12 +879,13 @@ wants is how long the build has taken, and a pause is not part of it.
 
 ---
 
-2026-09-02 · codeblock `d8d44cd` (master) — `B47`'s beat change,
-`settingtypes.txt`'s generator and `C20`. **CI was last green on all three jobs
-at `dc09d48` (run 44) and `471526e` (run 45)**, so `d8d44cd` has **local gates
-only** until the next run, and it is the commit a later run should be compared
-against. It also adds a fourth CI step, so the first run over it proves the new
-gate as well.
+2026-09-02 · codeblock master, the reworked cover on top of `be66113`. The code
+in it is `d8d44cd` — `B47`'s beat change, `settingtypes.txt`'s generator and
+`C20`; everything since is the record, the images and the README. **CI was last
+green on all three jobs at `dc09d48` (run 44) and `471526e` (run 45)**, so
+`d8d44cd` has **local gates only** until the next run, and it is the commit a
+later run should be compared against. It also adds a fourth CI step, so the first
+run over it proves the new gate as well.
 **Five gates green**, engine 5.17.0, read from output rather than exit codes:
 luacheck silent, `doc/api.md`, `locale/template.txt` and **`settingtypes.txt`**
 all up to date, `locale/*.tr` covering every message and nothing else, nine
@@ -892,5 +895,7 @@ also **made to fail once** against a fake limit.
 
 **Nothing is open** — a first for this project — and `PLAYTEST.md` stands at 52
 checks with a result against every one. `H10` passed on 2026-09-02 with `B47`'s
-residue intact and accepted; `R2` still wants re-running on the release archive.
-Left is *Finalising v1.0.0* above: three documents, `R2`, then the tag.
+residue intact and accepted; `R2` still wants re-running on the release archive,
+and its entry now carries the `git archive` recipe it had never said. The archive
+is **2.21 MB**, the reworked cover having cost 0.73 MB of it. Left is *Finalising
+v1.0.0* above: three documents, the ContentDB page, `R2`, then the tag.

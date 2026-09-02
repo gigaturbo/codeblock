@@ -33,7 +33,8 @@ CI was green on all three jobs through `471526e` (runs 44 and 45), so the limit
 retuning, `F9` and the paused clock are covered by CI rather than by local gates
 alone. **`B47`'s fix, `settingtypes.txt`'s generator and `C20` are `d8d44cd` and
 have local gates only**, pending the next run — which also proves the fourth CI
-step that commit adds. **Five gates green**, engine 5.17.0, read from output
+step that commit adds. Everything committed since is the record, the images and
+the README, and touches no code. **Five gates green**, engine 5.17.0, read from output
 rather than exit codes: luacheck silent, `doc/api.md`, `locale/template.txt` and
 now `settingtypes.txt` all up to date, nine in-engine
 specs **458 passed / 0 failed / 1 xfail / 0 xpass**, and the six standalone
@@ -706,7 +707,9 @@ broken.
   call-counter instrumentation.
 - **C10 · low · resolved** — a malformed `.gitattributes` line, and a release
   archive nothing had decided the contents of. Fixed before Phase 7; archive
-  1.60 MB → 1.42 MB. `screenshot.png` is kept with an explicit `-export-ignore`,
+  1.60 MB → 1.42 MB, and **2.21 MB again since 2026-09-02**, when the Mods-tab
+  cover was replaced with the full-size mosaic — larger than before the trimming,
+  on the author's call. `screenshot.png` is kept with an explicit `-export-ignore`,
   because Luanti shows it in the main menu's Mods tab. Confirmed by playtest `R1`
   — the first time anything had looked.
   **Keep — the standing hazard, which outlives the fix.** It is in `CLAUDE.md`:

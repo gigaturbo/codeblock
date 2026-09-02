@@ -57,7 +57,7 @@ relying on.
 - The two editor checkboxes start **ticked** for a player who has never set them. **Note for an existing world:** a player created before this release had an explicit "off" stored at the moment they joined, honoured as a deliberate choice
 - The two tool icons were redrawn, with SVG editable sources; neither source ships in the release archive
 - **The bundled examples shrank so every one completes at codelevel 2.** `planet.lua`, `death_star.lua` and `mosely.lua` are smaller
-- The release archive holds only what the mod needs at runtime, plus the `README.md` and `doc/api.md` a player is told to read. 1.60 MB down to 1.42 MB. `screenshot.png` is kept deliberately: Luanti shows it in the main menu's Mods tab
+- The release archive holds only what the mod needs at runtime, plus the `README.md` and `doc/api.md` a player is told to read — 1.60 MB of it down to 1.42 MB. It is **2.21 MB** as shipped, the difference being a new `screenshot.png`: Luanti shows that one in the main menu's Mods tab, so it is kept deliberately and is now the current editor rather than a four-feature-old one
 - Documented `color()`, and corrected block lists that had drifted from the config
 
 ## Fixed

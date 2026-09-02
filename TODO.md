@@ -71,13 +71,16 @@ Features
       new needs a .gitattributes rule — doc/*.png and screenshots/ are both
       already excluded, and the archive still holds eleven top-level entries
       (no finding)
-- [ ] screenshot.png at the repo root is still the OLD editor — one tab, no
-      "Créer une copie", no Blocs/Plantes/Laines/API/Paramètres row, and the two
-      checkboxes still along the bottom edge that F8 moved onto Settings. It is
-      the one image that ships in the archive, Luanti draws it in the Mods tab,
-      and README embeds it at the top. mozaic.png is the current equivalent but
-      is 1.8 MB against its 1.1 MB, so dropping it in grows the release archive
-      by about 0.7 MB — resize or reframe rather than copy (no finding)
+- [x] screenshot.png at the repo root — done 2026-09-02: the mosaic copied over
+      it verbatim, so the Mods-tab cover is the current editor rather than one
+      from four features ago. It costs what was predicted: the release archive
+      is 2.21 MB, up from 1.48 MB and above the 1.60 MB the .gitattributes work
+      trimmed. Your call and recorded as one; resize the cover rather than
+      revert if that ever matters (no finding)
+- [ ] screenshots/mozaic.png is now byte-identical to screenshot.png, so the
+      repository carries the same 1.83 MB twice while only one copy ships.
+      Dropping it would keep mozaic.xcf as the editable source and halve that in
+      a clone — say if you want it gone (no finding)
 - [ ] upload the new screenshots to the ContentDB package page — the files are
       loaded from raw GitHub URLs on master, so the page needs the new names
       and the dropped file removing (audit C19)
