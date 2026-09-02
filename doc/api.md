@@ -6,8 +6,8 @@ Drone capacities depends on the user's _codelevel_ which can be set with the `/c
 |-------------------|------------|------------------|--------------|---------------|----------------------------------------------------------------|
 | pace_ms           |        250 |                5 |            0 |             0 | wait after each drone command, in milliseconds (0 = no wait)   |
 | step_budget_us    |       1000 |             2000 |         4000 |          8000 | time (µs) one drone may spend running per server step          |
-| max_runtime_s     |        250 |              500 |         1000 |          2000 | total running time (s) one program gets                        |
-| max_nodes_written |        1e5 |              5e5 |          1e6 |           1e7 | nodes one program may write, and so the size of a single shape |
+| max_runtime_s     |         30 |               60 |          120 |           300 | total running time (s) one program gets                        |
+| max_nodes_written |        1e5 |              5e5 |          1e6 |           5e7 | nodes one program may write, and so the size of a single shape |
 | map_memory_mb     |          8 |               32 |           64 |           128 | map footprint (MB) one program may hold at once                |
 | heap_mb           |         16 |               64 |          128 |           512 | Lua heap growth (MB) one program run may cause                 |
 | max_string_mb     |          1 |                8 |           16 |            64 | size (MB) of the largest string a single call may produce      |
@@ -40,8 +40,8 @@ so nothing else could bound it, and a program that waits for ever is the same
 runaway as one that loops for ever.
 
 `max_nodes_written` is the build budget, and doubles as the largest shape a
-codelevel can place — 1e5 nodes is a 46-node cube or a radius-28 sphere, 1e7 a
-215-node cube. Neither a shape's dimensions nor the drone's distance from home is
+codelevel can place — 1e5 nodes is a 46-node cube or a radius-28 sphere, 5e7 a
+368-node cube. Neither a shape's dimensions nor the drone's distance from home is
 limited: a big shape is written in slabs of a few thousand nodes with a pause
 between them, so it is slow rather than a frozen server, and flying away costs
 map memory, which is charged below.

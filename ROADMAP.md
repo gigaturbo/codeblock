@@ -9,7 +9,7 @@ stays.
 Findings and their reasoning are in `AUDIT.md`. Manual checks are in
 `PLAYTEST.md`. Intentions not yet planned are in `TODO.md`.
 
-Phases are `Phase 0`–`Phase 10`, features `F1`–`F8`, findings `B`/`S`/`C`/`A`.
+Phases are `Phase 0`–`Phase 10`, features `F1`–`F9`, findings `B`/`S`/`C`/`A`.
 **Nothing is ever renumbered.**
 
 Three releases, settled 2026-08-28. **`Phase 8` is v1.0.0** — a correct sandbox,
@@ -21,26 +21,34 @@ thinking rather than a queue position.
 
 ## Now
 
-**Phase 8 is feature-complete: six features shipped, no finding open.** Code
-pushed through `60dc8dd`, CI green there (run 42, all three jobs). Two things
-remain before v1.0.0:
+**Group `H` was re-run on 2026-09-02 at `8f5bb2e`: eight pass, one partial.**
+`F8`'s display work is proven in a world and `B45` and `B46` with it. Code is
+still `60dc8dd`, CI green there (run 42, all three jobs). What the run left:
 
-1. **A second run of playtest group `H`** — seven of its nine checks describe
-   behaviour that did not exist when they were first run, and `H2` and `H4` have
-   never been performed in their current form.
-2. **`settingtypes.txt`'s generator and `--check`**, decided yes 2026-08-28. The
+1. **`F9`** — the three display changes it asked for, specified under *The
+   features* and not started.
+2. **`B47`** — a panel button sometimes needing a second click, the only open
+   finding. The suspect is the panel's own 0.5 s refresh, not the handlers.
+3. **`settingtypes.txt`'s generator and `--check`**, decided yes 2026-08-28. The
    third hand-kept mirror and the only one without one.
 
-Plus two new checks from the 2026-08-30 retuning, neither run: **`R4`** (the
-default codelevel on a fresh world) and **`F-5`** (every bundled example
-completing at codelevel 2).
+Plus two checks from the 2026-08-30 retuning, neither run: **`R4`** (the default
+codelevel on a fresh world) and **`F-5`** (every bundled example completing at
+codelevel 2).
 
-**The lesson group `H` produced, which is why the re-run matters.** `F4` shipped
-with four green gates and the first ten minutes in a world found two defects —
-`B45` and `B46`, both about what the display *said* rather than what it computed,
-and neither reachable by any spec. `F8` then rewrote enough of `F4` that **a pass
-in that first run means *it did what was asked*, not *it is settled***. What was
-asked turned out to be wrong in five places, and only playing it showed that.
+**The run also retuned two limits** — under *Other decisions worth not
+re-litigating*. Uncommitted in the working tree at the time of writing, with the
+three mirrors moved with it.
+
+**The lesson group `H` produced, twice over.** `F4` shipped with four green gates
+and the first ten minutes in a world found two defects — `B45` and `B46`, both
+about what the display *said* rather than what it computed, and neither reachable
+by any spec. `F8` rewrote enough of `F4` that a pass in that first run meant *it
+did what was asked*, not *it is settled*. The re-run of `F8` then did the same
+thing again at a smaller scale: the behaviour passed everywhere and the **words**
+were wrong in three more places (`F9`), plus one thing no spec could ever see
+(`B47`). **Displays are the part of this mod that only playing can check**, and a
+second playtest of a rewritten display is not a formality.
 
 **The 2026-08-30 retuning.** The per-codelevel limits changed, the bundled
 examples shrank to fit codelevel 2, and the singleplayer default moved 4 → 3. The
@@ -91,7 +99,7 @@ that the editor and drone paths were exercised by hand. Phase 8's playtests have
 since found **twelve** defects in code earlier phases called done (B36–B44, C17,
 C18, S7) — the newest of them were the largest. **All twelve are fixed.**
 
-### 8 · Features for v1.0.0 — feature-complete (6/6 shipped, 17 findings closed, none open)
+### 8 · Features for v1.0.0 — 6 of 7 shipped, 18 findings, 1 open (`B47`)
 
 The last phase before v1.0.0 and the only one that adds rather than repairs.
 Started as seven features: `F6` moved out on 2026-08-28 (Blockly is `Phase 10`)
@@ -99,10 +107,12 @@ and `F5` was **dropped unbuilt on 2026-08-29** — *"not very interesting in the
 end."*
 
 Shipped: `F1` `500dd85`, `F2` `dee0bc7`, `F3` `90cfb70`, `F7` `afbe504`,
-`F4` `729c255`, `F8` `d619fba` revised `60dc8dd`.
+`F4` `729c255`, `F8` `d619fba` revised `60dc8dd`. **`F9` was added on 2026-09-02**
+out of `F8`'s playtest, the second time a feature here has come from playing the
+one before it.
 
-Left in the phase: the group `H` re-run, `settingtypes.txt`'s `--check`, `R4` and
-`F-5`, and **`D2` case 2** — the last half nothing has exercised, needing a way to
+Left in the phase: `F9`, `B47`, `settingtypes.txt`'s `--check`, `R4` and `F-5`,
+and **`D2` case 2** — the last half nothing has exercised, needing a way to
 observe the server has released a mapblock rather than another session. (B10)
 
 Also standing, and unchecked by anything: **keep `CONTENTDB.md`'s *Recent
@@ -447,6 +457,10 @@ changes it asked for, then two more passes from screenshots.
 - **The three preference checkboxes moved onto the *Settings* panel**, beside the
   default-block picker, from the editor form's bottom edge.
 
+**Playtested 2026-09-02 at `8f5bb2e`, group `H`: eight pass, one partial.** Every
+point above is confirmed in a world, and `B45` and `B46` with them. The run asked
+for three more display changes, which are `F9`, and filed `B47`.
+
 **Constraints.**
 
 - **The editor form is legacy coordinates and the panel is `formspec_version[4]`.**
@@ -460,6 +474,47 @@ changes it asked for, then two more passes from screenshots.
   is one form per player, so opening the editor over an open panel silently
   replaces the session; the tick compares the stored meta table against
   `forms.get_meta(name)` before redrawing. Pinned by `forms_spec`.
+
+### F9 · small · specified, not started — say the state and the time in the same words
+
+From the group `H` re-run of 2026-09-02, in the same relation to `F8` as `F8` was
+to `F4`: the behaviour passed, and playing it showed three things the words get
+wrong. All three are on the two surfaces `F8` owns, so they are one feature.
+
+**Asked for, and the reasoning.**
+
+- **The HUD's `CPU` becomes *CPU time* / *Temps CPU*.** `CPU` alone reads as a
+  load percentage, which is the misreading `B46` was filed for one word further
+  along. It costs a line on a five-line block, and the block is fixed-width
+  already. `F8`'s short-names decision stands otherwise — `Blocks` and `Memory`
+  do not become sentences.
+- **The idle panel reads `<program> : inactif`**, filename bold and state
+  coloured, replacing the sentence `Drone idle, holding @1`. One panel telling
+  two states in two shapes is what it looks like today. The colour is a third
+  one, neither `RUNNING_COLOUR` nor `PAUSED_COLOUR` carrying a meaning that fits
+  *idle* — and `F8`'s rule holds: one colour meaning two things on one form is
+  worse than no colour.
+- **The panel heading carries the run's clock time** —
+  `<program> : <state> (<duration>)`, the duration **not** bold. Nothing on
+  either surface says how long a run has been going: *Server time used* is
+  deliberately not that number, which is the whole of `B46`, and after it the
+  player has no way at all to ask *how long has this been building*. So this is
+  `B46`'s missing half, not a duplicate of it.
+
+**Constraints.**
+
+- **The heading is built by concatenation and stays that way** — the `S('@1 : @2')`
+  key cannot carry a partly-coloured line, and a third part makes that more true,
+  not less. The duration needs its own element or its own label to escape the
+  heading's `font=bold`, a label's font being per element and nothing in Lua being
+  able to measure rendered text.
+- **A wall-clock duration must not be charged, displayed as, or derived from
+  `used.runtime`.** Two numbers about time on one form is precisely the confusion
+  `B46` closed, so the duration is a `get_us_time` delta and the row keeps its
+  describing line saying it is not clock time.
+- **Renaming `CPU` is an `S()` key change**, so the `.tr` files and
+  `locale/template.txt` move with it or the existing translation is orphaned with
+  no error anywhere — the `C17` rule.
 
 ## Other decisions worth not re-litigating
 
@@ -481,6 +536,28 @@ changes it asked for, then two more passes from screenshots.
   budget. Two consequences before nudging any of these again — `planet.lua` and
   `death_star.lua` do **not** fit codelevel 1's 1e5 and never did, and
   `cube(200,200,200)` now needs codelevel 4.
+- **`max_runtime_s` and level 4's node ceiling, retuned again 2026-09-02**, from
+  the group `H` run: `max_runtime_s` `250 / 500 / 1000 / 2000` → **`30 / 60 /
+  120 / 300`**, and `max_nodes_written`'s top **`1e7` → `5e7`** with the other
+  three levels untouched.
+  **What made 2000 s wrong was the unit, not the arithmetic.** The measurement
+  behind it: a program that built for **387 s of clock time spent about 18 s** of
+  server time, ~4.6%, because a codelevel-4 drone is given ~8 ms of a ~90 ms step
+  (`B46`). At that ratio 2000 s of *charged* time is over eleven hours of
+  building — a ceiling nothing could reach, which is exactly the objection that
+  brought `max_nodes_written` down on 2026-08-30. 300 s at the same ratio is a
+  couple of hours of building and still stops a runaway inside a few minutes of
+  real time.
+  **The two moved in opposite directions on purpose.** Time came down because it
+  bounded nothing; level 4's node count went up because with `pace_ms` at 0 and
+  no dimension limit, *how much may I build* is the only ceiling a poweruser
+  meets, and 1e7 is a 215-node cube. 5e7 is a 368-node cube. Levels 1–3 stay
+  where 2026-08-30 put them, so **the bundled examples still fit codelevel 2**
+  and nothing in `F-5` or `W3` needs re-measuring.
+  Three mirrors moved with it — `doc/api.md`'s codelevel table (**hand-written
+  prose that `gen_docs.lua` does not check the numbers of**, only that every
+  limit has a row), `settingtypes.txt`, and the worked example in
+  `lib/config.lua`'s own comment.
 - **Building `F5`** — dropped unbuilt 2026-08-29. Do not re-propose it as a small
   addition to the drone panel: the privilege gating and the counter-carrying under
   its entry are what make it large.

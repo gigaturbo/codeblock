@@ -15,9 +15,18 @@ Finding ids are never renumbered. `F` ids are features, this project's own.
 
 Features
 
-- [ ] FEAT: Make a UI for drone info : running or not, blocks placed, allow pause,
+- [x] FEAT: Make a UI for drone info : running or not, blocks placed, allow pause,
       start, cancel, etc — includes showing the program's budget while it runs,
-      not just its totals at the end (audit F4)
+      not just its totals at the end — shipped as `F4`, made readable by `F8`,
+      and playtested 2026-09-02: eight of nine `H` checks pass. The three
+      wordings that run asked for are `F9` below (audit F4, F8)
+- [ ] FEAT: the panel and HUD in the words asked for on 2026-09-02 — HUD `CPU`
+      becomes *CPU time* / *Temps CPU*; the idle panel reads `<program> :
+      inactif` like the running one; the heading carries the run's clock time,
+      `<program> : <state> (<duration>)`, duration not bold (audit F9)
+- [ ] BUG: buttons on the drone panel are sometimes unresponsive, a second click
+      needed. The suspect is the panel's own 0.5 s refresh re-sending the
+      formspec under the press, not the handlers (audit B47)
 - [ ] FEAT: Make possible to change codelevel while running a program (audit F5)
 - [ ] FEAT: stop forcing the two tools into every joining player's inventory —
       a command that hands them out, or a setting so an embedding game decides.
@@ -39,6 +48,10 @@ Features
 
 Decisions wanted from the author
 
+- [ ] is `max_runtime_s` to come down? A 387 s program spent about 18 s of server
+      time, so the 2000 s ceiling at codelevel 4 is nowhere near binding — either
+      it comes down to where it means something, or it is deliberately a
+      runaway-only backstop. Observed in playtest `H1`, 2026-09-02 (no finding)
 - [x] settingtypes.txt gets a generator and a --check, like doc/api.md and
       locale/template.txt — answered yes, 2026-08-28: "can have a generator if
       this simplifies and unify the process" (audit C7, C17)
@@ -50,6 +63,9 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
 
 - [ ] run E16 — the unsaved-tab marker, new with F7 and never seen by a player
       (audit F7)
+- [ ] run H8 cases 2, 3 and 4 — unreported in both runs of that check. Case 1 is
+      now known to be unperformable: a shown formspec holds the pointer, so no
+      tool can be used while the panel is open (audit F8, B29)
 - [ ] run D2 case 2 — a drone placed where the client shows a node the server has
       unloaded; the recipe is in the check, and it has now been aimed at twice
       and missed twice, so the recipe is the suspect (audit B10)

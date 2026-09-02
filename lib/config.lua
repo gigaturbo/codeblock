@@ -149,7 +149,7 @@ codeblock.config.pace_ms = {250, 5, 0, 0}
 -- This replaced max_calls, which bounded the same thing in units nobody could
 -- reason about: a call was neither a second nor a node, and its ceiling had to
 -- be guessed.
-codeblock.config.max_runtime_s = {250, 500, 1000, 2000}
+codeblock.config.max_runtime_s = {30, 60, 120, 300}
 
 -- The map footprint one program may hold, in megabytes.
 --
@@ -173,10 +173,10 @@ codeblock.config.map_memory_mb = {8, 32, 64, 128}
 --
 -- The ceiling on a single shape as much as on the run, now that neither a
 -- dimension nor a distance is bounded: 1e5 nodes is a 46-node cube or a
--- radius-28 sphere, 1e7 a 215-node cube. Bulk shapes are written in slices, so
+-- radius-28 sphere, 5e7 a 368-node cube. Bulk shapes are written in slices, so
 -- a large one is slow rather than a freeze, which is what made bounding their
 -- dimensions unnecessary.
-codeblock.config.max_nodes_written = {1e5, 5e5, 1e6, 1e7}
+codeblock.config.max_nodes_written = {1e5, 5e5, 1e6, 5e7}
 
 -- How long, in microseconds, one drone may spend advancing its program during
 -- a single server step. See lib/stepper.lua.

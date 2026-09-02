@@ -22,10 +22,16 @@ Reasoning lives in `AUDIT.md` under the bracketed id, or `ROADMAP.md` for an `F`
 
 **50 checks.** Everything carries a result except the two new on 2026-08-30.
 
-- **Group `H` (HUD and panel): seven of nine due a second run.** `F8` rewrote the
-  behaviour they describe, and `H2` and `H4` have never been performed in their
-  current form at all. This is the last unproven work before v1.0.0.
+- **Group `H` (HUD and panel): re-run 2026-09-02 at `8f5bb2e`, eight pass and one
+  partial.** `F8`'s display work is proven in a world. It produced `B47` — panel
+  buttons sometimes needing a second click — and three wanted display changes,
+  which are `F9`.
+- **`H8` case 1 is unperformable as it was written** and the case now says so: a
+  shown formspec holds the pointer, so no tool can be used while the panel is
+  open. Its cases 2–4 are still unreported.
 - **`R4` and `F-5`: never run**, both new with the 2026-08-30 limit retuning.
+  **`F-5` matters more since 2026-09-02**: level 2's `max_runtime_s` is 60 s, not
+  500, so the examples' unmeasured runtime margin is an eighth of what it was.
 - **`E2` is permanently partial** while `B34` is won't-fix.
 - **`D2` case 2 is partial**, aimed at twice and missed twice — the recipe is the
   suspect, not the code. It is the only route to `B10`'s refusal and the only
@@ -395,8 +401,13 @@ Earlier: fail — `326f739` + uncommitted fixes · 2026-08-28 — found while ru
 
 H1–H9. **First run 2026-08-29 at `729c255`: six pass, three partial.** It produced
 `B45` and `B46` and four wanted changes; `F8` then shipped the same day and was
-revised twice more from screenshots. **Seven of the nine are due a second run**,
-and `H2` and `H4` have never been performed in their current form.
+revised twice more from screenshots.
+
+**Second run 2026-09-02 at `8f5bb2e`: eight pass, one partial** — the `F8`
+behaviour, and the first performance of `H2` and `H4` in their current form. It
+produced `B47`, three wanted display changes now held by `F9`, and the answer to
+`H8` case 1: the gesture it asks for is impossible. `H9` was not re-run and its
+`F4` pass still stands, nothing in `F8` having touched the leave path.
 
 This group carries more unverifiable surface than any other: the specs reach the
 binding arithmetic (`limits_spec`), the pause field (`stepper_spec`) and the
@@ -425,10 +436,16 @@ percentages move, and **every line disappears when the program ends** — withou
 reload and without a leftover from the previous run. The header is bold and the
 other four are not.
 
-Result: pass for the `F4` version — `729c255` · engine 5.17.0 · 2026-08-29 — two
-lines appeared, tracked the run and went. **`F8` replaced it entirely** after a
-screenshot showed it away from the corner and naming only one limit, so the layout
-above is unchecked.
+Result: pass — `8f5bb2e` · engine 5.17.0 · 2026-09-02 — the five-line block, in
+the corner, tracking the run and gone at the end. Supersedes the `F4` pass at
+`729c255`, where only two lines existed.
+
+Observed in the same run and not a `H1` failure: **a program running 387 s of
+clock time spent about 18 s of server time**, ~4.6%. That is `B46`'s arithmetic
+behaving — a codelevel-4 drone is given ~8 ms of a ~90 ms step — and it is what
+retuned `max_runtime_s` to `30 / 60 / 120 / 300` the same day: at that ratio the
+old 2000 s was eleven hours of building and bounded nothing. Level 4's
+`max_nodes_written` went `1e7` → `5e7` with it. The reasoning is in `ROADMAP.md`.
 
 ### H2 · The binding limit is the one it names, and it changes [F4, B26, B45]
 
@@ -444,9 +461,14 @@ on **Server time used**; on the HUD the same two lead. **Map held cannot appear
 at all** — neither compared nor listed on either surface, which is `B45` plus the
 author's *"only list hard limits"*.
 
-Result: unchecked in this form. Earlier: partial — `729c255` · 2026-08-29 —
-*"pas si facile à observer parce que « mémoire de la carte » sature presque
-toujours à 100 %"*. That is `B45`.
+Result: pass — `8f5bb2e` · engine 5.17.0 · 2026-09-02 — **performed for the first
+time**, the comparison now being possible: the binding limit is the one the run
+is actually closest on, and *Map held* appears on neither surface. `B45` and
+`B46` are both confirmed fixed in a world.
+
+Wanted change from this run: **the HUD's `CPU` should read *CPU time* /
+*Temps CPU***. `CPU` alone reads as a load percentage, which is the same misreading
+`B46` was filed for one word later. Carried by `F9`.
 
 ### H3 · The toggle, whose choice wins, and where it lives [F4, B5, C18, F8]
 
@@ -462,9 +484,9 @@ toujours à 100 %"*. That is `B45`.
 The `get_string` read is what makes case 2 expressible at all: `get_int` cannot
 tell an unset key from a stored `0` (`B5`).
 
-Result: pass for the `F4` version — `729c255` · engine 5.17.0 · 2026-08-29 —
-including the rejoin that would have caught the `B5` trap. **Behaviour confirmed,
-location since changed:** case 0 and the two other boxes' new home are unchecked.
+Result: pass — `8f5bb2e` · engine 5.17.0 · 2026-09-02 — including case 0, the
+box's new home on the *Settings* panel. The `F4` run at `729c255` had already
+covered cases 1 and 2 with the rejoin that catches the `B5` trap.
 
 ### H4 · The setter's left click always opens the panel [F4, F8, B39]
 
@@ -492,21 +514,28 @@ There is **one** destructive button on purpose. *Cancel* and *Remove drone*
 shipped together for one afternoon and called the same function; if two ever
 reappear, that is the defect, not the fix.
 
-Result: unchecked — **the check that superseded itself.** The `F4` version passed
-at `729c255` on 2026-08-29, and that pass is what decided the split had to go:
-*"we'll change behavior to: always show the info panel."* All five cases are new.
+Result: pass — `8f5bb2e` · engine 5.17.0 · 2026-09-02 — **performed for the first
+time in this form**, all five cases: the panel opens in each of the three states,
+and Stop is the only thing that removes a drone. The `F4` version's pass at
+`729c255` is what decided the state-dependent split had to go.
+
+Wanted change from this run: **the idle heading should be built like the running
+one** — `<program> : inactif`, the filename bold and the state coloured, instead
+of the sentence *Drone inactif, chargé avec @1*. Two states of one panel reading
+in two shapes is what it looks like now. Carried by `F9`.
 
 ### H5 · The panel's numbers, and its own refresh [F4, F8, B46]
 
 With a long program running, open the panel and leave it open, at **codelevel 4**
-where `max_nodes_written` is 1e7 — the case the number formatting exists for.
+where `max_nodes_written` is 5e7 — the case the number formatting exists for.
 
 **Pass:** **three rows** — blocks, server time, Lua memory — each with what the
 run has spent against its ceiling, in the units `minetest.conf` uses: seconds and
 megabytes, not microseconds and mapblocks. The numbers **update while the panel
 sits open**, without touching anything.
 
-What the later passes added, all of it unchecked:
+What the later passes added, all of it part of the check and all of it read on
+2026-09-02:
 
 - **Three rows, not four.** *Map held* is **not listed at all**: it stops nothing,
   and a table mixing it with three ceilings that do end a run is what `B45` was
@@ -526,9 +555,15 @@ What the later passes added, all of it unchecked:
   limit reached first; **red at 80% or more** and red wins. A run nowhere near any
   ceiling shows three plain percentages.
 
-Result: pass for the `F4` version — `729c255` · engine 5.17.0 · 2026-08-29 — four
-rows, ceilings in the player's units, updating live, agreeing with the HUD.
-**Every point above is unchecked.**
+Result: pass — `8f5bb2e` · engine 5.17.0 · 2026-09-02 — every point above,
+including the three rows without *Map held*, the abbreviated counts, the two-line
+descriptions in French, the coloured heading and the at-most-one-amber rule.
+Supersedes the four-row `F4` pass at `729c255`.
+
+Wanted change from this run: **the heading should carry the run's clock time** —
+`<program> : <state> (<duration>)`, the duration **not** bold. Nothing on either
+surface says how long the run has been going; *Server time used* deliberately
+does not, which is the whole of `B46`. Carried by `F9`.
 
 ### H6 · Pause and Resume [F4, F3, B46]
 
@@ -554,10 +589,10 @@ ten seconds, and resume. It should resume promptly rather than sleeping ten more
   describing line should now say so, and checking that it does is part of this
   check.**
 
-Result: partial — `729c255` · engine 5.17.0 · 2026-08-29 — Pause, Resume and the
-`sleep` interaction behave. The two observations above produced `B46` and the
-`B45` explanation. **The renamed row and its description are unchecked** — re-run
-and read the words this time.
+Result: pass — `8f5bb2e` · engine 5.17.0 · 2026-09-02 — Pause, Resume, the
+`sleep` interaction, and the renamed row's describing line read and accepted.
+Supersedes the partial at `729c255`, which produced `B46` and the `B45`
+explanation.
 
 ### H7 · Stop [F4, F8, B12, B30]
 
@@ -566,15 +601,22 @@ Press **Stop** on a running program, then on an idle drone.
 **Pass:** the drone goes both times and the panel closes. On the running one,
 **exactly one** message in chat — not two, not none. On the idle one, no message.
 
-Result: pass for the `F4` version, then named *Cancel* — `729c255` · engine
-5.17.0 · 2026-08-29. **`F8` merged *Cancel* and *Remove drone* into this one
-button**, so it is renamed and the idle case is new and unchecked.
+Result: pass — `8f5bb2e` · engine 5.17.0 · 2026-09-02 — both cases of the merged
+button, exactly one message on the running drone and none on the idle one.
+Supersedes the `F4` pass at `729c255`, where it was named *Cancel* and the idle
+case did not exist.
 
 ### H8 · The panel over the editor, and a run that ends under it [F4, F8, B33, B29]
 
-1. Open the panel, then open the editor with the setter's **right click**.
-   **Nothing pushes the panel's content into it** half a second later — the exact
-   defect the `forms_spec` case guards, which no spec can see on a screen.
+1. **Not performable as written, and now known why** (2026-09-02): a shown
+   formspec takes the pointer, so **no tool can be used while the panel is
+   open** — the setter's right click never reaches the game and the editor cannot
+   be opened over the panel. The gesture this case describes does not exist.
+   What *can* be done, and is what to check instead: **close the panel and open
+   the editor immediately**, within the panel's refresh interval, then wait two
+   seconds without touching anything. Still the editor, unchanged, is the pass;
+   the panel's content arriving in its place is the defect the `forms_spec` case
+   guards and no spec can see on a screen.
 2. Let the program **finish on its own** while the panel is open. It **switches to
    the idle view** rather than freezing on stale numbers or throwing.
 3. Cancel the run, and with the panel still open place a **new** drone under the
@@ -585,13 +627,14 @@ button**, so it is renamed and the idle case is new and unchecked.
 
 **How to tell case 1 apart from "it happened to be harmless."** The defect would
 show as the *editor* being replaced by the panel's content about half a second
-after opening it. So open the editor over the panel, **wait two seconds without
-touching anything**, and look. Still the editor, unchanged, is the pass.
+after opening it — so the two seconds of waiting, untouched, is the whole check.
 
-Result: partial — `729c255` · engine 5.17.0 · 2026-08-29 — **case 1 inconclusive
-by the author's own reading**: *"unsure — can use 'open the editor' while in a
-panel."* Cases 2 and 3 not reported. **Rewritten in `F8`**; case 1 now has a
-procedure that can distinguish a pass.
+Result: partial — `8f5bb2e` · engine 5.17.0 · 2026-09-02 — **case 1 cannot be
+performed as it was written**, which is the run's finding and is now folded into
+the case above: a formspec holds the pointer, so there is no tool use while the
+panel is up. Cases 2, 3 and 4 not reported. The earlier partial at `729c255`
+recorded the author *"unsure — can use 'open the editor' while in a panel"*; the
+answer is that they cannot.
 
 ### H9 · Leaving and rejoining with a program running [F4]
 
@@ -727,10 +770,13 @@ the counting method is wrong**, not that one example needs shrinking.
 
 **What the counting cannot see:**
 
-- **Runtime, not nodes, may be what bites.** `torus.lua` issues ~63k single-node
-  commands and `density.lua` ~45k loop iterations; at level 2's 5 ms pace that is
-  minutes of wall clock. Pace is not charged to `max_runtime_s`, but the advancing
-  time is, and nothing has measured it.
+- **Runtime, not nodes, may be what bites — and more so since 2026-09-02**, when
+  level 2's `max_runtime_s` went **500 s → 60 s**. `torus.lua` issues ~63k
+  single-node commands and `density.lua` ~45k loop iterations; at level 2's 5 ms
+  pace that is minutes of wall clock. Pace is not charged to `max_runtime_s`, but
+  the advancing time is, **nothing has measured it, and the margin is now an
+  eighth of what it was**. A *"Maximum running time"* failure here is a real
+  result about the new number, not a broken example.
 - **Map footprint throttles rather than fails**, so `forest(100)` — ~340 mapblocks
   over a 200-node square — should simply be slow. If it *errors*, that is a single
   request larger than the whole ceiling and a real defect.
@@ -806,10 +852,11 @@ Result: pass — `326f739` + uncommitted fixes · engine 5.17.0 · 2026-08-28 �
 over the source and the one measured constant (16.3 kB a block); the timing is the
 only measurement.
 
-- **8,000,000 nodes** against `max_nodes_written` = 1e7, which since 2026-08-30 is
-  **codelevel 4 only**. It fits with a fifth to spare — `cube(216,216,216)` is
-  1.008e7 and would not. **At codelevel 3 this shape is now refused outright**,
-  the ceiling there being 1e6.
+- **8,000,000 nodes**, **codelevel 4 only** since 2026-08-30: the ceiling at
+  level 3 is 1e6 and this shape is refused there outright. Level 4's ceiling was
+  1e7 when this was measured — a fifth of margin, `cube(216,216,216)` at 1.008e7
+  being the first refused — and is **5e7** since 2026-09-02, where the first
+  refused cube is 369 on a side.
 - **~2200 mapblocks emerged**, ~13 on each axis. `SLICE_BLOCKS` is 16 and the
   cross-section ~169, so `layers` clamps to 1: **every slab is one mapblock thick
   and 169 across** — the "large in two dimensions" case slicing cannot reduce.

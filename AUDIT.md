@@ -20,31 +20,59 @@ it.
 
 ## Where it stands
 
-**75 findings. 74 resolved, none open, 1 won't fix (`B34`).**
+**76 findings. 74 resolved, 1 open (`B47`), 1 won't fix (`B34`).**
 
 | Category | Count | Open |
 |---|---|---|
-| B bugs | 43 | — (`B34` won't fix) |
+| B bugs | 44 | `B47` (`B34` won't fix) |
 | S sandbox and security | 7 | — |
 | C compliance and packaging | 13 | — |
 | A architecture and performance | 12 | — |
 
 Code pushed through `60dc8dd`, **CI green there (run 42, all three jobs)**; only
 record commits above it are unseen by CI. Nine in-engine specs: **439 passed / 0
-failed / 1 xfail / 0 xpass**.
+failed / 1 xfail / 0 xpass**, re-run 2026-09-02 over the uncommitted
+`max_runtime_s` / `max_nodes_written` retuning with luacheck and both `--check`
+gates, all four green.
 
-Every defect the playtests found is fixed, and every one is confirmed in a
-running world. The one thing **not verified anywhere** is `B10`'s refusal, aimed
-at twice through playtest `D2` case 2 and missed twice — the recipe is the
-suspect. **Gates green, unproven in a world:** `B14`, permanently blocked on
-`B34` being won't-fix; `S7`'s log half; `F8`'s display work; and the 2026-08-30
+Every defect the playtests found is fixed except `B47`, which the 2026-09-02
+group `H` re-run filed. That run also **confirmed `B45` and `B46` fixed in a
+world** and proved `F8`'s display work. The one thing **not verified anywhere** is
+`B10`'s refusal, aimed at twice through playtest `D2` case 2 and missed twice —
+the recipe is the suspect. **Gates green, unproven in a world:** `B14`,
+permanently blocked on `B34` being won't-fix; `S7`'s log half; and the 2026-08-30
 limit retuning, whose checks are `R4` and `F-5`.
 
 ---
 
 ## Open
 
-**Nothing is open.** `B34` is the one won't-fix.
+**One open: `B47`.** `B34` is the one won't-fix.
+
+### B47 · medium · open — a button on the drone panel needs a second click
+
+From playtest `H2`–`H7`, 2026-09-02 at `8f5bb2e`: *"buttons on the drone panel may
+be a bit unresponsive at times (second click needed)."* Not reproducible on
+demand, and no spec can see it — the four gates exercise the handlers, not the
+client's menu.
+
+**The suspect is the panel's own refresh.** It is the one form here that redraws
+itself unprompted: `formspecs.tick` re-sends the whole formspec through
+`core.show_formspec` every `PERIOD` (0.5 s in `lib/hud.lua`), on the same beat as
+the HUD. A re-send of the same form name makes the client rebuild the menu, and a
+press in flight when that happens has nothing to complete against. Two clicks a
+second of dead window in the worst case is exactly *"at times"*.
+
+That makes it a **cadence-versus-liveness trade**, not a handler bug, so the fix
+is not in `on_close`. Three directions, none chosen yet: slow the refresh while
+the pointer is over a button (nothing in Lua knows that), refresh only when a
+drawn number actually changed, or split the live rows onto a slower beat than the
+buttons — which a single formspec cannot do.
+
+**Keep — the reason a live formspec was affordable here at all.** The panel has no
+text field, so a redraw costs no input focus (unlike the editor, which is why it
+is never refreshed under the player). Input focus and *button presses* turn out to
+be different questions, and only the first was considered.
 
 ### B34 · low · won't fix — a file cannot be removed without opening it first
 
@@ -813,14 +841,16 @@ document says so.
   them they confirm `A2`, `A9`, `A11`, `B5`, `B7`, `B10`'s happy path, `B13`,
   `B17`, `B22`, `B29`, `B33` on all three losing paths, `B35`, `B36`, `B37`,
   `B38`, `B39`, `B40`, `B41`, `B42`, `B43`, `B44`, `C10`, `C16`, `C17`, `C18`,
-  `S5`'s measurements, `S7`, `F1`, `F2`, `F3` and `F7` — and answer `A4`.
+  `S5`'s measurements, `S7`, `F1`, `F2`, `F3` and `F7` — and answer `A4`. The
+  group `H` re-run of 2026-09-02 at `8f5bb2e` adds `B45`, `B46` and `F8`, eight
+  of its nine checks passing.
 - **Verified by reading the engine's own source** (`luanti-org/luanti` at 5.6.0,
   5.7.0, 5.8.0, 5.9.0, 5.17.0): the 640 kB formspec-submission cap and the
   version it arrives in (`B40`); `parseScrollBar` and `acceptInput` (`B37`);
   `label`'s `font=bold` and `halign` being area-label only (`F8`).
 - **Gates green, unproven in a world:** `B14`, blocked on `B34` being won't-fix;
-  `S7`'s log line; `F8`'s display work (playtest group `H`, seven of nine due);
-  the 2026-08-30 limit retuning (`R4`, `F-5`).
+  `S7`'s log line; the 2026-08-30 limit retuning (`R4`, `F-5`); and `H8`'s
+  cases 2–4, unreported in both runs of that check.
 - **Not verified anywhere:** `B10`'s refusal, twice aimed at through `D2` case 2.
   **That is the whole list.**
 - **Computed, not measured:** `W3`'s cost breakdown under `S5` — mapblock counts,

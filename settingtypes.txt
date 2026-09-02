@@ -57,11 +57,11 @@ codeblock_server_step_budget_us (Step budget for all drones) int 16000 1000 9000
 #    Seconds of running time one program gets. Counted as time the drone was
 #    actually advanced, not wall clock, so pacing and a busy server do not eat
 #    into it. This is what stops a program that never finishes.
-codeblock_max_runtime_s (Maximum running time) string 250,500,1000,2000
+codeblock_max_runtime_s (Maximum running time) string 30,60,120,300
 
 #    Nodes one program may write. Also the ceiling on a single shape, since
 #    neither a shape's dimensions nor the drone's distance are limited.
-codeblock_max_nodes_written (Maximum nodes written) string 1e5,5e5,1e6,1e7
+codeblock_max_nodes_written (Maximum nodes written) string 1e5,5e5,1e6,5e7
 
 [Memory limits]
 
