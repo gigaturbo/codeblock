@@ -109,12 +109,15 @@ local instance_mt = {
     -- it took. Not the runtime it was charged - against a ceiling of minutes
     -- that reads as 0.01s, which says nothing to anyone. It belongs in the
     -- budget display, as a share of the budget.
+    --
+    -- The duration is Drone.elapsed_us, the same figure the drone panel's
+    -- heading shows, so the last number the player saw live and the final one
+    -- cannot disagree.
     __tostring = function(self)
         local used = self.budget and self.budget.used or {}
-        local started = self.tstart or core.get_us_time()
         return S('commands:@1 nodes:@2 duration:@3s', self.commands,
-                 used.nodes or 0, ('%.2f'):format(
-                     (core.get_us_time() - started) / 1e6))
+                 used.nodes or 0,
+                 ('%.2f'):format(Drone.elapsed_us(self) / 1e6))
     end
 }
 
@@ -184,7 +187,12 @@ local drone_mt = {
                 -- The player holding the program from the drone panel. Separate
                 -- from wake_at, which is the program's own sleep; see
                 -- stepper.awake for why the two cannot share a field. (F4)
+                --
+                -- paused_at is when the hold started, and only Drone.toggle_pause
+                -- may write either: it is what keeps a pause out of the elapsed
+                -- clock. (F9)
                 paused = false,
+                paused_at = nil,
                 obj = obj
             }
 
@@ -314,7 +322,7 @@ local drone_mt = {
             drone.calls, drone.commands = 0, 0
             drone.default_block = preferred_block(name)
             drone.wake_at = nil
-            drone.paused = false
+            drone.paused, drone.paused_at = false, nil
             drone.cor = res
 
         end,
@@ -434,6 +442,41 @@ local drone_mt = {
 
             Drone.remove(name)
 
+        end,
+
+        --- How long this run has been building, in microseconds.
+        --
+        -- Wall clock, and deliberately not `budget.used.runtime`, which is the
+        -- CPU time the run was charged and reads as a fraction of a second:
+        -- keeping the two apart is the whole of B46.
+        --
+        -- **A pause does not count.** `paused_at` freezes the figure while the
+        -- player holds the program, and toggle_pause shifts `tstart` forward on
+        -- the way out, so there is no accumulator to keep in step. Both the
+        -- drone panel's heading and the finish message's `duration:` read this,
+        -- which is what makes the live number and the final one the same
+        -- number. (F9)
+        elapsed_us = function(drone)
+            local now = core.get_us_time()
+            return (drone.paused_at or now) - (drone.tstart or now)
+        end,
+
+        --- Hold the run, or let it go again.
+        --
+        -- **The only thing that may write `drone.paused`**, because the elapsed
+        -- clock above depends on `paused_at` being stamped with it: the two
+        -- fields are one fact in two halves. `on_run` clears both for a fresh
+        -- run and is the only other writer. Callers guard on the drone having a
+        -- coroutine, so `tstart` is set by the time this is reached. (F9)
+        toggle_pause = function(drone)
+            if drone.paused then
+                drone.tstart = drone.tstart +
+                                   (core.get_us_time() - drone.paused_at)
+                drone.paused_at = nil
+            else
+                drone.paused_at = core.get_us_time()
+            end
+            drone.paused = not drone.paused
         end,
 
         set_file = function(name, filename)

@@ -349,6 +349,39 @@ do
     it('and the old run was really the one it described before',
        (old:find('(' .. S('@1h @2m', 1, 6) .. ')', 1, true) ~= nil), true)
 
+    -- A pause is not part of the duration (F9, reversing what F9 first chose).
+    -- The two halves are one fact, so both go through Drone.toggle_pause: it
+    -- stamps the hold, elapsed_us freezes there, and resuming shifts tstart
+    -- forward by what the hold cost so the figure carries on instead of jumping.
+    --
+    -- The hold is fabricated rather than waited for, which is possible only
+    -- because the stamps are the whole of the input - no wall clock enters a
+    -- paused reading at all.
+    running_form(45)
+    local held = Drone.instances['ivan']
+    Drone.toggle_pause(held)
+    it('pausing stamps when the hold began',
+       (held.paused == true and held.paused_at ~= nil), true)
+
+    -- Held 60 s, having reached 45 s of building: 105 s of wall clock behind it.
+    held.paused_at = core.get_us_time() - 60e6
+    held.tstart = held.paused_at - 45e6
+
+    it('a paused heading reads the seconds the build had reached',
+       (panel.get_form({name = 'ivan'}):find(
+            core.colorize('#FFE84D', S('paused')) .. ' (' .. S('@1s', 45) .. ')',
+            1, true) ~= nil), true)
+    it('and not the wall clock, which is a minute further on',
+       (panel.get_form({name = 'ivan'}):find(S('@1m @2s', 1, 45), 1, true) ==
+           nil), true)
+
+    Drone.toggle_pause(held)
+    it('resuming clears the stamp',
+       (held.paused == false and held.paused_at == nil), true)
+    it('and the clock carries on from where it stopped',
+       (panel.get_form({name = 'ivan'}):find('(' .. S('@1s', 45) .. ')', 1, true) ~=
+           nil), true)
+
     Drone.instances['ivan'] = nil
     it('a drone removed under an open panel reads as no drone',
        (panel.get_form({name = 'ivan'}):find('no drone', 1, true) ~= nil), true)

@@ -49,6 +49,8 @@ local set_file = codeblock.Drone.set_file
 local get_drone = codeblock.Drone.get
 local remove_drone = codeblock.Drone.remove
 local stop_drone = codeblock.Drone.on_remove
+local drone_elapsed_us = codeblock.Drone.elapsed_us
+local drone_toggle_pause = codeblock.Drone.toggle_pause
 
 local hud_wanted = codeblock.hud.wanted
 local hud_set_wanted = codeblock.hud.set_wanted
@@ -897,23 +899,19 @@ local BUTTON_Y = ROW_Y + HARD_ROWS * ROW_H + 0.35
 local RUNNING_COLOUR = '#5FD35F'
 local PAUSED_COLOUR = '#FFE84D'
 
--- The percentage, coloured by how much trouble the row is in.
---
--- The rule and the two colours live in lib/hud.lua, which applies them to the
--- same numbers on the corner display: a player looking at both must not be told
--- two different things about one figure. That function answers in the integer a
--- HUD element takes, so it is formatted here for core.colorize.
--- How long the run has been going, in clock time, for the panel's heading.
+-- A run's clock time in the words the panel's heading uses, from the
+-- microseconds Drone.elapsed_us answers.
 --
 -- Clock time and deliberately not the charged runtime the rows show: after B46
 -- renamed that row to say it is not a stopwatch, nothing on either surface could
--- answer *how long has this been building*. This is the same figure the finish
+-- answer *how long has this been building*. It is the same figure the finish
 -- message reports as `duration:`, so the live number and the final one agree.
 --
--- It keeps counting through a pause: it answers "how long since I started this",
--- which the state word beside it already qualifies. (F9)
-local function elapsed(tstart)
-    local s = math.floor((core.get_us_time() - tstart) / 1e6)
+-- A pause is not part of it - the number the player wants is how long the build
+-- has taken, and a program the player is holding is not building. That is
+-- Drone.elapsed_us's doing, not this function's. (F9)
+local function elapsed(us)
+    local s = math.floor(us / 1e6)
     if s < 60 then return S('@1s', s) end
     if s < 3600 then
         return S('@1m @2s', math.floor(s / 60), s % 60)
@@ -921,6 +919,12 @@ local function elapsed(tstart)
     return S('@1h @2m', math.floor(s / 3600), math.floor(s % 3600 / 60))
 end
 
+-- The percentage, coloured by how much trouble the row is in.
+--
+-- The rule and the two colours live in lib/hud.lua, which applies them to the
+-- same numbers on the corner display: a player looking at both must not be told
+-- two different things about one figure. That function answers in the integer a
+-- HUD element takes, so it is formatted here for core.colorize.
 local function pct_label(fraction, is_binding)
     local text = math.floor(fraction * 100 + 0.5) .. '%'
     local colour = pct_colour(fraction, is_binding)
@@ -1003,8 +1007,7 @@ local drone_panel = {
                  core.colorize(drone.paused and PAUSED_COLOUR or RUNNING_COLOUR,
                                drone.paused and S('paused') or S('running')) ..
                  ' (' ..
-                 formspec_escape(elapsed(drone.tstart or core.get_us_time())) ..
-                 ')]'
+                 formspec_escape(elapsed(drone_elapsed_us(drone))) .. ')]'
         fs = fs .. 'style_type[label;font=normal]'
 
         -- Which limit will be reached first, used to colour its percentage
@@ -1090,7 +1093,9 @@ local drone_panel = {
         if fields.pause then
             local drone = get_drone(name)
             if drone and drone.cor then
-                drone.paused = not drone.paused
+                -- Through Drone, not by writing drone.paused here: the hold has
+                -- to be stamped for the elapsed clock to leave it out. (F9)
+                drone_toggle_pause(drone)
                 update_form(name, codeblock.formspecs.drone_panel.get_form(meta))
             end
         elseif fields.stop then
