@@ -23,8 +23,9 @@ Features
 - [x] FEAT: the panel and HUD in the words asked for on 2026-09-02 — HUD `CPU`
       becomes *CPU time* / *Temps CPU*; the idle panel reads `<program> :
       inactif` like the running one; the heading carries the run's clock time,
-      `<program> : <state> (<duration>)`, duration not bold — shipped the same
-      day with four gates green; playtest `F9` is the in-world check (audit F9)
+      `<program> : <state> (<duration>)` — shipped the same day with four gates
+      green, the duration bold and just after the state on your second look;
+      playtest `F9` is the in-world check (audit F9)
 - [ ] BUG: buttons on the drone panel are sometimes unresponsive, a second click
       needed. The suspect is the panel's own 0.5 s refresh re-sending the
       formspec under the press, not the handlers (audit B47)

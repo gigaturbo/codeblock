@@ -527,6 +527,8 @@ wrong. All three are on the two surfaces `F8` owns, so they are one feature.
   quietly change what the colour is for.
 - **`6m 27s`**, seconds alone under a minute and `1h 12m` past an hour. Minutes
   are the scale a build runs at.
+- **Bold, immediately after the state** — asked for as *not bold*, reversed the
+  same day once it was on screen. The entry below says what that forced.
 - **It keeps counting through a pause**, staying one honest answer to *how long
   since I started this*. The state word beside it already says nothing is
   advancing, and it needs no accumulator on the drone.
@@ -535,21 +537,20 @@ wrong. All three are on the two surfaces `F8` owns, so they are one feature.
 
 **Built, and load-bearing.**
 
-- **The duration is right-aligned into the gap before the close `x`, not placed
-  after the state word.** Nothing in Lua can measure rendered text, and the x at
-  which `<file> : running` ends depends on the player's font and `gui_scaling` —
-  so an adjacent placement is a guess that overlaps for somebody, while a
-  right-aligned box grows leftwards inside bounds it cannot leave. **This is the
-  one place the build differs from the sketch in the author's note**, and the
-  reason is the same one that made the picker a `textlist` in `F1`.
-- **`halign` and `valign` are area-label-only and both must be reset.**
-  `style_type` persists to every label after it, and each limit row's description
-  *is* an area label — so an unreset `halign=right` right-aligns all three.
-  Confirmed in `lua_api.md` 5.17.0, which marks both properties *"Only applies for
-  area label syntax"*.
-- **A plain label is positioned from the centre of its text and an area label
-  from its top**, so the duration's box is `0.45` high-centred on the heading's
-  `0.8` rather than sharing its `y`.
+- **The duration closes the heading, in parentheses and bold with the rest of
+  it — one label.** It first shipped as a second, unbolded label right-aligned
+  into the gap before the close `x`, because a label's font is per element and
+  *not bold* was the ask. **The author reversed that within the hour: bold, just
+  after the state.** Which settles the trade the right-aligned version was
+  dodging — adjacency was worth more than the weight of the type.
+  **Take the reason for that first attempt with the reversal, not instead of
+  it:** nothing in Lua can measure rendered text, so *adjacent and differently
+  styled* is the combination that cannot be built. In one label it needs no
+  position of its own and cannot drift from the words it follows; as two, the x
+  where `<file> : running` ends varies with the player's font and `gui_scaling`.
+  Do not reintroduce the second label to unbold it.
+- **`core.colorize` resets to `#fff` after the word it wraps**, which is what
+  keeps the state coloured and the parentheses after it plain, inside one label.
 - **`elapsed` reads `drone.tstart`, the same `get_us_time` stamp the finish
   message reports as `duration:`**, so the live figure and the final one cannot
   disagree.
@@ -611,8 +612,10 @@ wrong. All three are on the two surfaces `F8` owns, so they are one feature.
   the `duration:` the finish message prints. *How long since I started this* is
   answerable from `tstart` alone; *how long was it actually building* is what the
   *Server time used* row is for.
-- **Placing the duration immediately after the state word** — not possible, not
-  merely avoided. See `F9`.
+- **Unbolding the duration by splitting it off into its own label** — decided
+  against 2026-09-02, after it shipped that way for an hour. A label's font is
+  per element, so *adjacent* and *not bold* cannot both hold; the author chose
+  adjacent. See `F9`.
 - **Building `F5`** — dropped unbuilt 2026-08-29. Do not re-propose it as a small
   addition to the drone panel: the privilege gating and the counter-carrying under
   its entry are what make it large.

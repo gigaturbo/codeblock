@@ -993,31 +993,19 @@ local drone_panel = {
         -- style_type makes the whole label bold, the font being per element: the
         -- state is bold as well as coloured, which is what the corner display
         -- does with the same line.
+        -- The elapsed clock time closes the line, in parentheses and bold with
+        -- the rest of it - one label, so it needs no position of its own and
+        -- cannot drift from the words it follows. core.colorize resets to #fff
+        -- after the state word, so only that word is coloured. (F9)
         fs = fs .. 'style_type[label;font=bold]'
         fs = fs .. 'label[0.6,0.8;' ..
                  formspec_escape(drone.file or '?.lua') .. ' : ' ..
                  core.colorize(drone.paused and PAUSED_COLOUR or RUNNING_COLOUR,
                                drone.paused and S('paused') or S('running')) ..
-                 ']'
-        fs = fs .. 'style_type[label;font=normal]'
-
-        -- The elapsed clock time, on the heading's line and not bold, which is
-        -- what makes it a second element: a label's font is per element.
-        --
-        -- Right-aligned into the gap between the heading and the close x, rather
-        -- than placed just after the state word. Nothing in Lua can measure
-        -- rendered text, and the x that would sit after `<file> : running`
-        -- depends on the player's font and gui_scaling - so an adjacent
-        -- placement is a guess that overlaps for somebody, while a right-aligned
-        -- box grows leftwards inside bounds it cannot leave. halign applies to
-        -- the area-label form only, and valign centres it on the heading's line,
-        -- an area label being positioned from its top and a plain one from its
-        -- centre. Both are reset, or every row's description inherits them. (F9)
-        fs = fs .. 'style_type[label;halign=right;valign=center]'
-        fs = fs .. 'label[5.4,0.45;3.3,0.7;(' ..
+                 ' (' ..
                  formspec_escape(elapsed(drone.tstart or core.get_us_time())) ..
                  ')]'
-        fs = fs .. 'style_type[label;halign=left;valign=top]'
+        fs = fs .. 'style_type[label;font=normal]'
 
         -- Which limit will be reached first, used to colour its percentage
         -- rather than to print a sentence. Only the spent resources compete: the

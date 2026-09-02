@@ -297,7 +297,7 @@ do
     it('and with no colour on it', (idle:find('#5FD35F', 1, true) == nil and
            idle:find('#FFE84D', 1, true) == nil), true)
     it('and no duration, there being no run to time',
-       (idle:find('valign=center', 1, true) == nil), true)
+       (idle:find(' (', 1, true) == nil), true)
 
     -- A running record needs a real budget: the rows come from limits.report.
     local function running_form(seconds)
@@ -317,13 +317,14 @@ do
     local run = running_form(45)
     it('under a minute the duration is seconds alone',
        (run:find('(' .. S('@1s', 45) .. ')', 1, true) ~= nil), true)
-    it('right-aligned rather than placed after the state',
-       (run:find('halign=right', 1, true) ~= nil), true)
-    it('and the alignment is reset, or every row inherits it',
-       (run:find('halign=left', 1, true) ~= nil), true)
-    it('the duration is a second label, so it escapes the heading bold',
-       (run:find('style_type[label;halign=right;valign=center]', 1, true) ~= nil),
-       true)
+    -- Built with colorize rather than with a written-out escape: it resets to
+    -- #fff after the word it wraps, and that reset sits between the state and
+    -- the duration - which is also what keeps the parentheses uncoloured.
+    it('it closes the heading, after the state word',
+       (run:find(core.colorize('#5FD35F', S('running')) .. ' (' ..
+                     S('@1s', 45) .. ')', 1, true) ~= nil), true)
+    it('in the same bold label, needing no position of its own',
+       (run:find('halign', 1, true) == nil), true)
 
     it('past a minute it is minutes and seconds',
        (running_form(90):find('(' .. S('@1m @2s', 1, 30) .. ')', 1, true) ~= nil),

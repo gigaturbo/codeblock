@@ -1074,10 +1074,9 @@ defects showed first.
 2. **The idle panel reads `<program> : idle`**, filename bold, state bold, **no
    colour**, and looks like the running heading rather than a sentence. *Drone
    idle, holding …* is gone.
-3. **A running panel's heading carries the elapsed time in parentheses**, and it
-   is **not bold** while the rest of the line is. It sits to the **right**, in the
-   gap before the close `x` — that is deliberate and not a misalignment; see `F9`
-   for why it cannot be placed after the state word.
+3. **A running panel's heading carries the elapsed time in parentheses**,
+   immediately after the state word and **bold with the rest of the line** — only
+   the state is coloured, the parentheses and the number are not.
 4. **It counts up while the panel sits open**, matches a stopwatch, and **keeps
    counting through a pause** — press *Pause*, wait, and the number still moves
    while the state word says paused.
@@ -1087,8 +1086,9 @@ defects showed first.
    of it at codelevel 4 — and that is the pass, not a defect. Two numbers about
    time on one form is what `B46` was filed for; check the row's describing line
    still says it is not clock time.
-7. **A long filename does not collide with it.** Open a program at the 15-character
-   cap and look.
+7. **A long filename does not push it off the panel.** Open a program at the
+   15-character cap, in French, and look: it is one label, so a long line runs on
+   rather than overlapping anything, and the panel edge is what it can reach.
 8. **When the run ends, the `duration:` in the chat message matches the last
    number the panel showed.** They are the same `tstart`, and a mismatch means one
    of the two is reading something else.
