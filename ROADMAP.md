@@ -23,13 +23,13 @@ thinking rather than a queue position.
 
 **Group `H` was re-run on 2026-09-02 at `8f5bb2e`: eight pass, one partial.**
 `F8`'s display work is proven in a world and `B45` and `B46` with it. Code is at
-`8869d8c`; the last CI run is 42 at `60dc8dd`, green on all three jobs, so the
+`cd13414`; the last CI run is 42 at `60dc8dd`, green on all three jobs, so the
 limit retuning and `F9` have local gates only. What the run left:
 
-1. **`F9` shipped the same day**, `8869d8c`, with four gates green — the three
-   display changes it asked for. **Its playtest is due**, and it is words and
-   placement only, so no spec reaches any of it: the check is `PLAYTEST.md`'s
-   `F9`, in French as well as English.
+1. **`F9` shipped the same day**, `8869d8c` revised `cd13414`, with four gates
+   green — the three display changes it asked for. **Its playtest is due**, and
+   it is words and placement only, so no spec reaches any of it: the check is
+   `PLAYTEST.md`'s `F9`, in French as well as English.
 2. **`B47`** — a panel button sometimes needing a second click, the only open
    finding. The suspect is the panel's own 0.5 s refresh, not the handlers.
 3. **`settingtypes.txt`'s generator and `--check`**, decided yes 2026-08-28. The
@@ -118,10 +118,10 @@ and `F5` was **dropped unbuilt on 2026-08-29** — *"not very interesting in the
 end."*
 
 Shipped: `F1` `500dd85`, `F2` `dee0bc7`, `F3` `90cfb70`, `F7` `afbe504`,
-`F4` `729c255`, `F8` `d619fba` revised `60dc8dd`, `F9` `8869d8c`. **`F9` was
-added and shipped on 2026-09-02** out of `F8`'s playtest, the second time a
-feature here has come from playing the one before it — and the second time in a
-row that what a display *said* was the thing playing it found.
+`F4` `729c255`, `F8` `d619fba` revised `60dc8dd`, `F9` `8869d8c` revised
+`cd13414`. **`F9` was added and shipped on 2026-09-02** out of `F8`'s playtest,
+the second time a feature here has come from playing the one before it — and the
+second time in a row that what a display *said* was the thing playing it found.
 
 Left in the phase: `F9`'s playtest, `B47`, and `settingtypes.txt`'s `--check`.
 **`B10`'s refusal is out of the phase rather than done** — its check was removed
@@ -407,7 +407,7 @@ That is exactly `B35`. **Do not gate the capture again.**
 - `save_active` clears the flag **only on a write that happened**: a refused save
   leaves the buffer differing from the file, which is what the mark is for.
 
-### F8 · medium · shipped `d619fba`, revised `60dc8dd`, playtest due — make the drone panel readable
+### F8 · medium · shipped `d619fba`, revised `60dc8dd`, playtested — make the drone panel readable
 
 Everything `F4`'s first playtest asked for, in one feature because all of it edits
 the same two surfaces: the two findings that session filed (`B45`, `B46`) and the
@@ -488,7 +488,7 @@ for three more display changes, which are `F9`, and filed `B47`.
   replaces the session; the tick compares the stored meta table against
   `forms.get_meta(name)` before redrawing. Pinned by `forms_spec`.
 
-### F9 · small · shipped `8869d8c`, playtest due — say the state and the time in the same words
+### F9 · small · shipped `8869d8c`, revised `cd13414`, playtest due — say the state and the time in the same words
 
 From the group `H` re-run of 2026-09-02, in the same relation to `F8` as `F8` was
 to `F4`: the behaviour passed, and playing it showed three things the words get

@@ -30,10 +30,11 @@ it.
 | A architecture and performance | 12 | — |
 
 Code pushed through `60dc8dd`, **CI green there (run 42, all three jobs)**; only
-record commits above it are unseen by CI. Nine in-engine specs: **439 passed / 0
-failed / 1 xfail / 0 xpass**, and **451 / 0 / 1 / 0** after `F9` added twelve
-cases to `forms_spec` — re-run 2026-09-02 with luacheck and both `--check`
-gates over the limit retuning and then over `F9`, all four green both times.
+record commits above it are unseen by CI. Nine in-engine specs: **453 passed / 0
+failed / 1 xfail / 0 xpass**, up from 439 as `F9` and `H8`'s displaced case
+added fourteen to `forms_spec` — re-run 2026-09-02 with luacheck and both
+`--check` gates over the limit retuning, over `F9`, and over the new cases, all
+four green each time.
 
 Every defect the playtests found is fixed except `B47`, which the 2026-09-02
 group `H` re-run filed. That run also **confirmed `B45` and `B46` fixed in a
@@ -100,7 +101,8 @@ should confirm is a separate question.
 
 ## B · Bugs
 
-43 findings, 42 resolved, `B34` won't fix. `B19`, `B20`, `B24` are the game's.
+44 findings, 42 resolved, `B47` open, `B34` won't fix. `B19`, `B20`, `B24` are
+the game's.
 
 - **B1 · critical · resolved** — comment stripping deleted the code between two
   block comments. Fixed in Phase 2 with B2–B4: instrumentation runs over a real
@@ -803,7 +805,7 @@ introduced.**
   section pins the function surface, the form-layer entry points, the prototype
   callbacks, and that the entity caches no drone.
 - **A12 · low · resolved** — no tests, on the component that most needs them.
-  Fixed from Phase 0 onward: nine specs, **439 passed / 0 failed / 1 xfail / 0
+  Fixed from Phase 0 onward: nine specs, **453 passed / 0 failed / 1 xfail / 0
   xpass** in-engine, six of them also standalone under Lua 5.1, which is how CI
   runs them.
   **Keep — what the suite cannot reach, which every feature inherits.** Nothing
@@ -916,6 +918,6 @@ document says so.
 
 ---
 
-2026-08-30 · describes codeblock at `60dc8dd` plus the uncommitted limit
-retuning · CI green at `60dc8dd` (run 42, all three jobs). Only record commits
-above it are unseen by CI.
+2026-09-02 · describes codeblock at `cd13414`, not pushed · CI green at
+`60dc8dd` (run 42, all three jobs), so the limit retuning (`96dd4bc`) and `F9`
+have local gates only.
