@@ -50,6 +50,9 @@ missing** — the residue `B47`'s fix leaves, accepted rather than closed.
   first predating a `.gitattributes` change. **`R2` is the one the release still
   wants**: it last ran at `7c5bceb`, before `F4` put `lib/hud.lua` in the
   `dofile` list, and it is the only check that the shipped archive loads at all.
+  **Its entry now carries the `git archive` recipe**, which it had never said —
+  a check that does not say how to produce the thing it checks is a check nobody
+  can repeat.
 - **`H10` passed, and it is the one result that reports a defect surviving.** A
   few presses in twenty still miss. That is `B47`'s residue, observed rather than
   computed, and above what the check as written allowed — the author's judgement
@@ -1044,12 +1047,38 @@ is also what it cannot tell you** — whether the archive *loads* is `R2`.
 
 ### R2 · A real install with the test flag set [C16]
 
-Extract the archive into a game's `mods/` as a player would, set
-`codeblock_run_tests = true`, and start.
+**Building the archive**, which nothing here used to say. ContentDB builds
+releases with `git archive`, so that is what reproduces what a player gets:
+
+```bash
+git archive --format=zip --prefix=codeblock/ -o /tmp/codeblock.zip HEAD
+```
+
+Three things about that command decide whether the check means anything.
+
+- **`git archive` archives a commit, not the working tree.** Anything
+  uncommitted is absent, so commit first — and for the release itself pass the
+  **tag**, not `HEAD`, because the tag is what ContentDB builds from.
+- **`export-ignore` is read from the `.gitattributes` at that revision**, not
+  from the file on disk. So a rule added but not committed does not apply, and
+  the archive is the only place that shows it.
+- **`--prefix=codeblock/`** makes the zip extract straight into `mods/codeblock/`.
+  It is a convenience rather than a requirement: `mod.conf` sets
+  `name = codeblock`, so the engine does not care what the directory is called.
+
+Then extract it into a game's `mods/` as a player would, set
+`codeblock_run_tests = true`, and start. **The dependencies have to be real
+ones:** `default` and `wool` come from `minetest_game`, and **`vector3` is
+installed separately from its own ContentDB package** — the copy under
+`tests/game/mods/` is `export-ignore`d, exists for the suite, and is not in the
+archive.
 
 **Pass:** the mod loads normally and logs *"codeblock_run_tests is set, but this
 build ships no tests/ directory"*. **Fail is the mod refusing to load** — nine
 bare `dofile`s of files the archive does not contain.
+
+**Do it in a game that is not `codecube`.** `B38`, `B39` and `C18` were each
+invisible there, and that is the rule this phase paid for twice.
 
 Result: pass — `7c5bceb` · engine 5.17.0 · 2026-08-28 — extracted into
 `minetest_game`'s `mods/` beside `vector3`; loaded and warned. **`C16` confirmed**

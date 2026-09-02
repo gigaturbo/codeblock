@@ -21,12 +21,13 @@ thinking rather than a queue position.
 
 ## Now
 
-**Nothing is open, every check has a result, and what is left is three documents
-and the tag.** `B47` was decided, fixed and playtested on 2026-09-02,
+**Nothing is open, every check has a result, and what is left is three documents,
+two images and the tag.** `B47` was decided, fixed and playtested on 2026-09-02,
 `settingtypes.txt` has its generator and its `--check`, and no finding is in the
 open state for the first time in the project's life. Five gates green, nine
 in-engine specs **458 passed / 0 failed / 1 xfail / 0 xpass**, `PLAYTEST.md` at
-**52 of 52**. The ordered list is the next section.
+**52 of 52**, and `R2`'s entry now carries the `git archive` recipe it had never
+said. The ordered list is the next section.
 
 **`B47` was answered by slowing the beat**, `PERIOD` `0.5` → `1` s in
 `lib/hud.lua`, the HUD moving with the panel because they share the one constant
@@ -65,11 +66,11 @@ formality. The other four rules the phase paid for are at the bottom of this fil
 
 ## Finalising v1.0.0
 
-In order. **Steps 6 to 10 are the `release-codeblock` skill's procedure** and are
+In order. **Steps 8 to 12 are the `release-codeblock` skill's procedure** and are
 not restated here; what is below is what *this* version still needs, and
 `release-check` is the gate that says whether it got it.
 
-**The work — two done on 2026-09-02, three documents left.**
+**The work — two done on 2026-09-02; three documents and two images left.**
 
 1. **`B47` — done, and playtested.** Answered by slowing the beat to 1 s rather
    than stopping the self-refresh, quantising, or moving to mouse-down;
@@ -97,10 +98,24 @@ not restated here; what is below is what *this* version still needs, and
 5. **`README.md`'s ContentDB URLs are on `content.minetest.net`**, the pre-rename
    domain. It redirects, so this is stale rather than broken — but the README
    ships in the archive. (C19)
+6. **`screenshot.png` at the repo root is still the old editor** — one tab, no
+   *Créer une copie*, no panel-button row, and the two checkboxes still along
+   the bottom edge that `F8` moved onto *Settings*. **It is the only image that
+   ships**, Luanti draws it in the Mods tab, and the README embeds it at the
+   top. `screenshots/mozaic.png` was redone against the current editor on
+   2026-09-02 and is the equivalent, but at 1.8 MB against 1.1 MB it would grow
+   the archive by ~0.7 MB, so it wants resizing rather than copying. The
+   author's image to make.
+7. **Upload the new screenshots to the ContentDB page.** They load from raw
+   GitHub URLs on `master`, so the page needs the new names and the dropped 2021
+   file removing. (C19)
 
 **The release.**
 
-6. **Re-run `R2` on the archive built from the release commit.** `R1` was
+8. **Re-run `R2` on the archive built from the release commit**, which is
+   `git archive --format=zip --prefix=codeblock/ -o /tmp/codeblock.zip <tag>` —
+   the tag rather than `HEAD`, because that is what ContentDB builds from, and
+   `export-ignore` is read from the `.gitattributes` at that revision. `R1` was
    re-checked at `7dbe18f` and passes — eleven top-level entries, `textures/`
    shipping PNGs only, no `tests/` or `scripts/`. `R2` is the one that matters
    more and is older: it last ran at `7c5bceb`, before `F4` added
@@ -109,16 +124,16 @@ not restated here; what is below is what *this* version still needs, and
    what is unproven is that *this* archive loads in a game that is not
    `codecube`. **Play it outside its own game** — `B38`, `B39` and `C18` were all
    invisible in `codecube`.
-7. **`release-check`**, and do not start the tag until it says ready: the nine
+9. **`release-check`**, and do not start the tag until it says ready: the nine
    in-engine specs, the six standalone, luacheck, **all three** `--check`
    generators, CI green on the tagged commit's own `head_sha`, the licence field,
    ContentDB's rules against the long description, and a fresh clone that can run
    its own suite.
-8. **Strike what the release closed** from `ROADMAP.md` and `TODO.md`, confirm
+10. **Strike what the release closed** from `ROADMAP.md` and `TODO.md`, confirm
    `tests/game/mods/vector3`'s pinned commit is pushed, then commit, push, and
    tag `v1.0.0` on `master`.
-9. **Upload to ContentDB**, long description from the regenerated `.cdb.json`.
-10. **Configure the release webhook** — trigger **Branch or tag creation**, not
+11. **Upload to ContentDB**, long description from the regenerated `.cdb.json`.
+12. **Configure the release webhook** — trigger **Branch or tag creation**, not
     push, because this project tags and push would publish every commit on
     `master`.
 

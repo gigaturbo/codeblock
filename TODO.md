@@ -63,11 +63,24 @@ Features
       release-codeblock skill (no finding; from the author, 2026-08-28)
 - [ ] the ContentDB URLs in README.md are on content.minetest.net, the
       pre-rename domain; it redirects but is stale (audit C19)
-- [ ] rework the screenshots — yours, 2026-09-02. Note what they touch:
-      screenshots/ is export-ignore'd so none of it ships in the archive, and
-      ContentDB loads them from raw GitHub URLs on master, so a rename needs the
-      package page updating too. screenshot.png is the separate one — it does
-      ship, because Luanti draws it in the main menu's Mods tab (no finding)
+- [x] rework the screenshots and the ContentDB cover — done 2026-09-02:
+      screenshots/mozaic.png and editor.png redone against the current editor,
+      one stale 2021 file dropped. doc/dp.png and doc/ds.png became
+      doc/drone_poser.png and doc/drone_setter.png for the wiki; README.md
+      linked the old names five times and now points at the new ones. Nothing
+      new needs a .gitattributes rule — doc/*.png and screenshots/ are both
+      already excluded, and the archive still holds eleven top-level entries
+      (no finding)
+- [ ] screenshot.png at the repo root is still the OLD editor — one tab, no
+      "Créer une copie", no Blocs/Plantes/Laines/API/Paramètres row, and the two
+      checkboxes still along the bottom edge that F8 moved onto Settings. It is
+      the one image that ships in the archive, Luanti draws it in the Mods tab,
+      and README embeds it at the top. mozaic.png is the current equivalent but
+      is 1.8 MB against its 1.1 MB, so dropping it in grows the release archive
+      by about 0.7 MB — resize or reframe rather than copy (no finding)
+- [ ] upload the new screenshots to the ContentDB package page — the files are
+      loaded from raw GitHub URLs on master, so the page needs the new names
+      and the dropped file removing (audit C19)
 
 Decisions wanted from the author
 
