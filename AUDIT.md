@@ -46,9 +46,9 @@ Every defect the playtests found is fixed. The one thing **not verified anywhere
 is `B10`'s refusal, aimed at twice through playtest `D2` and missed twice — the
 recipe is the suspect and its check was removed as untestable on 2026-09-02.
 **Gates green, unproven in a world — three:** `B14`, permanently blocked on `B34`
-being won't-fix; `S7`'s log half; and **`B47`'s fix**, which is new and whose
-whole question is whether one dropped click in ten is still noticeable — that is
-playtest `H10`. `F9` passed the same day it shipped, including the paused clock
+being won't-fix, and `S7`'s log half. **`B47`'s fix left this list the day it
+shipped**, `H10` passing with the residue it predicted — a few presses in twenty
+still miss, which the author accepted. `F9` passed the same day it shipped, including the paused clock
 reversed out of that very run, as did `R4` and `F-5`, which takes `S6` and the
 retuning's effect on the bundled examples off this list too.
 
@@ -128,14 +128,22 @@ it by construction, which is what the author asked for: *"the HUD also so
 everything matches"*. The two surfaces show the same numbers and a player
 watching both must not see them disagree.
 
-**What it costs, stated rather than glossed.** The dead window is the player's
-click hold against the beat, so doubling the beat **halves the loss rather than
-removing it**: roughly one click in ten where it was one in five, on a ~100 ms
-press. That is arithmetic over the mechanism above, not a measurement, and
-whether one in ten is still noticeable is what playtest `H10` is for. The residue
-is in `ROADMAP.md`'s *What ships broken*. The HUD is also half as live, which is
-the price paid and was accepted: three percentages that move every second are
-still a live read-out.
+**What it costs, and it is measured now rather than computed.** The dead window
+is the player's click hold against the beat, so doubling the beat **halves the
+loss rather than removing it**. The arithmetic said one click in ten; **playtest
+`H10`, run 2026-09-02, found a few presses in twenty still missing** — real, and
+more than the check as written allowed. The author's call is that this is
+acceptable, so `B47` ships **mitigated rather than closed**, and *What ships
+broken* in `ROADMAP.md` carries the observed figure. The HUD is also half as
+live, which is the price paid and was accepted: three percentages that move every
+second are still a live read-out.
+
+**Keep — the fallback is unspent, and what would justify taking it.** *Stop the
+self-refresh* still closes this outright, at the cost of the liveness `F8` was
+built for. The bar for taking it is **misses in ordinary use**, not misses under
+a deliberate rapid-press count, which is what `H10` measures and what any
+mitigation of this shape will always show. It needs no new finding — it widens
+this one.
 
 **Keep — why the other three were not taken, so they are not re-proposed as
 better.** Quantising cannot beat the elapsed clock, which `F9` put in the heading
@@ -984,10 +992,11 @@ document says so.
   `label`'s `font=bold` and `halign` being area-label only (`F8`); and the whole
   of `B47` — `drawMenu`'s byte-identical short-circuit, `regenerateGui`'s
   `removeAll`, and a button holding `Pressed` on the object that is destroyed.
-- **Gates green, unproven in a world:** `B14`, blocked on `B34` being won't-fix;
-  `S7`'s log line; and **`B47`'s fix**, whose whole question — whether one
-  dropped click in ten is still noticeable — no spec can ask. Playtest `H10`.
-  `F9` left this list by passing on the day it shipped.
+  **`H10` then confirmed the mechanism from the other end**: `B47`'s residue
+  survives a doubled beat, exactly as a window proportional to the beat must.
+- **Gates green, unproven in a world:** `B14`, blocked on `B34` being won't-fix,
+  and `S7`'s log line. `B47`'s fix and `F9` both left this list by passing on the
+  day they shipped.
 - **Not verified anywhere, and with no route left:** `B10`'s refusal, twice aimed
   at through `D2`'s second case, which was removed as untestable on 2026-09-02.
   **That is the whole list**, and it is now a standing gap rather than a queued

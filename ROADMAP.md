@@ -21,20 +21,23 @@ thinking rather than a queue position.
 
 ## Now
 
-**Nothing is open, and what is left is three documents, one playtest and the
-tag.** `B47` was decided and fixed on 2026-09-02, `settingtypes.txt` has its
-generator and its `--check`, and no finding is in the open state for the first
-time in the project's life. Five gates green, nine in-engine specs **458 passed /
-0 failed / 1 xfail / 0 xpass**. The ordered list is the next section.
+**Nothing is open, every check has a result, and what is left is three documents
+and the tag.** `B47` was decided, fixed and playtested on 2026-09-02,
+`settingtypes.txt` has its generator and its `--check`, and no finding is in the
+open state for the first time in the project's life. Five gates green, nine
+in-engine specs **458 passed / 0 failed / 1 xfail / 0 xpass**, `PLAYTEST.md` at
+**52 of 52**. The ordered list is the next section.
 
 **`B47` was answered by slowing the beat**, `PERIOD` `0.5` → `1` s in
 `lib/hud.lua`, the HUD moving with the panel because they share the one constant
 — *"the HUD also so everything matches"*. It **halves the dead window rather
 than removing it**: roughly one dropped click in ten where it was one in five.
-That is the trade the author took over the three directions that cost more, and
-it is stated as a residue under *What ships broken* rather than sold as a fix.
-**Playtest `H10` is the only thing that can say whether one in ten is still
-noticeable**, and it is the one check with no result.
+That is the trade the author took over the three directions that cost more.
+**`H10` then ran and found a few presses in twenty still missing** — a pass on
+the author's call, and *more* than the check as written allowed, so the figure
+under *What ships broken* is the observed one rather than the arithmetic. `B47`
+ships **mitigated, not closed**, and the direction that would close it outright —
+a panel that does not refresh itself — stays named and unspent.
 
 **Writing the generator found a dead check, `C20`.** `gen_docs.lua`'s guard that
 every per-codelevel limit has a documentation row had been matching **nothing**
@@ -68,10 +71,11 @@ not restated here; what is below is what *this* version still needs, and
 
 **The work — two done on 2026-09-02, three documents left.**
 
-1. **`B47` — done.** Answered by the longest of the four directions' opposites:
-   slow the beat to 1 s rather than stop the self-refresh, quantise, or move to
-   mouse-down. `AUDIT.md` keeps why each of the other three was not taken, and
-   `H10` is the check that says whether it was enough. (B47)
+1. **`B47` — done, and playtested.** Answered by slowing the beat to 1 s rather
+   than stopping the self-refresh, quantising, or moving to mouse-down;
+   `AUDIT.md` keeps why each of the other three was not taken. `H10` passed with
+   a few presses in twenty still missing, which the author accepted — so what
+   ships is a mitigation with its residue named. (B47)
 2. **`settingtypes.txt`'s generator and `--check` — done**, `scripts/gen_settingtypes.lua`,
    with a step in the CI job that already runs the other two. The defaults come
    from `lib/config.lua`, the prose and the menu bounds from the script, and it
@@ -109,7 +113,7 @@ not restated here; what is below is what *this* version still needs, and
    in-engine specs, the six standalone, luacheck, **all three** `--check`
    generators, CI green on the tagged commit's own `head_sha`, the licence field,
    ContentDB's rules against the long description, and a fresh clone that can run
-   its own suite. Plus `H10`, which is the one playtest with no result.
+   its own suite.
 8. **Strike what the release closed** from `ROADMAP.md` and `TODO.md`, confirm
    `tests/game/mods/vector3`'s pinned commit is pushed, then commit, push, and
    tag `v1.0.0` on `master`.
@@ -174,8 +178,9 @@ Shipped: `F1` `500dd85`, `F2` `dee0bc7`, `F3` `90cfb70`, `F7` `afbe504`,
 the second time a feature here has come from playing the one before it — and the
 second time in a row that what a display *said* was the thing playing it found.
 
-Left in the phase: the three documents under *Finalising v1.0.0* above, and two
-checks in a world — `H10` for `B47`'s fix and `R2` on the release archive. **`F9`
+Left in the phase: the three documents under *Finalising v1.0.0* above, and `R2`
+on the release archive — the one check whose result has gone stale. `H10` passed
+2026-09-02. **`F9`
 passed its playtest on 2026-09-02** — all eight cases in both languages, no
 defect, and one decision reversed: the paused clock, built and re-checked the same
 day. **`B47` and `settingtypes.txt` closed the same day**, and writing the second
@@ -715,9 +720,10 @@ wants is how long the build has taken, and a pause is not part of it.
   changes on every beat, so there is nothing left to quantise), and *act on
   mouse-down* means a `textlist` where *Pause* and *Stop* are buttons — a
   destructive action on mouse-down being worse than a dropped click. **The
-  fallback is named:** if `H10` says one in ten is still noticeable, the next
-  direction is the static panel, not a shorter beat. `AUDIT.md` holds the
-  engine-source chain behind all of it.
+  fallback is named and still unspent:** `H10` did find a few misses in twenty,
+  and the next direction is the static panel rather than a shorter beat — the bar
+  for taking it being misses in *ordinary use*, which is not what a rapid-press
+  count measures. `AUDIT.md` holds the engine-source chain behind all of it.
 - **A generator for `settingtypes.txt`, with its prose in the script rather than
   parsed out of `lib/config.lua`**, built 2026-09-02. Two audiences, two
   documents: `config.lua`'s comments are for whoever edits the code and cite
@@ -821,10 +827,12 @@ wants is how long the build has taken, and a pause is not part of it.
   day/night cycle. One line in the game, nothing here. This repository does not
   track whether it was added, so forgetting it looks like a regression in the
   game's sky — which belongs to the game's record, not this one.
-- **A panel button still drops roughly one click in ten.** The 1 s beat halves
-  the window rather than closing it, and there is no way to close it without
-  giving up the panel's liveness. A dropped click is silent — `on_close` never
-  runs — so the symptom is a button that needs pressing twice. (B47)
+- **A panel button still misses a few presses in twenty**, measured by `H10` at
+  a deliberate rapid pace. The 1 s beat halves the window rather than closing it,
+  and there is no way to close it without giving up the panel's liveness. A
+  dropped click is silent — `on_close` never runs — so the symptom is a button
+  that needs pressing twice. **Accepted, not overlooked**, and the change that
+  would close it is named under `B47`. (B47)
 - `tests/game/mods/vector3/mod.conf` still carries a 5.5 version ceiling —
   separate repository, not fixable from here. (C1)
 - `scripts/gen_cdb_json.sh` is verified by nothing and escapes neither `"` nor a
@@ -867,7 +875,7 @@ in-engine specs **458 passed, 0 failed, 1 xfail, 0 xpass**, and the six
 standalone **238 passed, 0 failed, 1 xfail** under Lua 5.1. Both generators were
 also **made to fail once** against a fake limit.
 
-**Nothing is open** — a first for this project. `PLAYTEST.md` stands at 52
-checks, 51 with a result: `H10` is new for `B47`'s fix and is the one
-outstanding, and `R2` wants re-running on the release archive. Left is
-*Finalising v1.0.0* above: three documents, those two checks, then the tag.
+**Nothing is open** — a first for this project — and `PLAYTEST.md` stands at 52
+checks with a result against every one. `H10` passed on 2026-09-02 with `B47`'s
+residue intact and accepted; `R2` still wants re-running on the release archive.
+Left is *Finalising v1.0.0* above: three documents, `R2`, then the tag.

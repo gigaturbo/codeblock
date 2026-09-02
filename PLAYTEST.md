@@ -20,10 +20,9 @@ Reasoning lives in `AUDIT.md` under the bracketed id, or `ROADMAP.md` for an `F`
 
 ## Where it stands
 
-**52 checks, 51 with a result**, and `H8` the only one carrying a partial. The
-one outstanding is **`H10`, new with `B47`'s fix** — the only thing that can say
-whether a dropped panel click is still noticeable, since the fix halves that
-window rather than removing it. `F9` and `R1` each carry two results.
+**52 checks, every one with a result**, and `H8` the only one carrying a partial.
+`F9` and `R1` each carry two. **`H10` passed 2026-09-02 with a few presses still
+missing** — the residue `B47`'s fix leaves, accepted rather than closed.
 
 - **Group `H` (HUD and panel): re-run 2026-09-02 at `8f5bb2e`, eight pass and one
   partial.** `F8`'s display work is proven in a world. It produced `B47` — panel
@@ -51,10 +50,11 @@ window rather than removing it. `F9` and `R1` each carry two results.
   first predating a `.gitattributes` change. **`R2` is the one the release still
   wants**: it last ran at `7c5bceb`, before `F4` put `lib/hud.lua` in the
   `dofile` list, and it is the only check that the shipped archive loads at all.
-- **`H10` is new and unrun**, for `B47`'s fix. Its case 2 is a deliberate
-  control: on an idle panel the formspec string never changes, so the engine
-  regenerates nothing and no click can be lost — a drop there would mean the
-  mechanism `AUDIT.md` records is wrong.
+- **`H10` passed, and it is the one result that reports a defect surviving.** A
+  few presses in twenty still miss. That is `B47`'s residue, observed rather than
+  computed, and above what the check as written allowed — the author's judgement
+  that it is acceptable is what decides, and the fallback that would close it
+  outright stays named under `B47`.
 
 ---
 
@@ -699,7 +699,20 @@ which is what hides it. Count the presses that do nothing.
 take next is *stop the self-refresh*, which removes the defect completely at the
 cost of the liveness `F8` wanted.
 
-Result: —
+Result: pass — `d8d44cd` · engine 5.17.0 · 2026-09-02 — **a few presses still
+miss**, on the author's call that this is acceptable. Note what that is and is
+not: **the residue is real and observed**, and it is *more* than case 1 as
+written allowed — "at most one in twenty" was arithmetic over the mechanism, and
+a few is what a person actually counted. The author's threshold is the one that
+decides, and the written one was tighter than it. So `B47` ships mitigated, not
+closed, and `ROADMAP.md`'s *What ships broken* says so in the observed figure
+rather than the computed one.
+
+**What this leaves available rather than spent.** *Stop the self-refresh* is
+still the direction that would close it outright, and the reason not to take it
+is unchanged — it costs the liveness `F8` was built for. If the misses become
+irritating in ordinary use rather than under a deliberate twenty-press count,
+that is the change to make, and it needs no new finding.
 
 ---
 

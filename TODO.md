@@ -89,11 +89,13 @@ Decisions wanted from the author
 
 Checks left in a running world — the checklist is `PLAYTEST.md`
 
-- [ ] run H10 — new with B47's fix, and the only thing that can say whether one
-      dropped click in ten is still noticeable: twenty quick Pause/Resume
-      presses on a running panel, then the same on an idle one as the control.
-      A fail widens B47 rather than opening a finding, and the next direction is
-      a static panel (audit B47)
+- [x] run H10 — passed 2026-09-02: a few presses in twenty still miss, and you
+      called that acceptable. So B47 ships mitigated rather than closed, and the
+      figure in "what ships broken" is what you counted rather than what the
+      arithmetic predicted. The change that would close it outright — a panel
+      that does not refresh itself, live figures left to the HUD — stays
+      available; say the word if the misses annoy you in ordinary use rather
+      than under a deliberate fast count (audit B47)
 - [x] run F9 — passed 2026-09-02 at `029fab9`, all eight cases in both
       languages, and case 4 again after you asked for the opposite: it has now
       passed once each way round (audit F9)

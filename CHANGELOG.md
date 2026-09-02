@@ -114,7 +114,7 @@ relying on.
 - A shape large in **two** dimensions at once still asks for more of the world in memory than a codelevel allows in one slab, and the run stops rather than waiting. Only one axis can be sliced away
 - The map footprint decays linearly over the unload window rather than tracking each block, so it estimates what is resident rather than measuring it
 - Nothing on screen says why a drone is slow: the map row was deliberately dropped from both displays
-- **A drone panel button can still miss a click** — roughly one in ten, where it used to be one in five. The panel refreshes itself while a program runs, and the client rebuilds the whole form each time; a press held across that moment is dropped silently. Press it again. Closing the gap completely would mean a panel that does not update on its own
+- **A drone panel button can still miss a click** — a few presses in twenty if you click quickly, where it used to be closer to one in five. The panel refreshes itself while a program runs, and the client rebuilds the whole form each time; a press held across that moment is dropped silently. Press it again. Closing the gap completely would mean a panel that does not update on its own
 - `place()` still writes one node per call and is not batched, unlike the four bulk shapes
 - A file can only be removed from the editor once it has been opened — the *Remove file* button appears only with a file open
 - The unsaved-tab `*` records that the buffer changed, not that it differs from disk, so typing a character and undoing it leaves the tab marked until the next save
