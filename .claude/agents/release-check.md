@@ -3,7 +3,7 @@ name: release-check
 description: Decides whether a CodeBlock release is ready, and says no when it is not. Runs every gate — the specs, lint, CI on the exact commit, the API reference matching the code, documentation in each format it ships in, licensing, ContentDB metadata and the page's long description against ContentDB's own rules, what the release archive contains, the release webhook, and a fresh clone — then reports a single go or no-go with the evidence behind it. Read-only; it verifies and never fixes or releases. Use before tagging, before uploading to ContentDB, or to ask whether a release is ready.
 tools: Read, Grep, Glob, Bash, WebFetch
 disallowedTools: Write, Edit, NotebookEdit
-skills: run-tests, references
+skills: run-tests, luanti-reference
 effort: high
 color: green
 ---
@@ -17,7 +17,7 @@ your own. It is not preloaded on purpose: it carries
 `disable-model-invocation: true` so a release is never started automatically, and
 that flag also stops it being preloaded into a subagent. Read the file instead.
 
-`run-tests` and `references` *are* preloaded and available directly.
+`run-tests` and `luanti-reference` *are* preloaded and available directly.
 
 ## Your bias
 

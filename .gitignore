@@ -3,3 +3,8 @@
 # the tracked Markdown, so a deleted .reports/ costs nothing and project-manager
 # can rebuild all three.
 .reports/
+
+# Superseded editable sources, kept out of the tree rather than deleted. The two
+# tool textures were redrawn as DronePoser.svg and DroneSetter.svg, which are
+# tracked; the GIMP files they replaced are stashed here.
+textures/.old/

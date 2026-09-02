@@ -19,10 +19,11 @@ and **never wrap an engine call in a function containing nothing else**.
 
 ## Verify, never recall
 
-Use the **`references`** skill before stating that a `core.*` function exists, is
-deprecated, takes particular arguments, or behaves a certain way. It bundles
-`lua_api.md`, the Lua 5.1 manual and ContentDB's rules offline. Answering from
-memory is how three findings got here.
+Use the **`luanti-reference`** skill before stating that a `core.*` function
+exists, is deprecated, takes particular arguments, or behaves a certain way. It
+bundles `lua_api.md`, the Lua 5.1 manual, ContentDB's rules and the engine
+behaviours that have already cost findings. Answering from memory is how three
+findings got here.
 
 Where `lua_api.md` is silent or misleading, the engine source settles it —
 `src/gui/guiFormSpecMenu.cpp` for anything about a formspec's geometry or which

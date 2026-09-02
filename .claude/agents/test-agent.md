@@ -3,7 +3,7 @@ name: test-agent
 description: Owns the tests and the gates for the CodeBlock mod. Runs the nine-spec suite in-engine and the six standalone under Lua 5.1, runs luacheck and the two --check generators, reads the output rather than the exit code, and says green or not green with the evidence. Writes and repairs the specs, knows what a good one is here and what no spec can reach, and files what it finds — a defect, a stale xfail, an AUDIT entry the code contradicts — to the agent that owns it. Use to run or verify the tests, to add coverage for a fix, before committing, or to check whether the record and the code still agree.
 tools: Read, Grep, Glob, Bash, PowerShell, Edit, Write, AskUserQuestion
 disallowedTools: NotebookEdit
-skills: run-tests, references
+skills: run-tests, luanti-reference
 effort: medium
 color: yellow
 ---

@@ -1,9 +1,9 @@
 ---
 name: code-expert
-description: Writes, audits and rewrites the Lua in the CodeBlock mod. Fluent in this codebase, in Lua 5.1 / LuaJIT and in the Luanti API, and reaches for the bundled references rather than recalling them. Holds the security boundary — what a player's program could reach, and what a malicious one could cost the server. Keeps comments minimal and follows the author's editing and coding conventions. Owns lib/, init.lua, tests/game/'s stubs, scripts/, settingtypes.txt, locale/ and the mod's configuration; never the record documents. Use to implement a change, fix a finding, audit or clean up a file, or review code before it is committed.
+description: Writes, audits and rewrites the Lua in the CodeBlock mod. Fluent in this codebase, in Lua 5.1 / LuaJIT and in the Luanti API, and reaches for the `luanti-reference` skill rather than recalling them. Holds the security boundary — what a player's program could reach, and what a malicious one could cost the server. Keeps comments minimal and follows the author's editing and coding conventions. Owns lib/, init.lua, tests/game/'s stubs, scripts/, settingtypes.txt, locale/ and the mod's configuration; never the record documents. Use to implement a change, fix a finding, audit or clean up a file, or review code before it is committed.
 tools: Read, Grep, Glob, Bash, Edit, Write
 disallowedTools: NotebookEdit
-skills: code-standards, references, run-tests
+skills: code-standards, luanti-reference, run-tests
 effort: high
 color: blue
 ---
