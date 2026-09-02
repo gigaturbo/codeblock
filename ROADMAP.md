@@ -23,9 +23,9 @@ thinking rather than a queue position.
 
 **Group `H` was re-run on 2026-09-02 at `8f5bb2e`: eight pass, one partial.**
 `F8`'s display work is proven in a world and `B45` and `B46` with it. **Everything
-is pushed and CI run 44 at `dc09d48` is green on all three jobs**, so the limit
-retuning, `F9` and the paused clock are all covered by CI rather than by local
-gates alone. **The paused clock the run asked for is built and its check has
+is pushed and CI is green through `471526e`** — run 44 at `dc09d48`, the last
+commit touching code, and run 45 after it — so the limit retuning, `F9` and the
+paused clock are all covered by CI rather than by local gates alone. **The paused clock the run asked for is built and its check has
 passed** — see `F9`. What is left:
 
 1. **`B47`** — a panel button sometimes needing a second click, the only open
@@ -769,8 +769,9 @@ wants is how long the build has taken, and a pause is not part of it.
 ---
 
 2026-09-02 · codeblock `cd13414` (master) plus the paused clock and the record
-and spec work above it, **pushed**, and **CI run 44 at `dc09d48` green on all
-three jobs**. Local gates green too, engine 5.17.0, read from output rather than
+and spec work above it, **pushed**, and **CI green on all three jobs at
+`dc09d48` (run 44) and `471526e` (run 45)**. `dc09d48` is the last commit
+touching code. Local gates green too, engine 5.17.0, read from output rather than
 exit codes: luacheck silent, `doc/api.md` and `locale/template.txt` up to date,
 `locale/*.tr` covering all 81 messages, nine in-engine specs **458 passed, 0
 failed, 1 xfail, 0 xpass**, and the six standalone specs green under Lua 5.1.

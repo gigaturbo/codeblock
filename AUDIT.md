@@ -29,9 +29,11 @@ it.
 | C compliance and packaging | 13 | — |
 | A architecture and performance | 12 | — |
 
-All code pushed, **CI green at the tip (run 44 at `dc09d48`, all three jobs)** —
-so the limit retuning, `F9` and the paused clock are covered by CI, not by local
-gates alone. Nine in-engine specs: **458 passed / 0 failed / 1 xfail / 0 xpass**,
+All code pushed, and **CI green on every commit through `471526e` (runs 44 and
+45, all three jobs each)** — so the limit retuning, `F9` and the paused clock are
+covered by CI, not by local gates alone. `dc09d48` is the last commit to touch
+code, which is the one to compare a later run against; a record commit's own run
+can never be named in it. Nine in-engine specs: **458 passed / 0 failed / 1 xfail / 0 xpass**,
 up from 439 as `F9`, `H8`'s displaced case and the paused clock added nineteen to
 `forms_spec` — re-run 2026-09-02 with luacheck and both `--check` gates over each
 of those, all four green each time.
@@ -960,6 +962,6 @@ document says so.
 
 ---
 
-2026-09-02 · describes codeblock at `dc09d48`, pushed · CI green there (run 44,
-all three jobs), so the limit retuning (`96dd4bc`), `F9` and the paused clock are
-all covered by CI.
+2026-09-02 · describes codeblock at `dc09d48`, the last commit touching code,
+pushed · CI green there (run 44, all three jobs) and at `471526e` (run 45), so
+the limit retuning (`96dd4bc`), `F9` and the paused clock are all covered by CI.
