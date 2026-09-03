@@ -20,38 +20,75 @@ Reasoning lives in `AUDIT.md` under the bracketed id, or `ROADMAP.md` for an `F`
 
 ## Where it stands
 
-**57 checks. 56 carry a result**, one of them partial — `H8`, and only because
-two of its cases cannot be performed. `F9` and `R1` each carry two.
+**57 checks. Every one carries a result**, **one of them a fail** — `W1`, re-run
+at codelevel 1 on 2026-09-03 — and one partial, `H8`, and only because two of its
+cases cannot be performed. `F9-1`, `R1`, `E16`, `W1` and the four `F10-n` checks
+each carry two results or more — `W1` now three, the newest being the
+discriminator run that closed `B50`'s open question.
 **`H10` passed 2026-09-02 with a few presses still missing** — the residue
 `B47`'s fix leaves, accepted rather than closed.
 
-- **`W4` is the one check with no result**, written 2026-09-03 with `B49`'s fix
-  and **not run**: an unknown block name now warns once per run instead of
-  silently building the default block. Its case 2 — a second drone in the same
-  session warning on its own account — is the **only** way the per-run scope is
-  observable, the flag being a closure upvalue in a file-local function.
+- **`W1` failed on 2026-09-03, at codelevel 1**: the drone **disappeared after
+  6–8 seconds**, with no error, no refusal and no world-edge message. That is the
+  codelevel this check has been asking for since 2026-08-28 — both of its passes
+  were taken above level 2, where the per-resume memo reset it exists for barely
+  runs — so **the level the check was always asking for is the level it fails
+  at**. Filed as **`B50`**, open, **cause now read out of the 5.17.0 engine
+  source**: an entity with `static_save = false` is deleted when the mapblock
+  under it leaves server memory, and nothing keeps the drone's own block loaded
+  past ~192 nodes from a player. **No fix is chosen** — the options are with the
+  author. **What happens at codelevels 2, 3 and 4 is unknown**, the report having
+  been cut off before it said, and level 2 genuinely depends on singleplayer
+  against dedicated. **`W1`'s expectation was wrong as written and is corrected**:
+  *no holes* cannot be met while the drone is deleted mid-run, and the check now
+  asks for three specific observations, because two events happen seconds apart
+  and only one of them is a defect. Diagnosing it also produced **`B51`** — a run
+  cut short is announced as *completed* — and **`B52`**, a drone standing still
+  far from a player dying at about 29 seconds, which `sleep(30)` or a long pause
+  reaches.
 
-- **The first `F10` check became a pass on 2026-09-03**, having been recorded
-  partial earlier the same day. The author's second report supplied the two
-  missing cases: a fresh player's inventory holds neither tool, and `/privs`
-  shows no `fly`, `fast` or `noclip`. That second one **confirms `C21` in a
-  world**, and it was that finding's only possible evidence.
+- **`W1`'s three observations were then run, on 2026-09-03, and two of the three
+  are answered.** **Both chat lines arrive** — *le drone a disparu*, then
+  *programme terminé* — so the announcement path is intact and **there is no
+  fourth finding**; that same pair is **`B51` observed in a world**, the second
+  line contradicting the first about a run killed 48 blocks short. **The obsidian
+  stops at 352 and 320 nodes** across two runs, and the 32-node spread is the
+  evidence that this is a sampled 2.0 s race rather than a fixed boundary — ~192
+  nodes is where the drone becomes killable, not where it dies. **The third
+  observation was not made**, so a leaked record is unlikely rather than ruled
+  out, and it is one gesture on the next run. The codelevel was not restated for
+  either run.
 
-- **`E16`'s pristine-example case passed 2026-09-03** on `b9143b0` plus the
-  uncommitted tree, which **confirms `B48` in a world**. The case was added the
+- **`W4` passed 2026-09-03 at `16cd05c`**, which is the last check in this file
+  to have had no result and **confirms `B49` in a world**. Its case 2 — a second
+  drone in the same session warning on its own account — is the **only** way the
+  per-run scope is observable, the flag being a closure upvalue in a file-local
+  function, so no spec will ever cover it.
+
+- **`F10-1` became a pass on 2026-09-03**, having been recorded partial earlier
+  the same day. The author's second report supplied the two missing cases: a
+  fresh player's inventory holds neither tool, and `/privs` shows no `fly`,
+  `fast` or `noclip`. That second one **confirms `C21` in a world**, and it was
+  that finding's only possible evidence.
+
+- **`E16`'s pristine-example case passed 2026-09-03** on `b9143b0` plus what was
+  then the uncommitted tree, which **confirms `B48` in a world**; the fix is
+  `4179877`. The case was added the
   same day: the earlier run at `afbe504` passed and still missed `B48`, because
   it tested a file the runner had typed into, and the defect only shows on a
   **bundled example nobody has saved yet**, since those ship CRLF. A check whose
   setup normalises away the condition it is looking for is the failure mode here.
 
-- **All four `F10` checks passed 2026-09-03.** The chat line arrives — the open
+- **All four `F10-n` checks passed 2026-09-03**, first on `b9143b0` plus the
+  then-uncommitted tree and again at `16cd05c`, `F10`'s code having landed at
+  `b23a8bc` unchanged. The chat line arrives — the open
   risk, since `chat_send_player` from `register_on_newplayer` fires before the
   client has finished loading — the fresh player is given no tools, and `/privs`
   shows none of the three privileges, which is **the only in-world evidence
-  `C21` will ever have**. `F10` is committed nowhere and its behaviour is
-  entirely in the class the specs cannot see, so those four checks are the whole
-  of what is known about it. **`D4` is superseded by this group** and says so,
-  but not until `F10` is committed.
+  `C21` will ever have**. Every part of `F10` is in the class the specs cannot
+  see, so those four checks are the whole of what is known about it. **`D4` is
+  superseded by this group**, the condition on its own note — `F10` committed —
+  having been met at `b23a8bc`.
 
 - **A new `S()` key ships English-by-default and nothing fails.**
   `gen_locale --check` passes on `template.txt` alone and only *reports* an
@@ -59,13 +96,18 @@ two of its cases cannot be performed. `F9` and `R1` each carry two.
   back. The consequence is that **a feature adding player-facing strings is not
   finished until the `.tr` files are written, and the only thing that will tell
   you is playing it in another language.** `F10` demonstrated it: both the chat
-  line and the `/codeblock tools` replies read English on a French client.
+  line and the `/codeblock tools` replies read English on a French client. **The
+  French was written later the same day, after both runs, so what that rule
+  leaves here is owed reading rather than a fix**: `F10-1` case 4 and `F10-2`
+  each want one pass with the client in French, which `F10-1` already asks for.
+  The passes stand — English on a French client was the known state when they
+  were taken.
 
 - **Group `H` (HUD and panel): re-run 2026-09-02 at `8f5bb2e`, eight pass and one
   partial.** `F8`'s display work is proven in a world. It produced `B47` — panel
   buttons sometimes needing a second click — and three wanted display changes,
   which are `F9`.
-- **`F9` passed 2026-09-02, in both languages**, which closes the three display
+- **`F9-1` passed 2026-09-02, in both languages**, which closes the three display
   changes `H2`–`H7` asked for. Its case 4 is the one place a check passed and the
   behaviour changed anyway — the elapsed clock now stops while a run is paused —
   so it carries a second result, at `dc09d48`.
@@ -429,13 +471,16 @@ added after the player's own items. **`B39` confirmed fixed.**
 Earlier: fail — `f274245` · 2026-08-27 — case 2 exactly: *"inventory was replaced
 with the 2 drone tools and the rest was empty"*. That is `B39`.
 
-**`F10` deletes what this check checks.** Once the handout is gone, case 2's
-*"the two tools are added"* is no longer the pass condition and the refusal quoted
-above no longer exists. The entry stays as it is until `F10` is committed —
-these results are evidence about the code that is in `master` today — and the
-three `F10` checks below take over from it then. `B39`'s rule does not retire
-with the handout: it moves to `/codeblock tools`, which can be run repeatedly and
-so reaches the duplication case more easily than joining ever did.
+**Superseded by `F10-1` and `F10-2` at `b23a8bc`.** `F10` deleted what this check
+checks: with the handout gone, case 2's *"the two tools are added"* is no longer
+the pass condition and the refusal quoted above no longer exists. **Do not run
+this check against current code** — run `F10-1` for what a fresh player is given
+and `F10-2` for the command that replaced the handout. The results above stay as
+the evidence they were: they are what `B16` and `B39` were confirmed by, on the
+code that shipped the handout, and `B39`'s reasoning is what `F10-2` case 2
+inherits. `B39`'s rule does not retire with the handout: it moves to
+`/codeblock tools`, which can be run repeatedly and so reaches the duplication
+case more easily than joining ever did.
 
 ### D5 · Cancelling the file chooser [B41]
 
@@ -932,34 +977,143 @@ charged time for every example, `torus.lua` and `density.lua` included.
 
 ## Writing to the world
 
-W1–W3, played 2026-08-28. The group **settled questions rather than finding
+W1–W3, played 2026-08-28, and that run **settled questions rather than finding
 defects**: `W2` answered `A4`, the oldest thing on the audit's *not verified
-anywhere* list.
+anywhere* list. **The `W1` re-run of 2026-09-03 broke that**: at codelevel 1 the
+drone vanishes, which is `B50` — and diagnosing that produced `B51` and `B52`,
+with the same day's discriminator run then **observing `B51` in a world**.
 
-### W1 · `place()` far from spawn [A4, S5, B25]
+### W1 · `place()` far from spawn [A4, S5, B25, B50, B51]
 
 Fly a long way out, place a drone, and run a program that walks and places one
 node at a time across several mapblocks **and back over ground it already
 visited**.
 
-**Pass:** no holes.
+**Pass:** no holes — **and the drone survives the run.**
 
-**Run it at codelevel 1 or 2, not 3 or 4.** The pass condition is only *no holes*,
-but what this check is *for* is the per-resume memo reset, and the codelevel
-decides how often that runs: `end_command` yields after **every** command while
+**The expectation was wrong as written, corrected 2026-09-03.** *No holes* was
+the whole of it, and it cannot be met at a paced codelevel while `B50` stands:
+the drone is deleted at about 192 nodes from the player, so there are no holes
+because there is no drone. **Do not read this check's two earlier passes as
+evidence about codelevels 1 and 2** — both were taken above level 2, where the
+program finishes inside a step or two and the engine's 2-second object
+management never sees it. **This check cannot pass at level 1 until `B50` is
+fixed**, and a fail here is that finding rather than a new one.
+
+**Run it at codelevel 1 or 2, not 3 or 4.** The pass condition is *no holes*, but
+what this check is *for* is the per-resume memo reset, and the codelevel decides
+how often that runs: `end_command` yields after **every** command while
 `pace_ms > 0`, and only when the step budget is spent when pace is 0. A
 2000-command program clears and rebuilds the memo 2000 times at level 1 and a
-handful of times at level 4.
+handful of times at level 4. **That is also why only a paced level reaches
+`B50`** — the same slowness is what gives the engine time to unload the block the
+drone is standing in.
+
+**Three observations to make explicitly, from `B50`.** Two events happen seconds
+apart and only one is a defect: at ~128 nodes the client is told to forget the
+object, which is a correct and silent vanish; at ~192 nodes the object is
+deleted, which should announce itself. **Which one was seen is not decidable by
+reading the source**, so these three are what settle it and each must be
+recorded, not just the overall outcome.
+
+1. **Where the obsidian stops, counted in multiples of 16.** Near **192–256**
+   means the object was deleted. A full **400**, plus the brick line coming back,
+   means only the *view* was lost and the run carried on unseen.
+2. **Whether a chat line arrived, and how long after** the drone left the screen.
+   A gap of a few seconds is the two events being separate. **No line at all is a
+   second, separate defect** — `lib/drone.lua:404` should print *The drone has
+   disappeared, program stopped* before the finish line.
+3. **Whether a new drone can be placed immediately**, or the answer is *"Drone is
+   busy, please wait!"*. **This is the expensive case and the one to be sure
+   about.** A leaked record keeps `cor ~= nil` for ever, locking that player out
+   of placing a drone at all, and counts a phantom in `on_step`'s running total —
+   which permanently shrinks every other drone's share of
+   `server_step_budget_us` for the life of the world.
 
 Past about 2000 nodes in one direction the program stops with *"The drone cannot
 leave the world"*. **That is the world-edge guard working, not a limit being
 hit** — the number depends on the world's own `mapgen_limit`.
 
-Result: pass — `326f739` + uncommitted fixes · engine 5.17.0 · 2026-08-28 — no
+Result: **fail, with the three observations made** — `16cd05c` · engine not
+recorded · 2026-09-03 — **the discriminator run, twice**, on a plain outward walk
+with no return leg:
+
+    -- aaa.lua
+    for i = 1,50 do
+      place(blocks.obsidian)
+      forward(16)
+    end
+
+1. **The obsidian stops at 352 nodes in the first run and 320 in the second** —
+   22 and 20 mapblocks. **That is not the ~192 the diagnosis predicted, and it
+   confirms rather than contradicts it**: ~192 is where nothing else loads blocks
+   any more, so it is where the drone becomes *killable*, not where it dies. The
+   drone is exposed only in the gap between `forward` and the next `place`, which
+   is about half of each 0.5 s iteration, and `deactivateFarObjects` samples every
+   2.0 s — so past 192 nodes each sweep is roughly a coin flip. **Two runs dying
+   32 nodes apart is the signature of a sampled race, not of a fixed boundary.**
+2. **Both chat lines arrived**, in French: *le drone a disparu*, then
+   *programme terminé*. **So there is no second defect** — `on_deactivate` fires,
+   `on_lost` runs and `Drone.finish` is reached. The clause this check carried,
+   *no line at all is a second, separate defect*, is answered and closed. What
+   the author saw vanish at 6–8 seconds was the **first** event, the client being
+   told to forget the object at ~128 nodes.
+3. **Not run.** So a leaked record is **unlikely rather than ruled out**: both
+   messages together mean the teardown path ran to its end, which is the path
+   that clears the record, but nobody has tried to place a drone afterwards.
+   **Do the third observation on the next run** — it is one gesture and it is the
+   expensive case.
+
+**The codelevel was not restated for these two runs.** The first run below was
+level 1 and these are read as the same; that is an inference, not a report.
+**And this run also observed `B51`**: *programme terminé* announced a run killed
+roughly 48 blocks short of the 50 it asked for, immediately after
+*le drone a disparu*. The two lines the player sees contradict each other.
+
+Result: **fail** — `16cd05c` · engine not recorded · 2026-09-03 — **at codelevel
+1, the drone disappeared after 6–8 seconds.** Not an error, not a refusal, and
+not *"The drone cannot leave the world"* — it vanished. **This is the level the
+check has been asking for since 2026-08-28**, and it is the level it fails at:
+both passes above were taken at a codelevel above 2, where the memo reset this
+check exists for barely runs. Filed as `B50`, **and the cause is now known**: an
+entity with `static_save = false` is deleted when the mapblock under it leaves
+server memory, and nothing keeps the drone's own block loaded past ~192 nodes
+from a player. **No fix is chosen** — the options are with the author. **This run did not
+record the three observations**, which is why the discriminator run above was
+made; between them the two runs are one `W1` result in two halves.
+
+The program, as run:
+
+    -- aaa.lua
+
+    for i = 1, 25 do
+      place(blocks.obsidian)
+      forward(16)
+    end
+
+    back(2)
+
+    for i = 1, 25 do
+      place(blocks.brick)
+      back(16)
+    end
+
+**What happens at codelevels 2, 3 and 4 is unknown.** The report was cut off
+mid-sentence before it said, so nothing here claims any other level passes; the
+two passes below were at a level above 2 and on much older code. **Neither
+earlier pass is contradicted by this** — they answered *no holes* on the code of
+their day, and the 2026-08-25 one is where `S5`'s measurements come from.
+
+Neither the commit nor the engine version was stated in the report. `16cd05c` was
+`HEAD` when it arrived, with nothing but `CONTENTDB.md` modified in the tree, so
+that is what is recorded; read it as *at or about* `16cd05c` rather than as a
+commit the author named.
+
+Earlier: pass — `326f739` + uncommitted fixes · engine 5.17.0 · 2026-08-28 — no
 holes, at a codelevel above 2. Two 1000-node lines, the second offset so the
 return leg re-crosses ~63 mapblocks the outward leg had written into. **A level 1
 or 2 re-run is still worth one session**, the memo reset being barely exercised at
-that pace.
+that pace. That re-run is the fail above.
 
 Earlier: pass — `43e95a8` · engine not recorded · 2026-08-25 — where `S5`'s
 measurements come from: **16.3 kB resident per mapblock** over a 400-block sweep,
@@ -1010,7 +1164,7 @@ nobody**. Neither was measured. Noted under `S5` rather than filed.
 
 ### W4 · An unknown block name warns, once [B49]
 
-**Written 2026-09-03 with the fix, not yet run.** The warning is a chat line to
+**Written 2026-09-03 with the fix.** The warning is a chat line to
 the running player, so no spec can reach it: the suite runs at mod load, before a
 player exists.
 
@@ -1035,8 +1189,12 @@ player exists.
 Run case 1 in French too. The key is new `S()` text and the French was written
 the same day, so this is where it is read.
 
-Result: **not run** — fix present at `b9143b0` + uncommitted `B48`/`F10`/`B49` ·
-engine 5.17.0 · 2026-09-03.
+Result: pass — `16cd05c` · engine 5.17.0 · 2026-09-03 — the fix being `d8c32f7`.
+**`B49` is now confirmed in a world**, and this file has no check left without a
+result. The author reported the check as a whole rather than case by case, so
+what is recorded is a pass on the check as written above; case 2 is the part no
+spec will ever cover, the per-run flag being a closure upvalue in a file-local
+function.
 
 ---
 
@@ -1226,7 +1384,19 @@ nil limits.
 
 Added as each feature lands, for the paths it puts beyond the specs.
 
-### F1 · The Settings panel [F1]
+**A check here is named `F<feature>-<n>`** — `F10-2` is the second check written
+for `F10` — numbered in the order they appear below, and **never renumbered**,
+the same rule the finding ids follow. A feature with one check still gets the
+`-1`. Before 2026-09-03 they were all titled with the bare feature id, so four
+checks were called `F10` and two `F1` and a citation could not name one of them;
+write the suffix from the start. **`F<feature>` on its own always means the
+feature**, whose entry is in `ROADMAP.md` — the group heading below, `F10-2`'s
+`[F10, B16, B39]` brackets and every `(audit F9)` elsewhere are references to the
+feature, not to a check. Note also that the *Filesystem and example generation*
+group above is `F-1`–`F-5`, where the `F-` is **filesystem**: unrelated to this
+series despite the shape.
+
+### F1-1 · The Settings panel [F1]
 
 Open the editor and click **Settings** beside Blocks / Plants / Wools / API.
 
@@ -1243,7 +1413,7 @@ selectable; switching panels and back leaves it usable.
 
 Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27.
 
-### F1 · The preference survives a relog [F1]
+### F1-2 · The preference survives a relog [F1]
 
 Pick a block, close with **ESC**, disconnect, rejoin, run a program whose
 `place()` names no block.
@@ -1257,7 +1427,7 @@ building the block it started with, the preference being read once per run.
 
 Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27.
 
-### F3 · `sleep(seconds)` in a running world [F3]
+### F3-1 · `sleep(seconds)` in a running world [F3]
 
 Run a program that places a node, calls `sleep(1)`, and repeats — at codelevel 3
 or 4, where `pace_ms` is 0 and the wait is the only thing pacing it. Then run one
@@ -1270,7 +1440,7 @@ rather than parking the drone for ever.
 
 Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27.
 
-### F9 · The words on the panel and the HUD [F9, B46]
+### F9-1 · The words on the panel and the HUD [F9, B46]
 
 Everything here is words and placement, so **the suite cannot see any of it** —
 `forms_spec` pins the formspec string, not what it looks like drawn. Do this
@@ -1315,10 +1485,10 @@ Case 4 passed twice, once each way round: as `F9` first chose it and then as the
 author asked for on seeing it. Case 8 pairs with it — the panel and the finish
 message read one function, so a pause is out of both.
 
-### F10 · A fresh player is given nothing [F10, C21, C18, B39]
+### F10-1 · A fresh player is given nothing [F10, C21, C18, B39]
 
-**Written 2026-09-03, before the code existed; the code now exists with its gates
-green and uncommitted.** Every part of `F10` is beyond the specs — a join
+**Written 2026-09-03, before the code existed; the code is `b23a8bc`.** Every
+part of `F10` is beyond the specs — a join
 callback, an inventory write, a privilege grant, a chat command — so this group
 is the only evidence there will be. Case 2 is `C21`'s only route.
 
@@ -1350,7 +1520,11 @@ message is *not* dropped. On the first report the line appeared in English on a
 French client, which was the expected state at the time and is not a defect; the
 eight French strings were written later the same day. See `F10`'s roadmap entry.
 
-### F10 · `/codeblock tools` [F10, B16, B39]
+Result: pass — `16cd05c` · engine 5.17.0 · 2026-09-03 — re-affirmed once `F10`
+was committed at `b23a8bc`. Same four cases, same code, now under a hash rather
+than a working tree.
+
+### F10-2 · `/codeblock tools` [F10, B16, B39]
 
 1. **It hands both tools over.** Run it with an empty inventory: the Drone placer
    and the Drone setter appear, and nothing else changes.
@@ -1371,7 +1545,10 @@ the time of the run — the eight new `S()` keys were deliberately left
 untranslated and have since been written. Not a defect; `F10`'s roadmap entry
 carries it.
 
-### F10 · The two renamed subcommands [F10, B8, B9, C17]
+Result: pass — `16cd05c` · engine 5.17.0 · 2026-09-03 — re-affirmed at the
+committed code, `b23a8bc`.
+
+### F10-3 · The two renamed subcommands [F10, B8, B9, C17]
 
 `/codelevel` and `/codegenerate` are gone, deliberately and with no aliases.
 
@@ -1390,7 +1567,10 @@ carries it.
 
 Result: pass — `b9143b0` + uncommitted `B48`/`F10` · engine 5.17.0 · 2026-09-03.
 
-### F10 · A dropped tool can be recovered [F10]
+Result: pass — `16cd05c` · engine 5.17.0 · 2026-09-03 — re-affirmed at the
+committed code, `b23a8bc`.
+
+### F10-4 · A dropped tool can be recovered [F10]
 
 The `on_drop` stubs are removed, which is only safe because the command exists.
 
@@ -1403,6 +1583,9 @@ The `on_drop` stubs are removed, which is only safe because the command exists.
    is what keeps that from being the command's doing.
 
 Result: pass — `b9143b0` + uncommitted `B48`/`F10` · engine 5.17.0 · 2026-09-03.
+
+Result: pass — `16cd05c` · engine 5.17.0 · 2026-09-03 — re-affirmed at the
+committed code, `b23a8bc`.
 
 ---
 

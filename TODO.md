@@ -25,13 +25,13 @@ Features
       inactif` like the running one; the heading carries the run's clock time,
       `<program> : <state> (<duration>)` — shipped the same day with four gates
       green, the duration bold and just after the state on your second look;
-      playtest `F9` passed 2026-09-02 at `029fab9`, both languages (audit F9)
+      playtest `F9-1` passed 2026-09-02 at `029fab9`, both languages (audit F9)
 - [x] FEAT: stop the panel's elapsed clock while a run is paused — asked for
       2026-09-02 on seeing `F9` in a world, reversing that feature's decision
       that it should keep counting. Built the same day with four gates green:
       `Drone.elapsed_us` is now the one answer both the panel and the finish
       message read, and `Drone.toggle_pause` the only writer of `paused`.
-      Playtested the same day: `F9` case 4, rewritten and passed (audit F9)
+      Playtested the same day: `F9-1` case 4, rewritten and passed (audit F9)
 - [x] BUG: buttons on the drone panel are sometimes unresponsive, a second click
       needed. Cause confirmed in the engine source: the 0.5 s refresh makes the
       client destroy and rebuild every element, and a button's press lives on
@@ -47,7 +47,7 @@ Features
       carrying its original line endings. All fourteen bundled examples are
       CRLF, which is why the four files you had already saved never showed the
       mark and `plot2D.lua` showed it every time. Fixed the same day, one line
-      in `lib/filesystem.lua`, five gates green — **not committed yet**, but
+      in `lib/filesystem.lua`, five gates green, **committed as 4179877**;
       playtest E16's new case passed 2026-09-03, so the fix is confirmed in a
       world (audit B48)
 - [x] BUG: a block name that does not exist falls back to stone without an error
@@ -61,34 +61,71 @@ Features
       run** and the program carries on with the default block, since you asked
       for a warning and not an error. One accepted side effect —
       `if blocks[name] then` as a membership test costs one chat line per run.
-      Gates green over the whole tree with 13 new env_spec cases, **not committed
-      and not yet played**: playtest W4 is written (audit B49)
+      Gates green over the whole tree with 13 new env_spec cases, **committed as
+      d8c32f7**, and playtest W4 passed 2026-09-03 at 16cd05c — so the
+      once-per-run warning is confirmed in a world, which no spec could do
+      (audit B49)
+- [ ] BUG: the drone disappears at codelevel 1 — reported 2026-09-03 from the W1
+      re-run: `aaa.lua` places obsidian and brick along two 25-step lines, and
+      after 6–8 seconds the drone vanished. No error, no refusal, and not the
+      "cannot leave the world" stop. Filed as B50, and the cause is now read out
+      of the engine source: the drone entity is `static_save = false`, so Luanti
+      deletes it as soon as the mapblock under it leaves server memory, and
+      nothing keeps the drone's *own* block loaded — only the block it writes
+      into. Past about 192 nodes the client is no longer keeping it alive either.
+      Time is what matters rather than distance, which is why levels 3 and 4
+      finish before the engine's 2 s sweep ever sees them and why W1's old passes
+      could not have caught it. **No fix chosen — that one is yours**; the
+      options are coming to you separately. Level 2 genuinely depends on
+      singleplayer versus dedicated, and the other levels are still unreported.
+      Your two discriminator runs on 2026-09-03 confirmed it: both chat lines
+      arrive, so nothing is being swallowed, and the obsidian stopped at 352 and
+      320 nodes. That spread is the point — 192 is where the drone becomes
+      killable rather than where it dies, and two runs 32 nodes apart is a
+      sampled race. One observation still owed, one gesture: after the drone
+      goes, try to place a new one. If it says "Drone is busy, please wait!" the
+      record has leaked (audit B50; playtest W1)
+- [ ] BUG: a run that was cut short says "completed" — found 2026-09-03 while
+      diagnosing B50, not reported. Drone.finish has no word for it, so a drone
+      killed mid-flight and one you stop with the setter both say the program
+      completed, with a node count nowhere near what it asked for. **You have now
+      seen it**: your discriminator run showed "le drone a disparu" and then
+      "programme terminé", one after the other, about a run killed 48 blocks
+      short of the 50 it asked for. The two lines contradict each other
+      (audit B51)
+- [ ] BUG: a drone standing still far from you dies at about 29 seconds — found
+      2026-09-03 the same way, and it survives any fix to B50: `load_area` does
+      not reset the mapblock's usage timer, so the block is unloaded on
+      `server_unload_unused_data_timeout` regardless of the drone standing in it.
+      `sleep(30)` out at 300 nodes, or a run left paused, both reach it — and
+      both are things the mod invites you to do (audit B52)
 - [ ] FEAT: Make possible to change codelevel while running a program (audit F5)
-- [ ] FEAT: stop forcing the two tools into every joining player's inventory —
+- [x] FEAT: stop forcing the two tools into every joining player's inventory —
       settled 2026-09-03 as `F10`, your choice of the two: a command, not a
       setting. `set_tools` and its join callback go, the tools become droppable,
       and `/codeblock tools` hands them out on demand; `/codelevel` and
       `/codegenerate` become `/codeblock level` and `/codeblock generate` with
       no aliases, since the rename is free before the tag. A first-join chat
       line names the command and the creative inventory. Written into
-      `lib/register.lua` with the gates green, **not committed**; all four of its
-      playtest checks passed 2026-09-03. The eight
-      new French strings were written the same day, after you saw the chat line
-      and the command replies come out in English. The shape
-      and what was argued out are in ROADMAP.md under `F10`
+      `lib/register.lua` with the gates green and **committed as b23a8bc**; all
+      four of its playtest checks — F10-1 to F10-4 — passed 2026-09-03. The
+      eight new French strings were written the same day, after you saw the chat
+      line and the command replies come out in English. The shape and what was
+      argued out are in ROADMAP.md under `F10`
       (no finding; from playtest D4 at `246bb37`)
 - [x] FEAT: stop granting `fly`, `fast` and `noclip` to every new player — found
       while building `F10` on 2026-09-03, not reported: `register_on_newplayer`
       was granting all three in any game that installs this mod, the same shape
       as C18's sky and B39's inventory wipe. Removed outright rather than put
       behind a setting, which you declined: nothing here needs creative flight
-      to be reachable. Filed as C21 on your say-so, fixed by F10, gates green,
-      **not committed**; confirmed in a world 2026-09-03 when you reported
-      /privs on a fresh player showing none of the three, which was the only
+      to be reachable. Filed as C21 on your say-so, fixed by F10 and **committed
+      as b23a8bc**, gates green; confirmed in a world 2026-09-03 when you
+      reported /privs on a fresh player showing none of the three, which was the
+      only
       evidence this finding could ever have (audit C21)
 - [ ] CONTENTDB.md's Quick start tells the player they are given the two tools,
-      which `F10` makes false. README.md had the same problem and has been
-      rewritten with a step saying where the tools come from; CONTENTDB.md is
+      which `F10` made false at b23a8bc. README.md had the same problem and has
+      been rewritten with a step saying where the tools come from; CONTENTDB.md is
       left for the wording review you have pending, since you have an
       uncommitted edit to that line already. `.cdb.json` follows via
       scripts/gen_cdb_json.sh (audit C19; F10)
@@ -166,7 +203,7 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
       that does not refresh itself, live figures left to the HUD — stays
       available; say the word if the misses annoy you in ordinary use rather
       than under a deliberate fast count (audit B47)
-- [x] run F9 — passed 2026-09-02 at `029fab9`, all eight cases in both
+- [x] run F9-1 — passed 2026-09-02 at `029fab9`, all eight cases in both
       languages, and case 4 again after you asked for the opposite: it has now
       passed once each way round (audit F9)
 - [x] run E16 — the unsaved-tab marker, new with F7: passed 2026-08-28 at
@@ -175,17 +212,16 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
       `b9143b0` plus the uncommitted tree, which confirms B48 in a world. The
       original run used a file it had typed into, which is LF on disk and cannot
       show the defect (audit B48, F7)
-- [x] run F10 case 1's two unreported cases — passed 2026-09-03: the fresh
+- [x] run F10-1's two unreported cases — passed 2026-09-03: the fresh
       player's inventory holds neither tool and `/privs` shows no `fly`, `fast`
       or `noclip`. That second one **confirms C21 in a world** and was the only
-      evidence it could ever have, so all four F10 checks now pass
-      (audit C21; playtest F10)
-- [ ] run W4 — the new unknown-block warning: `place(blocks.notablock)` in a
-      loop should warn **once**, naming `notablock`, and build the default block
-      rather than stopping. Then place a second drone in the same session and
-      check it warns on its own account — that is the only way to see the
-      warning is per run, since no spec can reach it. Run it in French too
-      (audit B49)
+      evidence it could ever have, so all four F10-n checks now pass, and they
+      were re-affirmed at 16cd05c once F10 was committed
+      (audit C21; playtest F10-1)
+- [x] run W4 — passed 2026-09-03 at 16cd05c: the unknown-block warning behaves,
+      and it was the last check in PLAYTEST.md with no result. Case 2 — a second
+      drone in the same session warning on its own account — is the only way the
+      per-run scope is observable at all, since no spec can reach it (audit B49)
 - [x] run H8 cases 2, 3 and 4 — 2 and 4 passed 2026-09-02; cases 1 and 3 are
       unperformable, a shown formspec holding the pointer, so no tool can be
       used while the panel is open. Case 3's mechanism moved into `forms_spec`
@@ -196,6 +232,10 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
 - [x] build the release archive and install it once, to prove C16's guard —
       playtest R1 passed at `afbe504` and R2 at `7c5bceb`, both 2026-08-28
       (audit C16)
+- [ ] run W1 at codelevels 2, 3 and 4 — level 1 failed 2026-09-03 and is B50.
+      Whether the other three behave is unreported, so nothing claims they pass;
+      whichever levels do work is also the first thing that narrows the cause
+      (audit B50; playtest W1)
 - [ ] re-run R2 on the archive built from the release commit — R1 was
       re-checked at `7dbe18f` and still passes, but R2 last ran before F4 added
       lib/hud.lua and before .gitattributes changed at `60dc8dd`. Install it in
@@ -216,6 +256,7 @@ Elsewhere
 - [ ] BUG : fix light on large builds (minetest.fix_light(pos1, pos2))
 - [ ] FEAT : protect areas (minetest.is_protected(pos, name))
 - [ ] FEAT : allow save and place schematic files
+- [ ] FEAT : put a limit on drone distance to start pos
 
 
 # Other ideas

@@ -195,7 +195,7 @@ Ids are **never renumbered**: an existing commit message must keep resolving. A
 gap in a sequence is a finding routed to the game's own audit back when the two
 records were one; say so rather than filling the gap.
 
-`Phase 0`–`Phase 8` is this project's milestone scheme and appears in commit
+`Phase 0`–`Phase 10` is this project's milestone scheme and appears in commit
 messages. Never renumber a phase.
 
 ### Recording a feature
@@ -250,9 +250,26 @@ coloured, with a summary strip and anchors the Markdown cannot carry — and you
 regenerate it from the `.md`. Never park detail there.
 
 Each gets, in this order: a **summary strip** small enough to learn the shape of
-the project in five seconds; a **next step** panel with one recommendation, not a
-menu; then the document's own content, grouped as the Markdown groups it, with
-anchors matching the ids so a link resolves.
+the project in five seconds; then the document's own content, grouped as the
+Markdown groups it, with anchors matching the ids so a link resolves.
+
+**None of the three has a next-step panel**, decided by the author on 2026-09-03
+— `playtest.html` first, then `audit.html` and `roadmap.html` later the same day.
+The reason is the same in each case: **the document's own first section already
+says what is outstanding**, so a panel above it is a second, shorter answer to
+the question the section answers at length, and two answers drift apart.
+
+- **`playtest.html`** opens on *What is outstanding* — short and visual, tabular
+  or list-like, **each row linking to the category it belongs to**. What is
+  outstanding on a checklist is a set of unrun, failed or stale checks spread
+  across groups, not one recommendation.
+- **`audit.html`** opens on **The categories** after the summary strip. It never
+  had a *Now*; what it had was *Next step for this document*, and that is gone.
+- **`roadmap.html`** opens on **Finalising v1.0.0**. Its *Now* panel is gone —
+  the ordered list below it is the same answer, in order and with the reasons.
+
+**Do not reinstate one.** If a report seems to need a recommendation at the top,
+the section under it is the thing to fix.
 
 Style: legible over decorative. A readable measure for prose, monospace for code
 and file paths, colour used only to carry severity and state. Respect
