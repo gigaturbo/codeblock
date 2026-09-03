@@ -126,6 +126,14 @@ local function read_file(name, filename, forceRefresh)
                    S('Binary bytecode prohibited')
     end
 
+    -- Line endings normalised to LF, after the size check so a CRLF file cannot
+    -- shrink its way under the ceiling. The client's textarea returns LF
+    -- whatever it was given, so a CRLF buffer never equals the field coming
+    -- back and the editor marked every pristine example modified the moment it
+    -- lost focus. The bundled examples are all CRLF, which is why only files
+    -- the player had already saved escaped the mark. (B48)
+    content = content:gsub('\r\n', '\n')
+
     file.content = content
     return content
 
