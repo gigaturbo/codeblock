@@ -17,8 +17,7 @@
 -- spend is charged against its runtime budget, which is what stops a program
 -- that never finishes - reported as the 'timeout' outcome.
 --
--- Kept out of lib/drone_entity.lua so a test can drive it with an injected
--- clock.
+-- Kept out of the step driver so a test can drive it with an injected clock.
 
 codeblock.stepper = {}
 

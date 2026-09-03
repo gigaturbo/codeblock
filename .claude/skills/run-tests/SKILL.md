@@ -81,23 +81,31 @@ wsl bash -lc 'cd /mnt/c/Users/lacba/PRogrammation/codeblock && for s in api prep
 
 ## Reading the result
 
-A healthy run prints one summary per spec, and `none` under errors:
+A healthy run prints one summary per spec, and `none` under errors. As of
+2026-09-03, at the commit that decoupled the drone record from its entity
+(B50, B52):
 
 ```
   api_spec              30 passed   0 failed
   preprocess_spec       54 passed   0 failed   1 xfail (known defects)   0 xpass
-  env_spec              21 passed   0 failed
-  shapes_spec           27 passed   0 failed
+  env_spec              34 passed   0 failed
+  shapes_spec           31 passed   0 failed
   strguard_spec         29 passed   0 failed
-  limits_spec           36 passed   0 failed
-  forms_spec            35 passed   0 failed
-  stepper_spec          35 passed   0 failed
-  integration_spec      98 passed   0 failed
+  limits_spec           73 passed   0 failed
+  forms_spec            66 passed   0 failed
+  stepper_spec          45 passed   0 failed
+  integration_spec     112 passed   0 failed
 ```
 
-357 assertions before F1, 365 with it — `integration_spec` went 90 → 98. Treat
-the numbers as the shape of a healthy run, not as a checksum: they rise whenever
-a spec gains a case.
+474 assertions. Treat the numbers as the shape of a healthy run, not as a
+checksum: they rise whenever a spec gains a case, and they were 357 before `F1`.
+
+**The script's report filter drops the spec-name lines**, keeping only the lines
+matching `passed|failed|FAIL|want|got|skipped|xfail`, so
+`run_tests.ps1` prints the nine summaries in the order of the `specs` list in
+`init.lua` — `api`, `preprocess`, `env`, `shapes`, `strguard`, `limits`, `forms`,
+`stepper`, `integration` — and not the names. Count the lines: nine, or a spec
+did not report.
 
 What each column means:
 

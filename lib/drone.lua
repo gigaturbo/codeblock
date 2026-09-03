@@ -9,8 +9,14 @@
 -- B29)
 --
 -- The entity is the record's, not the other way round. Drone.new spawns it,
--- update_entity pushes position, facing and nametag into it, and Drone.remove
--- takes it away. The entity itself decides nothing.
+-- Drone.on_step spawns it again once it has been unloaded, update_entity pushes
+-- position, facing and nametag into it, and Drone.remove takes it away. The
+-- entity itself decides nothing, and a record without one is a run nobody can
+-- see rather than a run that has stopped.
+--
+-- The run is driven by lib/register.lua's globalstep and not by the entity: an
+-- entity with static_save = false is deleted the moment its mapblock leaves
+-- server memory, and the program must not go with it. (B50, B52)
 --
 -- Everything a program's end is announced with is in Drone.finish, and every
 -- path that ends a run goes through it.
@@ -61,6 +67,13 @@ local function dirtocardinal(dir) return floor((dir + tmp4) * tmp1) * tmp3 end
 -- replaced. Compared as a value rather than by comparing ObjectRefs, which the
 -- engine nowhere promises are the same userdata twice. (B29)
 local serial = 0
+
+-- How long a drone waits before trying for another object, in seconds, and the
+-- countdown Drone.on_step keeps against it. Server-wide rather than per drone:
+-- the wait is only there to keep the attempt off the tick, and one drone getting
+-- its view back a fraction sooner than another is nothing a player can see.
+local respawn_period_s = 1
+local respawn_wait = 0
 
 --- The block this player has chosen for a bare place(), or stone.
 --
@@ -151,8 +164,9 @@ local drone_mt = {
             --
             -- add_entity returns nil when the target area is not loaded, and
             -- the placer tool reaches 128 nodes, so a player can comfortably
-            -- point past loaded ground. Without an entity nothing would ever
-            -- step the program, so no record is created either. (B10)
+            -- point past loaded ground. Placing there is refused rather than
+            -- answered with a drone the player cannot see. Only re-spawning is
+            -- permissive; a drone is never created without its object. (B10)
             serial = serial + 1
             local tag = serial .. ' ' .. name
             local obj = core.add_entity(pos, 'codeblock:drone', tag)
@@ -343,69 +357,96 @@ local drone_mt = {
 
         end,
 
-        --- Advance one drone for its slice of this server step.
+        --- Advance every drone for its slice of this server step, and give an
+        -- object back to any that has lost one.
         --
-        -- Driven by the entity, which is why it is per-drone rather than one
-        -- globalstep: an entity that has been unloaded stops being stepped, and
-        -- so does the program it carries.
-        on_step = function(name, serial)
+        -- Registered as a globalstep in lib/register.lua. Driving it from the
+        -- entity instead ended a run whenever the object went, and an object
+        -- with static_save = false goes as soon as its mapblock leaves server
+        -- memory - which is every drone past about 192 nodes from a player, and
+        -- every drone standing still for server_unload_unused_data_timeout.
+        -- (B50, B52)
+        --
+        -- One pass, because the share each drone gets needs the number of them
+        -- running: counted per entity, that was a scan of every drone for every
+        -- drone. It is counted rather than kept as a running total because a
+        -- drone can stop for reasons that never pass through here.
+        --
+        -- Clearing a key during pairs is defined in Lua 5.1 and adding one is
+        -- not; Drone.finish only ever removes.
+        on_step = function(dtime)
 
-            local drone = Drone.get(name)
-
-            -- Same reason on_lost checks it: an entity on its way out can
-            -- still be stepped once, and must not spend the budget of the
-            -- drone that replaced it. (B29)
-            if drone == nil or drone.serial ~= serial or drone.cor == nil then
-                return
-            end
-
-            -- Counted here rather than kept as a running total, because a drone
-            -- can stop for reasons that never pass through this function. Few
-            -- players, once per drone per step. Sleeping drones are left out:
-            -- they are not going to spend anything this step, so they must not
-            -- take a share either.
+            -- Sleeping drones are left out: they will spend nothing this step,
+            -- so they must not take a share either.
             local running = 0
             for _, d in pairs(Drone.instances) do
                 if d.cor ~= nil and awake(d) then running = running + 1 end
             end
 
-            -- Advance for up to this drone's slice of the step rather than
-            -- exactly one resume; see lib/stepper.lua for why, and for why the
-            -- slice shrinks as more drones run. The string guards are armed for
-            -- the span in which player code runs and released inside advance().
-            local budget = step_budget(drone.budget.caps.step,
-                                       server_step_budget_us, running)
-            local _, outcome, err = advance(drone, budget)
+            respawn_wait = respawn_wait - dtime
+            local respawn = respawn_wait <= 0
+            if respawn then respawn_wait = respawn_period_s end
 
-            if outcome ~= 'yielded' then Drone.finish(drone, outcome, err) end
+            for _, drone in pairs(Drone.instances) do
+
+                -- Same serial and owner as the drone was placed with, so the
+                -- object that comes back belongs to the same run. (B29)
+                --
+                -- Gated on the block being in memory rather than on add_entity
+                -- failing, which logs an engine warning per call and would fill
+                -- debug.txt from here. Not tried every step: a mapblock comes
+                -- and goes on the engine's own cadence of seconds, so a faster
+                -- check would see nothing more.
+                if respawn and drone.obj == nil then
+                    local pos = {x = drone.x, y = drone.y, z = drone.z}
+                    if core.get_node_or_nil(pos) ~= nil then
+                        drone.obj = core.add_entity(pos, 'codeblock:drone',
+                                                    drone.serial .. ' ' ..
+                                                        drone.name)
+                        drone:update_entity()
+                    end
+                end
+
+                -- Advance for up to this drone's slice of the step rather than
+                -- exactly one resume; see lib/stepper.lua for why, and for why
+                -- the slice shrinks as more drones run. The string guards are
+                -- armed for the span in which player code runs and released
+                -- inside advance().
+                if drone.cor ~= nil then
+                    local budget = step_budget(drone.budget.caps.step,
+                                               server_step_budget_us, running)
+                    local _, outcome, err = advance(drone, budget)
+                    if outcome ~= 'yielded' then
+                        Drone.finish(drone, outcome, err)
+                    end
+                end
+
+            end
 
         end,
 
-        --- The entity went away: unloaded, or removed by anything other than
-        -- Drone.remove, which clears the record first.
+        --- The object went away: unloaded with its mapblock, or removed by
+        -- anything other than Drone.remove, which clears the record first.
         --
-        -- `serial` says which drone went. ObjectRef:remove() takes effect at
-        -- the end of the step, so an entity taken away can fire this after a
-        -- replacement drone has already been installed under the same name -
-        -- and without the check, replacing a drone would destroy the new one.
-        -- (B29)
+        -- The view of the drone, and nothing else. The run carries on unseen
+        -- and on_step hands the drone another object once its block is back in
+        -- memory, so nothing is announced and nothing is torn down - including
+        -- for a drone with no coroutine, which now waits for its view rather
+        -- than being taken away. B30's rule holds either way: a program that
+        -- never started is never reported as having ended.
+        --
+        -- `serial` says which drone lost its object. ObjectRef:remove() takes
+        -- effect at the end of the step, so an object taken away can fire this
+        -- after a replacement drone has been installed under the same name -
+        -- and without the check, replacing a drone would blank the new one's
+        -- object and leave it invisible until the next re-spawn. (B29)
         on_lost = function(name, serial)
 
             local drone = Drone.get(name)
 
             if drone == nil or drone.serial ~= serial then return end
 
-            -- Nothing was running, so there is nothing to announce the end of:
-            -- a drone parked in a mapblock the player walked away from would
-            -- otherwise report a program that never started. (B30)
-            if drone.cor == nil then
-                Drone.remove(name)
-                return
-            end
-
-            chat_send_player(name,
-                             S('The drone has disappeared, program stopped'))
-            Drone.finish(drone, 'completed')
+            drone.obj = nil
 
         end,
 

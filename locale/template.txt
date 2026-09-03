@@ -75,7 +75,6 @@ Settings=
 Show the drone HUD=
 Stop=
 The drone cannot leave the world (@1 nodes)=
-The drone has disappeared, program stopped=
 The most memory the program has grown by at any point.=
 Usage: /codeblock generate [<playername>]=
 Usage: /codeblock level [<playername>] <1-4>=

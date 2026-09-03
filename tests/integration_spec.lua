@@ -276,39 +276,67 @@ do
     -- Directly on the prototype, not behind a metatable of this mod's own:
     -- register_entity makes the definition the luaentity's metatable with
     -- __index pointing at itself. (A6)
-    it('the entity defines its callbacks on the prototype',
-       type(rawget(entity, 'on_step')), 'function')
+    it('the entity is told when it goes away',
+       type(rawget(entity, 'on_deactivate')), 'function')
     it('and is told its owner on activation',
        type(rawget(entity, 'on_activate')), 'function')
     it('the entity caches no drone', rawget(entity, '_data'), nil)
 
+    -- The object is a view and drives nothing. An entity with
+    -- static_save = false is deleted the moment its mapblock leaves server
+    -- memory, so a program advanced from here would end with the view of it.
+    -- (B50, B52)
+    it('and the entity does not advance the program',
+       rawget(entity, 'on_step'), nil)
+
     -- ObjectRef:remove() takes effect at the end of the step, so the entity of
     -- a drone that has been replaced fires on_deactivate once the new drone is
     -- already installed under the same name. It is told which drone it belongs
-    -- to and must leave any other alone. (B29)
+    -- to and must leave any other alone - without the guard, replacing a drone
+    -- would blank the new one's object and leave it invisible. (B29)
     --
     -- A serial rather than the ObjectRef, because nothing in the engine's
     -- documentation says the same object yields the same userdata twice.
+    --
+    -- obj carries a placeholder rather than being left unset, for two reasons:
+    -- it is what tells 'left alone' from 'cleared' below, and Drone.on_step
+    -- hands any record with no object to get_node_or_nil with its own x/y/z,
+    -- which this fake does not have.
     local spec_player = '!spec_player'
-    Drone.instances[spec_player] = {name = spec_player, serial = '2'}
+    local spec_obj = {}
+    Drone.instances[spec_player] =
+        {name = spec_player, serial = '2', obj = spec_obj}
 
     Drone.on_lost(spec_player, '1')
-    it('a replaced drone does not take away the one that replaced it',
+    it('a replaced drone does not blank the object of the one that replaced it',
+       Drone.instances[spec_player].obj, spec_obj)
+
+    -- Losing the object is losing the view and nothing else: the run carries on
+    -- unseen and on_step gives the drone another one once its block is back.
+    -- Nothing is announced and nothing is torn down, including for a drone with
+    -- no coroutine. (B30, B52)
+    Drone.on_lost(spec_player, '2')
+    it('and its own object going leaves the record standing',
+       Drone.instances[spec_player] ~= nil, true)
+    it('with nothing to be seen by until it is spawned again',
+       Drone.instances[spec_player].obj, nil)
+
+    -- One pass over every record per server step, taking only dtime: the drone
+    -- is no longer stepped per entity, so nothing about the signature or the
+    -- pass can be inferred from the entity any more. pcall because a change to
+    -- either would otherwise take the rest of the file with it.
+    --
+    -- The object is restored first: with none, the pass would look the fake's
+    -- position up in a map that does not exist yet at mod load.
+    Drone.instances[spec_player].obj = spec_obj
+    it('the whole set of drones is advanced in one pass, from dtime alone',
+       pcall(Drone.on_step, 0), true)
+
+    -- Nothing to advance, so nothing to end. A drone waiting for a program must
+    -- survive a step it takes no part in.
+    it('and a drone that is not running is left where it is',
        Drone.instances[spec_player] ~= nil, true)
 
-    -- Nothing was running, so there is nothing to report the end of - only the
-    -- record goes. (B30)
-    Drone.on_lost(spec_player, '2')
-    it('and its own entity going does take it away',
-       Drone.instances[spec_player], nil)
-
-    -- The same guard on the stepping side: a drone on its way out must not
-    -- spend the budget of its replacement.
-    -- pcall because without the guard this walks into the replacement's budget
-    -- and raises, which would take the rest of the file with it.
-    Drone.instances[spec_player] = {name = spec_player, serial = '2', cor = 1}
-    it('nor is it stepped in the place of its replacement',
-       pcall(Drone.on_step, spec_player, '1'), true)
     Drone.instances[spec_player] = nil
 end
 

@@ -7,6 +7,7 @@ local get_pointed_thing_position = core.get_pointed_thing_position
 local chat_send_player = core.chat_send_player
 
 local drone_on_run = codeblock.Drone.on_run
+local drone_on_step = codeblock.Drone.on_step
 local drone_on_place = codeblock.Drone.on_place
 local drone_on_remove = codeblock.Drone.on_remove
 
@@ -174,17 +175,24 @@ core.register_tool("codeblock:setter", {
 core.register_entity("codeblock:drone", codeblock.DroneEntity)
 
 --------------------------------------------------------------------------------
--- the display tick
+-- the server step
 --------------------------------------------------------------------------------
 
--- One globalstep for both surfaces that show a running program's budget, rather
--- than one each: they show the same numbers, so a player watching both must not
--- see them disagree. hud.tick owns the cadence and says when it actually
--- redrew - it is the same display period for both - and the panel follows.
+-- One globalstep for the running programs and for both surfaces that show what
+-- they are spending, rather than one each. The two displays show the same
+-- numbers, so a player watching both must not see them disagree: hud.tick owns
+-- the cadence and says when it actually redrew - it is the same display period
+-- for both - and the panel follows. The programs are advanced first, so what is
+-- drawn is the state at the end of this step and not the last one.
 --
--- Neither is registered in its own module because neither should have to know
--- the other exists; the orchestration is the caller's, which is here. (F4, A11)
+-- Drone.on_step is here and not in the drone entity because an entity is deleted
+-- with its mapblock, and a program must not be. (B50, B52)
+--
+-- None of the three is registered in its own module because none should have to
+-- know the others exist; the orchestration is the caller's, which is here.
+-- (F4, A11)
 core.register_globalstep(function(dtime)
+    drone_on_step(dtime)
     if hud_tick(dtime) then drone_panel_tick() end
 end)
 

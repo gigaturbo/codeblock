@@ -1,4 +1,8 @@
---- The drone's engine-side object: something to see, and something to step.
+--- The drone's engine-side object: something to see, and nothing else.
+--
+-- The run is driven by lib/register.lua's globalstep, not from here, because an
+-- object with static_save = false is deleted as soon as its mapblock leaves
+-- server memory and a program must outlive the view of it. (B50, B52)
 --
 -- It owns nothing and decides nothing. The record lives in lib/drone.lua and is
 -- reached by the owner's name - that and a serial are the only things kept
@@ -14,7 +18,6 @@
 -- so a metatable of this file's own would resolve only by the coincidence of
 -- two designs agreeing. (A6)
 
-local drone_on_step = codeblock.Drone.on_step
 local drone_on_lost = codeblock.Drone.on_lost
 
 codeblock.DroneEntity = {
@@ -41,14 +44,13 @@ codeblock.DroneEntity = {
         self.serial, self.owner = staticdata:match('^(%d+) (.*)$')
     end,
 
-    on_step = function(self, dtime, moveresult)
-        drone_on_step(self.owner, self.serial)
-    end,
-
-    -- Fires on removal and on the mapblock unloading alike. Both mean the same
-    -- thing to a running program, and the removal flag is not needed to tell
+    -- No on_step: the program is advanced once per server step for every drone,
+    -- from lib/register.lua, whether or not there is an object to advance.
+    --
+    -- Fires on removal and on the mapblock unloading alike. Both mean only that
+    -- the drone can no longer be seen, so the removal flag is not needed to tell
     -- them apart: Drone.remove clears the record before it removes the object,
-    -- so teardown from that side finds nothing here to report.
+    -- so teardown from that side finds nothing here to drop.
     --
     -- The serial goes with the name because removal is deferred to the end of
     -- the step, so by the time this fires the name may already belong to a

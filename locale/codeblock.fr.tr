@@ -74,7 +74,6 @@ Settings=Paramètres
 Show the drone HUD=Afficher l'ATH du drone
 Stop=Arrêter
 The drone cannot leave the world (@1 nodes)=Le drone ne peut pas sortir du monde (@1 blocs)
-The drone has disappeared, program stopped=Le drone a disparu, programme stoppé...
 The most memory the program has grown by at any point.=Mémoire maximale occupée par le programme.
 Server CPU time used by your drone.=Temps CPU dépensé par le drone.
 Usage: /codeblock generate [<playername>]=Usage : /codeblock generate [<joueur>]
