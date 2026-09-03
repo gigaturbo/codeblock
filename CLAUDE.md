@@ -484,23 +484,47 @@ that worked.
 
 ### `drone.lua` vs `drone_entity.lua`
 
-They divide by direction of dependency (audit A11). `lib/drone_entity.lua` is 67
+They divide by direction of dependency (audit A11). `lib/drone_entity.lua` is 69
 lines: it holds the owner's **name** and a **serial**, arriving together as
-`core.add_entity` staticdata in the form `<serial> <name>`, and routes two engine
-events onto the record. It owns nothing and caches nothing, so a name that names
-no drone simply reads nil. `lib/drone.lua` owns the record,
-the lifecycle, and `Drone.finish` — the single place a run's outcome is
-announced. It does not know forms exist: `Drone.on_place` returns whether the
-player still needs to pick a file, and `lib/register.lua` shows the chooser.
+`core.add_entity` staticdata in the form `<serial> <name>`, and routes one engine
+event onto the record — `on_deactivate`. It owns nothing and caches nothing, so a
+name that names no drone simply reads nil. `lib/drone.lua` owns the record, the
+lifecycle, and `Drone.finish` — the single place a run's outcome is announced. It
+does not know forms exist: `Drone.on_place` returns whether the player still
+needs to pick a file, and `lib/register.lua` shows the chooser.
+
+**The entity is a view, and nothing else. The run is driven by the globalstep in
+`lib/register.lua`** — one registration, which calls `Drone.on_step(dtime)` and
+then the HUD and panel tick. `Drone.on_step` loops over `Drone.instances`, counts
+the running drones **once** so each gets its share of `server_step_budget_us`,
+advances each one, and hands an object back to any drone that has lost one. There
+is **no `on_step` on the entity**, and adding one would undo all of this
+(audit B50, B52).
+
+The reason is an engine rule: an object with `static_save = false` is deleted the
+moment its mapblock leaves server memory — not when it goes out of active-block
+range — and nothing in the mod keeps the drone's *own* block loaded, so any drone
+past about 192 nodes from a player, or standing still for
+`server_unload_unused_data_timeout`, loses its object. **So a record without an
+object is a run nobody can see, not a run that stopped.** `Drone.on_lost` clears
+`drone.obj` and does nothing else: it announces nothing, tears nothing down, and
+does not test `drone.cor` — a parked drone with no coroutine waits for its view
+too. `Drone.on_step` re-spawns the object with the **same serial** once
+`get_node_or_nil` says the block is back, at most once a second. Two consequences
+are deliberate: `/clearobjects` no longer ends a running program, and a runaway
+drone far from any player loses its accidental stop, so `max_nodes_written`,
+`max_runtime_s` and `map_memory_mb` carry that load alone.
 
 Teardown is shaped around re-entrancy: `Drone.remove` clears the record *before*
 `obj:remove()`, because that fires `on_deactivate`, which looks the drone up.
 **That ordering is not what makes it safe.** `ObjectRef:remove()` takes effect at
 the end of the step, so `on_deactivate` can fire after a replacement drone has
 been installed under the same name. What protects the replacement is the serial:
-`on_lost` and `on_step` both ignore any record whose serial is not the one they
-were called for. Do not remove either guard on the strength of the clear-first
-ordering (audit B29).
+`on_lost` ignores any record whose serial is not the one it was called for.
+Without it, a dying object would blank the new drone's `obj` and leave it
+invisible until the next re-spawn. Re-spawning under the same name makes that
+case more common, not less, so do not remove either guard on the strength of the
+other (audit B29).
 
 ### The two tools, and the player's inventory
 

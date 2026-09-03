@@ -169,16 +169,15 @@ Concretely, in this suite:
 
 ## Related
 
-The three gates below plus this suite are the four every change passes. A fifth
-is coming: `settingtypes.txt` is the third hand-kept mirror and the only one
-without a generator and a `--check` (decided 2026-08-28, not yet built). Until it
-exists, a change to a limit in `lib/config.lua` is verified against that file by
-reading both.
+The three `--check` gates below plus `luacheck` and this suite are the five every
+change passes.
 
 `scripts/gen_docs.lua --check` verifies the API reference is current,
 `scripts/gen_locale.lua --check` verifies `locale/template.txt` lists exactly the
-messages the code sends, and `luacheck` lints. All three run in CI — the two
-`--check`s in the `docs are generated from the code` job — and none is run by this
+messages the code sends, `scripts/gen_settingtypes.lua --check` verifies
+`settingtypes.txt` matches `lib/config.lua` — built 2026-09-02, and it found
+`C20` on its first run — and `luacheck` lints. All four run in CI, the three
+`--check`s in the `docs are generated from the code` job, and none is run by this
 skill:
 
 ```bash
@@ -186,4 +185,5 @@ wsl bash -lc 'cd /mnt/c/Users/lacba/PRogrammation/codeblock && luacheck . --form
 ```
 
 Read what they print rather than the exit code: `$?` does not survive the WSL
-layer here, so green means luacheck silent and both checks saying *up to date*.
+layer here, so green means luacheck silent and all three checks saying *up to
+date*.

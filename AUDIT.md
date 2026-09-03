@@ -20,27 +20,27 @@ it.
 
 ## Where it stands
 
-**83 findings. 79 resolved, 3 open (`B50`, `B51`, `B52`), 1 won't fix
-(`B34`).**
+**83 findings. 81 resolved, 1 open (`B51`), 1 won't fix (`B34`).**
 
-**All three open findings are one afternoon's work, and all three are about a
-drone the player loses.** `B50` is the defect: at codelevel 1 the drone
-disappears mid-run, from `W1`'s re-run on 2026-09-03, and its cause is now read
-out of the 5.17.0 engine source — an entity with `static_save = false` is deleted
-when the mapblock under it leaves server memory, which nothing keeps loaded past
-~192 nodes from a player. `B51` and `B52` were **found while diagnosing it** and
-are independent of it: a run cut short is announced as *completed*, and a drone
-standing still far from a player dies at about 29 seconds. **`B50`'s one open
-question is now closed and `B51` has been seen in a world**, both by `W1`'s
-discriminator run of 2026-09-03: both chat lines arrive, so there is **no fourth
-finding**, and the two lines the player is shown — *le drone a disparu* then
-*programme terminé* — contradict each other, which is `B51` exactly. **No fix is
-chosen for any of the three** — the options are with the author. All three are ahead of the
-release list; see `ROADMAP.md`'s *Now*.
+**`B50` and `B52` are fixed in `1b991ae` and unverified in a running world.** The
+fix is the one chosen on 2026-09-03 — decouple the drone record from its entity —
+and it closed both findings together: every drone is advanced from the one
+globalstep `lib/register.lua` already registered, `on_deactivate` sets
+`drone.obj = nil` instead of ending the run, and `Drone.on_step` hands a drone
+another object, with the same serial, once its mapblock is back in server memory.
+`test-agent`'s evidence is in `tests/integration_spec.lua`; the three in-world
+checks that would confirm it — `W1` at codelevel 1, `W5` and `W6` — are written
+and **unrun**.
+
+**`B51` is the one left, and it has no chosen fix.** `Drone.on_remove` still
+passes `'completed'` for a run the setter cut short, so the player is told a
+program completed when they stopped it. `B50`'s half of the wrong word is gone
+with the message that carried it, which makes `B51` the only remaining path to
+it. See `ROADMAP.md`'s *Now* for where it sits against the release list.
 
 | Category | Count | Open |
 |---|---|---|
-| B bugs | 49 | **`B50`** (the drone vanishes at codelevel 1, from `W1`), **`B51`** (a run cut short says *completed*), **`B52`** (a still drone dies at ~29 s) — and `B34` won't fix, `B47` resolved with a residue, `B48` fixed at `4179877` and confirmed by `E16`, `B49` fixed at `d8c32f7` and confirmed by `W4` |
+| B bugs | 49 | **`B51`** (a run cut short says *completed*, no chosen fix) — and `B34` won't fix, `B47` resolved with a residue, `B48` fixed at `4179877` and confirmed by `E16`, `B49` fixed at `d8c32f7` and confirmed by `W4`, `B50` and `B52` fixed at `1b991ae` and unverified in a world |
 | S sandbox and security | 7 | — |
 | C compliance and packaging | 15 | — (`C21` fixed by `F10` at `b23a8bc`, confirmed in a world by `F10-1`) |
 | A architecture and performance | 12 | — |
@@ -57,46 +57,30 @@ renames two chat commands — is `b23a8bc`, and `B49`'s unknown-block warning in
 `lib/env.lua` and `lib/sandbox.lua` is `d8c32f7`, with the record following at
 `16cd05c`. **CI has still seen none of them**: the last run was `471526e`
 (run 45), so everything from `d8d44cd` up carries local gates only.
-**The gates were run over the whole tree on 2026-09-03, before it was split into
-those three commits, and are green**,
-engine 5.17.0, read from output rather than exit codes: luacheck silent,
-`doc/api.md`, `locale/template.txt` and `settingtypes.txt` each *up to date*,
-nine in-engine specs **458 passed / 0 failed / 1 xfail / 0 xpass**, no errors,
-and `codeblock_run_tests` confirmed absent from the config afterwards. **Both
-counts then moved with `B49`'s coverage**: `test-agent` added 13 cases to
-`tests/env_spec.lua`, taking `env_spec` 21 → 34 and the in-engine total 458 →
-**471 passed / 0 failed / 1 xfail / 0 xpass**, which is exactly the 13 and
-nothing else. The six standalone under Lua 5.1 read api 30, preprocess 54 +
-1 xfail, env 34, shapes 31, strguard 29, limits 73 — **251 passed / 0 failed /
-1 xfail**. `LUACHECK_STRICT=1` shows the same 20 pre-existing warnings and none
-in the new spec, and `codeblock_run_tests` was confirmed absent with no BOM.
-**Every figure here describes the three changes together — `B48`, `F10`/`C21`
-and `B49` — measured before they were split into `4179877`, `b23a8bc` and
-`d8c32f7`, so no figure describes any one of them alone and CI has seen none of
-it.** The standalone run is the same command CI runs, so plain Lua 5.1 is covered
-locally; a real CI run is now waiting on a push rather than on a commit.
-`gen_locale.lua --check` listed, at the earlier run, **eight `fr` messages untranslated
-and three orphaned** — the legitimate fallback state per `C17`, the eight being
-`F10`'s new keys and the three the usage keys it retired. **The eight French
-translations were written and the three orphans removed later on 2026-09-03**,
-and the four gates were re-run over the whole tree afterwards: luacheck silent,
-`doc/api.md` and `settingtypes.txt` *up to date*, and the locale check now
-reading **`locale/*.tr cover every message and nothing else`** alongside
-`locale/template.txt is up to date` — the fully-translated state rather than the
-legitimate-fallback one. That edit touches no Lua, so the spec counts above still
-stand. The in-engine count is up from
-439: `F9`, `H8`'s displaced case and the paused clock added nineteen to
-`forms_spec`, and nothing was added for `B47` because **no spec can reach it** —
-the gates call the handler directly and the defect is in the client's menu.
+**The gates are green at `1b991ae`**, engine 5.17.0, read from output rather
+than exit codes: luacheck silent, `doc/api.md`, `locale/template.txt` and
+`settingtypes.txt` each *up to date*, `locale/*.tr` covering every message and
+nothing else, **nine in-engine specs 474 passed / 0 failed / 1 xfail / 0 xpass**
+and six standalone under Lua 5.1. The xfail is `preprocess_spec`'s and
+pre-existing. The in-engine count has moved 458 → 471 → 474: 13 `env_spec` cases
+for `B49`, then three for `B50`/`B52` in `integration_spec`'s drone-seam block,
+which went from six cases to nine. Nothing was added for `B47`, because **no
+spec can reach it** — the gates call the handler directly and the defect is in
+the client's menu. **CI has seen none of this**: the last run was `471526e`
+(run 45), so everything from `d8d44cd` up carries local gates only. The
+standalone run is the same command CI runs, so plain Lua 5.1 is covered locally;
+a real CI run waits on a push.
 
-**Every defect the playtests found is fixed except the newest three**: `W1`'s
-re-run at codelevel 1 on 2026-09-03 is `B50`, and diagnosing it produced `B51`
-and `B52`. All three are open and none has a chosen fix. The one thing **not verified anywhere**
+**Every defect the playtests found is fixed, and `B51` is the only finding
+open.** `W1`'s re-run at codelevel 1 on 2026-09-03 was `B50`, and diagnosing it
+produced `B51` and `B52`; `B50` and `B52` are fixed in `1b991ae` and unverified
+in a world, and `B51` has no chosen fix. The one thing **not verified anywhere**
 is `B10`'s refusal, aimed at twice through playtest `D2` and missed twice — the
 recipe is the suspect and its check was removed as untestable on 2026-09-02.
-**Gates green, unproven in a world — two:** `B14`, permanently blocked on
-`B34` being won't-fix, and `S7`'s log half. **That list is now exactly those
-two.** `C21` left it on 2026-09-03: playtest `F10-1` was completed the same day
+**Gates green, unproven in a world — four:** `B14`, permanently blocked on
+`B34` being won't-fix, `S7`'s log half, and **`B50` and `B52`, which joined the
+list at `1b991ae`** with `W1`, `W5` and `W6` written and unrun. **That list is
+now exactly those four.** `C21` left it on 2026-09-03: playtest `F10-1` was completed the same day
 and `/privs` on a fresh player shows no `fly`, `fast` or `noclip`, which was that
 finding's only possible evidence. **`B48` left it the same day**, `E16`'s new
 pristine-example case passing. **And `B49` left it that day too** — `W4` was
@@ -112,177 +96,40 @@ retuning's effect on the bundled examples off this list too.
 
 ## Open
 
-**Three open: `B50`, `B51`, `B52`**, all from 2026-09-03 and all about losing a
-drone. `B34` is the one won't-fix, and `B47` is resolved with a
-residue that ships — see *What ships broken* in `ROADMAP.md`. Both are kept here
-in full because their reasoning is still load-bearing.
-
-### B50 · high · open — the drone disappears at codelevel 1
-
-**Observed by playing it, and the cause is now read out of the engine.** Playtest
-`W1`, re-run 2026-09-03 at or about `16cd05c`, engine version not recorded. `W1`
-had asked since 2026-08-28 for a run at codelevel 1 or 2, both of its passes
-having been taken above level 2, and this is that run.
-
-**What was observed.** At **codelevel 1**, running this program, **the drone
-disappeared after 6–8 seconds** — the author's wording. No error message, no
-refusal, and not the world-edge stop *"The drone cannot leave the world"*.
-
-    -- aaa.lua
-
-    for i = 1, 25 do
-      place(blocks.obsidian)
-      forward(16)
-    end
-
-    back(2)
-
-    for i = 1, 25 do
-      place(blocks.brick)
-      back(16)
-    end
-
-**The cause, verified against the 5.17.0 engine source.** The drone entity sets
-`static_save = false` (`lib/drone_entity.lua:31`), and for such an object the
-engine's unload rule is **not** *out of active-block range* but **the mapblock it
-stands in is not in server memory**. `src/server/serveractiveobject.h:123-129`
-states the two rules and `src/serverenvironment.cpp:1685-1690` is the test:
-
-    isStaticAllowed() ? m_active_blocks.contains(blockpos)
-                      : getBlockNoCreateNoEx(blockpos) != nullptr
-
-With no static data to write, the object is **deleted outright** rather than
-saved, from `deactivateFarObjects`, which runs on `active_block_mgmt_interval`,
-2.0 s.
-
-**Nothing in the mod keeps the drone's own block loaded.** `cost.place_block`
-loads the block it *writes* in — that is `B25`'s fix — but this program is
-`place(); forward(16)`, so after every move the drone rests for a pace in a block
-**ahead of its trail** that nothing has loaded. Near the player the client causes
-that block to exist anyway; past roughly 192 nodes nothing does.
-`active_object_send_range_blocks` is 8, so at **128 nodes** the client is told to
-forget the object, and `viewing_range` / `max_block_send_distance` run out at
-**190–192**.
-
-**Keep — why *time* far from the player is the discriminator and not distance.**
-At 250 ms of pace and two commands per 16 nodes, a mapblock takes ~0.53 s, so
-~192 nodes arrives at ~6.4 s and the next 2-second management cycle catches it —
-which is the 6–8 seconds that was reported, from the arithmetic rather than from
-the report. **At codelevels 3 and 4 the whole 50-command program is over inside a
-step or two, so the management cycle never sees it**, and **`W1`'s two passes
-above level 2 could not have caught this.** Level 2 is genuinely undecided and
-depends on singleplayer against dedicated, the server step differing. So this is
-not a regression that arrived at some commit: it is a defect the check was
-pointed away from for as long as it was run at the wrong level.
-
-**The run dies with the entity, and that part is correct.** The mod's only
-globalstep is the HUD and panel tick; `Drone.on_step` is reached solely from the
-entity, so the record, the coroutine and the stepper all stop together. Cleanup
-is right **if** `on_deactivate` fires.
-
-**Two events happen seconds apart, and only one of them is a defect.** At
-**~128 nodes** the client is told to forget the object — a silent, correct vanish
-with nothing to announce. At **~192 nodes and beyond** the object is deleted,
-which **should** print *The drone has disappeared, program stopped* and then the
-finish line (`lib/drone.lua:404-408`). Which of the two the author saw was not
-decidable by reading, and the entry recorded that **if no line was printed, that
-would be a second and separate defect**.
-
-**That question is now answered, and there is no second defect.** The author ran
-the discriminators on 2026-09-03, twice, with a plain outward walk and no return
-leg:
-
-    -- aaa.lua
-    for i = 1,50 do
-      place(blocks.obsidian)
-      forward(16)
-    end
-
-**Both chat lines arrived**, in French — *le drone a disparu*, then
-*programme terminé*. So `on_deactivate` fires, `on_lost` runs and `Drone.finish`
-is reached: **the announcement path is intact and the teardown completes.** What
-the author saw vanish at 6–8 seconds was the *first* event, the client being told
-to forget the object at ~128 nodes, with the death arriving later — exactly the
-two-event shape above.
-
-**Discriminator 3 was not run**, so the leaked-record case is **unlikely rather
-than unobserved**: both messages together mean the teardown path ran to its end,
-which is the path that clears the record, but nobody has tried to place a drone
-afterwards. Do not record it as ruled out.
-
-**The codelevel was not restated for these two runs.** The first `W1` run was
-level 1 and these are read as the same, but that is an inference and not a
-report.
-
-**Keep — the observed distance is 320–352 nodes, not the ~192 the diagnosis
-predicted, and the mechanism is unchanged.** The obsidian stopped at **352
-nodes** in the first run and **320** in the second — 22 and 20 mapblocks. The
-refinement, because the raw number otherwise reads as the diagnosis being wrong:
-
-- **~192 nodes is where nothing else loads blocks any more.** It is where the
-  drone becomes *killable*, not where it dies.
-- **The drone is only killable in the gap between `forward` and the next
-  `place`.** `place()` calls `load_area` for the block it writes in, and this
-  program places once in every block it crosses, so each block is loaded 250 ms
-  after the drone enters it. The exposed window is about half of each 0.5 s
-  iteration.
-- **`deactivateFarObjects` samples every 2.0 s**, so past 192 nodes each sweep is
-  roughly a coin flip. Surviving two or three sweeps is ~8 blocks, and
-  192 + 128 = 320.
-- **Two runs dying 32 nodes apart is the signature of a sampled race, not of a
-  fixed boundary.** That is the strongest evidence the mechanism is right, and it
-  is why the spread is reported rather than averaged away.
-
-**Keep — what this changes about any fix. A program that moves without placing
-has no `load_area` at all**, so it is exposed continuously and dies at the first
-sweep past ~192 nodes rather than surviving a few. **The observed 320–352 is the
-lucky case, not the typical one**, and a fix that only helps a program which
-places in every block it crosses does not cover the defect.
-
-**Keep — the three in-world discriminators**, kept because they are what settled
-this and what a re-run after any fix should record again:
-
-1. **Where the obsidian stops**, in multiples of 16. Near **192–256** means the
-   object was deleted; a full run to the program's end means only the view was
-   lost and the run continued unseen. **Observed: 352 and 320.**
-2. **Whether a chat line arrived, and how long after** the drone vanished from
-   the screen. **Observed: both lines, and the drone had vanished from view
-   earlier** — the two events, seconds apart.
-3. **Whether a new drone can be placed immediately**, or the answer is *"Drone is
-   busy, please wait!"*. **Not run.** It is the expensive case: a leaked record
-   keeps `cor ~= nil` for ever, locking that player out of placing a drone, and
-   counts a phantom in `on_step`'s running total — which **permanently shrinks
-   every other drone's share of `server_step_budget_us`** for the life of the
-   world.
-
-**No fix is recorded here on purpose.** The options are with the author and have
-not been answered; whichever is taken lands on this entry with its grounds. Two
-constraints any of them has to respect are already known: `B25`'s reason for the
-`load_area` call and `B29`'s serial guard, both of which sit on the same paths.
-A third is now observed rather than argued: **the no-place case above.**
+**One open: `B51`** — a run cut short is announced as *completed*, and it is the
+**only remaining path to the wrong word** now that `B50`'s fix removed the
+message that carried the other one. It has **no chosen fix**. `B34` is the one
+won't-fix and `B47` is resolved with a residue that ships — both are in
+*B · Bugs* below, and `B47`'s residue is under *What ships broken* in
+`ROADMAP.md`. **`B50` and `B52` were open until `1b991ae`**; they are in
+*B · Bugs* below with the diagnosis, the reproducer and the costs the fix
+accepted.
 
 ### B51 · medium · open — a run cut short is announced as *completed*
 
 `Drone.finish` has **no vocabulary for a run that was stopped**. Every non-error
 ending falls into the `else` branch and is announced as `Program '@1' completed`,
-so a drone killed mid-flight and one stopped deliberately with the setter both
-tell the player the program *completed* — with a node count that is a fraction of
-what it asked for. `on_lost` passes `'completed'` explicitly at
-`lib/drone.lua:408`, and `on_remove` at `lib/drone.lua:342`.
+so a run stopped deliberately with the setter tells the player the program
+*completed* — with a node count that is a fraction of what it asked for.
+`Drone.on_remove` passes `'completed'` explicitly, and after `1b991ae` it is the
+**only** caller that does so wrongly: `on_lost` no longer ends a run at all, so
+the mid-flight case the same word used to cover is gone with it.
 
-**Found while diagnosing `B50`, and independent of it.** It is what makes `B50`
-harder to read from a chat log than it should be — *completed* is exactly the
-word that stops a player looking — but it is wrong on its own account, and the
-deliberate-stop case has nothing to do with `B50` at all.
+**Found while diagnosing `B50`, and independent of it.** It made `B50` harder to
+read from a chat log than it should have been — *completed* is exactly the word
+that stops a player looking — but it is wrong on its own account, and the
+deliberate-stop case never had anything to do with `B50`.
 
 **Observed in a world on 2026-09-03**, in `W1`'s discriminator run, and the
 evidence is as clear as this finding will ever get: the player was shown
 *le drone a disparu* and then *programme terminé*, **one after the other, about
 the same run**. The program had asked for 50 placements and got as far as 22
-mapblocks, so *terminé* is announcing a run killed roughly 48 blocks short.
-**The two lines the player sees contradict each other** — that is the whole
-finding in one observation, and it is why this is not merely cosmetic.
-The codelevel was not restated for that run.
+mapblocks, so *terminé* was announcing a run killed roughly 48 blocks short.
+**The two lines the player saw contradicted each other** — that is the whole
+finding in one observation, and it is why this is not merely cosmetic. The
+codelevel was not restated for that run. **That exact pairing is no longer
+reachable**, the first line having gone with `B50`'s fix; what is left is the
+setter case, which no playtest has been pointed at.
 
 **Keep — the constraint on any fix.** `Drone.finish` is **the single place a
 run's outcome is announced**, which is `B12` and `B30`: two messages or none is
@@ -291,33 +138,15 @@ the failure this centralisation exists to prevent. A new outcome word is a new
 translations are orphaned with no error anywhere — the `C17` rule — and a new key
 ships English-by-default until the `.tr` files are written.
 
-### B52 · medium · open — a drone standing still far from the player dies at about 29 seconds
-
-Independent of `B50` and **not fixed by fixing it**. `resetUsageTimer` is called
-only for blocks in the active list and **never by `load_area`**, and
-`Map::timerUpdate` unloads on `server_unload_unused_data_timeout` with no regard
-for objects standing in the block. So a drone that is not moving loses the block
-under it after that timeout — the default is 29 s — and, being `static_save =
-false`, is deleted.
-
-**What reaches it:** `sleep(30)` out at 300 nodes, or a run left **paused** from
-the panel for half a minute. Both are things the mod invites the player to do —
-`F3` added `sleep` and `F4` added Pause — so this is reachable by a program doing
-exactly what it is documented to do.
-
-**Keep — `map_window_s` reads the same setting for a different purpose.**
-`lib/limits.lua`'s footprint decay is timed to `server_unload_unused_data_timeout`
-because the map footprint decays over exactly that window; that is correct and
-unrelated. **This finding is that `load_area` does not reset the timer**, which
-is a property of the engine rather than of the limit.
-
 ---
 
 ## B · Bugs
 
-49 findings, 45 resolved, `B34` won't fix, **`B50`, `B51` and `B52` open** — all
-of those are in *Open* above rather than in this list. `B19`, `B20`, `B24` are the game's.
-`B47` is resolved with a residue that ships.
+49 findings, 47 resolved, `B34` won't fix, **`B51` open** — which is in *Open*
+above rather than in this list. `B19`, `B20`, `B24` are the game's.
+`B47` is resolved with a residue that ships. **`B50` and `B52` are resolved and
+unverified in a world**, and both keep their full reasoning below: the fix is
+recent, its costs were accepted knowingly, and nothing in a world has seen it.
 
 - **B1 · critical · resolved** — comment stripping deleted the code between two
   block comments. Fixed in Phase 2 with B2–B4: instrumentation runs over a real
@@ -471,12 +300,18 @@ of those are in *Open* above rather than in this list. `B19`, `B20`, `B24` are t
   contain one; `drone.serial` is stored as `tostring(serial)` to match what the
   pattern yields. **Do not compare `ObjectRef`s instead** — which is what the
   first fix did: the pinned 5.17.0 `lua_api.md` says nothing about `ObjectRef`
-  identity. `on_step`'s hole is the more damaging half: a deferred entity can be
-  stepped once and would spend its replacement's budget, mis-charging a running
-  program rather than visibly killing an idle drone. Three `integration_spec`
-  assertions pin it, the third in `pcall`. Anything reading a drone by name from
-  a callback — `F4`'s panel — is subject to this. Confirmed by playtest `D3`
-  part 2.
+  identity. Anything reading a drone by name from a callback — `F4`'s panel — is
+  subject to this. Confirmed by playtest `D3` part 2.
+  **Keep — what the guard protects changed at `1b991ae`, and it still matters.**
+  It used to stop a deferred `on_deactivate` tearing down the **record** of the
+  drone that replaced it, and to stop a deferred entity `on_step` spending the
+  replacement's **budget**. Neither path exists now: `on_lost` removes nothing
+  and there is no entity `on_step` at all. What the serial guards today is the
+  replacement's **object** — a dying object's deferred `on_deactivate` would
+  otherwise blank `drone.obj` on the new drone and leave it **invisible until the
+  next re-spawn**, up to `respawn_period_s`. Weaker in consequence, not gone,
+  and `B50`'s re-spawn under the same name makes the case it exists for more
+  common rather than less. `integration_spec` pins it.
   **Keep — the clear-before-remove ordering matters more than its own comment
   claims**, read out of the 5.17.0 source on 2026-09-03 while diagnosing `B50`.
   `markForDeactivation` sets `m_pending_deactivation` **after** the Lua callback
@@ -487,8 +322,17 @@ of those are in *Open* above rather than in this list. `B19`, `B20`, `B24` are t
   reorder the clear after `obj:remove()` on the strength of the serial guard
   either.**
 - **B30 · low · resolved** — `on_lost` reported the end of a program that was
-  never running. A regression from `A11`. Fixed in `7d9ca47`: `on_lost` tests
-  `drone.cor` and, with no coroutine, removes the record and says nothing.
+  never running. A regression from `A11`. Fixed in `7d9ca47`: `on_lost` tested
+  `drone.cor` and, with no coroutine, removed the record and said nothing.
+  **Keep — the behaviour changed at `1b991ae` and the rule did not.** `on_lost`
+  no longer announces or removes anything at all, so a parked drone with no
+  coroutine is **no longer taken away when its mapblock unloads**: it keeps its
+  record and gets its view back on the next re-spawn. That is a deliberate
+  consequence of `B50`'s fix, and it is bounded — one drone per player, and
+  `register_on_leaveplayer` removes it — so it is not a leak. **`B30`'s own rule
+  is intact:** a program that never started is still never reported as having
+  ended. Do not reintroduce a `drone.cor` test in `on_lost` to "clean up" the
+  parked case; that is the path `B50` removed.
 - **B31 · high · resolved** — `scripts/run_tests.ps1` wrote a UTF-8 BOM into the
   user's real `minetest.conf`, silently killing its first setting. Fixed in
   `7d9ca47`: both writes go through `[IO.File]` with an explicit
@@ -806,7 +650,120 @@ of those are in *Open* above rather than in this list. `B19`, `B20`, `B24` are t
   hand — so a second drone in the same session warning on its own account is
   observable only in a world. The author reported the check as a whole rather
   than case by case, so what is recorded is a pass on `W4` as written.
+- **B50 · high · resolved `1b991ae`, unverified in a world** — the drone
+  disappeared mid-run at codelevel 1, taking its program with it, with no error
+  and no refusal. Found by playtest `W1`'s re-run on 2026-09-03 — the codelevel
+  that check had been asking for since 2026-08-28 — and fixed the same day by
+  **decoupling the drone record from its entity**: every drone is advanced from
+  the one globalstep `lib/register.lua` already registered, `on_deactivate` sets
+  `drone.obj = nil` instead of ending the run, and `Drone.on_step` hands a drone
+  another object, **with the same serial**, once its mapblock is back in server
+  memory.
+  **Keep — the cause, read out of the 5.17.0 engine source.** The drone entity
+  sets `static_save = false`, and for such an object the unload rule is **not**
+  *out of active-block range* but *the mapblock it stands in is not in server
+  memory* — `src/server/serveractiveobject.h:123-129` states the two rules and
+  `src/serverenvironment.cpp:1685-1690` is the test:
 
+      isStaticAllowed() ? m_active_blocks.contains(blockpos)
+                        : getBlockNoCreateNoEx(blockpos) != nullptr
+
+  With no static data to write, `deactivateFarObjects` **deletes** the object
+  rather than saving it, on `active_block_mgmt_interval`, 2.0 s. Nothing in the
+  mod keeps the drone's *own* block loaded: `cost.place_block` loads the block it
+  **writes** in (`B25`), so `place(); forward(16)` rests the drone one block ahead
+  of its trail. The client keeps a nearby block alive —
+  `active_object_send_range_blocks` is 8, so at **128 nodes** the client is told
+  to forget the object, and `viewing_range` runs out at **190–192** — past which
+  nothing loads it at all. **Anything given `static_save = false` here is subject
+  to this, and a new object of that kind needs the same treatment.**
+  **Keep — why *time* far from the player was the discriminator and not
+  distance.** At 250 ms of pace a mapblock takes ~0.53 s, so ~192 nodes arrives
+  at ~6.4 s and the next 2-second sweep catches it — the 6–8 seconds reported,
+  from the arithmetic rather than from the report. **At codelevels 3 and 4 the
+  whole program is over inside a step or two, so the sweep never sees it**, which
+  is why `W1`'s two passes above level 2 could not have caught this. Level 2 is
+  genuinely undecided and depends on singleplayer against dedicated. It was never
+  a regression at some commit: it is a defect the check was pointed away from for
+  as long as it was run at the wrong level.
+  **Keep — the observed 320–352 nodes, against the ~192 the diagnosis
+  predicted.** Two runs of a plain outward walk stopped at **352** and **320**
+  nodes. That **confirms** the mechanism rather than denying it: ~192 is where
+  the drone becomes *killable*, not where it dies; `place()` reloads the block
+  250 ms after the drone enters it, so the exposed window is about half of each
+  iteration; and the sweep samples every 2.0 s, so each pass past 192 is roughly
+  a coin flip. **Two runs dying 32 nodes apart is the signature of a sampled
+  race, not of a fixed boundary.** A program that **moves without placing** has
+  no `load_area` at all and dies at the first sweep, so 320–352 was the lucky
+  case rather than the typical one.
+  **Keep — the reproducer, and it is deterministic.** From the author,
+  2026-09-03, in preference to the 50-iteration loop, which is a coin flip:
+
+      -- bbb.lua
+      forward(500)
+      sleep(20)
+
+  `forward` is a teleport (`lib/commands.lua:123-134` adds the whole offset in
+  one command), so the drone is 500 nodes out the instant the program starts,
+  and `sleep(20)` then makes no call, so nothing calls `load_area`. **Before the
+  fix this killed the drone in one to two seconds, every time.** It is the check
+  to run first, and it is `W1`'s.
+  **Keep — the earlier rejection of a globalstep driver was reconsidered and was
+  wrong.** It had been turned down as inverting `A11`'s direction of dependency.
+  That reading was mistaken: `register.lua` already registers a globalstep and
+  already owns orchestration, so driving the drones from it **follows** `A11`
+  rather than inverting it. Do not re-raise the objection. The two options put to
+  the author were both worse: one closed neither of `B52`'s cases, and the other
+  closed them only by forceloading, which spends the game's shared
+  `max_forceloaded_blocks` and runs ABMs wherever a drone goes — a `C18`-class
+  imposition of this mod's needs on the surrounding game.
+  **Keep — the two costs the decision accepted, written down rather than
+  glossed.** A far-away runaway **loses its accidental stop**: it used to be
+  killed by its own entity vanishing, and now `max_nodes_written`,
+  `max_runtime_s` and `map_memory_mb` carry the whole load. That is not new
+  exposure — those three already carried it for anything in range — but it is the
+  last unintended backstop going away, so a weakness in any of them now shows
+  everywhere rather than only near a player. And **`/clearobjects` stops ending
+  programs**: it blanks the view, which the globalstep then brings back.
+  **Keep — the running count is per step, not per drone.** The share each drone
+  gets needs the number of them running, and counted from inside each entity that
+  was a scan of every drone for every drone. `Drone.on_step` counts once, skipping
+  sleeping drones so they take no share, and counts rather than keeping a running
+  total because a drone can stop by paths that never pass through there.
+  **Evidence, from `test-agent`.** `tests/integration_spec.lua`'s drone-seam
+  block — six cases before, **nine** after — pins
+  `codeblock.DroneEntity.on_step` as **absent**, `Drone.on_step` as a one-pass
+  `dtime` call that leaves a non-running drone alone, and `Drone.on_lost` as
+  clearing only `obj`. **Keep the reason a placeholder `obj` was added to the
+  fake record**: without one, *cleared* and *left alone* are indistinguishable and
+  **both assertions pass vacuously**. That is this project's recurring failure
+  mode — the family of `C20` and the `%w+` guard — and it is why a new assertion
+  is made to fail once before it is trusted.
+  **State: fixed and committed, and nothing about it has been seen in a world.**
+  Three checks are written and unrun: `W1` at codelevel 1 with the reproducer
+  above and observation 3 finally made, `W5`, and `W6`. Note the second
+  constraint the fix leans on harder than before — `B29`'s serial guard, since a
+  re-spawn under the same name is exactly the case it exists for.
+- **B52 · medium · resolved `1b991ae`, unverified in a world** — a drone standing
+  still far from any player died at about 29 seconds, whatever happened to
+  `B50`. `resetUsageTimer` is called only for blocks in the active list and
+  **never by `load_area`**, and `Map::timerUpdate` unloads on
+  `server_unload_unused_data_timeout` with no regard for objects standing in the
+  block, so a drone that was not moving lost the block under it after that
+  timeout and, being `static_save = false`, was deleted. **What reached it:**
+  `sleep(30)` out at 300 nodes, or a run left **paused** from the panel for half
+  a minute — both things the mod invites, `F3` having added `sleep` and `F4`
+  Pause. Closed by `B50`'s fix, which was one of the two reasons that option was
+  chosen: a drone whose block is unloaded now loses its **view** and not its run.
+  **Never observed, before or after.** It was a mechanism read out of the engine
+  with nothing timed against it, and `W5` is its first check — written
+  2026-09-03, unrun.
+  **Keep — `map_window_s` reads the same setting for a different purpose.**
+  `lib/limits.lua`'s footprint decay is timed to
+  `server_unload_unused_data_timeout` because the map footprint decays over
+  exactly that window; that is correct and unrelated. **This finding was that
+  `load_area` does not reset the timer**, which is a property of the engine
+  rather than of the limit.
 ---
 
 ## S · Sandbox and security
@@ -1204,11 +1161,14 @@ introduced.**
   respect this: drive the live refresh from the form side reading `drone.budget`,
   not by `drone.lua` calling into forms. `integration_spec`'s "drone seam (A11)"
   section pins the function surface, the form-layer entry points, the prototype
-  callbacks, and that the entity caches no drone.
+  callbacks, and that the entity caches no drone. **It grew from six cases to
+  nine at `1b991ae`**, which added the direction of the seam itself: the entity
+  has no `on_step`, the run is advanced from the globalstep, and `on_lost`
+  clears only `obj` (`B50`, `B52`).
 - **A12 · low · resolved** — no tests, on the component that most needs them.
-  Fixed from Phase 0 onward: nine specs, **458 passed / 0 failed / 1 xfail / 0
-  xpass** in-engine, six of them also standalone under Lua 5.1, which is how CI
-  runs them.
+  Fixed from Phase 0 onward: nine specs, **474 passed / 0 failed / 1 xfail / 0
+  xpass** in-engine at `1b991ae`, six of them also standalone under Lua 5.1,
+  which is how CI runs them.
   **Keep — what the suite cannot reach, which every feature inherits.** Nothing
   exercises the filesystem, the editor or drone placement: the specs run at mod
   load, before a map, a player or a user directory exists. The 14 movement
@@ -1286,31 +1246,36 @@ document says so.
   day they shipped, and **`B48`, `C21` and `B49` all left it on 2026-09-03** —
   `E16`'s new case, `F10-1` and `W4` respectively, and all three fixes are
   committed as well (`4179877`, `b23a8bc`, `d8c32f7`).
-- **Gates green, playtest written and not yet run: none.** `B49` was the last
-  entry here and left it on 2026-09-03 when `W4` ran at `16cd05c` and passed. A
-  chat line reaching a player is beyond every spec by construction, so `W4` is
-  the only evidence that finding will ever have.
-- **Explained by reading, then confirmed by playing it, and unfixed:** `B50`.
-  The cause is a reading of the 5.17.0 engine source —
+- **Gates green, playtest written and not yet run — two, both at `1b991ae`:**
+  `B50` and `B52`. Three checks are written for them and none has been run:
+  `W1` at codelevel 1 with the deterministic reproducer, `W5`, `W6`. `B49` was
+  the previous entry here and left it on 2026-09-03 when `W4` ran at `16cd05c`
+  and passed.
+- **Explained by reading, confirmed by playing it, then fixed unobserved:**
+  `B50`. The cause is a reading of the 5.17.0 engine source —
   `serveractiveobject.h:123-129` and `serverenvironment.cpp:1685-1690` for the
   `static_save = false` unload rule. **`W1`'s discriminator run on 2026-09-03
-  then measured what the reading could not settle**: both chat lines arrive, so
-  the announcement path is intact and **there is no fourth finding**; and the
-  obsidian stops at **352 and 320 nodes** across two runs, not the ~192 the
+  measured what the reading could not settle**: both chat lines arrived, so the
+  announcement path was intact and there was **no fourth finding**; and the
+  obsidian stopped at **352 and 320 nodes** across two runs, not the ~192 the
   diagnosis predicted. **The 32-node spread is itself the evidence** — a sampled
   2.0 s race rather than a fixed boundary, ~192 being where the drone becomes
-  killable and not where it dies. **Discriminator 3 was not run**, so a leaked
-  record is *unlikely* rather than ruled out. The gates are green over this and
-  always were, because nothing in the suite runs in a world.
-- **Found by reading, then observed:** `B51`. It was a certainty from the source
-  — `lib/drone.lua:342` and `:408` both pass `'completed'` — and `W1`'s
-  discriminator run showed it to a player: *le drone a disparu* followed by
-  *programme terminé*, about a run killed roughly 48 blocks short of what it
-  asked for. **The two lines contradict each other**, which is the finding.
-- **Found by reading and still unobserved:** `B52`, and the addition to `B29`'s
-  Keep block. Neither was reported by anyone and neither has been seen in a
-  world; `B52` is a mechanism with nothing timed against it, `resetUsageTimer`
-  and `Map::timerUpdate` read and no run made.
+  killable and not where it dies. **Discriminator 3 was never run**, so a leaked
+  record was *unlikely* rather than ruled out, and `W1` still asks for it. The
+  gates are green over the fix and always were over the defect, because nothing
+  in the suite runs in a world: **what proves `1b991ae` is three
+  `integration_spec` assertions about the seam, not the behaviour in a world.**
+- **Found by reading, then observed, and still open:** `B51`. It was a certainty
+  from the source — two callers passing `'completed'` — and `W1`'s discriminator
+  run showed it to a player: *le drone a disparu* followed by *programme
+  terminé*, about a run killed roughly 48 blocks short of what it asked for.
+  **The two lines contradicted each other**, which is the finding. One of the two
+  callers went with `B50`'s fix; `Drone.on_remove` is the one left.
+- **Found by reading, fixed, and never once observed:** `B52`, and the addition
+  to `B29`'s Keep block. Neither was reported by anyone and neither has been seen
+  in a world; `B52` is a mechanism with nothing timed against it,
+  `resetUsageTimer` and `Map::timerUpdate` read and no run made. **It has never
+  had a check**, and `W5` is now that check, unrun.
 - **Not verified anywhere, and with no route left:** `B10`'s refusal, twice aimed
   at through `D2`'s second case, which was removed as untestable on 2026-09-02.
   **That is the whole list**, and it is now a standing gap rather than a queued
@@ -1338,8 +1303,8 @@ document says so.
 
 - `B42` was filed saying every filler already clipped to the area it was handed.
   All three clipped along **z** only; the fix had to widen them first.
-- `A11`'s resolution once said `drone_entity.lua` is 55 lines; it is 67 — the
-  figure predated `B29`'s serial parsing.
+- `A11`'s resolution once said `drone_entity.lua` is 55 lines; it was 67, and is
+  69 since `1b991ae` — the first figure predated `B29`'s serial parsing.
 - `C7`'s resolution once said the settings guard is `rawget(_G, 'minetest')`;
   since `C6` it is `core`.
 - `C14`'s keep block once said `gen_docs.lua --check` had never run here. It runs
@@ -1362,24 +1327,17 @@ document says so.
 
 ---
 
-2026-09-03 · describes codeblock at `16cd05c`. **Three findings are open, all
-filed that day: `B50`, `B51`, `B52`.** `B50` is `W1`'s fail at codelevel 1, its
-cause read out of the 5.17.0 engine source and **confirmed by `W1`'s
-discriminator run the same day** — both chat lines arrive, the obsidian stops at
-352 and 320 nodes, and **no fix is chosen**. `B51` and `B52` were found while
-diagnosing it, and `B51` was observed in that same run. Every gate figure below predates all three
-and none of them sees any of it, the suite running at mod load. The three changes that were
-uncommitted in one working tree are now three commits — `B48` `4179877`, `F10`
-with `C21` `b23a8bc`, `B49` `d8c32f7` — with the record at `16cd05c`. CI was last
-green on all three jobs at `dc09d48` (run 44) and `471526e` (run 45), so the
-limit retuning (`96dd4bc`), `F9` and the paused clock are covered by CI while
-`d8d44cd` and everything above it are not.
-Gates over the whole tree on 2026-09-03, after `B49`'s coverage landed and before
-it was split into those commits: luacheck
-silent, `doc/api.md`, `locale/template.txt` and `settingtypes.txt` up to date,
+2026-09-03 · describes codeblock at `1b991ae`. **One finding is open: `B51`**, a
+run cut short announced as *completed*, with no chosen fix — and after `B50`'s
+fix it is the only remaining path to that word. **`B50` and `B52` are fixed in
+`1b991ae` and unverified in a running world**: the record and the run were
+decoupled from the drone's entity, and the three checks that would confirm it —
+`W1` at codelevel 1, `W5`, `W6` — are written and unrun. Gates at `1b991ae`,
+engine 5.17.0, read from output rather than exit codes: luacheck silent,
+`doc/api.md`, `locale/template.txt` and `settingtypes.txt` up to date,
 `locale/*.tr` covering every message and nothing else, nine in-engine specs
-**471 passed / 0 failed / 1 xfail / 0 xpass**, six standalone **251 passed /
-0 failed / 1 xfail**. **Those figures describe the three changes together, not
-any one of them, and CI has seen none of it** — the standalone run is CI's own
-command, so plain Lua 5.1 is covered locally, but a real CI run waits on a
-push.
+**474 passed / 0 failed / 1 xfail / 0 xpass** — the xfail `preprocess_spec`'s and
+pre-existing — and six standalone under Lua 5.1. **CI has seen none of it.** It
+was last green on all three jobs at `dc09d48` (run 44) and `471526e` (run 45), so
+everything from `d8d44cd` up carries local gates only, and `HEAD` is ahead of
+`origin/master`.

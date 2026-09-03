@@ -21,113 +21,77 @@ thinking rather than a queue position.
 
 ## Now
 
-**Three open findings come before everything below, and all three are about
-losing a drone: `B50`, `B51`, `B52`.** `W1` was re-run at codelevel 1 on
-2026-09-03 — the level-1 run its entry had been asking for since 2026-08-28 —
-and it **failed**: a program placing obsidian and brick along two 25-step lines
-lost its drone after 6–8 seconds, with no error and no refusal. **The level the
-check was always asking for is the level it fails at.**
+**One open finding is left, `B51`, and it is not what comes next.** `B50` and
+`B52` — the drone vanishing mid-run, and a still drone dying at ~29 s — were
+fixed on 2026-09-03 in **`1b991ae`**, *B50, B52: drive a program from the server
+step, not from its drone entity*. The gates are green over it. **Nothing about it
+has been seen in a running world**, and three checks are what would settle that:
+`W1` re-run at codelevel 1 with the deterministic reproducer, `W5` and `W6`.
+**Play those three before anything else on the list below.**
 
-**`B50`'s cause is read out of the 5.17.0 engine source and no fix is chosen** —
-the options are with the author, and nothing in the record picks one. The drone
-entity is `static_save = false`, and for such an object the engine unloads on
-*the mapblock under it is not in server memory* rather than on active-block
-range, then deletes it outright. Nothing in the mod keeps the drone's **own**
-block loaded — `cost.place_block` loads the block it writes in, and
-`place(); forward(16)` rests the drone one block ahead of that trail. Near the
-player the client keeps the block alive; past ~192 nodes nothing does. **Time,
-not distance, is the discriminator**: 250 ms of pace reaches ~192 nodes at
-~6.4 s, which the 2-second management cycle then catches, while at levels 3 and 4
-the whole program is over inside a step or two. **That is why `W1`'s two passes
-above level 2 could not have caught it**, and level 2 is genuinely undecided,
-depending on singleplayer against dedicated.
+**What the fix did**, kept short because `AUDIT.md` under `B50` has the grounds.
+An object with `static_save = false` is deleted the moment its mapblock leaves
+server memory, so a drone past ~192 nodes from a player, or standing still for
+the unload timeout, took its running program with it. Now every drone is advanced
+from the one globalstep `lib/register.lua` already registered, `on_deactivate`
+only drops the view, and a drone is handed another object — with the same serial
+— once its block is back. **A record without an object is a run nobody can see,
+not a run that stopped.** Two consequences were accepted with the decision:
+`/clearobjects` no longer ends a program, and a far-away runaway loses its
+accidental stop, so `max_nodes_written`, `max_runtime_s` and `map_memory_mb`
+carry that load alone.
 
-**The one thing not decidable by reading has been decided by playing it.** At
-~128 nodes the client is told to forget the object — a correct, silent vanish —
-and at ~192 nodes and beyond the object is deleted, which *should* announce
-itself. `W1`'s three observations were run on 2026-09-03 and answer two of them.
-**Both chat lines arrive**, *le drone a disparu* then *programme terminé*, so the
-teardown path is intact and **there is no fourth finding**; what the author saw
-at 6–8 seconds was the first event. **The obsidian stops at 352 and 320 nodes**
-across two runs, not the ~192 predicted — and that **confirms** the mechanism
-rather than denying it: ~192 is where the drone becomes *killable*, the drone is
-exposed only in the gap between `forward` and the next `place`, and
-`deactivateFarObjects` samples every 2.0 s, so **two runs dying 32 nodes apart is
-the signature of a sampled race, not of a fixed boundary**. The third observation
-— whether a drone can be placed afterwards — **was not made**, so a leaked record
-is unlikely rather than ruled out, and it is one gesture on the next run. The
-codelevel was not restated for either run.
+**`B51` is what is left of the three, and it has no chosen fix.**
+`Drone.on_remove` still passes `'completed'` for a run the setter cut short, so a
+player who stops a program is told it completed. It was **the only remaining path
+to the wrong word** the moment `1b991ae` landed: the other caller was `on_lost`,
+which no longer ends a run at all, and the *le drone a disparu* line it used to
+pair with is deleted. A fix is a new outcome word, so a new `S()` key, so
+`locale/template.txt` and every `.tr` move with it (`C17`).
 
-**One consequence for whatever fix is chosen, and it is why the observed numbers
-are not the target.** `place()` is what calls `load_area`, and that program
-places in every block it crosses, so **a program that moves without placing has
-no `load_area` at all** — it is exposed continuously and dies at the first sweep
-past ~192 nodes rather than surviving a few. **The observed 320–352 is the lucky
-case, not the typical one.**
+**Two things `1b991ae` changed about older findings, recorded so they are not
+re-broken.** `B29`'s serial now guards the **replacement's object** rather than
+its record or its budget — `on_lost` removes nothing, so what the guard prevents
+is a dying object's deferred `on_deactivate` blanking the new drone's `obj` and
+leaving it invisible until the next re-spawn. And `B30`'s **behaviour** changed
+while its rule did not: a parked drone with no coroutine used to be removed when
+its mapblock unloaded, and now it persists and gets its view back — bounded, one
+drone per player and `register_on_leaveplayer` removes it — while a program that
+never started is still never reported as having ended.
 
-**Diagnosing it produced two more findings, both independent of it.** **`B51`**:
-`Drone.finish` has no vocabulary for *cut short*, so a drone killed mid-flight
-and one stopped deliberately with the setter are both announced as
-`Program '@1' completed`. **That one is now observed rather than reasoned** — the
-same discriminator run showed a player *le drone a disparu* followed by
-*programme terminé* about a run killed 48 blocks short of the 50 it asked for.
-**The two lines the player sees contradict each other**, which is the clearest
-statement of why it matters. **`B52`**: a drone standing still far from a player
-dies at about 29 seconds whatever happens to `B50`, `load_area` not resetting the
-block's usage timer — which `sleep(30)` and a long pause both reach, and both are
-things the mod invites.
+**Behind it, the release list has shortened again.** `B48` `4179877`, `F10`
+`b23a8bc` with `C21`, and `B49` `d8c32f7` are all committed and all confirmed in
+a world. **`CONTENTDB.md` is done too** — `c2e541f`, with `.cdb.json`
+regenerated from it — which was step 3 and the oldest thing on the list.
+`CHANGELOG.md` has taken `F10`'s three breaking changes, `B48`, `B49` and now
+`B50`/`B52`, so step 4 is down to dropping `(unreleased)` from the heading at the
+tag. **What is left before the tag is `README.md`'s two problems, the
+screenshots, `R2` on the release archive, and a CI run** — CI has seen nothing
+since `471526e`, and `HEAD` is ahead of `origin/master`.
 
-All three are open defects in committed code, so they land on `Phase 8` and ahead
-of the three documents and the ContentDB page.
+**The gates are green at `1b991ae`** — luacheck silent, the three `--check`
+generators up to date, `locale/*.tr cover every message and nothing else`, nine
+in-engine specs **474 passed / 0 failed / 1 xfail / 0 xpass** and six standalone
+under Lua 5.1. The xfail is `preprocess_spec`'s and pre-existing. The in-engine
+count is up 3 on `integration_spec`'s drone-seam block, which went from six cases
+to nine for `B50`/`B52`. **CI has seen none of it** — the last run was `471526e`
+— so the outstanding gate is a push and a CI run.
 
-**Behind it, the release list is where it was.** The three changes that were outstanding in one working tree are committed, and
-every one of them is now confirmed in a world.** `B48` is `4179877` — every
-unsaved example tab marked modified the moment it lost focus, the bundled
-examples being CRLF and the client's textarea returning LF, one line in
-`lib/filesystem.lua`. `F10` is `b23a8bc`, in `lib/register.lua`: the tool
-handout, the privilege grant (`C21`) and the `on_drop` stubs go, and `/codelevel`
-and `/codegenerate` become subcommands of `/codeblock`. `B49` is `d8c32f7` — a
-misspelled block name, `place(blocks.notablock)`, built the default block in
-silence, because a missing key reads nil and `placement` cannot tell that nil
-from an omitted argument; it now warns once per run, naming the key, and still
-builds. The record followed at `16cd05c`.
+**The playing is done for `B48`, `F10`/`C21` and `B49`**, all on 2026-09-03,
+engine 5.17.0: `E16`'s new pristine-example case, the four `F10-n` checks with
+the inventory and `/privs` cases that were `C21`'s only possible evidence, and
+`W4` at `16cd05c`. **It is not done for `B50` and `B52`**, so *gates green,
+unproven in a world* is back up to four: those two, plus `B14` and `S7`'s log
+half.
 
-**After those three, the next thing to do is `CONTENTDB.md` and the ContentDB page**,
-which is step 3 below and the oldest thing on the release list: two of its claims describe `F4`'s
-displays that `F8` replaced two features ago, and `F10` makes its Quick start's
-step 1 false. The author has an edit to that file in the working tree and a
-wording review pending, so it is theirs first. `CHANGELOG.md` has taken `F10`'s
-three breaking changes, `B48` and `B49`, so step 4 is down to dropping
-`(unreleased)` from the heading at the tag.
-
-**The gates were green over the whole tree before it was split** — luacheck
-silent, the three
-`--check` generators up to date, `locale/*.tr cover every message and nothing
-else` after the eight French translations were written, nine in-engine specs
-**471 passed / 0 failed / 1 xfail / 0 xpass** and six standalone **251 passed /
-0 failed / 1 xfail**, the counts up 13 on `test-agent`'s new `env_spec` cases for
-`B49`. **Those figures describe the three changes together and CI has seen none
-of them**, so the outstanding gate is a push and a CI run over `16cd05c`.
-
-**The playing is done for all three.** On 2026-09-03, engine 5.17.0, `E16`'s new
-pristine-example case passed — which **confirms `B48` in a world** — all four
-`F10-n` checks passed, the first of them completed later the same day with the
-two cases that had been missing (a fresh player gets no tools, and `/privs`
-shows no `fly`, `fast` or `noclip`, which **confirms `C21` in a world** and was
-its only possible evidence) — and **`W4` passed at `16cd05c`, which confirms
-`B49`**. The `F10-n` group was re-affirmed at `16cd05c` once its code was
-committed. So *gates green, unproven* is down to two, both of them old: `B14`,
-and `S7`'s log half.
-
-Before that: `B47` was decided, fixed and playtested on 2026-09-02,
-`settingtypes.txt` has its generator and its `--check`, and until `W1` was re-run
-no finding was in the open state — `C21` was filed and fixed on the same day.
-There are three now.
-**`PLAYTEST.md` stands at 57 checks and every one of them carries a result**, one
-of them now a fail — `W1`, which is `B50` — and one partial, only because two of
-its cases cannot be performed. Its per-feature checks were renamed
-`F<feature>-<n>` on 2026-09-03, so `F10-1`–`F10-4` and `F1-1`/`F1-2` can be
-cited one at a time. The ordered list is the next section.
+Before that: `B47` was decided, fixed and playtested on 2026-09-02, and
+`settingtypes.txt` has its generator and its `--check`.
+**`PLAYTEST.md` stands at 59 checks**, 57 of them carrying a result — one a fail,
+`W1`, which is `B50` at code that has since been replaced, and one partial, only
+because two of its cases cannot be performed. **The two without a result are `W5`
+and `W6`**, written 2026-09-03 for the fix and runnable now. Its per-feature
+checks were renamed `F<feature>-<n>` on 2026-09-03, so `F10-1`–`F10-4` and
+`F1-1`/`F1-2` can be cited one at a time. The ordered list is the next section.
 
 **`B47` was answered by slowing the beat**, `PERIOD` `0.5` → `1` s in
 `lib/hud.lua`, the HUD moving with the panel because they share the one constant
@@ -170,28 +134,41 @@ In order. **Steps 7 to 11 are the `release-codeblock` skill's procedure** and ar
 not restated here; what is below is what *this* version still needs, and
 `release-check` is the gate that says whether it got it.
 
-**The work — `B50` first; three done on 2026-09-02; `B48`, `F10` and `B49`
-committed on 2026-09-03; then three documents and the ContentDB page.**
+**The work — three playtest checks first; everything through step 3 is done;
+then the README, the screenshots, `R2` and the tag.**
 
 **Before step 0, and unnumbered so the steps below keep the numbers commit
-messages and the release skill cite: `B50`, `B51` and `B52`.** The drone
-disappears at codelevel 1, diagnosed against the 5.17.0 engine source and **with
-no fix chosen** — the options are with the author. `B51` and `B52` came out of
-that diagnosis and are independent of it: a run cut short says *completed*, and a
-still drone dies at ~29 s. **`W1`'s discriminator run of 2026-09-03 answered the
-open question** — both chat lines arrive, so there is **no fourth finding**, and
-that same pair of lines is `B51` observed in a world. What is left beyond the
-fix. **`W1`'s third observation**, one gesture, not made: whether a drone can be
-placed afterwards, which is the difference between a leaked record being
-*unlikely* and being ruled out. **`W1` at codelevels 2, 3 and 4**, unrun, with
-level 2 genuinely undecided between singleplayer and dedicated. And, once fixed,
-**a `W1` re-run at level 1** — the level this check has been asking for since
-2026-08-28 and the only one that reaches either `B50` or the per-resume memo
-reset the check exists for. `B52` will want an in-world check of its own, which
-does not exist yet. **Do not tag over any of it.** (B50, B51, B52)
+messages and the release skill cite: play `W1`, `W5` and `W6`.** `B50` and `B52`
+are **fixed in `1b991ae`** with the gates green, and **nothing about the fix has
+been seen in a running world** — these three checks are the whole of that
+evidence, and they are written as the shape of the fixed behaviour. **`W1` re-run
+at codelevel 1**, with the author's deterministic reproducer — `forward(500);
+sleep(20)`, which killed the drone in one to two seconds every time — and with
+the third observation finally made, whether a drone can be placed afterwards,
+which is the difference between a leaked record being *unlikely* and being ruled
+out. **`W5`**, the check `B52` has never had: a drone sleeping or paused far from
+any player keeps its run. **`W6`**: the entity going away and coming back, one
+drone and not two, and `/clearobjects` no longer ending a program. **`W1` at
+codelevels 2, 3 and 4** is still unrun, with level 2 genuinely undecided between
+singleplayer and dedicated.
 
-0. **`B48`, `F10` and `B49` — committed, and all three confirmed in a world.**
-   They shared one working tree with the gates green over all of it, and went out
+**`B51` is the one finding still open and has no chosen fix**: `Drone.on_remove`
+passes `'completed'` for a run the setter cut short, and since `1b991ae` it is
+the only remaining path to that word. It is small, it is player-facing, and it
+needs a new `S()` key with its `.tr` lines (`C17`). Decide whether it goes in
+v1.0.0 or `Phase 9` before the tag; nothing else waits on it.
+**Do not tag over any of it.** (B50, B51, B52)
+
+0. **`B50` and `B52` — fixed at `1b991ae`; `B48`, `F10` and `B49` — committed
+   and all three confirmed in a world.** `1b991ae` decoupled the drone record and
+   the run from the entity: one globalstep advances every drone, `on_deactivate`
+   only drops the view, and an object is handed back once the block is in memory.
+   It touched `lib/drone.lua`, `lib/drone_entity.lua`, `lib/register.lua`,
+   `lib/stepper.lua`, both locale files — the *drone has disappeared* key is
+   deleted — and `tests/integration_spec.lua`. `B29`'s guard and `B30`'s
+   behaviour both moved with it; see *Now*. Its gates are green and **its three
+   checks are unrun**, which is the unnumbered step above. The other three
+   shared one working tree with the gates green over all of it, and went out
    as three commits on 2026-09-03: `B48` `4179877`, one line in
    `lib/filesystem.lua`; `F10` `b23a8bc`, covering `lib/register.lua`, `C21`, the
    hand-written region of `doc/api.md`, `README.md`'s Quick start and the eight
@@ -199,8 +176,8 @@ does not exist yet. **Do not tag over any of it.** (B50, B51, B52)
    `lib/env.lua`, `lib/sandbox.lua`, `lib/api.lua`'s `blocks` entry with
    `doc/api.md` regenerated, one new locale key with its French, and 13 new
    `env_spec` cases. The playing is done for all three — `E16`, the four `F10-n`
-   checks and `W4`. **CI has still seen none of them**, so a push and a green run
-   over `16cd05c` is what is left. (B48, F10, C21, B49)
+   checks and `W4`. **CI has seen none of any of it**, so a push and a green run
+   over `1b991ae` is what is left. (B50, B52, B48, F10, C21, B49)
 1. **`B47` — done, and playtested.** Answered by slowing the beat to 1 s rather
    than stopping the self-refresh, quantising, or moving to mouse-down;
    `AUDIT.md` keeps why each of the other three was not taken. `H10` passed with
@@ -212,20 +189,17 @@ does not exist yet. **Do not tag over any of it.** (B50, B51, B52)
    **also fails on a setting `config.lua` reads that the menu does not offer** —
    the half no hand-kept file could do. It found `C20` on its first run. (C7,
    C17, C20)
-3. **`CONTENTDB.md`'s *Recent changes* — and it has already drifted, exactly as
-   `C19` said it would.** Two claims on that page describe a mod that no longer
-   exists: the corner display *"naming the one limit the run will actually stop
-   on"* (twice, once under *Features* and once under *Recent changes*) was `F4`'s
-   two-line HUD, which `F8` replaced with three lines and a colour; and *"pause,
-   resume, cancel and remove"* was the four-button panel, which `F8` cut to
-   **Stop** and **Pause/Resume** with closing moved to an `x`. Nothing checks
-   this file against the code or against `CHANGELOG.md`, so it drifted silently
-   for two features. Fix both, add `F9`'s elapsed clock, then
-   `bash scripts/gen_cdb_json.sh` — **never `.cdb.json` by hand**. **`F10` adds a
-   third thing to fix here**: the Quick start's step 1 tells the player they are
-   given the two tools, which `b23a8bc` made false. The author has an uncommitted
-   rewording of exactly that line in the tree already and a wording review of
-   the file is pending, so this step is now one edit and not two. (C19, F10)
+3. **`CONTENTDB.md` — done, `c2e541f`**, with `.cdb.json` regenerated from it in
+   the same commit. It had drifted exactly as `C19` said it would: the corner
+   display *"naming the one limit the run will actually stop on"* was `F4`'s
+   two-line HUD that `F8` replaced, *"pause, resume, cancel and remove"* was the
+   four-button panel `F8` cut to **Stop** and **Pause/Resume**, and `F10` had
+   made the Quick start's step 1 false. **Nothing checks this file against the
+   code or against `CHANGELOG.md`**, so it will drift again — its *Recent
+   changes* list is hand-kept and `B50`/`B52` are not in it, which is a judgement
+   call rather than an omission: a player does not read *the drone no longer
+   disappears* as a feature. Edit the Markdown and run
+   `bash scripts/gen_cdb_json.sh` — **never `.cdb.json` by hand**. (C19, F10)
 4. **`CHANGELOG.md` loses `(unreleased)` from its heading** at the tag, and its
    *Known limitations* section carries `B47`'s residue, since step 1 mitigated it
    rather than closing it. **v1.0.0's breaking list gained three of `F10`'s
@@ -311,10 +285,12 @@ Phases 0–7 are closed; one line each, with the findings they covered.
 that the editor and drone paths were exercised by hand. Phase 8's playtests have
 since found **fifteen** defects in code earlier phases called done (B36–B44,
 C17, C18, S7, and now `B50`–`B52`) — the newest of them were the largest.
-**Twelve are fixed; `B50`, `B51` and `B52` are open**, all three filed 2026-09-03
-out of `W1`'s fail at codelevel 1 and the reading that explained it.
+**Fourteen are fixed and `B51` is open.** All three of the newest were filed
+2026-09-03 out of `W1`'s fail at codelevel 1 and the reading that explained it;
+`B50` and `B52` were fixed the same day at `1b991ae`, and two of the fourteen —
+those two — are fixed but **unverified in a world**.
 
-### 8 · Features for v1.0.0 — in progress (8/8 shipped, 25 findings, 3 open)
+### 8 · Features for v1.0.0 — in progress (8/8 shipped, 25 findings, 1 open)
 
 The last phase before v1.0.0 and the only one that adds rather than repairs.
 Started as seven features: `F6` moved out on 2026-08-28 (Blockly is `Phase 10`)
@@ -331,13 +307,12 @@ second time in a row that what a display *said* was the thing playing it found.
 
 Shipped with them: **`F10` `b23a8bc`, played and committed 2026-09-03**, with
 `B48` `4179877` and `B49` `d8c32f7` out of the same tree. **Every feature in the
-phase has shipped.** Left in it: **`B50`, `B51` and `B52`, ahead of the rest** —
-the drone vanishing at codelevel 1, a run cut short announced as *completed*, and
-a still drone dying at ~29 s, all filed 2026-09-03 out of `W1`'s fail and the
-reading that explained it — then the three documents under *Finalising v1.0.0*
-above, `R2` on the release archive — the one check whose result has gone stale —
-and a CI run, which has seen nothing since `471526e`. `H10` passed
-2026-09-02. **`F9`
+phase has shipped.** Left in it: **three playtest checks against `1b991ae`** —
+`W1`, `W5`, `W6`, which are the only evidence `B50` and `B52` will ever have —
+then **`B51`**, a run cut short announced as *completed*, with no chosen fix;
+then `README.md`, the screenshots, `R2` on the release archive — the one check
+whose result has gone stale — and a CI run, which has seen nothing since
+`471526e`. `H10` passed 2026-09-02. **`F9`
 passed its playtest on 2026-09-02** — all eight cases in both languages, no
 defect, and one decision reversed: the paused clock, built and re-checked the same
 day. **`B47` and `settingtypes.txt` closed the same day**, and writing the second
@@ -346,12 +321,13 @@ found `C20`, a check that had never once matched anything.
 as untestable, and a route to it needs a way to observe the server releasing a
 mapblock, which nothing here has.
 
-**`CONTENTDB.md`'s *Recent changes* has now drifted, which settles the argument
-rather than illustrating it.** It is a hand-kept summary of `CHANGELOG.md` — the
-same family as `doc/api.md` and `locale/template.txt` — and two of its claims
-describe `F4`'s displays, which `F8` replaced two features ago. Nothing failed,
-nothing reported it, and the release skill's step naming the file is precisely
-the note about remembering that this project has twice found does not hold. (C19)
+**`CONTENTDB.md` drifted, which settled the argument rather than illustrating
+it, and it was corrected at `c2e541f`.** It is a hand-kept summary of
+`CHANGELOG.md` — the same family as `doc/api.md` and `locale/template.txt` — and
+two of its claims described `F4`'s displays, which `F8` had replaced two features
+ago. Nothing failed, nothing reported it, and the release skill's step naming the
+file is precisely the note about remembering that this project has twice found
+does not hold. **It is still hand-kept**, so it will drift again. (C19)
 
 ### 9 · v1.x.y — features and defects after the release
 
@@ -977,6 +953,33 @@ demonstrate it.
 
 ## Other decisions worth not re-litigating
 
+- **Decoupling the drone record from its entity**, chosen 2026-09-03 for `B50`
+  and **shipped the same day as `1b991ae`**, and **a fourth option rather than
+  either of the two that were put to the author**. The entity is a *view* of a
+  drone instead of the thing that owns it: every drone is advanced from the one
+  globalstep `lib/register.lua` already registered, `on_deactivate` sets
+  `drone.obj = nil` rather than ending the run, and the entity is re-spawned with
+  the **same serial** once the drone's mapblock is loaded again — at most once a
+  second, gated on `get_node_or_nil` rather than on `add_entity` failing, which
+  would log an engine warning per attempt.
+  **The earlier rejection of a globalstep driver was reconsidered and was
+  wrong.** It had been refused as inverting `A11`'s direction of dependency, and
+  that reading was mistaken: `register.lua` already registers a globalstep and
+  already owns orchestration, so driving the drones from it **follows** `A11`.
+  Do not re-raise it.
+  **Why this over the other two.** It closes **`B50` and `B52` both**. Option A
+  closed neither of `B52`'s cases. Option B closed them only by forceloading,
+  which spends the game's shared `max_forceloaded_blocks` and runs ABMs wherever
+  a drone goes — a `C18`-class imposition of this mod's needs on the surrounding
+  game, which is the one thing this project has already decided once not to do.
+  It also **saves a sleeping or paused drone**, which A did not.
+  **Its two costs were accepted with the decision, not overlooked.** A far-away
+  runaway loses its accidental stop: it used to be killed by its own entity
+  vanishing, and now `max_nodes_written`, `max_runtime_s` and `map_memory_mb`
+  carry the whole load. That is not new exposure — they already carried it for
+  anything in range — but it is **the last unintended backstop going away**. And
+  **`/clearobjects` stops ending programs**: it blanks the view, which comes
+  back. Neither is a defect and neither should be filed as one.
 - **The per-codelevel numbers, retuned 2026-08-30, and the singleplayer default
   with them.** `max_nodes_written` came down an order of magnitude at every level
   — `1e5 / 5e5 / 1e6 / 1e7` — because the old top of 1e8 was a hundred million
@@ -1259,74 +1262,32 @@ demonstrate it.
 
 ---
 
-2026-09-03 · codeblock master at `16cd05c`. **`B50`, `B51` and `B52` are open and
-come first** — `W1`'s re-run at codelevel 1 lost the drone after 6–8 seconds, the
-cause is read out of the 5.17.0 engine source and **confirmed by that check's
-discriminator run the same day** (both chat lines arrive, the obsidian stops at
-352 and 320 nodes), `B51` is observed in a world, **no fix is chosen**, and the
-other three codelevels are unreported. The three changes that were
-uncommitted in one working tree are now three commits: `B48`'s one-line fix in
-`lib/filesystem.lua` at `4179877`; `F10`'s rework
-of `lib/register.lua`, `doc/api.md`'s hand-written section, `README.md` and the
-eight French strings in `locale/codeblock.fr.tr` at `b23a8bc`; and `B49`'s
-unknown-block warning in `lib/env.lua`, `lib/sandbox.lua` and `lib/api.lua`, with
-a regenerated `doc/api.md`, one more locale key and 13 new `env_spec` cases, at
-`d8c32f7`. The record followed at `16cd05c`. **The
-gates were run over the whole tree before it was split and are green.** The last committed code is
-`d8d44cd` — `B47`'s beat change, `settingtypes.txt`'s generator and
-`C20`; then `4179877`, `b23a8bc` and `d8c32f7` on 2026-09-03, with the record at
-`16cd05c`. **CI was last
-green on all three jobs at `dc09d48` (run 44) and `471526e` (run 45)**, so
-`d8d44cd` has **local gates only** until the next run, and it is the commit a
-later run should be compared against. It also adds a fourth CI step, so the first
-run over it proves the new gate as well.
-**Five gates green**, engine 5.17.0, read from output rather than exit codes:
-luacheck silent, `doc/api.md`, `locale/template.txt` and **`settingtypes.txt`**
-all up to date, `locale/*.tr` covering every message and nothing else, nine
-in-engine specs **458 passed, 0 failed, 1 xfail, 0 xpass**, and the six
-standalone **238 passed, 0 failed, 1 xfail** under Lua 5.1. Both generators were
-also **made to fail once** against a fake limit.
+2026-09-03 · codeblock master at `1b991ae`, which is **ahead of
+`origin/master`**. **One finding is open: `B51`**, a run cut short announced as
+*completed*, with no chosen fix, and since `1b991ae` the only remaining path to
+that word. **`B50` and `B52` are fixed in `1b991ae` and unverified in a running
+world** — the drone record and the run are decoupled from the entity — and the
+three checks that would settle it, `W1` at codelevel 1, `W5` and `W6`, are
+written and unrun. `W1`'s codelevels 2, 3 and 4 are unrun as well.
 
-Those figures were taken at `d8d44cd` and have since moved. **The whole tree —
-`B48`, `F10`/`C21` and `B49` together — was gated on 2026-09-03** and reads:
-luacheck silent, `doc/api.md`, `locale/template.txt` and `settingtypes.txt` up to
-date, `locale/*.tr cover every message and nothing else` once the eight French
-strings and `B49`'s ninth were written, nine in-engine specs **471 passed,
-0 failed, 1 xfail, 0 xpass**, and the six standalone **251 passed, 0 failed,
-1 xfail** under Lua 5.1. Both spec counts are up 13 on `test-agent`'s new
-`env_spec` cases for `B49`, and nothing else moved. `LUACHECK_STRICT=1` shows the
-same 20 pre-existing warnings and none in the new spec, and
-`codeblock_run_tests` was confirmed absent from the config afterwards, with no
-BOM. **Every one of those figures describes the three changes together, never one
-in isolation, and CI has seen none of them** — the standalone run is CI's own
-command, so plain Lua 5.1 is covered locally, but a real CI run waits on a
-push.
+Committed since the last record pass: `4179877` (`B48`), `b23a8bc` (`F10`,
+`C21`), `d8c32f7` (`B49`), `16cd05c` (record), `0837b58` (record), `c2e541f`
+(`CONTENTDB.md` and `.cdb.json`), `1b991ae` (`B50`, `B52`).
 
-**Nothing is open**, and `PLAYTEST.md` stands at 57 checks, **every one carrying
-a result**, one of them partial and only because two of its cases cannot be
-performed. `E16`'s pristine-example case and **all four** `F10-n` checks passed
-2026-09-03, the first of them completed later the same day with its inventory and
-`/privs` cases — which is what confirms `C21` in a world — and **`W4` passed at
-`16cd05c`**, the last check in the file to have had no result, which confirms
-`B49`. `H10`
-passed on
-2026-09-02 with `B47`'s residue intact and accepted; `R2` still wants re-running
-on the release archive, and its entry now carries the `git archive` recipe it had
-never said. The archive is **2.21 MB**, the reworked cover having cost 0.73 MB of
-it.
+**Gates at `1b991ae`**, engine 5.17.0, read from output rather than exit codes:
+luacheck silent, `doc/api.md`, `locale/template.txt` and `settingtypes.txt` all
+up to date, `locale/*.tr` covering every message and nothing else, nine in-engine
+specs **474 passed, 0 failed, 1 xfail, 0 xpass** — the xfail `preprocess_spec`'s
+and pre-existing — and the six standalone under Lua 5.1. **CI has seen none of
+it**: it was last green on all three jobs at `dc09d48` (run 44) and `471526e`
+(run 45), so everything from `d8d44cd` up carries local gates only, and the first
+run over `d8d44cd` also proves the fourth CI step that commit added.
 
-**`B48`, `F10` and `B49` went ahead of the release list, out of one tree with the
-gates green over all three, and are committed.** `B48`, reported and fixed 2026-09-03 at `4179877`: the
-editor marked every unsaved example tab modified as soon as it lost focus,
-because `read_file` kept the bundled examples' CRLF and the client's textarea
-returns LF. One line in `lib/filesystem.lua`. `F10` at `b23a8bc`, specified and
-written the
-same day: no tool handout, no privilege grant (`C21`), droppable tools, and one
-`/codeblock` command in place of two. `B49` at `d8c32f7`, reported and fixed the
-same day
-again: a misspelled block name built the default block in silence, and now warns
-once per run naming the key. **All three are committed with their gates green and
-all three are confirmed in a world**, so by `build-feature`'s rule each is done;
-what none of them has is a CI run. Then
-*Finalising v1.0.0* above: three documents, the ContentDB page, `R2`, then the
-tag.
+**`PLAYTEST.md` stands at 59 checks**, 57 carrying a result: one fail (`W1`, at
+code `1b991ae` has replaced) and one partial (`H8`, only because two of its cases
+cannot be performed). `W5` and `W6` are the two without one. **`R2` still wants
+re-running on the release archive**, which is **2.21 MB**.
+
+What is left before the tag: play `W1`, `W5` and `W6`; decide `B51`; `README.md`'s
+ContentDB URLs and its Quick start; the screenshots; `R2`; a push and a CI run;
+then `release-check`, the heading, and the tag.

@@ -65,7 +65,7 @@ Features
       d8c32f7**, and playtest W4 passed 2026-09-03 at 16cd05c — so the
       once-per-run warning is confirmed in a world, which no spec could do
       (audit B49)
-- [ ] BUG: the drone disappears at codelevel 1 — reported 2026-09-03 from the W1
+- [x] BUG: the drone disappears at codelevel 1 — reported 2026-09-03 from the W1
       re-run: `aaa.lua` places obsidian and brick along two 25-step lines, and
       after 6–8 seconds the drone vanished. No error, no refusal, and not the
       "cannot leave the world" stop. Filed as B50, and the cause is now read out
@@ -75,8 +75,19 @@ Features
       into. Past about 192 nodes the client is no longer keeping it alive either.
       Time is what matters rather than distance, which is why levels 3 and 4
       finish before the engine's 2 s sweep ever sees them and why W1's old passes
-      could not have caught it. **No fix chosen — that one is yours**; the
-      options are coming to you separately. Level 2 genuinely depends on
+      could not have caught it. **You chose the fix on 2026-09-03, and it is a
+      fourth option rather than either of the two put to you: decouple the drone
+      record from its entity**, so the step driver moves to the globalstep
+      register.lua already has, `on_deactivate` only drops the view, and the
+      entity comes back with the same serial when the block does. It closes B52
+      as well, and it saves a sleeping or paused drone, which neither of the
+      other options did. **Written and committed the same day as 1b991ae**, with
+      the gates green — 474 in-engine assertions, 0 failed, 0 xpass — and
+      **nothing about it has been played yet**: W1, W5 and W6 are written and
+      unrun, and they are the only evidence it will ever have. You also
+      supplied a much better reproducer — `forward(500)` then `sleep(20)` kills
+      it in one to two seconds every time, where the loop was a coin flip.
+      Level 2 genuinely depends on
       singleplayer versus dedicated, and the other levels are still unreported.
       Your two discriminator runs on 2026-09-03 confirmed it: both chat lines
       arrive, so nothing is being swallowed, and the obsidian stopped at 352 and
@@ -86,19 +97,25 @@ Features
       goes, try to place a new one. If it says "Drone is busy, please wait!" the
       record has leaked (audit B50; playtest W1)
 - [ ] BUG: a run that was cut short says "completed" — found 2026-09-03 while
-      diagnosing B50, not reported. Drone.finish has no word for it, so a drone
-      killed mid-flight and one you stop with the setter both say the program
-      completed, with a node count nowhere near what it asked for. **You have now
-      seen it**: your discriminator run showed "le drone a disparu" and then
+      diagnosing B50, not reported. Drone.finish has no word for it, so a run you
+      stop with the setter says the program completed, with a node count nowhere
+      near what it asked for. **This is the only one of the three still open, and
+      since 1b991ae it is the only remaining path to the wrong word** — the
+      mid-flight case went with that fix, along with the "drone a disparu" line
+      it used to pair with. No fix is chosen; a new word means a new S() key and
+      its .tr lines. **You have seen it**: your discriminator run showed "le drone a disparu" and then
       "programme terminé", one after the other, about a run killed 48 blocks
       short of the 50 it asked for. The two lines contradict each other
       (audit B51)
-- [ ] BUG: a drone standing still far from you dies at about 29 seconds — found
-      2026-09-03 the same way, and it survives any fix to B50: `load_area` does
+- [x] BUG: a drone standing still far from you dies at about 29 seconds — found
+      2026-09-03 the same way. It survives most fixes to B50 — `load_area` does
       not reset the mapblock's usage timer, so the block is unloaded on
       `server_unload_unused_data_timeout` regardless of the drone standing in it.
       `sleep(30)` out at 300 nodes, or a run left paused, both reach it — and
-      both are things the mod invites you to do (audit B52)
+      both are things the mod invites you to do. **The fix you chose for B50
+      does close it**, which is one of the two reasons it was chosen over the
+      others, and it is **committed as 1b991ae**; playtest W5 is the check this
+      has never had, in either state, and it is still unrun (audit B52)
 - [ ] FEAT: Make possible to change codelevel while running a program (audit F5)
 - [x] FEAT: stop forcing the two tools into every joining player's inventory —
       settled 2026-09-03 as `F10`, your choice of the two: a command, not a
@@ -123,12 +140,13 @@ Features
       reported /privs on a fresh player showing none of the three, which was the
       only
       evidence this finding could ever have (audit C21)
-- [ ] CONTENTDB.md's Quick start tells the player they are given the two tools,
+- [x] CONTENTDB.md's Quick start tells the player they are given the two tools,
       which `F10` made false at b23a8bc. README.md had the same problem and has
       been rewritten with a step saying where the tools come from; CONTENTDB.md is
       left for the wording review you have pending, since you have an
-      uncommitted edit to that line already. `.cdb.json` follows via
-      scripts/gen_cdb_json.sh (audit C19; F10)
+      uncommitted edit to that line already. **Done 2026-09-03 at c2e541f**,
+      with .cdb.json regenerated from it in the same commit
+      (audit C19; F10)
 - [ ] doc/api.md's Chat commands and Codelevel sections are hand-written and no
       check reads them — gen_docs.lua owns the file only from the `# Lua api`
       heading down. The gate said "up to date" while the file documented
@@ -142,13 +160,15 @@ Features
 - [x] a ContentDB long description that is not README.md — done 2026-08-28,
       CONTENTDB.md, with the shape you asked for. Revise the copy freely; edit
       that file and run scripts/gen_cdb_json.sh, never .cdb.json (audit C19)
-- [ ] fix CONTENTDB.md, which has drifted two features behind — the corner
+- [x] fix CONTENTDB.md, which has drifted two features behind — the corner
       display "naming the one limit the run will actually stop on" (said twice)
       and the panel's "pause, resume, cancel and remove" both describe F4's
       displays, which F8 replaced with three coloured lines and with Stop plus
       Pause/Resume. Add F9's elapsed clock, then run scripts/gen_cdb_json.sh.
       Hand-kept against CHANGELOG.md and nothing checks the two agree, which is
-      how it drifted silently (audit C19)
+      how it drifted silently. **Done 2026-09-03 at c2e541f**, together with the
+      Quick start line above; it is still hand-kept, so it will drift again
+      (audit C19)
 - [ ] configure the ContentDB release webhook — trigger "Branch or tag
       creation", not push, because this project tags. The procedure is in the
       release-codeblock skill (no finding; from the author, 2026-08-28)
@@ -236,6 +256,11 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
       Whether the other three behave is unreported, so nothing claims they pass;
       whichever levels do work is also the first thing that narrows the cause
       (audit B50; playtest W1)
+- [ ] once the B50 fix is committed, run three checks: W1 again at codelevel 1
+      with the `forward(500); sleep(20)` reproducer and its third observation
+      made, W5 — new, the check B52 has never had — and W6, new: the drone's
+      entity going away when you walk off and being back when you return, with
+      no chat line either way (audit B50, B52; playtest W1, W5, W6)
 - [ ] re-run R2 on the archive built from the release commit — R1 was
       re-checked at `7dbe18f` and still passes, but R2 last ran before F4 added
       lib/hud.lua and before .gitattributes changed at `60dc8dd`. Install it in

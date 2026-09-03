@@ -20,11 +20,24 @@ Reasoning lives in `AUDIT.md` under the bracketed id, or `ROADMAP.md` for an `F`
 
 ## Where it stands
 
-**57 checks. Every one carries a result**, **one of them a fail** — `W1`, re-run
-at codelevel 1 on 2026-09-03 — and one partial, `H8`, and only because two of its
-cases cannot be performed. `F9-1`, `R1`, `E16`, `W1` and the four `F10-n` checks
-each carry two results or more — `W1` now three, the newest being the
-discriminator run that closed `B50`'s open question.
+**59 checks. Two carry no result** — `W5` and `W6`, written 2026-09-03 for the
+fix that has since landed as `1b991ae`. Of the other 57, **one is a fail** —
+`W1`, re-run at codelevel 1 on 2026-09-03, which is `B50`, now fixed and awaiting
+this check's re-run — and one partial, `H8`, and only because two of its cases
+cannot be performed. `F9-1`, `R1`, `E16`, `W1` and the four `F10-n` checks each
+carry two results or more.
+
+- **Three checks are owed, and all three are now checks against a landed fix
+  rather than a planned one.** `B50` and `B52` were fixed in **`1b991ae`**, the
+  gates are green over it, and **nothing about it has been seen in a world** —
+  these three are the whole of that evidence. **`W1` re-run at codelevel 1**,
+  with the deterministic reproducer the author supplied — `forward(500);
+  sleep(20)`, which killed the drone in one to two seconds every time where the
+  50-iteration loop was a coin flip — and with observation 3 finally made.
+  **`W5`**, the check `B52` has never had: a drone sleeping or paused far from any
+  player must keep its run. **`W6`**: the entity going away when the player
+  leaves and being back on return, with no chat line either way, one drone and
+  not two, and `/clearobjects` no longer ending a program.
 **`H10` passed 2026-09-02 with a few presses still missing** — the residue
 `B47`'s fix leaves, accepted rather than closed.
 
@@ -36,8 +49,10 @@ discriminator run that closed `B50`'s open question.
   at**. Filed as **`B50`**, open, **cause now read out of the 5.17.0 engine
   source**: an entity with `static_save = false` is deleted when the mapblock
   under it leaves server memory, and nothing keeps the drone's own block loaded
-  past ~192 nodes from a player. **No fix is chosen** — the options are with the
-  author. **What happens at codelevels 2, 3 and 4 is unknown**, the report having
+  past ~192 nodes from a player. **A fix was chosen later the same day** —
+  decouple the record from the entity, which closes `B52` too — and **committed
+  as `1b991ae`**, so this fail describes code that has been replaced and the
+  re-run is what settles it. **What happens at codelevels 2, 3 and 4 is unknown**, the report having
   been cut off before it said, and level 2 genuinely depends on singleplayer
   against dedicated. **`W1`'s expectation was wrong as written and is corrected**:
   *no holes* cannot be met while the drone is deleted mid-run, and the check now
@@ -442,11 +457,22 @@ recorded as such in `AUDIT.md`. Do not write this case again without a way to
    removes a drone mid-run and is allowed to. Remove a running drone with it and
    place a new one in the same second. **Pass:** the replacement survives and runs
    to its own end, and the removed run announces its statistics **once** —
-   `Drone.on_remove` calls `Drone.finish(drone, 'completed')` on purpose. What
-   must **not** appear is *"The drone has disappeared, program stopped"*.
+   `Drone.on_remove` calls `Drone.finish(drone, 'completed')` on purpose — which
+   is `B51`, still open: *completed* is the wrong word for a run the player cut
+   short.
+
+**The old second condition is gone, and so is what it named.** It asked that
+*"The drone has disappeared, program stopped"* not appear; `1b991ae` deleted that
+message outright, nothing sends it, and its `S()` key is out of
+`locale/template.txt`. So the condition is now trivially met and is not worth
+checking.
 
 Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — both parts. **`B29`'s
-serial guard is confirmed in a running world**; this was the one path to it.
+serial guard was confirmed in a running world**; this was the one path to it.
+**That result predates `1b991ae`**, which changed what the serial guards — the
+replacement's object rather than its record — so part 2 is worth re-running with
+`W6`, and until it is, `B29`'s in-world evidence describes code that has since
+moved.
 
 Earlier: partial — `f274245` · 2026-08-27 — part 1 only. **The check was wrong,
 not the code**: it asked for a mid-run replacement, which `on_place` refuses on
@@ -991,14 +1017,38 @@ visited**.
 
 **Pass:** no holes — **and the drone survives the run.**
 
+**Owed: a re-run at codelevel 1. `B50`'s fix has landed — `1b991ae`.** It
+decouples the record from the entity, so what this check must now show is the
+whole program running to its end — **all 50 obsidian placements and
+the brick line back**, no *le drone a disparu*, and the entity visible again
+whenever the player is near enough to see it. A drone that vanishes from view
+part-way and reappears later is a **pass**, not a fail: after the fix the view
+going away is not an ending. Make observation 3 this time — placing a new drone
+straight afterwards must work, not answer *"Drone is busy, please wait!"*.
+
+**Use the deterministic reproducer, not the loop.**
+
+    -- bbb.lua
+    forward(500)
+    sleep(20)
+
+**Before `1b991ae` this killed the drone in one to two seconds, every time.**
+`forward` is a teleport (`lib/commands.lua:123-134` adds the whole offset in one
+command), so the drone is 500 nodes out immediately, and `sleep(20)` then makes
+no call, so nothing calls `load_area`; the 2.0 s deactivation sweep took it on
+its first or second pass. **After the fix it must survive the full 20 seconds and
+then finish normally.** The 50-iteration loop below is a coin flip and this is
+not, so run this one first.
+
 **The expectation was wrong as written, corrected 2026-09-03.** *No holes* was
 the whole of it, and it cannot be met at a paced codelevel while `B50` stands:
 the drone is deleted at about 192 nodes from the player, so there are no holes
 because there is no drone. **Do not read this check's two earlier passes as
 evidence about codelevels 1 and 2** — both were taken above level 2, where the
 program finishes inside a step or two and the engine's 2-second object
-management never sees it. **This check cannot pass at level 1 until `B50` is
-fixed**, and a fail here is that finding rather than a new one.
+management never sees it. **This check could not pass at level 1 before `1b991ae`**,
+and a fail there was that finding rather than a new one. A fail *now* is a new
+finding, or the fix not working, and either way it is worth reporting as such.
 
 **Run it at codelevel 1 or 2, not 3 or 4.** The pass condition is *no holes*, but
 what this check is *for* is the per-resume memo reset, and the codelevel decides
@@ -1019,10 +1069,13 @@ recorded, not just the overall outcome.
 1. **Where the obsidian stops, counted in multiples of 16.** Near **192–256**
    means the object was deleted. A full **400**, plus the brick line coming back,
    means only the *view* was lost and the run carried on unseen.
-2. **Whether a chat line arrived, and how long after** the drone left the screen.
-   A gap of a few seconds is the two events being separate. **No line at all is a
-   second, separate defect** — `lib/drone.lua:404` should print *The drone has
-   disappeared, program stopped* before the finish line.
+2. **Whether a chat line arrived, and how long after** the drone left the
+   screen. **After `1b991ae` the pass is *no line at all*** — losing the view is
+   not an ending, and the message that used to be printed here, *The drone has
+   disappeared, program stopped*, was deleted with the fix because nothing sends
+   it any more. Before the fix, both lines arriving was what showed the teardown
+   path was intact; now any line before the program's own finish line is a
+   defect.
 3. **Whether a new drone can be placed immediately**, or the answer is *"Drone is
    busy, please wait!"*. **This is the expensive case and the one to be sure
    about.** A leaked record keeps `cor ~= nil` for ever, locking that player out
@@ -1195,6 +1248,80 @@ result. The author reported the check as a whole rather than case by case, so
 what is recorded is a pass on the check as written above; case 2 is the part no
 spec will ever cover, the per-run flag being a closure upvalue in a file-local
 function.
+
+### W5 · A drone that stands still far away keeps running [B52, B50]
+
+**Written 2026-09-03 for the fix now committed as `1b991ae`, unrun.** `B52` has
+never had a check of its own, and no spec can reach it: the mechanism is the engine unloading a mapblock on
+`server_unload_unused_data_timeout` while an object stands in it, which needs a
+world, a map and a clock.
+
+Both cases start the same way: fly at least 300 nodes from anywhere a player is,
+place a drone, and then leave it alone — do not follow it, do not stand near it.
+
+1. **`sleep` longer than the unload timeout.** Run a program that goes out and
+   then sleeps well past the default 29 s:
+
+       forward(500)
+       sleep(45)
+       place(blocks.obsidian)
+
+   **Pass:** after the sleep the obsidian is placed and the run announces itself
+   normally. The drone must not disappear silently at about 29 seconds, and no
+   *le drone a disparu* line may arrive.
+2. **A run left paused.** Start a long program that walks a long way out, then
+   **Pause** it from the panel and wait more than a minute before resuming.
+
+   **Pass:** Resume carries on from where it stopped. The panel must still
+   describe the same run, and the elapsed clock must not have been reset by a
+   restart.
+
+**What a pass means**, and it is why this check is written as the fixed
+behaviour: the entity may well vanish from view in both cases — the block under
+it genuinely is unloaded — and that is not a failure. The run continuing and
+finishing is the whole condition. Before `1b991ae` both cases failed by
+construction, so a fail here is the fix not working rather than the old defect.
+**This is `B52`'s only possible evidence**: the finding was read out of the
+engine and has never been observed in either state.
+
+Result: not yet run.
+
+### W6 · The drone's entity goes away and comes back [B50, B29]
+
+**Written 2026-09-03, unrun**, for the fix committed that day as `1b991ae`:
+after it, the entity is a *view* of a drone rather than the drone itself, and
+losing the view is not an ending. Nothing in the suite can see this — it needs two players' worth of
+distance, a real map and the engine's own object management.
+
+1. **Walk away from a running drone.** Start a long program, then fly a few
+   hundred nodes away and watch the chat.
+
+   **Pass:** the drone model disappears from view with **no chat line at all**,
+   and no finish line. *The drone has disappeared, program stopped* cannot appear
+   — `1b991ae` deleted the message and its `S()` key, nothing sends it, and a
+   line resembling it would mean a stale build. The panel and the HUD go on
+   describing a running program, with the numbers still moving.
+2. **Come back.** Fly back to where the drone should be by now.
+
+   **Pass:** the entity is there again, in the right place, and what it has built
+   since you left is on the ground behind it. One drone, not two — the re-spawn
+   uses the **same serial**, which is `B29`'s guard, so a second model standing
+   next to the first is a defect and should be reported as one.
+3. **Place a new drone afterwards.** When the program has finished, place a drone
+   under the same name.
+
+   **Pass:** it places. *"Drone is busy, please wait!"* means a leaked record,
+   which is `B50`'s expensive case.
+4. **`/clearobjects` does not end the program.** With a program running, run
+   `/clearobjects`.
+
+   **Pass:** the model goes and then comes back — within about a second, which
+   is `respawn_period_s` — and the program keeps running throughout. **This is a
+   deliberate consequence of the fix, not a bug** — the command blanks the view
+   and the mod re-spawns it. It is recorded under `B50` as one of the two costs
+   the decision accepted.
+
+Result: not yet run.
 
 ---
 

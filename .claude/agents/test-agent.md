@@ -31,14 +31,13 @@ powershell -ExecutionPolicy Bypass -File scripts/run_tests.ps1   # the nine spec
 ```
 
 **Read the output, not the exit code.** `$?` does not survive this machine's WSL
-layer. Green is luacheck silent, both checks printing *up to date*, and `failed`
-and `xpass` both 0 across nine specs with none skipped.
+layer. Green is luacheck silent, all three `--check`s printing *up to date*, and
+`failed` and `xpass` both 0 across nine specs with none skipped.
 
-A fifth gate is decided and not yet built: a generator and a `--check` for
-`settingtypes.txt`, the third hand-kept mirror and the only one without either.
-Until it exists, a change to a limit is checked by reading `lib/config.lua` and
-`settingtypes.txt` side by side, and you say in the reply that you did it by
-hand.
+`gen_settingtypes.lua` was the last of the three to be built, on 2026-09-02, and
+it found `C20` — a check that had never once matched anything — on its first run.
+**A check that cannot fail is indistinguishable from one that passes**, so make a
+new check or a new assertion fail once before trusting it.
 
 CI runs the same gates plus the six standalone specs under Lua 5.1:
 `https://api.github.com/repos/gigaturbo/codeblock/actions/runs?per_page=5`, then
