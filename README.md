@@ -22,7 +22,8 @@ A drone you program in Lua, an in-game editor, a sandbox and a documented API. I
 
 1. Create an empty (flat) world, enable `codeblock` mod ant its dependencies
 2. Enable creative mode and start the game
-3. Right click with ![drone_poser](https://raw.githubusercontent.com/gigaturbo/codeblock/master/doc/drone_poser.png) tool on a block to place the drone, choose `stairs.lua` then left click with ![drone_poser](https://raw.githubusercontent.com/gigaturbo/codeblock/master/doc/drone_poser.png) to start the drone
+3. Get the two drone tools: search for `drone` in the creative inventory, or run `/codeblock tools`. The mod never puts anything in your inventory by itself
+4. Right click with ![drone_poser](https://raw.githubusercontent.com/gigaturbo/codeblock/master/doc/drone_poser.png) tool on a block to place the drone, choose `stairs.lua` then left click with ![drone_poser](https://raw.githubusercontent.com/gigaturbo/codeblock/master/doc/drone_poser.png) to start the drone
 
 ### Write your first program
 

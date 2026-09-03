@@ -32,39 +32,39 @@ local examples = codeblock.examples.examples
 -- private
 --------------------------------------------------------------------------------
 
---- Make sure the player is carrying the two drone tools.
+--- Add whichever of the two drone tools a player is not already carrying.
 --
--- Adds whichever tool is missing and clears nothing. It used to empty main,
--- craft, craftpreview and craftresult first - invisible in the game this mod is
--- written for, where a player has nothing else, and destructive in any other:
--- adding the mod to a world that already had players makes both tools missing
--- at once, so the next join wiped the inventory. B16 stopped that happening on
--- *every* login, which left the first join after an install still doing it.
--- (B39)
+-- Clears nothing, ever. Emptying the inventory first is destructive in any
+-- world that had players before the mod was installed, where both tools are
+-- missing at once and everything else is theirs. (B39)
 --
--- No room is reported rather than passed over: a player with no drone tools and
--- no explanation has no way into the mod at all.
-local function set_tools(player)
+-- The craft grid counts as carrying: nothing stops a player parking a tool
+-- there, and looking only in `main` hands them a duplicate on every call.
+--
+-- Returns how many were added, and whether one did not fit.
+local function give_tools(player)
+
     local inv = player:get_inventory()
-    local name = player:get_player_name()
+    local added, full = 0, false
 
     for _, itemname in ipairs({'codeblock:poser', 'codeblock:setter'}) do
 
-        -- The craft grid counts as carrying it. Both tools are undroppable but
-        -- nothing stops a player parking one there, and only looking in `main`
-        -- would hand them a second copy on every join - which the wipe used to
-        -- cover up.
         local stack = ItemStack(itemname)
         local carried = inv:contains_item('main', stack) or
                             inv:contains_item('craft', stack)
 
-        if not carried and not inv:add_item('main', stack):is_empty() then
-            chat_send_player(name, S(
-                'No room for the drone tools, free a slot and rejoin'))
-            return
+        if not carried then
+            if inv:room_for_item('main', stack) then
+                inv:add_item('main', stack)
+                added = added + 1
+            else
+                full = true
+            end
         end
 
     end
+
+    return added, full
 end
 
 --- Write the bundled example programs into a player's directory.
@@ -110,7 +110,6 @@ core.register_tool("codeblock:poser", {
     range = 128,
     stack_max = 1,
     liquids_pointable = true,
-    on_drop = function(itemstack, dropper, pos) return itemstack end,
     on_use = function(itemstack, user, pointed_thing)
         local name = user:get_player_name()
         drone_on_run(name)
@@ -143,7 +142,6 @@ core.register_tool("codeblock:setter", {
     inventory_image = "drone_setter.png",
     range = 0,
     stack_max = 1,
-    on_drop = function(itemstack) return itemstack end,
     -- One gesture, one meaning: show me this drone.
     --
     -- It has meant three things in turn. It removed the drone; then `F4` split
@@ -204,12 +202,10 @@ core.register_on_newplayer(function(player)
     -- example
     generate_examples(name)
 
-    -- privs
-    local privs = core.get_player_privs(player:get_player_name())
-    privs.fly = true
-    privs.fast = true
-    privs.noclip = true
-    core.set_player_privs(player:get_player_name(), privs)
+    -- The two routes to the tools, said once. Nothing hands them out any more,
+    -- so a player who is never told has no way in. (F10)
+    chat_send_player(name, S(
+        'Get the drone tools with /codeblock tools, or from the creative inventory'))
 
     -- meta
     local meta = player:get_meta()
@@ -236,9 +232,6 @@ core.register_on_joinplayer(function(player)
         return err
     end
     get_user_data(name)
-
-    -- tools
-    set_tools(player)
 
     -- Presentation, and off unless a game asks for it: see config.flat_sky.
     -- Per-player and re-applied on every join, so nothing has to be undone
@@ -267,82 +260,131 @@ end)
 -- Commands and privileges
 --------------------------------------------------------------------------------
 
--- give_to_singleplayer was false, which made /codelevel unusable in exactly the
--- setting this game is mostly played in - while the command's own body carried
--- a dead is_singleplayer() branch trying to work around it. In singleplayer the
--- player is the administrator, so the privilege belongs to them.
+-- give_to_singleplayer, because in singleplayer the player is the
+-- administrator: with it false the privileged subcommands were unusable in
+-- exactly the setting this mod is mostly played in.
 core.register_privilege("codeblock", {
-    description = "Player can set another player's codelevel and generate " ..
-        "their example programs",
+    description = "Player can set a codelevel, and give the drone tools or " ..
+        "generate the example programs for another player",
     give_to_singleplayer = true
 })
 
-core.register_chatcommand("codelevel", {
-    params = "[<playername>] <1-4>",
-    description = "Set a player's codelevel",
-    -- Stays privileged, including for your own level. codelevel is the knob
-    -- that bounds how much a program may do - calls, volume, commands - so a
-    -- player who could raise their own would be lifting their own limits. The
-    -- bug was never the privilege, it was that the privilege was unobtainable
-    -- in singleplayer.
-    privs = {codeblock = true},
-    func = function(name, params)
+--- Parse "[<playername>]" alone: the caller when omitted, nil when malformed.
+-- The sibling of utils.parse_target, which needs a second argument to parse.
+local function target_only(caller, params)
+    if params:match('^%s*$') then return caller end
+    return params:match('^%s*([%a][%w_%-]*)%s*$')
+end
 
-        local pname, level = parse_target(name, params, '%d+')
+-- One entry per subcommand, each taking the caller's name and the arguments
+-- after the subcommand word, and answering as a chatcommand func does.
+--
+-- Two privilege rules, and they differ on purpose. `tools` and `generate` act
+-- on things that are the player's own, so they are free for yourself and need
+-- the privilege for somebody else. `level` needs it either way: codelevel is
+-- the knob that bounds what a program may spend, so a player able to raise
+-- their own would be lifting their own ceilings.
+local subcommands = {}
 
-        if not pname then
-            return false, S(
-                       'Usage: codelevel <playername> <level> OR codelevel <level>')
-        end
+subcommands.tools = function(caller, params)
 
-        local valid, al = check_auth_level(tonumber(level))
-        if not valid then return false, S('Invalid codelevel') end
-
-        local player = get_player_by_name(pname)
-        if not player then return false, S('Player not found') end
-
-        player:get_meta():set_int('codeblock:auth_level', al)
-        return true, S('@1 codelevel set to @2', pname, al)
-
+    local pname = target_only(caller, params)
+    if not pname then
+        return false, S('Usage: /codeblock tools [<playername>]')
     end
-})
 
-core.register_chatcommand("codegenerate", {
-    params = "[<playername>]",
-    description = "Write any missing example programs into a player's files",
-    -- Same rule: your own files are yours; someone else's need the privilege.
-    -- This command used to have no privs at all AND ignore the name it parsed,
-    -- so it could only ever overwrite the caller's own files.
+    if pname ~= caller and not core.check_player_privs(caller, {
+        codeblock = true
+    }) then
+        -- One literal, deliberately: the argument to S is the translation key,
+        -- so a key assembled with .. is invisible to anything that reads the
+        -- source for strings to translate. (C17)
+        return false, S('You need the codeblock privilege for another player')
+    end
+
+    local player = get_player_by_name(pname)
+    if not player then return false, S('Player not found') end
+
+    local added, full = give_tools(player)
+    if full then
+        return false, S('No room for the drone tools of @1, free a slot', pname)
+    end
+    if added == 0 then
+        return true, S('@1 already carries both drone tools', pname)
+    end
+    return true, S('Drone tools given to @1', pname)
+
+end
+
+subcommands.level = function(caller, params)
+
+    if not core.check_player_privs(caller, {codeblock = true}) then
+        return false, S('You need the codeblock privilege to set a codelevel')
+    end
+
+    local pname, level = parse_target(caller, params, '%d+')
+    if not pname then
+        return false, S('Usage: /codeblock level [<playername>] <1-4>')
+    end
+
+    local valid, al = check_auth_level(tonumber(level))
+    if not valid then return false, S('Invalid codelevel') end
+
+    local player = get_player_by_name(pname)
+    if not player then return false, S('Player not found') end
+
+    player:get_meta():set_int('codeblock:auth_level', al)
+    return true, S('@1 codelevel set to @2', pname, al)
+
+end
+
+subcommands.generate = function(caller, params)
+
+    local pname = target_only(caller, params)
+    if not pname then
+        return false, S('Usage: /codeblock generate [<playername>]')
+    end
+
+    if pname ~= caller and not core.check_player_privs(caller, {
+        codeblock = true
+    }) then
+        return false, S('You need the codeblock privilege for another player')
+    end
+
+    if not get_player_by_name(pname) then
+        return false, S('Player not found')
+    end
+
+    local err, written, skipped = generate_examples(pname)
+    if err then
+        -- Plural, which is the key locale/ has always carried: the singular
+        -- here silently unhooked its own translation. (C17)
+        return false, S('An error occured when generating examples')
+    end
+    return true, S('@1: @2 examples written, @3 already present', pname, written,
+                   skipped)
+
+end
+
+core.register_chatcommand("codeblock", {
+    params = "tools [<playername>] | level [<playername>] <1-4> | " ..
+        "generate [<playername>]",
+    description = "Give the drone tools, set a codelevel, or write the " ..
+        "example programs",
+    -- No command-level privs: two of the three subcommands are free for
+    -- yourself, so each one asks for what it needs.
     func = function(name, params)
 
-        local pname = string.match(params, '^%s*([%a][%w_%-]*)%s*$') or
-                          (params:match('^%s*$') and name)
+        local sub, rest = params:match('^%s*(%a+)%s*(.-)%s*$')
+        local handler = sub and subcommands[sub]
 
-        if not pname then return false, S('Usage: codegenerate [playername]') end
-
-        if pname ~= name and not core.check_player_privs(name, {
-            codeblock = true
-        }) then
-            -- One literal, deliberately: the argument to S is the translation
-            -- key, so a key assembled with .. is invisible to anything that
-            -- reads the source for strings to translate - and this one was
-            -- never in locale/template.txt as a result. Shortened to fit. (C17)
-            return false,
-                   S('You need the codeblock privilege for another player')
+        if not handler then
+            return false, S('Usage: /codeblock tools [<playername>]') .. '\n' ..
+                       S('Usage: /codeblock level [<playername>] <1-4>') ..
+                       '\n' .. S('Usage: /codeblock generate [<playername>]')
         end
 
-        if not get_player_by_name(pname) then
-            return false, S('Player not found')
-        end
-
-        local err, written, skipped = generate_examples(pname)
-        if err then
-            -- Plural, which is the key locale/ has always carried: the singular
-            -- here silently unhooked its own translation. (C17)
-            return false, S('An error occured when generating examples')
-        end
-        return true, S('@1: @2 examples written, @3 already present', pname,
-                       written, skipped)
+        return handler(name, rest)
 
     end
 })

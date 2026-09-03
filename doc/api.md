@@ -1,6 +1,6 @@
 # Codelevel
 
-Drone capacities depends on the user's _codelevel_ which can be set with the `/codelevel` [command](https://github.com/gigaturbo/codeblock#chat-commands) (see below). High codelevels should be given carefully to users as program could overload the server and crash it. A new player starts at codelevel `3` in singleplayer, where the player is the administrator but has no use for the widest ceilings there are, and at `2` on a server — set `codeblock_default_auth_level` to override either.
+Drone capacities depends on the user's _codelevel_ which can be set with the `/codeblock level` [command](https://github.com/gigaturbo/codeblock#chat-commands) (see below). High codelevels should be given carefully to users as program could overload the server and crash it. A new player starts at codelevel `3` in singleplayer, where the player is the administrator but has no use for the widest ceilings there are, and at `2` on a server — set `codeblock_default_auth_level` to override either.
 
 | codelevel         | 1 (novice) | 2 (intermediate) | 3 (advanced) | 4 (poweruser) | description                                                    |
 |-------------------|------------|------------------|--------------|---------------|----------------------------------------------------------------|
@@ -95,26 +95,44 @@ around 10 ms — overshoots it.
 
 # Chat commands
 
-## `/codelevel [<playername>] <1-4>`
+Everything the mod offers a player outside the game world is a subcommand of
+`/codeblock`. Running it with no subcommand prints the three usages.
 
-Sets a player's codelevel. `<playername>` defaults to the caller.
+In every one, `<playername>` defaults to the caller. Acting on **another** player
+requires the `codeblock` privilege (`/grant <user> codeblock`); in singleplayer it
+is granted automatically, since the player is the administrator.
 
-Requires the `codeblock` privilege (`/grant <user> codeblock`), including for your
-own codelevel — codelevel is what bounds how much work a program may do, so being
-able to raise your own would defeat the limits. In singleplayer the privilege is
-granted automatically, since the player is the administrator.
+## `/codeblock tools [<playername>]`
 
-## `/codegenerate [<playername>]`
+Puts the **Drone placer** and the **Drone setter** in a player's main inventory.
+
+The mod does not hand these out. A player takes them from the creative inventory
+or asks for them here, and this command is the only route in a game with no
+creative inventory.
+
+Whichever of the two tools the player is not already carrying is added, and
+nothing is ever cleared. A tool parked in the craft grid counts as carried, so
+running this twice does not produce duplicates. With no free slot it refuses and
+says so rather than making room.
+
+Both tools can be dropped and thrown away; this command is how you get them back.
+
+## `/codeblock level [<playername>] <1-4>`
+
+Sets a player's codelevel.
+
+Requires the `codeblock` privilege **including for your own codelevel** — codelevel
+is what bounds how much work a program may do, so being able to raise your own
+would defeat the limits.
+
+## `/codeblock generate [<playername>]`
 
 Writes any of the bundled example programs that are **missing** from a player's
-files. `<playername>` defaults to the caller.
+files.
 
 Files that already exist are left untouched, and the reply reports how many were
 written and how many were already present. To get a pristine copy of an example
 you have edited, delete it in the editor and run the command again.
-
-Generating your own examples needs no privilege. Generating them for *another*
-player requires `codeblock`.
 
 # Lua api
 
