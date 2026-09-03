@@ -13,16 +13,18 @@ can imagine: learn to code, or give your inner computer artist somewhere to play
   that cannot harm the server.
 - **Example programs to discover.** Spirals, fractals, 3D plots and other more
   artistic examples. Open one and change a number to see what happens.
-- **Watch your program spend.** A small display while it runs names the limit it
-  will stop on, and a panel on the drone gives you the whole picture — every
-  limit, what it means, and pause, resume, cancel and remove.
+- **A control panel.** A nice UI gives you every limit with what your program has
+  spent beside it, as well as pause, resume and stop controls on the drone.
 - **Per-player limits** an administrator can tune, so the mod is usable on a
-  public server and not only in singleplayer.
+  public server and not only in singleplayer: how many blocks one program may
+  write, how much CPU time it may use, how much of the map it may hold and how
+  much memory it may grow by.
 
 ## Quick start
 
-1. New flat world, creative mode, mod enabled. You are given two tools: the
-   **Drone placer** and the **Drone setter**.
+1. New flat world, creative mode, mod enabled. Run `/codeblock tools` to be given
+   the **Drone placer** and the **Drone setter**, or take them from the creative
+   inventory.
 2. **Right click a block with the Drone placer.** A list of programs appears,
    pick `stairs.lua`.
 3. **Left click with the Drone placer.** The drone builds the staircase in front
@@ -53,19 +55,15 @@ Experiment and discover with the other examples, or write your own!
 
 ## Recent changes
 
-- **See what a running program is spending.** A display in the corner while it
-  runs, naming the one limit the run will actually stop on. And **left click your
-  drone with the drone setter** for the whole picture: every limit with what the
-  run has spent beside it, and what each one means, plus pause and stop.
-- **A default block** you pick in the editor, so a bare `place()` builds what you
-  chose. A program can override it for its own run with `default_block(block)`.
-- **`sleep(seconds)`**, so a program can build at a pace you choose rather than
-  the one your codelevel sets. Other drones keep building while yours waits.
-- **Create a copy** in the editor, to try a variation without touching the
-  version that works.
-- **Unsaved tabs are marked** with a `*`, so you can see the editor is holding an
+- **HUD** A display in the top right corner while a program runs, showing how
+  much of its budget it has spent.
+- **Control panel** Left click with the **drone setter** tool to show a panel with the drone limits, plus pause and stop buttons.
+- **Default block** Can be set in `Editor` > `Settings`, then a bare `place()` builds using this block. A program can override it for its *own run* with `default_block(block)`.
+- **`sleep(seconds)`** Pauses a program for a given duration.
+- **Create a copy** New button in the editor to open a copy of a program.
+- **Unsaved tabs** Now marked with a `*` so you can see the editor is holding an
   edit you have not saved.
-- Bulk shapes no longer depend on WorldEdit, and large builds no longer freeze
+- **Performance** Bulk shapes no longer depend on WorldEdit, and large builds no longer freeze
   the server.
 
 The **Codecube** game bundles this mod with a flat world and settings chosen for
