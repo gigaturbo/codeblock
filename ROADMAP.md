@@ -9,7 +9,7 @@ stays.
 Findings and their reasoning are in `AUDIT.md`. Manual checks are in
 `PLAYTEST.md`. Intentions not yet planned are in `TODO.md`.
 
-Phases are `Phase 0`–`Phase 10`, features `F1`–`F9`, findings `B`/`S`/`C`/`A`.
+Phases are `Phase 0`–`Phase 10`, features `F1`–`F10`, findings `B`/`S`/`C`/`A`.
 **Nothing is ever renumbered.**
 
 Three releases, settled 2026-08-28. **`Phase 8` is v1.0.0** — a correct sandbox,
@@ -21,13 +21,44 @@ thinking rather than a queue position.
 
 ## Now
 
-**Nothing is open, every check has a result, and what is left is three documents,
-the ContentDB page and the tag.** `B47` was decided, fixed and playtested on 2026-09-02,
+**Three changes are outstanding in one working tree — `B48`, `F10` and `B49` —
+and none is committed.** `B48` — every unsaved example tab marked modified the
+moment it lost focus, the bundled examples being CRLF and the client's textarea
+returning LF — was reported and fixed on 2026-09-03, one line in
+`lib/filesystem.lua`. `F10` landed
+beside it in `lib/register.lua`: the tool handout, the privilege grant (`C21`)
+and the `on_drop` stubs go, and `/codelevel` and `/codegenerate` become
+subcommands of `/codeblock`. **`B49` joined them the same day**: a misspelled
+block name — `place(blocks.notablock)` — built the default block in silence,
+because a missing key reads nil and `placement` cannot tell that nil from an
+omitted argument. It now warns once per run, naming the key, and still builds.
+
+**The gates are green over the whole tree** — luacheck silent, the three
+`--check` generators up to date, `locale/*.tr cover every message and nothing
+else` after the eight French translations were written, nine in-engine specs
+**471 passed / 0 failed / 1 xfail / 0 xpass** and six standalone **251 passed /
+0 failed / 1 xfail**, the counts up 13 on `test-agent`'s new `env_spec` cases for
+`B49`. **Those figures describe the three changes together and CI has seen none
+of them.** **The author has not asked for a commit**, so the three travel
+together and none is done: a feature is done when it is committed with its gates
+green.
+
+**The playing is done for two of the three.** On 2026-09-03, engine 5.17.0,
+`E16`'s new pristine-example case passed — which **confirms `B48` in a world**
+and takes it off the *gates green, unproven* list — and all four `F10` checks
+passed, the first of them completed later the same day with the two cases that
+had been missing: a fresh player gets no tools, and `/privs` shows no `fly`,
+`fast` or `noclip`. That second case **confirms `C21` in a world** and was its
+only possible evidence, which leaves *gates green, unproven* at two: `B14`, and
+`S7`'s log half. **`B49` is the one thing left unplayed** — its check is `W4`,
+written and not run.
+
+Before that: `B47` was decided, fixed and playtested on 2026-09-02,
 `settingtypes.txt` has its generator and its `--check`, and no finding is in the
-open state for the first time in the project's life. Five gates green, nine
-in-engine specs **458 passed / 0 failed / 1 xfail / 0 xpass**, `PLAYTEST.md` at
-**52 of 52**, and `R2`'s entry now carries the `git archive` recipe it had never
-said. The ordered list is the next section.
+open state — `C21` was filed and fixed on the same day. `PLAYTEST.md` stands at
+**57 checks, 56 carrying a result**, one of them partial and only because two of
+its cases cannot be performed; `W4` is the one with no result. The ordered list
+is the next section.
 
 **`B47` was answered by slowing the beat**, `PERIOD` `0.5` → `1` s in
 `lib/hud.lua`, the HUD moving with the panel because they share the one constant
@@ -70,8 +101,21 @@ In order. **Steps 7 to 11 are the `release-codeblock` skill's procedure** and ar
 not restated here; what is below is what *this* version still needs, and
 `release-check` is the gate that says whether it got it.
 
-**The work — three done on 2026-09-02; three documents and the ContentDB page left.**
+**The work — three done on 2026-09-02; `B48`, `F10` and `B49` all uncommitted in
+one tree, then three documents and the ContentDB page.**
 
+0. **Commit `B48`, `F10` and `B49` together**, since they share a working tree
+   and the gates have been run over all three and are green. `B48` is one line in
+   `lib/filesystem.lua`; `F10` is `lib/register.lua`, `C21`, the hand-written
+   region of `doc/api.md`, `README.md`'s Quick start and the eight French
+   translations in `locale/codeblock.fr.tr`; `B49` is `lib/env.lua`,
+   `lib/sandbox.lua`, `lib/api.lua`'s `blocks` entry with `doc/api.md`
+   regenerated, one new locale key with its French, and 13 new `env_spec` cases.
+   The playing is done for the first two — `E16` and all four `F10` checks passed
+   2026-09-03, which confirms `B48` and `C21` in a world — and `B49`'s check
+   `W4` is written and unrun. **CI has seen none of the three**, so committing is
+   also what gets them a CI run. Nothing else in this list should go before
+   fixes the author is already living with. (B48, F10, C21, B49)
 1. **`B47` — done, and playtested.** Answered by slowing the beat to 1 s rather
    than stopping the self-refresh, quantising, or moving to mouse-down;
    `AUDIT.md` keeps why each of the other three was not taken. `H10` passed with
@@ -92,12 +136,21 @@ not restated here; what is below is what *this* version still needs, and
    **Stop** and **Pause/Resume** with closing moved to an `x`. Nothing checks
    this file against the code or against `CHANGELOG.md`, so it drifted silently
    for two features. Fix both, add `F9`'s elapsed clock, then
-   `bash scripts/gen_cdb_json.sh` — **never `.cdb.json` by hand**. (C19)
+   `bash scripts/gen_cdb_json.sh` — **never `.cdb.json` by hand**. **`F10` adds a
+   third thing to fix here**: the Quick start's step 1 tells the player they are
+   given the two tools, which stops being true. The author has an uncommitted
+   rewording of exactly that line in the tree already and a wording review of
+   the file is pending, so this step is now one edit and not two. (C19, F10)
 4. **`CHANGELOG.md` loses `(unreleased)` from its heading**, and its *Known
    limitations* section gains `B47` if step 1 ships it rather than fixing it.
+   **v1.0.0's breaking list gains three of `F10`'s changes** — the `/codeblock`
+   command rename, the end of the tool handout, the end of the privilege grant —
+   once they are committed and green, and not before. (F10)
 5. **`README.md`'s ContentDB URLs are on `content.minetest.net`**, the pre-rename
    domain. It redirects, so this is stale rather than broken — but the README
-   ships in the archive. (C19)
+   ships in the archive. Its Quick start has the same `F10` problem as
+   `CONTENTDB.md`'s: it does not say where the tools come from, and after `F10`
+   they do not come from joining. (C19, F10)
 6. **Upload the new screenshots to the ContentDB page.** They load from raw
    GitHub URLs on `master`, so the page needs the new names and the dropped 2021
    file removing. (C19)
@@ -172,12 +225,14 @@ that the editor and drone paths were exercised by hand. Phase 8's playtests have
 since found **twelve** defects in code earlier phases called done (B36–B44, C17,
 C18, S7) — the newest of them were the largest. **All twelve are fixed.**
 
-### 8 · Features for v1.0.0 — feature-complete, nothing open (7/7 shipped, 20 findings, 0 open)
+### 8 · Features for v1.0.0 — one feature in flight (7/8 shipped, 22 findings, 0 open)
 
 The last phase before v1.0.0 and the only one that adds rather than repairs.
 Started as seven features: `F6` moved out on 2026-08-28 (Blockly is `Phase 10`)
 and `F5` was **dropped unbuilt on 2026-08-29** — *"not very interesting in the
-end."*
+end."* **`F10` was added on 2026-09-03** and is in `Phase 8` rather than `Phase 9`
+for one reason: it renames two chat commands, and a rename is free before the
+first tag and breaking after it.
 
 Shipped: `F1` `500dd85`, `F2` `dee0bc7`, `F3` `90cfb70`, `F7` `afbe504`,
 `F4` `729c255`, `F8` `d619fba` revised `60dc8dd`, `F9` `8869d8c` revised
@@ -185,8 +240,10 @@ Shipped: `F1` `500dd85`, `F2` `dee0bc7`, `F3` `90cfb70`, `F7` `afbe504`,
 the second time a feature here has come from playing the one before it — and the
 second time in a row that what a display *said* was the thing playing it found.
 
-Left in the phase: the three documents under *Finalising v1.0.0* above, and `R2`
-on the release archive — the one check whose result has gone stale. `H10` passed
+Left in the phase: **`F10`, written and played but uncommitted as of
+2026-09-03**, `B48` and `B49` beside it in the same tree, the three documents
+under *Finalising v1.0.0* above, and `R2` on the release archive — the one check
+whose result has gone stale. `H10` passed
 2026-09-02. **`F9`
 passed its playtest on 2026-09-02** — all eight cases in both languages, no
 defect, and one decision reversed: the paused clock, built and re-checked the same
@@ -475,6 +532,12 @@ That is exactly `B35`. **Do not gate the capture again.**
   stays marked, which is the harmless direction.
 - `save_active` clears the flag **only on a write that happened**: a refused save
   leaves the buffer differing from the file, which is what the mark is for.
+- **That comparison is line-ending-sensitive, and it was wrong for eleven months
+  of shipped examples** (`B48`, 2026-09-03). `read_file` opens `'rb'` and the
+  client's textarea returns LF, so a CRLF file never equalled the field coming
+  back and **every bundled example was permanently marked** the moment it lost
+  focus. `read_file` now normalises to LF. Anything else here that compares a
+  buffer from disk against a field from a formspec has the same problem.
 
 ### F8 · medium · shipped `d619fba`, revised `60dc8dd`, playtested — make the drone panel readable
 
@@ -676,6 +739,143 @@ wants is how long the build has taken, and a pause is not part of it.
   passed. So that case has passed once each way round, which is the clearest
   evidence there is that this was a decision and not a defect.
 
+### F10 · medium · written and played 2026-09-03, not committed — the mod stops imposing itself
+
+Three things happened to a player on first contact with this mod without anything
+asking for them. Two go, one is replaced by a command. The author's words:
+*"It's better if this mod does not touch the inventory, so the user installing it
+would need to pick the tools in creative mode, and add a /codeblock tool or
+similar so the user can quickly make the 2 tools appear."*
+
+This is the same shape as `C18`'s sky override and `B39`'s inventory wipe:
+`codecube`'s presentation living in the mod and imposed on every other game that
+installs it. **`B16` and `B39` were both partial fixes to the line this closes** —
+`B39` narrowed an inventory wipe to the one case where the player had something
+to lose, and the real answer is that a mod should not be writing into a player's
+inventory unasked at all.
+
+**What it does.**
+
+- **The tools are no longer handed out on join.** `set_tools` and its
+  `register_on_joinplayer` call are deleted. Players take the two tools from the
+  creative inventory or ask for them. The *"No room for the drone tools, free a
+  slot and rejoin"* refusal goes with the function — and it was never once seen
+  run, which `D4`'s entry says in as many words.
+- **Both tools become droppable**, the `on_drop` stubs removed. Undroppable made
+  sense only while the mod forced them on the player: without the handout, a
+  player who picks one up could otherwise never be rid of it, and the command
+  makes them replaceable at any time.
+- **The privilege grant is gone**, and it is a finding in its own right:
+  **`C21`**. `register_on_newplayer` granted `fly`, `fast` and `noclip` to every
+  new player of **any** game that installs this mod. Removed outright. **Found
+  while building `F10`, not reported by anyone** — the author was asking about
+  the inventory and this was in the same twenty lines. Being found inside a
+  feature is not a reason to escape an id: it is a defect in committed code, the
+  same as `C18` and `B39`.
+- **One chat line on first join**, from `register_on_newplayer`, naming the
+  command and the creative inventory as the two routes to the tools. Never
+  repeated. Chosen over saying nothing, because a player joining a server with no
+  creative inventory would otherwise have no route into the mod at all.
+- **One command replaces two.** `/codelevel` and `/codegenerate` become
+  subcommands of `/codeblock`:
+
+      /codeblock tools    [<player>]        put both tools in a player's main inventory
+      /codeblock level    [<player>] <1-4>  as /codelevel did
+      /codeblock generate [<player>]        as /codegenerate did
+
+  Bare `/codeblock`, or an unrecognised subcommand, prints the three usages.
+
+**Agreed, and load-bearing.**
+
+- **Privileges are unchanged in effect and now uniform.** `tools` and `generate`
+  are free for yourself and need the `codeblock` priv for someone else; `level`
+  is privileged either way. That last one is not symmetry for its own sake:
+  codelevel bounds resource use, so a player able to raise their own would be
+  lifting their own ceilings. That is `B9`, reverted before it ever shipped, and
+  `F5`'s entry says the same thing from the other side.
+- **`/codeblock tools` must add what is missing, never clear.** The whole point
+  of the feature is that the mod stops writing into an inventory unasked, so the
+  command inherits `B39`'s rule rather than escaping it: both carrying reads stay
+  — `main` **or** `craft` — because a tool parked in the craft grid would
+  otherwise be duplicated every time the command is run, silently. It is now run
+  on demand and repeatedly, which makes that failure easier to reach than the
+  once-per-join version ever was.
+- **A full inventory is a refusal, not a partial hand-out.** The old join-time
+  refusal was unreachable in practice; the command's is a thing a player can
+  produce deliberately, so it has to say what happened rather than half-succeed.
+- **The first-join line names only the tools.** No hint about the editor, the
+  examples or the drone.
+
+**Argued out, so it is not proposed again.**
+
+- **Aliases keeping `/codelevel` and `/codegenerate` working.** Cut on two
+  grounds: v1.0.0 is unreleased and already carries a thirteen-item breaking
+  list, so the rename is free now and never will be again; and two names for one
+  command is a second surface to document, translate and keep in step. **This is
+  the omission most likely to be proposed again.**
+- **A setting to keep the privilege grant, `C18`-style.** A `flag` in
+  `lib/config.lua`, off by default, was offered and declined. Nothing in this mod
+  needs creative flight to be reachable, and a game that wants it sets it in its
+  own config. **A setting no code path here depends on is a setting maintained
+  for nobody** — which is the one respect in which this is *not* `C18`, where the
+  sky override at least had a game asking for it.
+
+**What it drags, none of it automatic.**
+
+New and retired `S()` keys, so `locale/template.txt` is regenerated and every
+`.tr` moves with them or the existing translations are orphaned with no error
+anywhere (the `C17` rule); three keys are now legitimately orphaned, being the
+usages this replaced. **`doc/api.md`'s *Chat commands* section**, which is the
+one part of that file no generator writes and no `--check` reads — see the entry
+under *other decisions worth not re-litigating*; it documented `/codelevel` and
+`/codegenerate` while the gate reported the file up to date. The Quick start in
+**`CONTENTDB.md`** and in **`README.md`**, both of which told the player they are
+given the two tools; `README.md` has been rewritten, `CONTENTDB.md` is left for
+the author's pending wording review, and `.cdb.json` follows it through
+`bash scripts/gen_cdb_json.sh`. `CHANGELOG.md`'s v1.0.0 breaking list gains the
+command rename, the end of the handout and the end of the grant. `PLAYTEST.md`
+gains four checks, because **every part of this is in the class no spec can
+reach** — a tool callback, an inventory write, a privilege grant, a chat
+command, a first-join path.
+
+**Written with its gates green, played in part, not committed — 2026-09-03.** The
+gates were run over the working tree holding `F10` and `B48` together: luacheck
+silent, `doc/api.md`, `locale/template.txt` and `settingtypes.txt` each *up to
+date*, nine in-engine specs **458 passed / 0 failed / 1 xfail / 0 xpass** with no
+errors. The six standalone specs have not run since before `F10`. By
+`build-feature`'s own rule this is still **one step short of done**: what is
+outstanding is the commit.
+
+**The playtest, 2026-09-03, engine 5.17.0, on `b9143b0` plus the uncommitted
+tree.** All four checks pass. Three passed outright: `/codeblock tools`, the two
+renamed subcommands, and recovering a dropped tool. The first was recorded
+**partial** and completed later the same day. It settled the risk `code-expert`
+had flagged as unconfirmable — **the first-join chat line does arrive**, because
+`chat_send_player` called from `register_on_newplayer` fires before the client
+has finished loading and the message is not dropped — and then the two cases that
+had been unreported: a fresh player's inventory holds **neither tool**, and
+`/privs` shows **no `fly`, `fast` or `noclip`**. That last one is **`C21`'s only
+possible in-world evidence**, so the removal is now observed rather than green.
+The one thing outstanding on this feature is the commit.
+
+**The English-only observation, and the rule it leaves behind.** Both the chat
+line and the `/codeblock tools` replies appeared in English on a French client.
+That was the known state, not a defect: this feature added eight `S()` keys and
+`code-expert` was deliberately told not to invent French, so
+`gen_locale.lua --check` had been listing all eight as untranslated and three
+retired usage keys as orphaned — the legitimate fallback state per `C17`. **The
+eight French translations were written and the three orphans removed later the
+same day**, and the check now reads `locale/*.tr cover every message and nothing
+else` alongside `locale/template.txt is up to date`. No finding id: nothing was
+committed, so this is a feature being incomplete before it ships, which
+`build-feature` records here rather than in `AUDIT.md`. The rule generalises and
+is in `CLAUDE.md` beside the two `C17` rules: **a new `S()` key ships
+English-by-default and nothing fails**, because an untranslated message
+legitimately falls back, so a feature adding player-facing strings is not
+finished until the `.tr` files are written — and the only thing that will tell
+you is playing it in another language. `F10` is the first feature here to
+demonstrate it.
+
 ## Other decisions worth not re-litigating
 
 - **The per-codelevel numbers, retuned 2026-08-30, and the singleplayer default
@@ -772,6 +972,61 @@ wants is how long the build has taken, and a pause is not part of it.
   against 2026-09-02, after it shipped that way for an hour. A label's font is
   per element, so *adjacent* and *not bold* cannot both hold; the author chose
   adjacent. See `F9`.
+- **`doc/api.md` has a hand-written region that no check covers**, established
+  2026-09-03. `gen_docs.lua` owns the file only from the `# Lua api` heading
+  onward; `# Codelevel` and `# Chat commands` sit above it, are written by hand,
+  and `--check` never reads them. The gate therefore reported *doc/api.md is up
+  to date* while the file still documented `/codelevel` and `/codegenerate`,
+  which `F10` had renamed. **Same family as `C17`, `C19` and `C20` — a mirror of
+  the source drifting in silence — but the blindness is by design**, because the
+  region describes chat commands and privileges and `lib/api.lua` knows nothing
+  about either. Do not close it by teaching the generator to write that section:
+  it would need a second source of truth for something no other file describes.
+  Edit it by hand whenever a command or a codelevel limit moves, and never read
+  a green `--check` as covering it. It went stale for exactly one feature.
+- **`/codeblock tools`, not `/codetools`** — chosen by the author 2026-09-03. A
+  subcommand namespace over a fourth top-level name in the `/code*` family, and
+  the two existing commands folded into it rather than the family left split:
+  *"and we'll unify by renaming /codelevel also"*. The alternative kept three
+  flat names and no room to grow.
+- **Aliases for `/codelevel` and `/codegenerate`** — cut with `F10` on
+  2026-09-03, on two grounds. v1.0.0 is unreleased and already carries a
+  thirteen-item breaking list, so the rename costs nothing now and will cost
+  something for ever afterwards; and two names for one command is a second
+  surface to document, translate and keep in step. Of everything `F10` left out
+  this is the one most likely to be asked for again — the answer is that it is
+  cheap only until the tag.
+- **A setting to keep the `fly`/`fast`/`noclip` grant** — declined 2026-09-03.
+  `C18`'s treatment was offered, a `flag` in `lib/config.lua` off by default, and
+  the grant was removed outright instead: nothing in this mod needs creative
+  flight to be reachable, and a game that wants it sets it in its own config. **A
+  setting no code path here depends on is a setting maintained for nobody.** Do
+  not read `C18` as a precedent for keeping the next piece of `codecube`
+  presentation behind a flag; `C18` is the exception and its own entry says so.
+- **A first-join hint about anything but the tools** — cut with `F10`. The line
+  names the command and the creative inventory and stops there.
+- **Warning about an unknown block name at the read, not at the call site** —
+  decided 2026-09-03 with `B49`. By the time a nil reaches `placement` the key
+  the player typed is gone, so the message could only say *some block was wrong*;
+  at the read it names `notablock`. It also covers every block-taking command at
+  once, including ones added later, and it fires when the value is stored in a
+  variable and placed much later. Warning at the call site would instead need
+  `select('#', ...)` in a dozen sandbox wrappers just to distinguish an omitted
+  argument from a nil one. **The scope is a table read and only that**:
+  `place('notablock')` was never silent — it raises *Cannot place this block*.
+- **A warning rather than an error, and once per run** — the author's choice,
+  2026-09-03. Erroring would break saved player programs, which is a bar this
+  project sets high; one line per run keeps a typo inside a loop from filling
+  chat. **The accepted side effect is recorded rather than left to be
+  rediscovered:** `if blocks[name] then` as a membership probe now costs one chat
+  line per run. Cheap, but a visible behaviour change for that idiom.
+- **An `__index` on the copy is not the read-only proxy `S1` rejects** —
+  established 2026-09-03 and now pinned by `env_spec`. Proxies are refused here
+  because Lua 5.1 has no `__pairs` or table `__len`, so they break `pairs(blocks)`
+  and `#iwools` for player code. An `__index` on a real copy fires **only** for an
+  absent key, so iteration, length and every present key are untouched. Do not
+  collapse the two ideas back together. `iwools` is deliberately excluded: it is
+  integer-indexed, and reading past the end of an array is legitimate.
 - **Building `F5`** — dropped unbuilt 2026-08-29. Do not re-propose it as a small
   addition to the drone panel: the privilege gating and the counter-carrying under
   its entry are what make it large.
@@ -829,6 +1084,10 @@ wants is how long the build has taken, and a pause is not part of it.
   copy — fixing it would let copies past the length rule. (F2)
 - The unsaved-tab mark is a flag, not a diff, so typing a character and undoing it
   leaves the tab marked until the next save. (F7)
+- A program that probes membership with `if blocks[name] then` on a name that is
+  not there gets one warning line per run. Accepted knowingly with the fix, not
+  overlooked: the warning fires on an absent key and cannot tell a probe from a
+  typo. (B49)
 - A player created before `1f7cd97` keeps the stored "off" for both editor
   checkboxes; the ticked default reaches new players only. (B36)
 - `save_on_exit` is read, written and acted on nowhere: the checkbox stays
@@ -879,8 +1138,14 @@ wants is how long the build has taken, and a pause is not part of it.
 
 ---
 
-2026-09-02 · codeblock master, the reworked cover on top of `be66113`. The code
-in it is `d8d44cd` — `B47`'s beat change, `settingtypes.txt`'s generator and
+2026-09-03 · codeblock master at `b9143b0`, plus **three uncommitted changes in
+one working tree**: `B48`'s one-line fix in `lib/filesystem.lua`; `F10`'s rework
+of `lib/register.lua`, `doc/api.md`'s hand-written section, `README.md` and the
+eight French strings in `locale/codeblock.fr.tr`; and `B49`'s unknown-block
+warning in `lib/env.lua`, `lib/sandbox.lua` and `lib/api.lua`, with a regenerated
+`doc/api.md`, one more locale key and 13 new `env_spec` cases. **The
+gates were re-run over the whole tree and are green.** The last committed code is
+`d8d44cd` — `B47`'s beat change, `settingtypes.txt`'s generator and
 `C20`; everything since is the record, the images and the README. **CI was last
 green on all three jobs at `dc09d48` (run 44) and `471526e` (run 45)**, so
 `d8d44cd` has **local gates only** until the next run, and it is the commit a
@@ -893,9 +1158,44 @@ in-engine specs **458 passed, 0 failed, 1 xfail, 0 xpass**, and the six
 standalone **238 passed, 0 failed, 1 xfail** under Lua 5.1. Both generators were
 also **made to fail once** against a fake limit.
 
-**Nothing is open** — a first for this project — and `PLAYTEST.md` stands at 52
-checks with a result against every one. `H10` passed on 2026-09-02 with `B47`'s
-residue intact and accepted; `R2` still wants re-running on the release archive,
-and its entry now carries the `git archive` recipe it had never said. The archive
-is **2.21 MB**, the reworked cover having cost 0.73 MB of it. Left is *Finalising
-v1.0.0* above: three documents, the ContentDB page, `R2`, then the tag.
+Those figures were taken at `d8d44cd` and have since moved. **The whole tree —
+`B48`, `F10`/`C21` and `B49` together — was gated on 2026-09-03** and reads:
+luacheck silent, `doc/api.md`, `locale/template.txt` and `settingtypes.txt` up to
+date, `locale/*.tr cover every message and nothing else` once the eight French
+strings and `B49`'s ninth were written, nine in-engine specs **471 passed,
+0 failed, 1 xfail, 0 xpass**, and the six standalone **251 passed, 0 failed,
+1 xfail** under Lua 5.1. Both spec counts are up 13 on `test-agent`'s new
+`env_spec` cases for `B49`, and nothing else moved. `LUACHECK_STRICT=1` shows the
+same 20 pre-existing warnings and none in the new spec, and
+`codeblock_run_tests` was confirmed absent from the config afterwards, with no
+BOM. **Every one of those figures describes the three changes together, never one
+in isolation, and CI has seen none of them** — the standalone run is CI's own
+command, so plain Lua 5.1 is covered locally, but a real CI run waits on a
+commit.
+
+**Nothing is open**, and `PLAYTEST.md` stands at 57 checks, **56 carrying a
+result**, one of them partial and only because two of its cases cannot be
+performed. `E16`'s pristine-example case and **all four** `F10` checks passed
+2026-09-03, the first of them completed later the same day with its inventory and
+`/privs` cases — which is what confirms `C21` in a world. **`W4` is the one check
+with no result**, written that day for `B49` and not run. `H10`
+passed on
+2026-09-02 with `B47`'s residue intact and accepted; `R2` still wants re-running
+on the release archive, and its entry now carries the `git archive` recipe it had
+never said. The archive is **2.21 MB**, the reworked cover having cost 0.73 MB of
+it.
+
+**`B48`, `F10` and `B49` are ahead of the release list, they are in one tree, and
+the gates are green over all three.** `B48`, reported and fixed 2026-09-03: the
+editor marked every unsaved example tab modified as soon as it lost focus,
+because `read_file` kept the bundled examples' CRLF and the client's textarea
+returns LF. One line in `lib/filesystem.lua`. `F10`, specified and written the
+same day: no tool handout, no privilege grant (`C21`), droppable tools, and one
+`/codeblock` command in place of two. `B49`, reported and fixed the same day
+again: a misspelled block name built the default block in silence, and now warns
+once per run naming the key. **None is committed and the author has not asked for
+a commit**, so by `build-feature`'s rule none is done. `B48` and `C21` are both
+confirmed in a world and `F10` has passed all four of its checks, so what is left
+for those two is the commit alone; `B49` is left the commit **and** `W4`. Then
+*Finalising v1.0.0* above: three documents, the ContentDB page, `R2`, then the
+tag.

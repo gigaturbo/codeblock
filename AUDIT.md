@@ -20,13 +20,13 @@ it.
 
 ## Where it stands
 
-**77 findings. 76 resolved, none open, 1 won't fix (`B34`).**
+**80 findings. 79 resolved, none open, 1 won't fix (`B34`).**
 
 | Category | Count | Open |
 |---|---|---|
-| B bugs | 44 | — (`B34` won't fix, `B47` resolved with a residue) |
+| B bugs | 46 | — (`B34` won't fix, `B47` resolved with a residue, `B48` fixed and confirmed by `E16`, `B49` fixed and unplayed, neither committed) |
 | S sandbox and security | 7 | — |
-| C compliance and packaging | 14 | — |
+| C compliance and packaging | 15 | — (`C21` fixed by `F10`, confirmed in a world, not committed) |
 | A architecture and performance | 12 | — |
 
 CI was green on all three jobs through `471526e` (runs 44 and 45), so the limit
@@ -34,11 +34,36 @@ retuning, `F9` and the paused clock are covered by CI rather than by local gates
 alone. **`B47`'s fix, `settingtypes.txt`'s generator and `C20` are `d8d44cd` and
 have local gates only**, pending the next run — which also proves the fourth CI
 step that commit adds. Everything committed since is the record, the images and
-the README, and touches no code. **Five gates green**, engine 5.17.0, read from output
-rather than exit codes: luacheck silent, `doc/api.md`, `locale/template.txt` and
-now `settingtypes.txt` all up to date, nine in-engine
-specs **458 passed / 0 failed / 1 xfail / 0 xpass**, and the six standalone
-**238 passed / 0 failed / 1 xfail** under Lua 5.1. The in-engine count is up from
+the README, and touches no code. **three changes sit in the working tree at
+`b9143b0` and none is committed**: `B48`'s one-line fix, `F10`'s rework of
+`lib/register.lua`, which resolves `C21` and renames two chat commands, and
+`B49`'s unknown-block warning in `lib/env.lua` and `lib/sandbox.lua`.
+**The gates were re-run over the whole tree on 2026-09-03 and are green**,
+engine 5.17.0, read from output rather than exit codes: luacheck silent,
+`doc/api.md`, `locale/template.txt` and `settingtypes.txt` each *up to date*,
+nine in-engine specs **458 passed / 0 failed / 1 xfail / 0 xpass**, no errors,
+and `codeblock_run_tests` confirmed absent from the config afterwards. **Both
+counts then moved with `B49`'s coverage**: `test-agent` added 13 cases to
+`tests/env_spec.lua`, taking `env_spec` 21 → 34 and the in-engine total 458 →
+**471 passed / 0 failed / 1 xfail / 0 xpass**, which is exactly the 13 and
+nothing else. The six standalone under Lua 5.1 read api 30, preprocess 54 +
+1 xfail, env 34, shapes 31, strguard 29, limits 73 — **251 passed / 0 failed /
+1 xfail**. `LUACHECK_STRICT=1` shows the same 20 pre-existing warnings and none
+in the new spec, and `codeblock_run_tests` was confirmed absent with no BOM.
+**Every figure here describes the whole uncommitted tree — `B48`, `F10`/`C21`
+and `B49` together — not any one change alone, and CI has seen none of it.** The
+standalone run is the same command CI runs, so plain Lua 5.1 is covered locally;
+a real CI run stays outstanding until someone commits.
+`gen_locale.lua --check` listed, at the earlier run, **eight `fr` messages untranslated
+and three orphaned** — the legitimate fallback state per `C17`, the eight being
+`F10`'s new keys and the three the usage keys it retired. **The eight French
+translations were written and the three orphans removed later on 2026-09-03**,
+and the four gates were re-run over the whole tree afterwards: luacheck silent,
+`doc/api.md` and `settingtypes.txt` *up to date*, and the locale check now
+reading **`locale/*.tr cover every message and nothing else`** alongside
+`locale/template.txt is up to date` — the fully-translated state rather than the
+legitimate-fallback one. That edit touches no Lua, so the spec counts above still
+stand. The in-engine count is up from
 439: `F9`, `H8`'s displaced case and the paused clock added nineteen to
 `forms_spec`, and nothing was added for `B47` because **no spec can reach it** —
 the gates call the handler directly and the defect is in the client's menu.
@@ -46,8 +71,15 @@ the gates call the handler directly and the defect is in the client's menu.
 Every defect the playtests found is fixed. The one thing **not verified anywhere**
 is `B10`'s refusal, aimed at twice through playtest `D2` and missed twice — the
 recipe is the suspect and its check was removed as untestable on 2026-09-02.
-**Gates green, unproven in a world — three:** `B14`, permanently blocked on `B34`
-being won't-fix, and `S7`'s log half. **`B47`'s fix left this list the day it
+**Gates green, unproven in a world — two:** `B14`, permanently blocked on
+`B34` being won't-fix, and `S7`'s log half. **`C21` left this list on
+2026-09-03**: playtest `F10` case 1 was completed the same day and `/privs` on a
+fresh player shows no `fly`, `fast` or `noclip`, which was that finding's only
+possible evidence. **`B48` left this
+list on 2026-09-03**, `E16`'s new pristine-example case passing on the
+uncommitted tree; its fix is still uncommitted, which is a different outstanding
+thing. **`B49` is not on this list and is not proven either** — it is fixed with
+the gates green and its playtest `W4` is written and **not run**. **`B47`'s fix left this list the day it
 shipped**, `H10` passing with the residue it predicted — a few presses in twenty
 still miss, which the author accepted. `F9` passed the same day it shipped, including the paused clock
 reversed out of that very run, as did `R4` and `F-5`, which takes `S6` and the
@@ -187,7 +219,7 @@ should confirm is a separate question.
 
 ## B · Bugs
 
-44 findings, 43 resolved, `B34` won't fix. `B19`, `B20`, `B24` are the game's.
+46 findings, 45 resolved, `B34` won't fix. `B19`, `B20`, `B24` are the game's.
 `B47` is resolved with a residue that ships.
 
 - **B1 · critical · resolved** — comment stripping deleted the code between two
@@ -566,6 +598,106 @@ should confirm is a separate question.
   program for a busy server and for its own pace, which is the whole reason the
   budget is counted this way — it replaced `max_calls` for being in units nobody
   could reason about.
+- **B48 · medium · resolved, not yet committed** — the editor marked every
+  unsaved tab modified the moment it lost focus, so opening several programs put
+  `F7`'s `*` on all of them but the active one. Reported by the author on
+  2026-09-03. `read_file` in `lib/filesystem.lua` opens `'rb'`, so a CRLF file
+  keeps its `\r\n`; the client's textarea returns LF whatever it was given; and
+  `F7`'s dirty check in `lib/formspecs.lua` is
+  `fields.content ~= meta.contents[meta.active]`, which therefore never matched
+  for a file still carrying its original line endings. **All fourteen bundled
+  examples in `lib/examples/` are CRLF**, so every pristine example was
+  permanently "modified", and only a file the player had already saved through
+  the editor — which writes the client's LF content back — compared equal. Fixed
+  by normalising `\r\n` to `\n` in `read_file` before the content is cached and
+  returned.
+  **Keep — where the normalisation has to sit.** *After* the size check, or a
+  CRLF file could shrink its way under `max_file_kb` (`B40`), and after the
+  bytecode-signature check.
+  **Keep — the general shape.** Any equality test between a buffer that came off
+  disk and a field that came back from a formspec is a line-ending comparison
+  unless something normalises first. Do not add a second such test elsewhere on
+  the assumption the disk side is LF.
+  **Evidence, and why the symptom was file-by-file.** In the author's world
+  `aaa`, the four files that never showed the mark — `spirals.lua`, `plot3D.lua`,
+  `menger.lua`, `stairs.lua` — hold zero CR bytes and differ from
+  `lib/examples/`, i.e. they had been saved through the editor. `plot2D.lua`
+  there is byte-identical to the shipped example and still holds its 23 CRs, and
+  it showed the mark every time. The split matches the report exactly.
+  **State.** The fix is in the working tree at `b9143b0` and **is not committed**;
+  five gates were run at that state and all say green (luacheck silent; the six
+  standalone specs under Lua 5.1; nine in-engine specs, 0 failed and 0 xpass; the
+  three `--check` generators up to date). **No spec reaches it** — the round trip
+  through a real client textarea is not available at mod load.
+  **Confirmed in a world.** Playtest `E16`'s pristine-example case — added the
+  same day, and the case the run at `afbe504` was missing — **passed on
+  2026-09-03**, engine 5.17.0, on `b9143b0` plus the uncommitted tree: several
+  bundled examples opened untouched, and no tab but the active one marked. The
+  fix is now observed rather than only green, and what remains outstanding on it
+  is the commit.
+- **B49 · medium · resolved, not yet committed** — a misspelled block name built
+  the default block and said nothing. `blocks`, `plants` and `wools` are
+  name-indexed tables handed to a player's program, so `blocks.notablock` is a
+  missing key and reads nil, and that nil reached `placement` in
+  `lib/commands.lua:99`:
+
+      local real_block = blocks[block or drone.default_block]
+
+  With `block` nil the player's default is substituted and a valid node comes
+  back. **The command cannot tell `place(blocks.typo)` from `place()`** — both
+  arrive as nil — so a typo built stone, or whatever the default was, with no
+  error and no warning. It affected `place`, `place_relative` and all eight shape
+  commands; `default_block()` was the one exception, already erroring.
+  **The scope is exactly a table read.** A bogus *string* literal was never
+  silent: `place('notablock')` reaches `placement`, finds `blocks['notablock']`
+  nil and raises *Cannot place this block*. The silent fallback existed only for
+  the nil that came back from reading a missing key out of `blocks`, `plants` or
+  `wools` — which is precisely what the fix catches. Reported
+  by the author on 2026-09-03: *"when using a block name that does not exists,
+  the program fallback to stone without error."* Fixed the same day:
+  `env.snapshot(t, on_miss)` takes an optional callback and, when given one, puts
+  an `__index` on the copy that fires only on an absent key;
+  `getScriptEnv` in `lib/sandbox.lua` passes a closure with a `warned` upvalue to
+  the `blocks`, `plants` and `wools` snapshots. **One warning per run**, naming
+  the key; the program continues and still places the default block, because the
+  author asked for a warning rather than an error and erroring would break saved
+  programs.
+  **Keep — why the warning is at the read and not at the call site.** At
+  `placement` all that survives is a nil, so the message could only say *some
+  block was wrong*. At the read the key the player typed is still in hand. It
+  also covers every block-taking command at once, including ones added later, and
+  it fires when the value is stored in a variable and placed much later.
+  Warning at the call site would need `select('#', ...)` in a dozen sandbox
+  wrappers just to tell an omitted argument from a nil one.
+  **Keep — this is not the read-only proxy `S1` argues against.** That
+  constraint rejects proxies because Lua 5.1 has no `__pairs` and no table
+  `__len`, so a proxy breaks `pairs(blocks)` and `#iwools` for player code. An
+  `__index` on a **real copy** fires *only* when a key is absent, so iteration,
+  length and every present key are untouched. That distinction is the whole
+  safety argument and `lib/env.lua`'s header now states it. Do not "simplify"
+  this into a proxy. **That claim is now covered by a spec rather than by a
+  comment:** of the 13 cases `test-agent` added to `tests/env_spec.lua`, the
+  load-bearing ones assert that `pairs` over the copy still sees every entry and
+  that `#` on an array copy is still right, with the callback firing for neither
+  — which is the evidence that `__index` is consulted only for an absent key.
+  **Keep — `iwools` is excluded on purpose.** It is integer-indexed, so a program
+  reading past the end is doing something legitimate and must not be warned at.
+  **Accepted side effect, recorded rather than left to be noticed.** A program
+  that probes membership with `if blocks[name] then` now gets one chat line per
+  run. Once only, so it is cheap, but it is a visible behaviour change for that
+  idiom and it was accepted knowingly.
+  **What it drags, all done the same day:** `lib/api.lua`'s `blocks` entry
+  documents the behaviour and `doc/api.md` was regenerated from it;
+  `locale/template.txt` gained the key `Warning: no block named '@1', the default
+  block is used instead` and the French was written, so the locale gate reports
+  full coverage again.
+  **State: fixed with the gates green over the whole tree, not committed, and
+  unproven in a world.** A chat line reaching a player is beyond every spec, so
+  the evidence will be playtest `W4`, written the same day and **not run**. What
+  `W4` reaches that no spec can is that the warning is **per run**: the flag is a
+  closure upvalue in `getScriptEnv`, which is file-local and unexported, and
+  `integration_spec` builds its own `api` table by hand — so a second drone in
+  the same session warning on its own account is observable only in a world.
 
 ---
 
@@ -672,7 +804,8 @@ broken.
 
 ## C · Compliance and packaging
 
-14 findings, all resolved. `C2`–`C5` and `C15` are the game's; `C9` never used.
+15 findings, all resolved — `C21` by `F10`, which is not committed. `C2`–`C5`
+and `C15` are the game's; `C9` never used.
 
 - **C1 · high · resolved** — the version ceiling hid the package from every
   modern user. The engine does not enforce these keys, but **ContentDB filters on
@@ -846,6 +979,41 @@ broken.
   identifier is matched. Both generators depend on `config.lua`'s limit tables
   staying **plain literals** for this shape match to see them at all; that
   constraint is commented there and is now load-bearing twice over.
+- **C21 · medium · resolved by `F10`, not committed** — `register_on_newplayer`
+  in `lib/register.lua` granted `fly`, `fast` and `noclip` to every new player,
+  unguarded, in **any** game that installs this mod. A mod that adds programming
+  to a game was handing out creative movement to everyone who joined, and no
+  setting, privilege or callback let the game refuse. Nothing this mod does needs
+  any of the three: the drone flies, the player does not.
+  **Same class as `C18` and `B39`, and found the same way — by accident.** `C18`
+  was five sky overrides, `B39` an inventory wipe, this a privilege grant; all
+  three are `codecube`'s presentation living in the mod and imposed on every
+  other game, and all three are invisible in `codecube`, where creative flight is
+  the game's own design. It was **found while building `F10` on 2026-09-03, not
+  reported by anyone** — the author asked about the tool handout and this was in
+  the same twenty lines. Fixed by `F10`: removed outright, in the working tree
+  with the gates green and **not committed**.
+  **Keep — removed rather than put behind a flag, deliberately.** `C18`'s
+  treatment was offered and declined: a `flag` in `lib/config.lua`, off by
+  default. **A setting no code path here depends on is a setting maintained for
+  nobody** — `flat_sky` at least has a game asking for it, and it is the
+  exception this project allows itself, not a precedent. A game wanting creative
+  movement grants it in its own config.
+  **Keep — what makes the class hard to see.** Three findings now have the shape
+  *correct in the game it was written for, destructive in every other*, and none
+  of the three was found by a spec, a gate or a review. Two were found by playing
+  the mod outside `codecube` and this one by reading twenty lines while doing
+  something else. **The routine that finds them is playing it in another game**,
+  which is `R2` and the rule under `ROADMAP.md`'s *four rules this phase paid
+  for*.
+  **Confirmed in a world, 2026-09-03.** Playtest `F10`'s first check ran that day
+  and came back partial — the chat line only — and was **completed later the same
+  day on the author's report**: a fresh player's `/privs` shows no `fly`, no
+  `fast` and no `noclip`, and the inventory holds neither tool. That was this
+  finding's **only possible evidence** — nothing else here has ever looked at a
+  privilege *not* being granted — so the removal is now observed rather than
+  merely green. Same run: `b9143b0` plus the uncommitted tree, engine 5.17.0.
+  What is still outstanding on it is the commit.
 
 ---
 
@@ -988,7 +1156,9 @@ document says so.
   group `H` re-run of 2026-09-02 at `8f5bb2e` adds `B45`, `B46` and `F8`, eight
   of its nine checks passing, and `R4` and `F-5` the same day add `S6` twice
   over — the default a fresh world hands out, and every bundled example fitting
-  the level a server hands out.
+  the level a server hands out. **2026-09-03 adds `B48`, through `E16`'s new
+  pristine-example case, and `C21`, through `F10` case 1 completed: a fresh
+  player joins with neither tool and without `fly`, `fast` or `noclip`.**
 - **Verified by reading the engine's own source** (`luanti-org/luanti` at 5.6.0,
   5.7.0, 5.8.0, 5.9.0, 5.17.0): the 640 kB formspec-submission cap and the
   version it arrives in (`B40`); `parseScrollBar` and `acceptInput` (`B37`);
@@ -997,9 +1167,17 @@ document says so.
   `removeAll`, and a button holding `Pressed` on the object that is destroyed.
   **`H10` then confirmed the mechanism from the other end**: `B47`'s residue
   survives a doubled beat, exactly as a window proportional to the beat must.
+- **Verified by reading the files themselves.** `B48`'s file-by-file split: all
+  fourteen of `lib/examples/` carry CRs, and in the author's world the four
+  unmarked files carry none while `plot2D.lua` is byte-identical to the shipped
+  example with its 23 CRs intact.
 - **Gates green, unproven in a world:** `B14`, blocked on `B34` being won't-fix,
   and `S7`'s log line. `B47`'s fix and `F9` both left this list by passing on the
-  day they shipped.
+  day they shipped, and **`B48` and `C21` both left it on 2026-09-03** — though
+  neither fix is committed, so they sit below *committed* rather than at it.
+- **Gates green, playtest written and not yet run:** `B49`'s unknown-block
+  warning. A chat line reaching a player is beyond every spec by construction, so
+  `W4` is the only evidence there will be and it has not been performed.
 - **Not verified anywhere, and with no route left:** `B10`'s refusal, twice aimed
   at through `D2`'s second case, which was removed as untestable on 2026-09-02.
   **That is the whole list**, and it is now a standing gap rather than a queued
@@ -1051,6 +1229,16 @@ document says so.
 
 ---
 
-2026-09-02 · describes codeblock at `dc09d48`, the last commit touching code,
-pushed · CI green there (run 44, all three jobs) and at `471526e` (run 45), so
-the limit retuning (`96dd4bc`), `F9` and the paused clock are all covered by CI.
+2026-09-03 · describes codeblock at `b9143b0` **plus three uncommitted changes in
+one working tree** — `B48`, `F10` (with `C21`) and `B49`. The last commit
+touching code is `d8d44cd`, which has local gates only; CI was last green on all
+three jobs at `dc09d48` (run 44) and `471526e` (run 45), so the limit retuning
+(`96dd4bc`), `F9` and the paused clock are covered by CI and `d8d44cd` is not.
+Gates over the whole tree on 2026-09-03, after `B49`'s coverage landed: luacheck
+silent, `doc/api.md`, `locale/template.txt` and `settingtypes.txt` up to date,
+`locale/*.tr` covering every message and nothing else, nine in-engine specs
+**471 passed / 0 failed / 1 xfail / 0 xpass**, six standalone **251 passed /
+0 failed / 1 xfail**. **Those figures describe the whole uncommitted tree, not
+any one change, and CI has seen none of it** — the standalone run is CI's own
+command, so plain Lua 5.1 is covered locally, but a real CI run waits on a
+commit.

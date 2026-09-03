@@ -40,11 +40,65 @@ Features
       panel together since they share the one constant. It halves the dropped
       window rather than closing it — about one click in ten, was one in five —
       so playtest H10 is what says whether that is enough (audit B47)
+- [x] BUG: opening several programs marks every one but the active tab as
+      modified, without a keystroke — reported 2026-09-03. `read_file` opened
+      the file `'rb'`, so a CRLF file kept its `\r\n` while the client's textarea
+      returns LF, and F7's dirty check compared unequal for anything still
+      carrying its original line endings. All fourteen bundled examples are
+      CRLF, which is why the four files you had already saved never showed the
+      mark and `plot2D.lua` showed it every time. Fixed the same day, one line
+      in `lib/filesystem.lua`, five gates green — **not committed yet**, but
+      playtest E16's new case passed 2026-09-03, so the fix is confirmed in a
+      world (audit B48)
+- [x] BUG: a block name that does not exist falls back to stone without an error
+      — reported 2026-09-03. `blocks`, `plants` and `wools` are name-indexed, so
+      `blocks.notablock` is just a missing key and reads nil, and `placement`
+      cannot tell that nil from the one you get for a bare `place()`: the default
+      block was substituted and nothing said so. It hit `place`,
+      `place_relative` and all eight shape commands. Fixed the same day where the
+      name is *read* rather than where the block is placed, so the message can
+      name what you typed: `blocks`, `plants` and `wools` now warn **once per
+      run** and the program carries on with the default block, since you asked
+      for a warning and not an error. One accepted side effect —
+      `if blocks[name] then` as a membership test costs one chat line per run.
+      Gates green over the whole tree with 13 new env_spec cases, **not committed
+      and not yet played**: playtest W4 is written (audit B49)
 - [ ] FEAT: Make possible to change codelevel while running a program (audit F5)
 - [ ] FEAT: stop forcing the two tools into every joining player's inventory —
-      a command that hands them out, or a setting so an embedding game decides.
-      Today `set_tools` adds what is missing on every join and says so in chat
-      when there is no room (no finding; from playtest D4 at `246bb37`)
+      settled 2026-09-03 as `F10`, your choice of the two: a command, not a
+      setting. `set_tools` and its join callback go, the tools become droppable,
+      and `/codeblock tools` hands them out on demand; `/codelevel` and
+      `/codegenerate` become `/codeblock level` and `/codeblock generate` with
+      no aliases, since the rename is free before the tag. A first-join chat
+      line names the command and the creative inventory. Written into
+      `lib/register.lua` with the gates green, **not committed**; all four of its
+      playtest checks passed 2026-09-03. The eight
+      new French strings were written the same day, after you saw the chat line
+      and the command replies come out in English. The shape
+      and what was argued out are in ROADMAP.md under `F10`
+      (no finding; from playtest D4 at `246bb37`)
+- [x] FEAT: stop granting `fly`, `fast` and `noclip` to every new player — found
+      while building `F10` on 2026-09-03, not reported: `register_on_newplayer`
+      was granting all three in any game that installs this mod, the same shape
+      as C18's sky and B39's inventory wipe. Removed outright rather than put
+      behind a setting, which you declined: nothing here needs creative flight
+      to be reachable. Filed as C21 on your say-so, fixed by F10, gates green,
+      **not committed**; confirmed in a world 2026-09-03 when you reported
+      /privs on a fresh player showing none of the three, which was the only
+      evidence this finding could ever have (audit C21)
+- [ ] CONTENTDB.md's Quick start tells the player they are given the two tools,
+      which `F10` makes false. README.md had the same problem and has been
+      rewritten with a step saying where the tools come from; CONTENTDB.md is
+      left for the wording review you have pending, since you have an
+      uncommitted edit to that line already. `.cdb.json` follows via
+      scripts/gen_cdb_json.sh (audit C19; F10)
+- [ ] doc/api.md's Chat commands and Codelevel sections are hand-written and no
+      check reads them — gen_docs.lua owns the file only from the `# Lua api`
+      heading down. The gate said "up to date" while the file documented
+      /codelevel and /codegenerate after F10 renamed them; fixed by hand the
+      same day. Recorded in CLAUDE.md and ROADMAP.md as a property of the file,
+      not closed — teaching the generator to write that region needs a source
+      of truth for chat commands that does not exist (no finding)
 - [ ] warn when the editor is closed with unsaved changes — `soe` is read, written
       and acted on nowhere; `F7` marks unsaved tabs first, which may be enough
       (audit F7)
@@ -117,6 +171,21 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
       passed once each way round (audit F9)
 - [x] run E16 — the unsaved-tab marker, new with F7: passed 2026-08-28 at
       `afbe504`, the day it shipped (audit F7)
+- [x] re-run E16 for its new pristine-example case — passed 2026-09-03 on
+      `b9143b0` plus the uncommitted tree, which confirms B48 in a world. The
+      original run used a file it had typed into, which is LF on disk and cannot
+      show the defect (audit B48, F7)
+- [x] run F10 case 1's two unreported cases — passed 2026-09-03: the fresh
+      player's inventory holds neither tool and `/privs` shows no `fly`, `fast`
+      or `noclip`. That second one **confirms C21 in a world** and was the only
+      evidence it could ever have, so all four F10 checks now pass
+      (audit C21; playtest F10)
+- [ ] run W4 — the new unknown-block warning: `place(blocks.notablock)` in a
+      loop should warn **once**, naming `notablock`, and build the default block
+      rather than stopping. Then place a second drone in the same session and
+      check it warns on its own account — that is the only way to see the
+      warning is per run, since no spec can reach it. Run it in French too
+      (audit B49)
 - [x] run H8 cases 2, 3 and 4 — 2 and 4 passed 2026-09-02; cases 1 and 3 are
       unperformable, a shown formspec holding the pointer, so no tool can be
       used while the panel is open. Case 3's mechanism moved into `forms_spec`

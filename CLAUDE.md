@@ -222,6 +222,19 @@ Changing a player-facing name means editing `lib/api.lua`, the `impls` table in
 player programs, which are data no game can migrate — that is a major version
 bump.
 
+**`doc/api.md` is only generated from the `# Lua api` heading onward, and the
+part above it is hand-written and checked by nothing.** `gen_docs.lua` says so in
+its own comments; what sits above the marker is `# Codelevel` and
+`# Chat commands`, neither of which the generator writes and neither of which
+`--check` reads. So the gate can report *doc/api.md is up to date* over a chat
+command that no longer exists, which is exactly what it did while `F10` renamed
+`/codelevel` and `/codegenerate` (2026-09-03). **Edit that region by hand when a
+command or a codelevel limit changes, and do not read a green `--check` as
+covering it.** It is the same family as `C17`, `C19` and `C20` — a mirror of the
+source that drifts in silence — except that here the blind spot is by design:
+the region describes chat commands and privileges, which `lib/api.lua` knows
+nothing about.
+
 ### Three mirrors of the source, all three now generated
 
 Three files here restate the source, are read by a human or by ContentDB rather
@@ -265,7 +278,7 @@ written for someone on the package page: edit that and run the generator, never
 `CHANGELOG.md`, and nothing checks the two agree. The lesson generalises past this
 file: **a generator guarantees the output matches its input, and nothing more.**
 
-Two rules for a string a player sees, both learned from C17:
+Three rules for a string a player sees, the first two learned from C17:
 
 - **Never build a translation key with `..`.** The literal argument to `S()` *is*
   the key, so a concatenated one cannot be extracted, cannot be translated, and
@@ -275,6 +288,16 @@ Two rules for a string a player sees, both learned from C17:
   capital orphans the existing translation with no error anywhere, and it still
   looks translated in the `.tr` file. Three messages were in that state. Only a
   diff of the two key lists sees it, which is what the new check is.
+- **A new `S()` key ships English-by-default and nothing fails.**
+  `gen_locale.lua --check` fails on `locale/template.txt` only; an incomplete
+  `.tr` it merely *reports*, which is correct, because an untranslated message
+  legitimately falls back to English. The consequence is that **a feature adding
+  player-facing strings is not finished until the `.tr` files are written, and
+  the only thing that will tell you is playing it in another language.** `F10` is
+  the first feature here to demonstrate it: its eight new keys were deliberately
+  left untranslated, the gate stayed green, and the playtest on 2026-09-03 read
+  the first-join line and the `/codeblock tools` replies in English on a French
+  client. Read the check's *untranslated* list, not just its exit line.
 
 ### Per-codelevel limits
 

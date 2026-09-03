@@ -10,7 +10,7 @@ allowed-tools: Read, Grep, Glob, Bash, Edit, Write, AskUserQuestion
 `F1` established this order and `F1`, `F2` and `F3` each paid for one of its
 steps. Follow it in order; the steps are cheap early and expensive late.
 
-The `F` series (`F1`–`F6`) and the agreed shape of each feature live in
+The `F` series (`F1`–`F10`) and the agreed shape of each feature live in
 **`ROADMAP.md`**. Findings are in `AUDIT.md`, in-world checks in `PLAYTEST.md`.
 Ids are never renumbered.
 
@@ -20,7 +20,7 @@ Dependencies, consequences, risks, feasibility, and what the player experiences.
 Write it into the feature's entry in `ROADMAP.md`. `F1` changed shape twice at
 this stage and cost nothing either time.
 
-Read the `F` entry first: `F4`, `F5` and `F6` already carry their constraints and
+Read the `F` entry first: `F6` and `F10` already carry their constraints and
 their risks, including which of them a spec can reach.
 
 ## 2. Put the author's choices to them, with a recommendation

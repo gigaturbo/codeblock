@@ -20,9 +20,46 @@ Reasoning lives in `AUDIT.md` under the bracketed id, or `ROADMAP.md` for an `F`
 
 ## Where it stands
 
-**52 checks, every one with a result**, and `H8` the only one carrying a partial.
-`F9` and `R1` each carry two. **`H10` passed 2026-09-02 with a few presses still
-missing** — the residue `B47`'s fix leaves, accepted rather than closed.
+**57 checks. 56 carry a result**, one of them partial — `H8`, and only because
+two of its cases cannot be performed. `F9` and `R1` each carry two.
+**`H10` passed 2026-09-02 with a few presses still missing** — the residue
+`B47`'s fix leaves, accepted rather than closed.
+
+- **`W4` is the one check with no result**, written 2026-09-03 with `B49`'s fix
+  and **not run**: an unknown block name now warns once per run instead of
+  silently building the default block. Its case 2 — a second drone in the same
+  session warning on its own account — is the **only** way the per-run scope is
+  observable, the flag being a closure upvalue in a file-local function.
+
+- **The first `F10` check became a pass on 2026-09-03**, having been recorded
+  partial earlier the same day. The author's second report supplied the two
+  missing cases: a fresh player's inventory holds neither tool, and `/privs`
+  shows no `fly`, `fast` or `noclip`. That second one **confirms `C21` in a
+  world**, and it was that finding's only possible evidence.
+
+- **`E16`'s pristine-example case passed 2026-09-03** on `b9143b0` plus the
+  uncommitted tree, which **confirms `B48` in a world**. The case was added the
+  same day: the earlier run at `afbe504` passed and still missed `B48`, because
+  it tested a file the runner had typed into, and the defect only shows on a
+  **bundled example nobody has saved yet**, since those ship CRLF. A check whose
+  setup normalises away the condition it is looking for is the failure mode here.
+
+- **All four `F10` checks passed 2026-09-03.** The chat line arrives — the open
+  risk, since `chat_send_player` from `register_on_newplayer` fires before the
+  client has finished loading — the fresh player is given no tools, and `/privs`
+  shows none of the three privileges, which is **the only in-world evidence
+  `C21` will ever have**. `F10` is committed nowhere and its behaviour is
+  entirely in the class the specs cannot see, so those four checks are the whole
+  of what is known about it. **`D4` is superseded by this group** and says so,
+  but not until `F10` is committed.
+
+- **A new `S()` key ships English-by-default and nothing fails.**
+  `gen_locale --check` passes on `template.txt` alone and only *reports* an
+  incomplete `.tr`, which is correct — an untranslated message legitimately falls
+  back. The consequence is that **a feature adding player-facing strings is not
+  finished until the `.tr` files are written, and the only thing that will tell
+  you is playing it in another language.** `F10` demonstrated it: both the chat
+  line and the `/codeblock tools` replies read English on a French client.
 
 - **Group `H` (HUD and panel): re-run 2026-09-02 at `8f5bb2e`, eight pass and one
   partial.** `F8`'s display work is proven in a world. It produced `B47` — panel
@@ -295,8 +332,25 @@ Three more things:
 the tab stays marked until the next save. Report it only if the mark appears
 without any typing at all — that would mean it is set from the field arriving.
 
+**The case this check was missing, added 2026-09-03 for `B48`.** Open **three or
+four bundled examples you have never saved** — `plot2D.lua` is the one that
+failed, `donuts.lua` and `torus.lua` will do as well — one after another, and
+**type nothing at all**. Every tab but the active one must be **unmarked**. The
+mark appearing here is the clause above: it is the field arriving, not an edit.
+It happened because the examples ship CRLF and the client's textarea returns LF,
+so the buffer never equalled the field. **Do it on a fresh player directory** — a
+file you have already saved through the editor is LF on disk and cannot show the
+defect, which is exactly why the first run of this check missed it.
+
 Result: pass — `afbe504` · engine 5.17.0 · 2026-08-28 — the day it shipped.
-**`F7` confirmed.**
+**`F7` confirmed**, but the pristine-example case above did not exist and was not
+covered; the author hit `B48` in ordinary use on 2026-09-03.
+
+Result: pass — `b9143b0` + uncommitted `B48`/`F10` · engine 5.17.0 · 2026-09-03 —
+the pristine-example case, on the tree carrying `B48`'s fix. Four bundled
+examples opened untouched and no tab but the active one marked. **`B48` is now
+confirmed in a world**, which is the one thing no spec could reach: the CRLF-vs-LF
+comparison only happens through a real client textarea.
 
 ---
 
@@ -374,6 +428,14 @@ added after the player's own items. **`B39` confirmed fixed.**
 
 Earlier: fail — `f274245` · 2026-08-27 — case 2 exactly: *"inventory was replaced
 with the 2 drone tools and the rest was empty"*. That is `B39`.
+
+**`F10` deletes what this check checks.** Once the handout is gone, case 2's
+*"the two tools are added"* is no longer the pass condition and the refusal quoted
+above no longer exists. The entry stays as it is until `F10` is committed —
+these results are evidence about the code that is in `master` today — and the
+three `F10` checks below take over from it then. `B39`'s rule does not retire
+with the handout: it moves to `/codeblock tools`, which can be run repeatedly and
+so reaches the duplication case more easily than joining ever did.
 
 ### D5 · Cancelling the file chooser [B41]
 
@@ -946,6 +1008,36 @@ only measurement.
 and pushing them to every client happen **outside the run and are charged to
 nobody**. Neither was measured. Noted under `S5` rather than filed.
 
+### W4 · An unknown block name warns, once [B49]
+
+**Written 2026-09-03 with the fix, not yet run.** The warning is a chat line to
+the running player, so no spec can reach it: the suite runs at mod load, before a
+player exists.
+
+1. **A typo warns once and builds anyway.** Run a program that places an unknown
+   name in a loop, for example:
+
+       for i = 1, 20 do place(blocks.notablock) forward(1) end
+
+   Expect **exactly one** chat line, naming `notablock` and saying the default
+   block was used instead, and a line of twenty default blocks rather than a
+   stopped program. Not one warning per iteration, and no error.
+2. **It is per run, not once for the server.** Without leaving the world, place a
+   **second drone** on the same program: it warns on its own account. **No spec
+   can reach this** — the flag is a closure upvalue in `getScriptEnv`, which is
+   file-local and unexported, and `integration_spec` builds its own `api` table
+   by hand — so this case is the only way the per-run scope is ever observed.
+3. **The accepted side effect.** A program that probes membership —
+   `if blocks[name] then ... end` with a name that is not there — also produces
+   the one warning. That is known and accepted, not a defect; it is recorded
+   under `B49`.
+
+Run case 1 in French too. The key is new `S()` text and the French was written
+the same day, so this is where it is read.
+
+Result: **not run** — fix present at `b9143b0` + uncommitted `B48`/`F10`/`B49` ·
+engine 5.17.0 · 2026-09-03.
+
 ---
 
 ## Pacing, slabs and the footprint throttle
@@ -1222,6 +1314,95 @@ Checked on the tree that became that commit.
 Case 4 passed twice, once each way round: as `F9` first chose it and then as the
 author asked for on seeing it. Case 8 pairs with it — the panel and the finish
 message read one function, so a pause is out of both.
+
+### F10 · A fresh player is given nothing [F10, C21, C18, B39]
+
+**Written 2026-09-03, before the code existed; the code now exists with its gates
+green and uncommitted.** Every part of `F10` is beyond the specs — a join
+callback, an inventory write, a privilege grant, a chat command — so this group
+is the only evidence there will be. Case 2 is `C21`'s only route.
+
+Take a world this player has **never joined**, in a game that is **not**
+`codecube` — `B38`, `B39` and `C18` were all invisible there — and join it.
+
+1. **No tools.** The inventory is exactly what the game gives a new player, and
+   neither the Drone placer nor the Drone setter is in it.
+2. **No privileges.** `/privs` lists what the game grants; **`fly`, `fast` and
+   `noclip` are not there** unless the game or the server granted them itself.
+   This is the check for the grant `F10` removed, and the reason it matters is
+   that the mod was giving them away in every game that installed it.
+3. **One chat line, naming both routes.** It says how to get the tools —
+   `/codeblock tools` and the creative inventory — and nothing else.
+4. **It is said once.** Quit and rejoin: no second line.
+
+Do case 4 in French as well. The line is new `S()` text, and half of what `C17`
+covers is only visible in the other language.
+
+Result: pass — `b9143b0` + uncommitted `B48`/`F10` · engine 5.17.0 · 2026-09-03.
+Recorded partial first and **completed the same day** on the author's second
+report: **case 1**, the fresh player's inventory holds neither the Drone placer
+nor the Drone setter; **case 2**, `/privs` shows no `fly`, no `fast` and no
+`noclip`, which is **`C21`'s only possible in-world evidence** and is now
+observed rather than inferred; **case 3**, the chat line arrives — the open risk
+`code-expert` said it could not confirm, since `chat_send_player` from
+`register_on_newplayer` fires before the client has finished loading and the
+message is *not* dropped. On the first report the line appeared in English on a
+French client, which was the expected state at the time and is not a defect; the
+eight French strings were written later the same day. See `F10`'s roadmap entry.
+
+### F10 · `/codeblock tools` [F10, B16, B39]
+
+1. **It hands both tools over.** Run it with an empty inventory: the Drone placer
+   and the Drone setter appear, and nothing else changes.
+2. **It does not duplicate a tool already carried.** Run it again: still one of
+   each. Then **park one tool in the craft grid** and run it again — still one of
+   each. That is `B39`'s rule, and the command reaches it far more easily than
+   the once-per-join handout ever did, because it can be run any number of times.
+3. **A full inventory is refused cleanly.** Fill `main` completely and run it:
+   the message says what happened, and the player is not left holding one tool of
+   two. The old join-time refusal was answered in code and never once seen run.
+4. **For another player it needs the priv.** Without `codeblock`,
+   `/codeblock tools <someone>` is refused; with it, the tools land under the
+   named player and not under the caller.
+
+Result: pass — `b9143b0` + uncommitted `B48`/`F10` · engine 5.17.0 · 2026-09-03.
+The command's replies read in English on a French client, which was the state at
+the time of the run — the eight new `S()` keys were deliberately left
+untranslated and have since been written. Not a defect; `F10`'s roadmap entry
+carries it.
+
+### F10 · The two renamed subcommands [F10, B8, B9, C17]
+
+`/codelevel` and `/codegenerate` are gone, deliberately and with no aliases.
+
+1. **`/codeblock generate` works on your own files with no privilege**, and a
+   second run leaves existing files alone — `F-1` under the new name.
+2. **`/codeblock generate <player>` needs the priv**, and with it the files land
+   under the named player — `F-2` under the new name. **Run this one in French.**
+3. **`/codeblock level` is privileged either way**, including for yourself. A
+   player without `codeblock` cannot raise their own level, which is the whole of
+   `B9`: codelevel bounds resource use, so setting your own is lifting your own
+   ceilings.
+4. **Bare `/codeblock`, and a subcommand that does not exist**, each print the
+   three usages rather than failing silently or claiming success.
+5. **The old names are gone**, and the engine says so — `/codelevel` reports an
+   unknown command rather than doing anything.
+
+Result: pass — `b9143b0` + uncommitted `B48`/`F10` · engine 5.17.0 · 2026-09-03.
+
+### F10 · A dropped tool can be recovered [F10]
+
+The `on_drop` stubs are removed, which is only safe because the command exists.
+
+1. **Drop the Drone setter.** It leaves the inventory and lands in the world, as
+   any other item would.
+2. **Get it back with `/codeblock tools`.** Both tools are in the inventory
+   again, one of each.
+3. **The dropped item is still a working tool** if picked up instead — this is
+   the case where a player could end up with two, and case 2 of the command check
+   is what keeps that from being the command's doing.
+
+Result: pass — `b9143b0` + uncommitted `B48`/`F10` · engine 5.17.0 · 2026-09-03.
 
 ---
 
