@@ -6,6 +6,12 @@
 -- Lua 5.1 has no __pairs or __len, so a proxy would break pairs(blocks) and
 -- #iwools for player code.
 --
+-- A copy may still carry an __index, and that is not the proxy above: the
+-- metamethod is consulted only for a key the copy does not have, so pairs(), #
+-- and every key that is there behave exactly as on a plain copy. That is what
+-- lets a misspelt block name be reported at the read, where its spelling is
+-- still known.
+--
 -- `new_env` makes the API names unassignable, so a program cannot replace
 -- `place` or reach the injected budget counter. Player globals still work.
 --
@@ -18,10 +24,16 @@ local env = {}
 --------------------------------------------------------------------------------
 
 --- Shallow copy of a plain table.
-function env.snapshot(t)
+--
+-- `on_miss(key)` is optional: reading a key the table does not hold calls it and
+-- still reads nil, so the program sees what it always saw. The action is passed
+-- in rather than taken here, because this file may not reach the engine.
+function env.snapshot(t, on_miss)
     local c = {}
     for k, v in pairs(t) do c[k] = v end
-    return c
+    if not on_miss then return c end
+    -- No return value: the read stays nil whatever on_miss answers.
+    return setmetatable(c, {__index = function(_, k) on_miss(k) end})
 end
 
 --- Shallow copy that keeps the original's metatable.

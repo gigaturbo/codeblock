@@ -5,6 +5,7 @@ codeblock.sandbox = {}
 --------------------------------------------------------------------------------
 
 local S = codeblock.S
+local chat_send_player = core.chat_send_player
 local max = math.max
 local min = math.min
 local floor = math.floor
@@ -88,6 +89,19 @@ local function getScriptEnv(drone)
 
     assert(drone, S("Error, drone does not exist"))
 
+    -- Said once and at the read, where the name the player typed is still
+    -- known: by the time a nil block reaches a command all that is left is the
+    -- fallback. The flag is an upvalue of this environment, which is built
+    -- fresh for every run, so drones running side by side each get their own.
+    local warned = false
+    local function unknown_block(key)
+        if warned then return end
+        warned = true
+        chat_send_player(drone.name, S(
+            "Warning: no block named '@1', the default block is used instead",
+            tostring(key)))
+    end
+
     -- Every name a program may use, paired with what it does. The names come
     -- from lib/api.lua, and build_api below refuses to start if this table and
     -- that description disagree.
@@ -155,10 +169,13 @@ local function getScriptEnv(drone)
         ['centered.horizontal.cylinder'] = function(l, r, block, hollow)
             place_ccylinder(drone, 'H', l, r, block, hollow)
         end,
-        -- block tables: snapshots, so a program cannot alter them for others
-        ['blocks'] = snapshot(cubes),
-        ['plants'] = snapshot(plants),
-        ['wools'] = snapshot(wools),
+        -- Block tables: snapshots, so a program cannot alter them for others,
+        -- and name-indexed, so a name that is not in one is a misspelling worth
+        -- reporting. iwools is the rainbow order as an array, where reading
+        -- past the end is a legitimate thing to do, so it gets no such report.
+        ['blocks'] = snapshot(cubes, unknown_block),
+        ['plants'] = snapshot(plants, unknown_block),
+        ['wools'] = snapshot(wools, unknown_block),
         ['iwools'] = snapshot(iwools),
         -- choosing blocks
         ['random.block'] = table_randomizer(cubes),

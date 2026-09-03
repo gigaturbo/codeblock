@@ -186,7 +186,10 @@ api.groups = {
             {
                 name = 'blocks',
                 kind = 'value',
-                doc = 'Building blocks, indexed by name.'
+                doc = 'Building blocks, indexed by name. A name that does ' ..
+                    'not exist reads as nil and builds your default block ' ..
+                    'instead; the first time a run does that, it says so in ' ..
+                    'the chat.'
             },
             {name = 'plants', kind = 'value', doc = 'Plants, indexed by name.'},
             {

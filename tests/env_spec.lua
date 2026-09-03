@@ -81,6 +81,58 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- snapshot with on_miss: report a misspelt name at the read
+--
+-- lib/sandbox.lua passes a chat warning here, so a program writing
+-- blocks.notablock is told rather than silently building the default block.
+--------------------------------------------------------------------------------
+
+do
+    local shared = {red = 'wool:red', blue = 'wool:blue'}
+    local seen, hits
+    local function on_miss(k)
+        seen = k
+        hits = (hits or 0) + 1
+    end
+
+    local copy = env.snapshot(shared, on_miss)
+
+    hits = nil
+    it('a present key still reads its value', copy.red, 'wool:red')
+    it('a present key does not call on_miss', hits, nil)
+
+    seen, hits = nil, nil
+    it('a missing key still reads nil', copy.notablock, nil)
+    it('a missing key calls on_miss', hits, 1)
+    it('on_miss is given the key that was read', seen, 'notablock')
+
+    -- The claim the design rests on: __index fires only for an absent key, so
+    -- every other table operation is exactly a plain copy's. If this breaks,
+    -- pairs(blocks) breaks for every player program.
+    local n = 0
+    hits = nil
+    for _ in pairs(copy) do n = n + 1 end
+    it('pairs() still sees every entry with an on_miss', n, 2)
+    it('pairs() does not call on_miss', hits, nil)
+
+    local arr = env.snapshot({'a', 'b', 'c'}, on_miss)
+    hits = nil
+    it('# is still right with an on_miss', #arr, 3)
+    it('# does not call on_miss', hits, nil)
+
+    -- Once the key exists, the metamethod is not consulted again.
+    hits = nil
+    copy.notablock = 'now here'
+    it('writing the missing key gives the value back', copy.notablock, 'now here')
+    it('a key added afterwards silences on_miss', hits, nil)
+
+    -- Every other caller passes no callback and must be unaffected.
+    local plain = env.snapshot(shared)
+    it('snapshot with no callback carries no metatable', getmetatable(plain), nil)
+    it('a missing key on a plain copy reads nil', plain.notablock, nil)
+end
+
+--------------------------------------------------------------------------------
 -- snapshot_module: vector3 is callable, so the metatable has to travel
 --------------------------------------------------------------------------------
 

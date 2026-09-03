@@ -80,6 +80,7 @@ Server CPU time used by your drone.=Temps CPU dépensé par le drone.
 Usage: /codeblock generate [<playername>]=Usage : /codeblock generate [<joueur>]
 Usage: /codeblock level [<playername>] <1-4>=Usage : /codeblock level [<joueur>] <1-4>
 Usage: /codeblock tools [<playername>]=Usage : /codeblock tools [<joueur>]
+Warning: no block named '@1', the default block is used instead=Attention : aucun bloc nommé '@1', le bloc par défaut est utilisé à la place
 Wools=Laines
 World the program holds in memory. Here the drone waits rather than stopping, and it frees itself.=Portion du monde gardée en mémoire. Ici le drone attend au lieu de s'arrêter, et elle se libère d'elle-même.
 You have no drone=Vous n'avez pas de drone

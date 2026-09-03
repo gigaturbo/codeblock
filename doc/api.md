@@ -227,7 +227,7 @@ centered.horizontal.cylinder(length, radius, block, hollow) -- A lying cylinder 
 Anything taking a `block` argument wants a value from one of these. The names each table holds are listed under Block types below.
 
 ```lua
-blocks -- Building blocks, indexed by name.
+blocks -- Building blocks, indexed by name. A name that does not exist reads as nil and builds your default block instead; the first time a run does that, it says so in the chat.
 plants -- Plants, indexed by name.
 wools  -- The full wool palette, indexed by name.
 iwools -- The colourful wools as an array, in rainbow order, without white, black or greys.

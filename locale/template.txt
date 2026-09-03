@@ -80,6 +80,7 @@ The most memory the program has grown by at any point.=
 Usage: /codeblock generate [<playername>]=
 Usage: /codeblock level [<playername>] <1-4>=
 Usage: /codeblock tools [<playername>]=
+Warning: no block named '@1', the default block is used instead=
 Wools=
 World the program holds in memory. Here the drone waits rather than stopping, and it frees itself.=
 You have no drone=
