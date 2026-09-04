@@ -297,7 +297,9 @@ Three rules for a string a player sees, the first two learned from C17:
   the first feature here to demonstrate it: its eight new keys were deliberately
   left untranslated, the gate stayed green, and the playtest on 2026-09-03 read
   the first-join line and the `/codeblock tools` replies in English on a French
-  client. Read the check's *untranslated* list, not just its exit line.
+  client. **The eight were written later that day and read correctly in a world
+  on 2026-09-04**, so what `F10` leaves behind is the lesson and not a gap. Read
+  the check's *untranslated* list, not just its exit line.
 
 ### Per-codelevel limits
 

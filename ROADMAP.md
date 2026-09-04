@@ -21,13 +21,20 @@ thinking rather than a queue position.
 
 ## Now
 
-**One open finding is left, `B51`, and it is not what comes next.** `B50` and
-`B52` — the drone vanishing mid-run, and a still drone dying at ~29 s — were
-fixed on 2026-09-03 in **`1b991ae`**, *B50, B52: drive a program from the server
-step, not from its drone entity*. The gates are green over it. **Nothing about it
-has been seen in a running world**, and three checks are what would settle that:
-`W1` re-run at codelevel 1 with the deterministic reproducer, `W5` and `W6`.
-**Play those three before anything else on the list below.**
+**`B50` and `B52` are done — fixed, and now played.** They were fixed on
+2026-09-03 in **`1b991ae`**, *B50, B52: drive a program from the server step, not
+from its drone entity*, with the gates green over it, and the three checks that
+were the whole of the remaining evidence — `W1` at codelevel 1, `W5` and `W6` —
+**all ran on 2026-09-04 at `23f0227` and all passed**, along with the rest of the
+*Writing to the world* group. `W1` passed **at every codelevel**, which no
+earlier run of it managed, and `W5` and `W6` had never run at all. The engine
+version was not restated. **So the unnumbered step at the head of the release
+list is closed, and `B51` is fixed behind it. What comes next is step 4 onward:
+`README.md`, the screenshots, `R2` and a CI run.**
+
+**No finding is open.** `B51` was the last and was fixed on 2026-09-04, in the
+working tree and **not yet committed**. Its check `D7` is written and unrun, so
+what is outstanding about it is *checking*, not work.
 
 **What the fix did**, kept short because `AUDIT.md` under `B50` has the grounds.
 An object with `static_save = false` is deleted the moment its mapblock leaves
@@ -41,13 +48,15 @@ not a run that stopped.** Two consequences were accepted with the decision:
 accidental stop, so `max_nodes_written`, `max_runtime_s` and `map_memory_mb`
 carry that load alone.
 
-**`B51` is what is left of the three, and it has no chosen fix.**
-`Drone.on_remove` still passes `'completed'` for a run the setter cut short, so a
-player who stops a program is told it completed. It was **the only remaining path
-to the wrong word** the moment `1b991ae` landed: the other caller was `on_lost`,
-which no longer ends a run at all, and the *le drone a disparu* line it used to
-pair with is deleted. A fix is a new outcome word, so a new `S()` key, so
-`locale/template.txt` and every `.tr` move with it (`C17`).
+**`B51` was the last of the three and is fixed, uncommitted, on 2026-09-04.**
+`Drone.on_remove` passes `'stopped'`, and `Drone.finish` gained a branch for it
+sending the new key `Program '@1' stopped: @2` with the same two arguments the
+`completed` branch uses, so the tail reads as the partial count it is. **The
+vocabulary was added to `Drone.finish`, not a second announcement path** — that
+is `B12` and `B30`. The word is the author's, chosen from three; the grounds are
+under *other decisions worth not re-litigating*. `locale/template.txt` and
+`locale/codeblock.fr.tr` moved with it (`C17`). **No spec reaches it**, so
+`PLAYTEST.md`'s new `D7` is the whole of the evidence, and it is unrun.
 
 **Two things `1b991ae` changed about older findings, recorded so they are not
 re-broken.** `B29`'s serial now guards the **replacement's object** rather than
@@ -80,16 +89,17 @@ to nine for `B50`/`B52`. **CI has seen none of it** — the last run was `471526
 **The playing is done for `B48`, `F10`/`C21` and `B49`**, all on 2026-09-03,
 engine 5.17.0: `E16`'s new pristine-example case, the four `F10-n` checks with
 the inventory and `/privs` cases that were `C21`'s only possible evidence, and
-`W4` at `16cd05c`. **It is not done for `B50` and `B52`**, so *gates green,
-unproven in a world* is back up to four: those two, plus `B14` and `S7`'s log
-half.
+`W4` at `16cd05c`. **And it is done for `B50` and `B52` as of 2026-09-04**, so
+*gates green, unproven in a world* is back down to two: `B14`, permanently
+blocked on `B34` being won't-fix, and `S7`'s log half.
 
 Before that: `B47` was decided, fixed and playtested on 2026-09-02, and
 `settingtypes.txt` has its generator and its `--check`.
-**`PLAYTEST.md` stands at 59 checks**, 57 of them carrying a result — one a fail,
-`W1`, which is `B50` at code that has since been replaced, and one partial, only
-because two of its cases cannot be performed. **The two without a result are `W5`
-and `W6`**, written 2026-09-03 for the fix and runnable now. Its per-feature
+**`PLAYTEST.md` stands at 59 checks, every one of them carrying a result** since
+2026-09-04, when `W5` and `W6` were played for the first time. **No check has a
+fail as its most recent result**; the one partial is `H8`, and only because two
+of its cases cannot be performed. `W1`'s two fails of 2026-09-03 stay below its
+pass, as `B50`'s evidence at code that has since been replaced. Its per-feature
 checks were renamed `F<feature>-<n>` on 2026-09-03, so `F10-1`–`F10-4` and
 `F1-1`/`F1-2` can be cited one at a time. The ordered list is the next section.
 
@@ -134,32 +144,33 @@ In order. **Steps 7 to 11 are the `release-codeblock` skill's procedure** and ar
 not restated here; what is below is what *this* version still needs, and
 `release-check` is the gate that says whether it got it.
 
-**The work — three playtest checks first; everything through step 3 is done;
-then the README, the screenshots, `R2` and the tag.**
+**The work — everything through step 3 is done, so is the unnumbered playtest
+step ahead of them, and so is `B51`; what is left is committing `B51`, the
+README, the screenshots, `R2`, `D7` and the tag.**
 
-**Before step 0, and unnumbered so the steps below keep the numbers commit
-messages and the release skill cite: play `W1`, `W5` and `W6`.** `B50` and `B52`
-are **fixed in `1b991ae`** with the gates green, and **nothing about the fix has
-been seen in a running world** — these three checks are the whole of that
-evidence, and they are written as the shape of the fixed behaviour. **`W1` re-run
-at codelevel 1**, with the author's deterministic reproducer — `forward(500);
-sleep(20)`, which killed the drone in one to two seconds every time — and with
-the third observation finally made, whether a drone can be placed afterwards,
-which is the difference between a leaked record being *unlikely* and being ruled
-out. **`W5`**, the check `B52` has never had: a drone sleeping or paused far from
-any player keeps its run. **`W6`**: the entity going away and coming back, one
-drone and not two, and `/clearobjects` no longer ending a program. **`W1` at
-codelevels 2, 3 and 4** is still unrun, with level 2 genuinely undecided between
-singleplayer and dedicated.
+**The unnumbered step before step 0 — play `W1`, `W5` and `W6` — is done,
+2026-09-04 at `23f0227`, all three passing.** It is kept unnumbered so the steps
+below keep the numbers commit messages and the release skill cite. `B50` and
+`B52` were **fixed in `1b991ae`** with the gates green, and these three checks
+were the whole of the rest of the evidence. `W1` ran **at every codelevel** — the
+level-2-and-below case it had been asking for since 2026-08-28 *and* the three
+levels above, in one session — with the third observation finally made: a drone
+places straight afterwards, so a leaked record is **ruled out** rather than
+unlikely. `W5` gave `B52` its first result ever, both cases. `W6` passed all
+four of its cases, `/clearobjects` not ending a program included. **The engine
+version was not restated by the author** and `PLAYTEST.md` records it as not
+recorded.
 
-**`B51` is the one finding still open and has no chosen fix**: `Drone.on_remove`
-passes `'completed'` for a run the setter cut short, and since `1b991ae` it is
-the only remaining path to that word. It is small, it is player-facing, and it
-needs a new `S()` key with its `.tr` lines (`C17`). Decide whether it goes in
-v1.0.0 or `Phase 9` before the tag; nothing else waits on it.
-**Do not tag over any of it.** (B50, B51, B52)
+**`B51` is fixed, and it goes in v1.0.0** — the question of deferring it to
+`Phase 9` did not arise, the fix being one branch and one `S()` key. A run cut
+short now says *stopped*, in English and French. **Two things about it are still
+outstanding and neither is work:** the change is in the working tree with **no
+commit**, and its check **`D7` has never been run** — no spec asserts what
+`Drone.finish` sends, so that check is the only evidence there can be.
+`CHANGELOG.md` gains a *Fixed* line **when the commit lands**, not before.
+**Do not tag before `D7` has been played.** (B51)
 
-0. **`B50` and `B52` — fixed at `1b991ae`; `B48`, `F10` and `B49` — committed
+0. **`B50` and `B52` — fixed at `1b991ae` and played; `B48`, `F10` and `B49` — committed
    and all three confirmed in a world.** `1b991ae` decoupled the drone record and
    the run from the entity: one globalstep advances every drone, `on_deactivate`
    only drops the view, and an object is handed back once the block is in memory.
@@ -167,7 +178,8 @@ v1.0.0 or `Phase 9` before the tag; nothing else waits on it.
    `lib/stepper.lua`, both locale files — the *drone has disappeared* key is
    deleted — and `tests/integration_spec.lua`. `B29`'s guard and `B30`'s
    behaviour both moved with it; see *Now*. Its gates are green and **its three
-   checks are unrun**, which is the unnumbered step above. The other three
+   checks passed on 2026-09-04 at `23f0227`**, which closes the unnumbered step
+   above. The other three
    shared one working tree with the gates green over all of it, and went out
    as three commits on 2026-09-03: `B48` `4179877`, one line in
    `lib/filesystem.lua`; `F10` `b23a8bc`, covering `lib/register.lua`, `C21`, the
@@ -176,7 +188,8 @@ v1.0.0 or `Phase 9` before the tag; nothing else waits on it.
    `lib/env.lua`, `lib/sandbox.lua`, `lib/api.lua`'s `blocks` entry with
    `doc/api.md` regenerated, one new locale key with its French, and 13 new
    `env_spec` cases. The playing is done for all three — `E16`, the four `F10-n`
-   checks and `W4`. **CI has seen none of any of it**, so a push and a green run
+   checks and `W4` — and now for `B50` and `B52` too, `W1`, `W5` and `W6` on
+   2026-09-04. **CI has seen none of any of it**, so a push and a green run
    over `1b991ae` is what is left. (B50, B52, B48, F10, C21, B49)
 1. **`B47` — done, and playtested.** Answered by slowing the beat to 1 s rather
    than stopping the self-refresh, quantising, or moving to mouse-down;
@@ -285,12 +298,13 @@ Phases 0–7 are closed; one line each, with the findings they covered.
 that the editor and drone paths were exercised by hand. Phase 8's playtests have
 since found **fifteen** defects in code earlier phases called done (B36–B44,
 C17, C18, S7, and now `B50`–`B52`) — the newest of them were the largest.
-**Fourteen are fixed and `B51` is open.** All three of the newest were filed
-2026-09-03 out of `W1`'s fail at codelevel 1 and the reading that explained it;
-`B50` and `B52` were fixed the same day at `1b991ae`, and two of the fourteen —
-those two — are fixed but **unverified in a world**.
+**All fifteen are fixed.** All three of the newest were filed 2026-09-03 out of
+`W1`'s fail at codelevel 1 and the reading that explained it; `B50` and `B52`
+were fixed the same day at `1b991ae` and **confirmed in a world on 2026-09-04**,
+and `B51` was fixed on 2026-09-04 with its check `D7` unrun. So fourteen of the
+fifteen fixes are played.
 
-### 8 · Features for v1.0.0 — in progress (8/8 shipped, 25 findings, 1 open)
+### 8 · Features for v1.0.0 — in progress (8/8 shipped, 25 findings, none open)
 
 The last phase before v1.0.0 and the only one that adds rather than repairs.
 Started as seven features: `F6` moved out on 2026-08-28 (Blockly is `Phase 10`)
@@ -307,12 +321,13 @@ second time in a row that what a display *said* was the thing playing it found.
 
 Shipped with them: **`F10` `b23a8bc`, played and committed 2026-09-03**, with
 `B48` `4179877` and `B49` `d8c32f7` out of the same tree. **Every feature in the
-phase has shipped.** Left in it: **three playtest checks against `1b991ae`** —
-`W1`, `W5`, `W6`, which are the only evidence `B50` and `B52` will ever have —
-then **`B51`**, a run cut short announced as *completed*, with no chosen fix;
-then `README.md`, the screenshots, `R2` on the release archive — the one check
-whose result has gone stale — and a CI run, which has seen nothing since
-`471526e`. `H10` passed 2026-09-02. **`F9`
+phase has shipped.** **The three playtest checks against `1b991ae` — `W1`, `W5`
+and `W6`, the only evidence `B50` and `B52` will ever have — all passed on
+2026-09-04 at `23f0227`.** **`B51` was fixed the same day** — a run cut short says
+*stopped* — leaving the phase with **no open finding**, an uncommitted tree and an
+unrun `D7`. Left in it: `README.md`, the screenshots, `R2` on the release archive
+— the one check whose result has gone stale — and a CI run, which has seen
+nothing since `471526e`. `H10` passed 2026-09-02. **`F9`
 passed its playtest on 2026-09-02** — all eight cases in both languages, no
 defect, and one decision reversed: the paused clock, built and re-checked the same
 day. **`B47` and `settingtypes.txt` closed the same day**, and writing the second
@@ -941,9 +956,13 @@ That was the known state, not a defect: this feature added eight `S()` keys and
 retired usage keys as orphaned — the legitimate fallback state per `C17`. **The
 eight French translations were written and the three orphans removed later the
 same day**, and the check now reads `locale/*.tr cover every message and nothing
-else` alongside `locale/template.txt is up to date`. No finding id: nothing was
-committed, so this is a feature being incomplete before it ships, which
-`build-feature` records here rather than in `AUDIT.md`. The rule generalises and
+else` alongside `locale/template.txt is up to date`. **And the author read them
+in a world on 2026-09-04 — *"F10: french works ok"*** — which closes the owed
+reading, recorded against `F10-1` and `F10-2` in `PLAYTEST.md`. The commit and
+the engine version were not restated; the strings have not changed since
+`b23a8bc`. No finding id: nothing was committed untranslated, so this is a
+feature being incomplete before it ships, which `build-feature` records here
+rather than in `AUDIT.md`. The rule generalises and
 is in `CLAUDE.md` beside the two `C17` rules: **a new `S()` key ships
 English-by-default and nothing fails**, because an untranslated message
 legitimately falls back, so a feature adding player-facing strings is not
@@ -953,6 +972,18 @@ demonstrate it.
 
 ## Other decisions worth not re-litigating
 
+- **A run cut short says *stopped***, the author's choice on 2026-09-04 from
+  three options, fixing `B51`. **The grounds:** *stopped* matches the panel
+  button's own label — **Stop**, *Arrêter* — so the word names the gesture the
+  player just made. **The rejected two were *cancelled* and *stopped before
+  finishing***: the first names no gesture in the interface, the second is a
+  sentence where the other outcomes are one word. **The shared verb with the
+  timeout line was weighed and accepted**: *Program '@1' stopped: it used all @2 s
+  of running time* self-describes, so the two do not blur — and if they ever read
+  as one message in a world, that is a finding rather than a re-opening of this.
+  A fourth caller came with it, knowingly: `register_on_leaveplayer` also calls
+  `Drone.on_remove`, so a player who disconnects mid-run is now told *stopped*.
+  Nobody sees that line and *stopped* is the truer of the two.
 - **Decoupling the drone record from its entity**, chosen 2026-09-03 for `B50`
   and **shipped the same day as `1b991ae`**, and **a fourth option rather than
   either of the two that were put to the author**. The entity is a *view* of a
@@ -1262,19 +1293,21 @@ demonstrate it.
 
 ---
 
-2026-09-03 · codeblock master at `1b991ae`, which is **ahead of
-`origin/master`**. **One finding is open: `B51`**, a run cut short announced as
-*completed*, with no chosen fix, and since `1b991ae` the only remaining path to
-that word. **`B50` and `B52` are fixed in `1b991ae` and unverified in a running
-world** — the drone record and the run are decoupled from the entity — and the
-three checks that would settle it, `W1` at codelevel 1, `W5` and `W6`, are
-written and unrun. `W1`'s codelevels 2, 3 and 4 are unrun as well.
+2026-09-04 · codeblock master at `23f0227`, which is **ahead of
+`origin/master`**, plus an **uncommitted working tree holding `B51`'s fix**.
+**No finding is open.** `B51` was the last: a run cut short now says *stopped*,
+in English and French, and its check `D7` is written and unrun. **`B50` and `B52`
+are fixed in `1b991ae` and confirmed in a running world** — the drone record and
+the run are decoupled from the entity — the three checks that settle it, `W1`,
+`W5` and `W6`, having all passed on **2026-09-04 at `23f0227`**, `W1` at every
+codelevel. The engine version was not restated for that run.
 
 Committed since the last record pass: `4179877` (`B48`), `b23a8bc` (`F10`,
 `C21`), `d8c32f7` (`B49`), `16cd05c` (record), `0837b58` (record), `c2e541f`
-(`CONTENTDB.md` and `.cdb.json`), `1b991ae` (`B50`, `B52`).
+(`CONTENTDB.md` and `.cdb.json`), `1b991ae` (`B50`, `B52`), `23f0227` (record).
 
-**Gates at `1b991ae`**, engine 5.17.0, read from output rather than exit codes:
+**Gates at `1b991ae`, and again over `B51`'s uncommitted tree with the same
+figures**, engine 5.17.0, read from output rather than exit codes:
 luacheck silent, `doc/api.md`, `locale/template.txt` and `settingtypes.txt` all
 up to date, `locale/*.tr` covering every message and nothing else, nine in-engine
 specs **474 passed, 0 failed, 1 xfail, 0 xpass** — the xfail `preprocess_spec`'s
@@ -1283,11 +1316,15 @@ it**: it was last green on all three jobs at `dc09d48` (run 44) and `471526e`
 (run 45), so everything from `d8d44cd` up carries local gates only, and the first
 run over `d8d44cd` also proves the fourth CI step that commit added.
 
-**`PLAYTEST.md` stands at 59 checks**, 57 carrying a result: one fail (`W1`, at
-code `1b991ae` has replaced) and one partial (`H8`, only because two of its cases
-cannot be performed). `W5` and `W6` are the two without one. **`R2` still wants
-re-running on the release archive**, which is **2.21 MB**.
+**`PLAYTEST.md` stands at 60 checks, 59 of them carrying a result.** The one
+without is **`D7`**, written 2026-09-04 for `B51`. No check has a fail as its
+most recent result; the one partial is `H8`, only because two of its cases cannot
+be performed, and `W1`'s two fails of 2026-09-03 sit below its pass as evidence
+about replaced code. **`F10`'s French was read in a world on 2026-09-04** —
+*"F10: french works ok"* — which closes the reading `F10-1` and `F10-2` were
+owed. **`R2` still wants re-running on the release archive**, which is
+**2.21 MB**.
 
-What is left before the tag: play `W1`, `W5` and `W6`; decide `B51`; `README.md`'s
-ContentDB URLs and its Quick start; the screenshots; `R2`; a push and a CI run;
-then `release-check`, the heading, and the tag.
+What is left before the tag: commit `B51` and give `CHANGELOG.md` its line; play
+`D7`; `README.md`'s ContentDB URLs and its Quick start; the screenshots; `R2`; a
+push and a CI run; then `release-check`, the heading, and the tag.

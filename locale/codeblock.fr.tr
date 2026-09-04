@@ -62,6 +62,7 @@ Plants=Plantes
 Player not found=Joueur non trouvé
 Please target a node=Il faut viser un cube
 Program '@1' completed: @2=Programme '@1' terminé : @2
+Program '@1' stopped: @2=Programme '@1' arrêté : @2
 Program '@1' stopped: it used all @2 s of running time=Programme '@1' arrêté : il a épuisé ses @2 s de temps d'exécution
 Remove file=Supprimer le fichier
 Resume=Reprendre

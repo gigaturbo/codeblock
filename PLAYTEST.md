@@ -18,64 +18,53 @@ date**: a pass recorded three phases ago is not evidence about today's code. A
 `fail` is not a finding — report it and let `AUDIT.md` allocate or widen an id.
 Reasoning lives in `AUDIT.md` under the bracketed id, or `ROADMAP.md` for an `F`.
 
+## How a check is written
+
+**Hand the runner an actual program or command to run**, not a description of
+one. The author's note on 2026-09-04: *"playtest 'DO' with examples/commands
+given is nice."* `W1`'s reproducer, `W4`'s loop and `W5`'s three lines are what
+that means; the older checks in this file describe a gesture and leave the
+program to be invented, which is slower and is not the same program twice.
+A recipe also **names the shell it is for** — that has cost a session twice
+(`F-3` case 2, `D2`'s removed case).
+
 ## Where it stands
 
-**59 checks. Two carry no result** — `W5` and `W6`, written 2026-09-03 for the
-fix that has since landed as `1b991ae`. Of the other 57, **one is a fail** —
-`W1`, re-run at codelevel 1 on 2026-09-03, which is `B50`, now fixed and awaiting
-this check's re-run — and one partial, `H8`, and only because two of its cases
-cannot be performed. `F9-1`, `R1`, `E16`, `W1` and the four `F10-n` checks each
-carry two results or more.
-
-- **Three checks are owed, and all three are now checks against a landed fix
-  rather than a planned one.** `B50` and `B52` were fixed in **`1b991ae`**, the
-  gates are green over it, and **nothing about it has been seen in a world** —
-  these three are the whole of that evidence. **`W1` re-run at codelevel 1**,
-  with the deterministic reproducer the author supplied — `forward(500);
-  sleep(20)`, which killed the drone in one to two seconds every time where the
-  50-iteration loop was a coin flip — and with observation 3 finally made.
-  **`W5`**, the check `B52` has never had: a drone sleeping or paused far from any
-  player must keep its run. **`W6`**: the entity going away when the player
-  leaves and being back on return, with no chat line either way, one drone and
-  not two, and `/clearobjects` no longer ending a program.
+**60 checks, and 59 of them carry a result.** **The one with none is `D7`**,
+written 2026-09-04 with `B51`'s fix: a run cut short must say *stopped*, and
+nothing else can ever show that — no spec asserts what `Drone.finish` sends.
+**No check has a fail as its most recent result**, and one is a partial — `H8`,
+and only because two of its cases cannot be performed. `F9-1`, `R1`, `E16`, `W1`,
+`W3` and the four `F10-n` checks each carry two results or more.
 **`H10` passed 2026-09-02 with a few presses still missing** — the residue
 `B47`'s fix leaves, accepted rather than closed.
 
-- **`W1` failed on 2026-09-03, at codelevel 1**: the drone **disappeared after
-  6–8 seconds**, with no error, no refusal and no world-edge message. That is the
-  codelevel this check has been asking for since 2026-08-28 — both of its passes
-  were taken above level 2, where the per-resume memo reset it exists for barely
-  runs — so **the level the check was always asking for is the level it fails
-  at**. Filed as **`B50`**, open, **cause now read out of the 5.17.0 engine
-  source**: an entity with `static_save = false` is deleted when the mapblock
-  under it leaves server memory, and nothing keeps the drone's own block loaded
-  past ~192 nodes from a player. **A fix was chosen later the same day** —
-  decouple the record from the entity, which closes `B52` too — and **committed
-  as `1b991ae`**, so this fail describes code that has been replaced and the
-  re-run is what settles it. **What happens at codelevels 2, 3 and 4 is unknown**, the report having
-  been cut off before it said, and level 2 genuinely depends on singleplayer
-  against dedicated. **`W1`'s expectation was wrong as written and is corrected**:
-  *no holes* cannot be met while the drone is deleted mid-run, and the check now
-  asks for three specific observations, because two events happen seconds apart
-  and only one of them is a defect. Diagnosing it also produced **`B51`** — a run
-  cut short is announced as *completed* — and **`B52`**, a drone standing still
-  far from a player dying at about 29 seconds, which `sleep(30)` or a long pause
-  reaches.
+- **The whole *Writing to the world* group ran on 2026-09-04 at `23f0227`, and
+  all six checks passed.** That is **`B50` and `B52` confirmed in a running
+  world**: the three checks that were the whole of their evidence — `W1` at
+  codelevel 1, `W5` and `W6` — have all now been played. **`W1` passed at every
+  codelevel**, the first run to report above *and* below level 2 together, so the
+  level this check had been asking for since 2026-08-28 is answered along with
+  the three it had never reached; its **third observation is finally made**, the
+  program running to its end, so no *le drone a disparu* line and no leaked
+  record. **`W5` and `W6` had no result at all before this run**, and `W6` passed
+  on all four of its cases, `/clearobjects` not ending a program included. **The
+  engine version was not restated by the author** and is recorded as not
+  recorded rather than inferred from earlier runs.
 
-- **`W1`'s three observations were then run, on 2026-09-03, and two of the three
-  are answered.** **Both chat lines arrive** — *le drone a disparu*, then
-  *programme terminé* — so the announcement path is intact and **there is no
-  fourth finding**; that same pair is **`B51` observed in a world**, the second
-  line contradicting the first about a run killed 48 blocks short. **The obsidian
-  stops at 352 and 320 nodes** across two runs, and the 32-node spread is the
-  evidence that this is a sampled 2.0 s race rather than a fixed boundary — ~192
-  nodes is where the drone becomes killable, not where it dies. **The third
-  observation was not made**, so a leaked record is unlikely rather than ruled
-  out, and it is one gesture on the next run. The codelevel was not restated for
-  either run.
+- **`W1`'s two fails of 2026-09-03 describe code that has since been replaced.**
+  They are `B50`, at codelevel 1, on `16cd05c`; `1b991ae` decoupled the record
+  from the entity and the 2026-09-04 pass is that fix seen in a world. They stay
+  below the pass in `W1`'s entry, with the 320/352-node measurement and the
+  sampled-race reading that came out of them, because that is `B50`'s diagnosis
+  and `B51`'s only in-world observation.
 
-- **`W4` passed 2026-09-03 at `16cd05c`**, which is the last check in this file
-  to have had no result and **confirms `B49` in a world**. Its case 2 — a second
+- **`W3` is 0.27 s at `23f0227` against 0.34 s on 2026-08-28.** Both are passes
+  and **the difference is not a finding** — nothing about that shape has been
+  measured twice under controlled conditions. The earlier result and its cost
+  breakdown stay: that arithmetic is `S5`'s.
+
+- **`W4` passed 2026-09-03 at `16cd05c`** and **confirms `B49` in a world**. Its case 2 — a second
   drone in the same session warning on its own account — is the **only** way the
   per-run scope is observable, the flag being a closure upvalue in a file-local
   function, so no spec will ever cover it.
@@ -111,12 +100,12 @@ carry two results or more.
   back. The consequence is that **a feature adding player-facing strings is not
   finished until the `.tr` files are written, and the only thing that will tell
   you is playing it in another language.** `F10` demonstrated it: both the chat
-  line and the `/codeblock tools` replies read English on a French client. **The
-  French was written later the same day, after both runs, so what that rule
-  leaves here is owed reading rather than a fix**: `F10-1` case 4 and `F10-2`
-  each want one pass with the client in French, which `F10-1` already asks for.
-  The passes stand — English on a French client was the known state when they
-  were taken.
+  line and the `/codeblock tools` replies read English on a French client on
+  2026-09-03. The French was written later that day, and **the author read it in
+  a world on 2026-09-04 — *"F10: french works ok"***, which closes the owed
+  reading `F10-1` case 4 and `F10-2` were both carrying. The English passes
+  stand: that was the known state when they were taken. What the episode leaves
+  is the rule, not a gap.
 
 - **Group `H` (HUD and panel): re-run 2026-09-02 at `8f5bb2e`, eight pass and one
   partial.** `F8`'s display work is proven in a world. It produced `B47` — panel
@@ -413,8 +402,9 @@ comparison only happens through a real client textarea.
 
 ## Drone placement and the setter tool
 
-D1–D6. Runs of 2026-08-27 and 2026-08-28. They produced `B38`, `B39`, `B41` and
-`B44` — all four in code nobody had exercised in a running world.
+D1–D7. Runs of 2026-08-27 and 2026-08-28. They produced `B38`, `B39`, `B41` and
+`B44` — all four in code nobody had exercised in a running world. **`D7` was
+added 2026-09-04 with `B51`'s fix and has never been run.**
 
 ### D1 · Place a drone and run a program [B10, A11]
 
@@ -457,9 +447,10 @@ recorded as such in `AUDIT.md`. Do not write this case again without a way to
    removes a drone mid-run and is allowed to. Remove a running drone with it and
    place a new one in the same second. **Pass:** the replacement survives and runs
    to its own end, and the removed run announces its statistics **once** —
-   `Drone.on_remove` calls `Drone.finish(drone, 'completed')` on purpose — which
-   is `B51`, still open: *completed* is the wrong word for a run the player cut
-   short.
+   `Drone.on_remove` calls `Drone.finish` on purpose. **What that line says is
+   `D7`'s business, not this one's** — it read *completed* when this check was
+   written, which was `B51`, and since the 2026-09-04 fix it reads *stopped*.
+   This case counts the announcement; `D7` reads it.
 
 **The old second condition is gone, and so is what it named.** It asked that
 *"The drone has disappeared, program stopped"* not appear; `1b991ae` deleted that
@@ -470,9 +461,12 @@ checking.
 Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — both parts. **`B29`'s
 serial guard was confirmed in a running world**; this was the one path to it.
 **That result predates `1b991ae`**, which changed what the serial guards — the
-replacement's object rather than its record — so part 2 is worth re-running with
-`W6`, and until it is, `B29`'s in-world evidence describes code that has since
-moved.
+replacement's object rather than its record. **`W6` case 2 covered the new form
+on 2026-09-04 at `23f0227`** — one drone and not two after a re-spawn under the
+same name — so `B29` has in-world evidence on current code and this part needs no
+re-run for that reason. What is still only pre-`1b991ae` is the *setter removes a
+running drone and a replacement goes in within the second* gesture, which is
+`B29`'s narrowest window and no other check performs.
 
 Earlier: partial — `f274245` · 2026-08-27 — part 1 only. **The check was wrong,
 not the code**: it asked for a mid-run replacement, which `on_place` refuses on
@@ -540,6 +534,40 @@ Result: pass — `6fea453` · engine 5.17.0 · 2026-08-28. **`B44` confirmed.**
 
 Earlier: fail — `326f739` + uncommitted fixes · 2026-08-28 — found while running
 `D5`, by doing the obvious next thing. That is `B44`.
+
+### D7 · A run cut short says *stopped* [B51, B12, B30]
+
+**Written 2026-09-04 with the fix, and the only evidence `B51` can ever have** —
+no spec asserts what `Drone.finish` sends, and the wording, the French and the
+partial counts are all in-world.
+
+Write a program that builds long enough to interrupt — `cube(30,30,30)` at
+codelevel 2, or a `for` loop of 200 `place()` calls — and run it. Then cut it
+short, twice, one way each:
+
+1. **With the setter**, by placing a drone over the running one.
+2. **With the panel's Stop button**, left click with the setter and press
+   **Stop**.
+
+**Pass**, both times:
+
+- **exactly one** chat line, not two and not none — that is `B12` and `B30`, and
+  `Drone.finish` is the one place it comes from;
+- it reads `Program '<file>' stopped:` and **not** *completed*;
+- the tail after it is the **partial** count — a node count well below what the
+  program asked for, and a duration shorter than a full run's.
+
+**Do case 2 in French as well.** `Program '@1' stopped: @2` is a new `S()` key
+and its French is `Programme '@1' arrêté : @2`; half of what `C17` covers is only
+visible in the other language. Note that the timeout line is *also* `arrêté` —
+*Programme '@1' arrêté : il a épuisé ses @2 s de temps d'exécution* — and that
+sharing was weighed and accepted, because that line says why. If the two ever
+read as one message, that is a finding.
+
+Also let a program **finish on its own** in the same session: it must still say
+*completed*. The two words must not have swapped.
+
+Result: not yet run. The fix was uncommitted at 2026-09-04.
 
 ---
 
@@ -752,6 +780,10 @@ button, exactly one message on the running drone and none on the idle one.
 Supersedes the `F4` pass at `729c255`, where it was named *Cancel* and the idle
 case did not exist.
 
+**This check counts the message; `D7` reads it.** The pass above stands and says
+nothing about the wording, which was *completed* at the time and is `B51`. Do not
+re-run this one for the word.
+
 ### H8 · The panel over the editor, and a run that ends under it [F4, F8, B33, B29]
 
 1. **Not performable as written, and now known why** (2026-09-02): a shown
@@ -805,7 +837,7 @@ Result: pass — `729c255` · engine 5.17.0 · 2026-08-29.
 
 ### H10 · A panel button responds to one click [B47]
 
-**New 2026-09-02, never run.** `B47`'s fix is a longer refresh beat — `PERIOD`
+**New 2026-09-02, first run the same day.** `B47`'s fix is a longer refresh beat — `PERIOD`
 `0.5` → `1` s — which **halves the dead window rather than removing it**, so this
 check is the only thing that can say whether the residue is still noticeable.
 Nothing in the suite reaches it: the gates call the handler directly and the
@@ -964,7 +996,7 @@ own**.
 `planet.lua`, `death_star.lua` and `mosely.lua` shrank so the whole set fits the
 level a server hands out. That claim was arithmetic until it was run.
 
-`/codegenerate`, set yourself to **codelevel 2**, run all fourteen.
+`/codeblock generate`, set yourself to **codelevel 2**, run all fourteen.
 
 **Pass:** every one completes. None stops with *"Maximum number of nodes
 written"*, *"Maximum running time"* or *"Memory limit exceeded"*.
@@ -1003,11 +1035,21 @@ charged time for every example, `torus.lua` and `density.lua` included.
 
 ## Writing to the world
 
-W1–W3, played 2026-08-28, and that run **settled questions rather than finding
-defects**: `W2` answered `A4`, the oldest thing on the audit's *not verified
-anywhere* list. **The `W1` re-run of 2026-09-03 broke that**: at codelevel 1 the
-drone vanishes, which is `B50` — and diagnosing that produced `B51` and `B52`,
-with the same day's discriminator run then **observing `B51` in a world**.
+W1–W6. W1–W3 played 2026-08-28, and that run **settled questions rather than
+finding defects**: `W2` answered `A4`, the oldest thing on the audit's *not
+verified anywhere* list. **The `W1` re-run of 2026-09-03 broke that**: at
+codelevel 1 the drone vanishes, which is `B50` — and diagnosing that produced
+`B51` and `B52`, with the same day's discriminator run then **observing `B51` in
+a world**.
+
+**The whole group was then played on 2026-09-04 at `23f0227`, all six passing**,
+`W5` and `W6` for the first time and `W1` at every codelevel. That run is the
+only in-world evidence `B50` and `B52` will ever have, and it is what took both
+off the audit's *gates green, unproven in a world* list. It found no defect and
+it does not bear on `B51`, whose remaining path — the setter cutting a run short
+— no check in this group points at. **`B51` was fixed later the same day and its
+check is `D7`**, in the *Drone placement* group rather than this one. The engine
+version was not restated.
 
 ### W1 · `place()` far from spawn [A4, S5, B25, B50, B51]
 
@@ -1017,14 +1059,15 @@ visited**.
 
 **Pass:** no holes — **and the drone survives the run.**
 
-**Owed: a re-run at codelevel 1. `B50`'s fix has landed — `1b991ae`.** It
-decouples the record from the entity, so what this check must now show is the
-whole program running to its end — **all 50 obsidian placements and
-the brick line back**, no *le drone a disparu*, and the entity visible again
-whenever the player is near enough to see it. A drone that vanishes from view
-part-way and reappears later is a **pass**, not a fail: after the fix the view
-going away is not an ending. Make observation 3 this time — placing a new drone
-straight afterwards must work, not answer *"Drone is busy, please wait!"*.
+**`B50`'s fix landed as `1b991ae` and this check ran against it on 2026-09-04,
+at every codelevel, and passed.** It decouples the record from the entity, so
+what this check shows is the whole program running to its end — **all 50 obsidian
+placements and the brick line back**, no *le drone a disparu*, and the entity
+visible again whenever the player is near enough to see it. A drone that vanishes
+from view part-way and reappears later is a **pass**, not a fail: after the fix
+the view going away is not an ending. Observation 3 is answered — placing a new
+drone straight afterwards works rather than answering *"Drone is busy, please
+wait!"*.
 
 **Use the deterministic reproducer, not the loop.**
 
@@ -1087,6 +1130,18 @@ Past about 2000 nodes in one direction the program stops with *"The drone cannot
 leave the world"*. **That is the world-edge guard working, not a limit being
 hit** — the number depends on the world's own `mapgen_limit`.
 
+Result: pass — `23f0227` · engine not recorded · 2026-09-04 — **at all four
+codelevels**, which no earlier run of this check managed: every pass before this
+was taken above level 2, and the fail below was level 1 alone. **This is `B50`'s
+fix confirmed in a running world**, and it is the only in-world evidence that fix
+will ever have. All three observations are answered together by the program
+finishing: the obsidian goes the whole way, **no chat line arrives before the
+program's own finish line** — the *le drone a disparu* message is deleted and
+nothing sends it — and **a new drone places immediately afterwards**, so the
+leaked record that observation 3 exists for is **ruled out** rather than
+unlikely. The author reported the check as a whole and did not restate the
+engine version.
+
 Result: **fail, with the three observations made** — `16cd05c` · engine not
 recorded · 2026-09-03 — **the discriminator run, twice**, on a plain outward walk
 with no return leg:
@@ -1121,7 +1176,9 @@ with no return leg:
 level 1 and these are read as the same; that is an inference, not a report.
 **And this run also observed `B51`**: *programme terminé* announced a run killed
 roughly 48 blocks short of the 50 it asked for, immediately after
-*le drone a disparu*. The two lines the player sees contradict each other.
+*le drone a disparu*. The two lines the player saw contradicted each other. Both
+are gone — the first with `1b991ae`, the second with `B51`'s fix on 2026-09-04,
+which is `D7`.
 
 Result: **fail** — `16cd05c` · engine not recorded · 2026-09-03 — **at codelevel
 1, the drone disappeared after 6–8 seconds.** Not an error, not a refusal, and
@@ -1179,6 +1236,10 @@ area generates, and look.
 
 **Pass:** the node is still there. This was **unknown either way**.
 
+Result: pass — `23f0227` · engine not recorded · 2026-09-04 — the node was placed
+**1000 nodes out**, the area then generated on a return trip, and the block is
+still there. `A4`'s answer holds on current code.
+
 Result: pass — `326f739` + uncommitted fixes · engine 5.17.0 · 2026-08-28 —
 **`A4`'s open question is answered**: mapgen does not overwrite it. `load_area`
 plus `set_node` does not merely make the write land — the engine then treats the
@@ -1190,6 +1251,12 @@ Run `cube(200, 200, 200)` **at codelevel 4** and watch the server.
 
 **Pass:** the shape appears slab by slab and the server stays responsive. It must
 not freeze — a 150-node cube stalled it for 0.44 s before shapes were sliced.
+
+Result: pass — `23f0227` · engine not recorded · 2026-09-04 — **0.27 s** at
+codelevel 4, server responsive. **The 0.07 s against 2026-08-28 is not a
+finding**: neither figure was taken under controlled conditions, and this shape
+has never been timed twice on the same machine state. Read it as the same
+measurement, not as an improvement.
 
 Result: pass — `326f739` + uncommitted fixes · engine 5.17.0 · 2026-08-28 —
 **0.34 s**, server responsive.
@@ -1243,15 +1310,16 @@ Run case 1 in French too. The key is new `S()` text and the French was written
 the same day, so this is where it is read.
 
 Result: pass — `16cd05c` · engine 5.17.0 · 2026-09-03 — the fix being `d8c32f7`.
-**`B49` is now confirmed in a world**, and this file has no check left without a
-result. The author reported the check as a whole rather than case by case, so
+**`B49` is now confirmed in a world.** (This result claimed it left the file with
+no check without one; `W5` and `W6` were written the same day and had none. That
+became true on 2026-09-04, when both ran.) The author reported the check as a whole rather than case by case, so
 what is recorded is a pass on the check as written above; case 2 is the part no
 spec will ever cover, the per-run flag being a closure upvalue in a file-local
 function.
 
 ### W5 · A drone that stands still far away keeps running [B52, B50]
 
-**Written 2026-09-03 for the fix now committed as `1b991ae`, unrun.** `B52` has
+**Written 2026-09-03 for the fix committed as `1b991ae`; first run 2026-09-04.** `B52` has
 never had a check of its own, and no spec can reach it: the mechanism is the engine unloading a mapblock on
 `server_unload_unused_data_timeout` while an object stands in it, which needs a
 world, a map and a clock.
@@ -1282,13 +1350,19 @@ it genuinely is unloaded — and that is not a failure. The run continuing and
 finishing is the whole condition. Before `1b991ae` both cases failed by
 construction, so a fail here is the fix not working rather than the old defect.
 **This is `B52`'s only possible evidence**: the finding was read out of the
-engine and has never been observed in either state.
+engine and had never been observed in either state.
 
-Result: not yet run.
+Result: pass — `23f0227` · engine not recorded · 2026-09-04 — **the first result
+this check has ever had, and `B52`'s only in-world evidence.** Both cases pass:
+the sleeping drone places its obsidian after the timeout and announces itself
+normally, and a paused run resumes where it stopped. The author reported the
+check as a whole rather than case by case, so what is recorded is a pass on the
+two cases as written above. `B52` is no longer a mechanism with nothing observed
+against it.
 
 ### W6 · The drone's entity goes away and comes back [B50, B29]
 
-**Written 2026-09-03, unrun**, for the fix committed that day as `1b991ae`:
+**Written 2026-09-03, first run 2026-09-04**, for the fix committed that day as `1b991ae`:
 after it, the entity is a *view* of a drone rather than the drone itself, and
 losing the view is not an ending. Nothing in the suite can see this — it needs two players' worth of
 distance, a real map and the engine's own object management.
@@ -1321,7 +1395,15 @@ distance, a real map and the engine's own object management.
    and the mod re-spawns it. It is recorded under `B50` as one of the two costs
    the decision accepted.
 
-Result: not yet run.
+Result: pass — `23f0227` · engine not recorded · 2026-09-04 — **all four cases**,
+reported as *all pass*, and the first result this check has had. So the view
+going away is silent, the entity comes back where it should be with its work
+behind it, a new drone places afterwards, and **`/clearobjects` does not end a
+running program** — the cost the decision accepted, now observed rather than
+reasoned. Case 2's *one drone, not two* is **`B29`'s serial guard confirmed in
+its post-`1b991ae` form**, where what it guards is the replacement's object
+rather than its record; `D3` part 2 was the only earlier in-world evidence and it
+predates the change.
 
 ---
 
@@ -1477,11 +1559,11 @@ design and looks correct.
 
 ### R4 · A brand new world hands out the right codelevel [S6]
 
-**New 2026-08-30, never run.** The singleplayer default moved from 4 to 3, and
+**New 2026-08-30, first run 2026-09-02.** The singleplayer default moved from 4 to 3, and
 `register_on_newplayer` is the only place it is written — so **a world with any
 history in it proves nothing here**. Create a fresh world each time.
 
-1. **Singleplayer, fresh world.** `/codelevel` with no argument. **Pass: 3.**
+1. **Singleplayer, fresh world.** `/codeblock level` with no argument. **Pass: 3.**
 2. **A server, fresh world, a joiner who has never connected.** **Pass: 2.**
 3. **Either, with `codeblock_default_auth_level = 4`** and a restart. **Pass: 4**
    — the setting wins over both built-in defaults.
@@ -1651,6 +1733,14 @@ Result: pass — `16cd05c` · engine 5.17.0 · 2026-09-03 — re-affirmed once `
 was committed at `b23a8bc`. Same four cases, same code, now under a hash rather
 than a working tree.
 
+Result: pass in French — commit not restated · engine version not restated ·
+2026-09-04 — the author reports *"F10: french works ok"*, read on a French
+client. **That closes case 4's French half**, which the two runs above left owed:
+they read the first-join line in English, the eight French strings not yet having
+been written. The strings are unchanged since `b23a8bc`, so any tree from that
+commit forward carries them and `HEAD` was `23f0227`; the commit and the engine
+version are recorded as not recorded rather than inferred.
+
 ### F10-2 · `/codeblock tools` [F10, B16, B39]
 
 1. **It hands both tools over.** Run it with an empty inventory: the Drone placer
@@ -1674,6 +1764,13 @@ carries it.
 
 Result: pass — `16cd05c` · engine 5.17.0 · 2026-09-03 — re-affirmed at the
 committed code, `b23a8bc`.
+
+Result: pass in French — commit not restated · engine version not restated ·
+2026-09-04 — covered by the author's *"F10: french works ok"*, which is one
+report over the whole of `F10` and not a case-by-case run. **The replies are read
+in French**, which the two runs above could not show. Recorded with the same
+caveat as `F10-1`'s French line: the strings are unchanged since `b23a8bc`, the
+commit and the engine version were not restated.
 
 ### F10-3 · The two renamed subcommands [F10, B8, B9, C17]
 

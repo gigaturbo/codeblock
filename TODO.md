@@ -83,30 +83,30 @@ Features
       as well, and it saves a sleeping or paused drone, which neither of the
       other options did. **Written and committed the same day as 1b991ae**, with
       the gates green — 474 in-engine assertions, 0 failed, 0 xpass — and
-      **nothing about it has been played yet**: W1, W5 and W6 are written and
-      unrun, and they are the only evidence it will ever have. You also
+      **confirmed in a world on 2026-09-04 at 23f0227**: W1, W5 and W6 all
+      passed, and they are the only evidence it will ever have. W1 passed **at
+      every codelevel**, which no earlier run of it managed, so the levels that
+      were unreported are reported. You also
       supplied a much better reproducer — `forward(500)` then `sleep(20)` kills
       it in one to two seconds every time, where the loop was a coin flip.
-      Level 2 genuinely depends on
-      singleplayer versus dedicated, and the other levels are still unreported.
       Your two discriminator runs on 2026-09-03 confirmed it: both chat lines
       arrive, so nothing is being swallowed, and the obsidian stopped at 352 and
       320 nodes. That spread is the point — 192 is where the drone becomes
       killable rather than where it dies, and two runs 32 nodes apart is a
-      sampled race. One observation still owed, one gesture: after the drone
-      goes, try to place a new one. If it says "Drone is busy, please wait!" the
-      record has leaked (audit B50; playtest W1)
-- [ ] BUG: a run that was cut short says "completed" — found 2026-09-03 while
-      diagnosing B50, not reported. Drone.finish has no word for it, so a run you
-      stop with the setter says the program completed, with a node count nowhere
-      near what it asked for. **This is the only one of the three still open, and
-      since 1b991ae it is the only remaining path to the wrong word** — the
-      mid-flight case went with that fix, along with the "drone a disparu" line
-      it used to pair with. No fix is chosen; a new word means a new S() key and
-      its .tr lines. **You have seen it**: your discriminator run showed "le drone a disparu" and then
-      "programme terminé", one after the other, about a run killed 48 blocks
-      short of the 50 it asked for. The two lines contradict each other
-      (audit B51)
+      sampled race. The observation that was owed is made: a new drone places
+      straight after the program finishes, so a leaked record is ruled out
+      rather than unlikely (audit B50; playtest W1, W5, W6)
+- [x] BUG: a run that was cut short says "completed" — found 2026-09-03 while
+      diagnosing B50, not reported. Drone.finish had no word for it, so a run you
+      stopped with the setter said the program completed, with a node count
+      nowhere near what it asked for. **You saw it**: your discriminator run
+      showed "le drone a disparu" and then "programme terminé", one after the
+      other, about a run killed 48 blocks short of the 50 it asked for. **Fixed
+      2026-09-04**, with the word you chose: a cut-short run now says "stopped",
+      "arrêté" in French, with the partial counts after it. The fix is in your
+      working tree and **not committed yet**, and playtest D7 — cut a run with
+      the setter and again with the panel's Stop, once in French — has never
+      been run (audit B51; playtest D7)
 - [x] BUG: a drone standing still far from you dies at about 29 seconds — found
       2026-09-03 the same way. It survives most fixes to B50 — `load_area` does
       not reset the mapblock's usage timer, so the block is unloaded on
@@ -115,7 +115,9 @@ Features
       both are things the mod invites you to do. **The fix you chose for B50
       does close it**, which is one of the two reasons it was chosen over the
       others, and it is **committed as 1b991ae**; playtest W5 is the check this
-      has never had, in either state, and it is still unrun (audit B52)
+      has never had, in either state, and it **passed 2026-09-04 at 23f0227**,
+      both cases — so the fixed behaviour is observed while the defect itself
+      never was (audit B52)
 - [ ] FEAT: Make possible to change codelevel while running a program (audit F5)
 - [x] FEAT: stop forcing the two tools into every joining player's inventory —
       settled 2026-09-03 as `F10`, your choice of the two: a command, not a
@@ -127,8 +129,10 @@ Features
       `lib/register.lua` with the gates green and **committed as b23a8bc**; all
       four of its playtest checks — F10-1 to F10-4 — passed 2026-09-03. The
       eight new French strings were written the same day, after you saw the chat
-      line and the command replies come out in English. The shape and what was
-      argued out are in ROADMAP.md under `F10`
+      line and the command replies come out in English, and **you read them in a
+      world on 2026-09-04 — "F10: french works ok"**, which is the last thing
+      this feature was owed. The shape and what was argued out are in ROADMAP.md
+      under `F10`
       (no finding; from playtest D4 at `246bb37`)
 - [x] FEAT: stop granting `fly`, `fast` and `noclip` to every new player — found
       while building `F10` on 2026-09-03, not reported: `register_on_newplayer`
@@ -252,15 +256,15 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
 - [x] build the release archive and install it once, to prove C16's guard —
       playtest R1 passed at `afbe504` and R2 at `7c5bceb`, both 2026-08-28
       (audit C16)
-- [ ] run W1 at codelevels 2, 3 and 4 — level 1 failed 2026-09-03 and is B50.
-      Whether the other three behave is unreported, so nothing claims they pass;
-      whichever levels do work is also the first thing that narrows the cause
-      (audit B50; playtest W1)
-- [ ] once the B50 fix is committed, run three checks: W1 again at codelevel 1
-      with the `forward(500); sleep(20)` reproducer and its third observation
-      made, W5 — new, the check B52 has never had — and W6, new: the drone's
-      entity going away when you walk off and being back when you return, with
-      no chat line either way (audit B50, B52; playtest W1, W5, W6)
+- [x] run W1 at codelevels 2, 3 and 4 — done 2026-09-04 at 23f0227, and level
+      1 with them: W1 passed at every codelevel, the first run of that check to
+      report above and below level 2 together (audit B50; playtest W1)
+- [x] once the B50 fix is committed, run three checks: W1 again, W5 and W6 —
+      done 2026-09-04 at 23f0227, all three passing, and the whole Writing to
+      the world group with them. W5 and W6 had never run at all. That is B50
+      and B52 confirmed in a world, and it takes both off the audit's "gates
+      green, unproven in a world" list, which is now B14 and S7's log half
+      (audit B50, B52; playtest W1, W5, W6)
 - [ ] re-run R2 on the archive built from the release commit — R1 was
       re-checked at `7dbe18f` and still passes, but R2 last ran before F4 added
       lib/hud.lua and before .gitattributes changed at `60dc8dd`. Install it in

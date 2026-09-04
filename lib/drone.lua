@@ -353,7 +353,7 @@ local drone_mt = {
                 return
             end
 
-            Drone.finish(drone, 'completed')
+            Drone.finish(drone, 'stopped')
 
         end,
 
@@ -453,7 +453,9 @@ local drone_mt = {
         --- Say how a run ended, then take the drone away.
         --
         -- The one place any of that is said. `outcome` is stepper.advance's,
-        -- minus 'yielded', which is not an ending.
+        -- minus 'yielded', which is not an ending, plus 'stopped' - a run cut
+        -- short, which only Drone.on_remove passes and the stepper never
+        -- produces. (B51)
         finish = function(drone, outcome, err)
 
             local name = drone.name
@@ -475,6 +477,13 @@ local drone_mt = {
                 core.log('warning',
                              '[codeblock] drone ' .. tostring(name) ..
                                  ' coroutine is neither suspended nor dead')
+
+            elseif outcome == 'stopped' then
+                -- Cut short by the player, with the setter or the panel's Stop
+                -- button. Same tail as a completed run, so the counts read as
+                -- the partial ones they are. (B51)
+                chat_send_player(name, S("Program '@1' stopped: @2", drone.file,
+                                         tostring(drone)))
 
             else
                 chat_send_player(name, S("Program '@1' completed: @2",

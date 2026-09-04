@@ -62,6 +62,7 @@ Plants=
 Player not found=
 Please target a node=
 Program '@1' completed: @2=
+Program '@1' stopped: @2=
 Program '@1' stopped: it used all @2 s of running time=
 Remove file=
 Resume=
