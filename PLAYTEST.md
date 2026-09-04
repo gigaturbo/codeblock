@@ -30,14 +30,26 @@ A recipe also **names the shell it is for** — that has cost a session twice
 
 ## Where it stands
 
-**60 checks, and 59 of them carry a result.** **The one with none is `D7`**,
-written 2026-09-04 with `B51`'s fix: a run cut short must say *stopped*, and
-nothing else can ever show that — no spec asserts what `Drone.finish` sends.
+**60 checks, and every one of them carries a result.** **`D7` was the last
+without one**: written 2026-09-04 with `B51`'s fix and played the same day, at
+`8de3cea` plus a comment-only edit — *stopped* with a partial node count, and
+*arrêté* in French. That is **`B51` observed fixed in a world**, and nothing else
+can ever show it, no spec asserting what `Drone.finish` sends. The engine version
+was not restated by the author.
 **No check has a fail as its most recent result**, and one is a partial — `H8`,
 and only because two of its cases cannot be performed. `F9-1`, `R1`, `E16`, `W1`,
 `W3` and the four `F10-n` checks each carry two results or more.
 **`H10` passed 2026-09-02 with a few presses still missing** — the residue
 `B47`'s fix leaves, accepted rather than closed.
+
+- **`D7` passed on 2026-09-04 and lost half its recipe in the same run.** It
+  asked for two routes and one of them stopped existing at `F8`: the setter
+  removes nothing, and `Drone.on_remove` has exactly two callers — the panel's
+  **Stop** button and `register_on_leaveplayer`. The disconnect line reaches
+  nobody, so **Stop** is the only route a player can perform and the check now
+  asks for that one. The *Drone is busy, please wait!* the author saw trying the
+  other is `Drone.on_place`'s guard, correct, and got no id: the defect was in
+  this document, like `D3` and `F-3` before it.
 
 - **The whole *Writing to the world* group ran on 2026-09-04 at `23f0227`, and
   all six checks passed.** That is **`B50` and `B52` confirmed in a running
@@ -404,11 +416,17 @@ comparison only happens through a real client textarea.
 
 D1–D7. Runs of 2026-08-27 and 2026-08-28. They produced `B38`, `B39`, `B41` and
 `B44` — all four in code nobody had exercised in a running world. **`D7` was
-added 2026-09-04 with `B51`'s fix and has never been run.**
+added 2026-09-04 with `B51`'s fix and passed the same day.**
+
+**Read *setter* in the pre-`F8` checks here as *poser*.** `D1` and `D3` were
+written when one tool both placed and removed a drone. Since `F8` the **poser**
+places and the **setter** only opens the panel or the editor, so those recipes
+name the poser's gesture; their results stand as performed on the day. `D7` had
+the same error and was corrected on 2026-09-04.
 
 ### D1 · Place a drone and run a program [B10, A11]
 
-Point at loaded ground with the setter, place, pick a file, watch it finish.
+Point at loaded ground with the poser, place, pick a file, watch it finish.
 
 **Pass:** one completion message, from `Drone.finish` and only there.
 
@@ -443,9 +461,10 @@ recorded as such in `AUDIT.md`. Do not write this case again without a way to
 1. Place a drone, run a program, and try to place a second **before** it
    finishes. **Pass:** refused with *"Drone is busy, please wait!"*. Then place
    again after it finishes: that works.
-2. The re-entrancy window `B29` is about is reached with the **setter**, which
-   removes a drone mid-run and is allowed to. Remove a running drone with it and
-   place a new one in the same second. **Pass:** the replacement survives and runs
+2. The re-entrancy window `B29` is about is reached by **removing a running
+   drone and replacing it inside the second**. That was the setter's right click
+   when this check was written; since `F8` it is the panel's **Stop** button.
+   Remove a running drone that way and place a new one at once. **Pass:** the replacement survives and runs
    to its own end, and the removed run announces its statistics **once** —
    `Drone.on_remove` calls `Drone.finish` on purpose. **What that line says is
    `D7`'s business, not this one's** — it read *completed* when this check was
@@ -464,9 +483,10 @@ serial guard was confirmed in a running world**; this was the one path to it.
 replacement's object rather than its record. **`W6` case 2 covered the new form
 on 2026-09-04 at `23f0227`** — one drone and not two after a re-spawn under the
 same name — so `B29` has in-world evidence on current code and this part needs no
-re-run for that reason. What is still only pre-`1b991ae` is the *setter removes a
-running drone and a replacement goes in within the second* gesture, which is
-`B29`'s narrowest window and no other check performs.
+re-run for that reason. What is still only pre-`1b991ae` is the *a running drone
+is removed and a replacement goes in within the second* gesture, which is
+`B29`'s narrowest window and no other check performs — and it is now made with
+the panel's **Stop** button, the setter having stopped removing anything at `F8`.
 
 Earlier: partial — `f274245` · 2026-08-27 — part 1 only. **The check was wrong,
 not the code**: it asked for a mid-run replacement, which `on_place` refuses on
@@ -541,15 +561,22 @@ Earlier: fail — `326f739` + uncommitted fixes · 2026-08-28 — found while ru
 no spec asserts what `Drone.finish` sends, and the wording, the French and the
 partial counts are all in-world.
 
+**There is exactly one route a player can perform, and this check asks for that
+one.** `Drone.on_remove` has two callers — the drone panel's **Stop** button
+(`lib/formspecs.lua`) and `register_on_leaveplayer` (`lib/register.lua`). A
+player disconnecting mid-run is the second, and **nobody is there to read the
+line it sends**, so that path is settled by reading the code and not in a world.
+The setter is not a route at all: since `F8` its left click opens the panel, its
+right click the editor, and it removes nothing. This check said *cut it with the
+setter* from the day it was written until 2026-09-04, which was wrong when
+written — `B51`'s own text carried the same error.
+
 Write a program that builds long enough to interrupt — `cube(30,30,30)` at
 codelevel 2, or a `for` loop of 200 `place()` calls — and run it. Then cut it
-short, twice, one way each:
+short **with the panel's Stop button**: left click with the setter, press
+**Stop**.
 
-1. **With the setter**, by placing a drone over the running one.
-2. **With the panel's Stop button**, left click with the setter and press
-   **Stop**.
-
-**Pass**, both times:
+**Pass:**
 
 - **exactly one** chat line, not two and not none — that is `B12` and `B30`, and
   `Drone.finish` is the one place it comes from;
@@ -557,7 +584,7 @@ short, twice, one way each:
 - the tail after it is the **partial** count — a node count well below what the
   program asked for, and a duration shorter than a full run's.
 
-**Do case 2 in French as well.** `Program '@1' stopped: @2` is a new `S()` key
+**Do it in French as well.** `Program '@1' stopped: @2` is a new `S()` key
 and its French is `Programme '@1' arrêté : @2`; half of what `C17` covers is only
 visible in the other language. Note that the timeout line is *also* `arrêté` —
 *Programme '@1' arrêté : il a épuisé ses @2 s de temps d'exécution* — and that
@@ -567,7 +594,14 @@ read as one message, that is a finding.
 Also let a program **finish on its own** in the same session: it must still say
 *completed*. The two words must not have swapped.
 
-Result: not yet run. The fix was uncommitted at 2026-09-04.
+Result: pass — `8de3cea` plus a comment-only edit in `lib/drone.lua` · engine
+version not restated · 2026-09-04. *Stopped* with a partial node count, and
+*arrêté* in French. **This is `B51`'s only in-world evidence and the whole of it.**
+The author also tried the case this check then asked for — placing a drone over
+the running one — and got *Drone is busy, please wait!*: `Drone.on_place`'s guard
+in `lib/drone.lua`, reached by the **poser**, correct behaviour, unrelated to `B51`,
+and the observation that showed this check named a route that does not exist. No
+id: the defect was in this record.
 
 ---
 
@@ -1046,10 +1080,11 @@ a world**.
 `W5` and `W6` for the first time and `W1` at every codelevel. That run is the
 only in-world evidence `B50` and `B52` will ever have, and it is what took both
 off the audit's *gates green, unproven in a world* list. It found no defect and
-it does not bear on `B51`, whose remaining path — the setter cutting a run short
-— no check in this group points at. **`B51` was fixed later the same day and its
-check is `D7`**, in the *Drone placement* group rather than this one. The engine
-version was not restated.
+it does not bear on `B51`, whose remaining path — a run cut short from the
+panel's **Stop** button — no check in this group points at. **`B51` was fixed
+later the same day and its check is `D7`**, in the *Drone placement* group rather
+than this one, and `D7` passed that day too. The engine version was not restated
+for either run.
 
 ### W1 · `place()` far from spawn [A4, S5, B25, B50, B51]
 
@@ -1178,7 +1213,7 @@ level 1 and these are read as the same; that is an inference, not a report.
 roughly 48 blocks short of the 50 it asked for, immediately after
 *le drone a disparu*. The two lines the player saw contradicted each other. Both
 are gone — the first with `1b991ae`, the second with `B51`'s fix on 2026-09-04,
-which is `D7`.
+which `D7` observed in a world the same day.
 
 Result: **fail** — `16cd05c` · engine not recorded · 2026-09-03 — **at codelevel
 1, the drone disappeared after 6–8 seconds.** Not an error, not a refusal, and

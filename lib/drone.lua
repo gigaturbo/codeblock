@@ -341,7 +341,11 @@ local drone_mt = {
 
         end,
 
-        --- The setter tool: take the drone away, reporting a run it cut short.
+        --- Take the drone away, reporting a run it cut short.
+        --
+        -- Reached from the drone panel's Stop button and from a player
+        -- disconnecting. The setter only opens the panel; it stopped
+        -- removing anything at F8. (F4, F8)
         on_remove = function(name)
 
             local drone = Drone.get(name)
@@ -479,9 +483,9 @@ local drone_mt = {
                                  ' coroutine is neither suspended nor dead')
 
             elseif outcome == 'stopped' then
-                -- Cut short by the player, with the setter or the panel's Stop
-                -- button. Same tail as a completed run, so the counts read as
-                -- the partial ones they are. (B51)
+                -- Cut short by the panel's Stop button, or by the player
+                -- leaving. Same tail as a completed run, so the counts read
+                -- as the partial ones they are. (B51)
                 chat_send_player(name, S("Program '@1' stopped: @2", drone.file,
                                          tostring(drone)))
 

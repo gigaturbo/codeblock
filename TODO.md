@@ -98,15 +98,16 @@ Features
       rather than unlikely (audit B50; playtest W1, W5, W6)
 - [x] BUG: a run that was cut short says "completed" — found 2026-09-03 while
       diagnosing B50, not reported. Drone.finish had no word for it, so a run you
-      stopped with the setter said the program completed, with a node count
+      stopped from the drone panel said the program completed, with a node count
       nowhere near what it asked for. **You saw it**: your discriminator run
       showed "le drone a disparu" and then "programme terminé", one after the
       other, about a run killed 48 blocks short of the 50 it asked for. **Fixed
       2026-09-04**, with the word you chose: a cut-short run now says "stopped",
-      "arrêté" in French, with the partial counts after it. The fix is in your
-      working tree and **not committed yet**, and playtest D7 — cut a run with
-      the setter and again with the panel's Stop, once in French — has never
-      been run (audit B51; playtest D7)
+      "arrêté" in French, with the partial counts after it. **Committed at
+      8de3cea and played the same day** — D7 passed, in both languages — so this
+      one is closed in every sense. Your run also caught the record naming the
+      setter as a way to cut a run short, which it has not been since F8; that
+      is corrected in four places (audit B51; playtest D7)
 - [x] BUG: a drone standing still far from you dies at about 29 seconds — found
       2026-09-03 the same way. It survives most fixes to B50 — `load_area` does
       not reset the mapblock's usage timer, so the block is unloaded on

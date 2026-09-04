@@ -35,19 +35,23 @@ and `W5` and `W6` for the first time ever. The engine version was not restated b
 the author. So both findings have left *gates green, unproven in a world*, and
 that list is back down to two.
 
-**`B51` was the one left and is now fixed — in the working tree, uncommitted.**
+**`B51` was the one left, is fixed at `8de3cea` and is confirmed in a world.**
 `Drone.on_remove` passes `'stopped'`, and `Drone.finish` gained a branch for it
 sending the new key `Program '@1' stopped: @2` with the same two arguments the
 `completed` branch uses, so the commands/nodes/duration tail reads as the partial
 count it is. The word was the author's choice on 2026-09-04 and the grounds are
 in `ROADMAP.md`. `locale/template.txt` and `locale/codeblock.fr.tr` moved with
-it, per `C17`. **The fix has no commit yet**, so this entry carries none, and
-**no spec reaches it** — nothing asserts what `Drone.finish` sends, so playtest
-`D7` is the only evidence there will be and it is unrun.
+it, per `C17`. **No spec reaches it** — nothing asserts what `Drone.finish`
+sends, so playtest `D7` is the only evidence there will be, and **it ran on
+2026-09-04 and passed**: *stopped* with a partial node count, *arrêté* in French,
+engine version not restated. **So nothing on this project is now fixed-but-unseen
+on this finding's account.** `D7` also lost half its recipe in that run — it
+asked for a setter route that stopped existing at `F8`, as `B51`'s own text did;
+both are corrected, and the correction is under the entry below.
 
 | Category | Count | Open |
 |---|---|---|
-| B bugs | 49 | — (`B51` fixed in the working tree, uncommitted, unrun in a world) — and `B34` won't fix, `B47` resolved with a residue, `B48` fixed at `4179877` and confirmed by `E16`, `B49` fixed at `d8c32f7` and confirmed by `W4`, `B50` and `B52` fixed at `1b991ae` and confirmed in a world by `W1`, `W5` and `W6` on 2026-09-04 |
+| B bugs | 49 | — (`B51` fixed at `8de3cea` and confirmed in a world by `D7`) — and `B34` won't fix, `B47` resolved with a residue, `B48` fixed at `4179877` and confirmed by `E16`, `B49` fixed at `d8c32f7` and confirmed by `W4`, `B50` and `B52` fixed at `1b991ae` and confirmed in a world by `W1`, `W5` and `W6` on 2026-09-04 |
 | S sandbox and security | 7 | — |
 | C compliance and packaging | 15 | — (`C21` fixed by `F10` at `b23a8bc`, confirmed in a world by `F10-1`) |
 | A architecture and performance | 12 | — |
@@ -64,7 +68,7 @@ renames two chat commands — is `b23a8bc`, and `B49`'s unknown-block warning in
 `lib/env.lua` and `lib/sandbox.lua` is `d8c32f7`, with the record following at
 `16cd05c`. **CI has still seen none of them**: the last run was `471526e`
 (run 45), so everything from `d8d44cd` up carries local gates only.
-**The gates are green at `1b991ae` and again over `B51`'s uncommitted tree on
+**The gates are green at `1b991ae` and again over `B51`'s fix, now `8de3cea`, on
 2026-09-04**, with the same figures both times — engine 5.17.0, read from output rather
 than exit codes: luacheck silent, `doc/api.md`, `locale/template.txt` and
 `settingtypes.txt` each *up to date*, `locale/*.tr` covering every message and
@@ -82,17 +86,17 @@ a real CI run waits on a push.
 **Every defect the playtests found is fixed, and no finding is open.** `W1`'s
 re-run at codelevel 1 on 2026-09-03 was `B50`, and diagnosing it produced `B51`
 and `B52`; `B50` and `B52` are fixed in `1b991ae` and confirmed in a world on
-2026-09-04, and `B51` is fixed in the working tree on 2026-09-04 with its
-playtest unrun. The one thing **not verified anywhere** is `B10`'s refusal, aimed
+2026-09-04, and `B51` is fixed at `8de3cea` on 2026-09-04 and confirmed by `D7`
+the same day. The one thing **not verified anywhere** is `B10`'s refusal, aimed
 at twice through playtest `D2` and missed twice — the recipe is the suspect and
 its check was removed as untestable on 2026-09-02.
-**Gates green, unproven in a world — three:** `B14`, permanently blocked on
-`B34` being won't-fix, `S7`'s log half, and now **`B51`**, whose chat line, its
-French and its partial counts are in-world only and whose check `D7` is unrun.
-**`B50` and `B52` left the list on
-2026-09-04**, when `W1` at every codelevel, `W5` and `W6` all passed at
-`23f0227` — the list had been exactly four since `1b991ae`, went down to those
-two, and `B51`'s fix put it back to three the same day. `C21` left it on 2026-09-03: playtest `F10-1` was completed the same day
+**Gates green, unproven in a world — two:** `B14`, permanently blocked on
+`B34` being won't-fix, and `S7`'s log half. **`B51` was on it for a few hours of
+2026-09-04 and left the same day**, `D7` reading *stopped* and *arrêté* in a
+world. **`B50` and `B52` left it that day too**, when `W1` at every codelevel,
+`W5` and `W6` all passed at `23f0227` — the list had been exactly four since
+`1b991ae`, and it is now the smallest it has been.
+`C21` left it on 2026-09-03: playtest `F10-1` was completed the same day
 and `/privs` on a fresh player shows no `fly`, `fast` or `noclip`, which was that
 finding's only possible evidence. **`B48` left it the same day**, `E16`'s new
 pristine-example case passing. **And `B49` left it that day too** — `W4` was
@@ -108,11 +112,10 @@ retuning's effect on the bundled examples off this list too.
 
 ## Open and won't fix
 
-**Nothing is open.** `B51` was the last, and it is fixed in the working tree on
-2026-09-04 — the entry is in *B · Bugs* below, with the wording decision, the
-third caller whose behaviour changed with it, and the constraint the fix was
-built to. It carries **no commit** and its check `D7` is **unrun**, so it is
-recorded as resolved-and-unproven rather than as debt.
+**Nothing is open.** `B51` was the last, and it is fixed at `8de3cea` on
+2026-09-04 and **observed fixed in a world the same day** — the entry is in
+*B · Bugs* below, with the wording decision, the second caller whose behaviour
+changed with it, and the constraint the fix was built to.
 
 `B34` is the one **won't fix**: it is in *B · Bugs* below. `B47` is resolved with
 a residue that ships, also below, and that residue is under *What ships broken*
@@ -126,8 +129,8 @@ the diagnosis, the reproducer and the costs the fix accepted; both are
 
 49 findings, 48 resolved, `B34` won't fix, none open. `B19`, `B20`, `B24` are
 the game's. `B47` is resolved with a residue that ships. **`B50` and `B52` are
-resolved and confirmed in a world**, and **`B51` is resolved in the working tree
-and unproven in one**; all three keep their full reasoning below, because the
+resolved and confirmed in a world**, and so is **`B51`, resolved at `8de3cea`
+and confirmed by `D7`**; all three keep their full reasoning below, because the
 fixes are recent and their costs were accepted knowingly, so what a future
 change would re-break is still load-bearing.
 
@@ -740,11 +743,12 @@ change would re-break is still load-bearing.
   re-spawn under the same name is exactly the case it exists for; **`W6` case 2
   is that guard's first in-world evidence in its post-`1b991ae` form**, one drone
   and not two after a re-spawn.
-- **B51 · medium · resolved 2026-09-04, uncommitted, unrun in a world** — a run
+- **B51 · medium · resolved `8de3cea` 2026-09-04, confirmed in a world the same
+  day** — a run
   cut short was announced as *completed*. `Drone.finish` had **no vocabulary for
   a run that was stopped**: every non-error ending fell into the `else` branch
-  and read `Program '@1' completed`, so a run the player stopped with the setter
-  or the panel's **Stop** told them the program completed, with a node count a
+  and read `Program '@1' completed`, so a run the player stopped from the drone
+  panel's **Stop** button told them the program completed, with a node count a
   fraction of what it asked for. `Drone.on_remove` passed `'completed'`
   explicitly, and after `1b991ae` it was the **only** caller doing so wrongly —
   `on_lost` no longer ends a run at all, so the mid-flight case the same word
@@ -770,15 +774,23 @@ change would re-break is still load-bearing.
   and got as far as 22 mapblocks, so *terminé* announced a run killed roughly 48
   blocks short. **The two lines contradicted each other** — that is the whole
   finding in one observation, and why it was not merely cosmetic. The codelevel
-  was not restated. That exact pairing went with `B50`'s fix; the setter and
-  **Stop** paths are what this fix addresses.
-  **A third caller changed behaviour with it, knowingly.**
-  `register_on_leaveplayer` in `lib/register.lua` also calls `Drone.on_remove`,
-  so a player who disconnects mid-run is now told *stopped* rather than
-  *completed*. Nobody sees either line, and *stopped* is the truer of the two.
-  **Not verified in a world.** No spec asserts what `Drone.finish` sends, and the
-  chat line, its French and the partial counts are in-world only: playtest `D7`
-  is the whole of the evidence there can be, and it is unrun.
+  was not restated. That exact pairing went with `B50`'s fix; the panel's
+  **Stop** path is what this fix addresses.
+  **`Drone.on_remove` has exactly two callers, and only one is a player
+  gesture** — the panel's **Stop** button in `lib/formspecs.lua`, and
+  `register_on_leaveplayer` in `lib/register.lua`. So a player who disconnects
+  mid-run is now told *stopped* rather than *completed*; nobody sees either line,
+  and *stopped* is the truer of the two. **This finding's own text said *the
+  setter* until 2026-09-04 and was wrong from the day it was written**: `F4`
+  split that tool's gestures and `F8` collapsed the split, and since then the
+  setter's left click opens the panel, its right click the editor, and it removes
+  nothing. Playtest `D7` inherited the error and is corrected with it. The
+  defect and the fix were unaffected — only the route named for them.
+  **Confirmed in a world on 2026-09-04**, at `8de3cea` plus a comment-only edit
+  in `lib/drone.lua`, engine version not restated: `D7` read *stopped* with a
+  partial node count and *arrêté* on a French client. No spec asserts what
+  `Drone.finish` sends, so that run is the whole of the evidence this finding
+  can ever have.
   **Keep — the constraint the fix was built to.** `Drone.finish` is **the single
   place a run's outcome is announced**, which is `B12` and `B30`: two messages or
   none is the failure that centralisation exists to prevent. Add vocabulary to
@@ -1294,18 +1306,20 @@ document says so.
   fourteen of `lib/examples/` carry CRs, and in the author's world the four
   unmarked files carry none while `plot2D.lua` is byte-identical to the shipped
   example with its 23 CRs intact.
-- **Gates green, unproven in a world:** `B14`, blocked on `B34` being won't-fix,
-  `S7`'s log line, and **`B51`** since its fix on 2026-09-04. `B47`'s fix and `F9` both left this list by passing on the
+- **Gates green, unproven in a world:** two — `B14`, blocked on `B34` being
+  won't-fix, and `S7`'s log line. **`B51` joined it and left it on the same day**,
+  2026-09-04: fixed at `8de3cea` and read in a world by `D7` hours later. `B47`'s fix and `F9` both left this list by passing on the
   day they shipped, and **`B48`, `C21` and `B49` all left it on 2026-09-03** —
   `E16`'s new case, `F10-1` and `W4` respectively, and all three fixes are
   committed as well (`4179877`, `b23a8bc`, `d8c32f7`). **`B50` and `B52` left it
   on 2026-09-04**, when all three of the checks written for them passed at
   `23f0227`.
-- **Gates green, playtest written and not yet run — one: `B51`**, whose check
-  `D7` was written with the fix on 2026-09-04. `B50` and `B52` were the two
-  entries before it, at `1b991ae`, and both left on 2026-09-04: `W1` at every
-  codelevel, `W5` and `W6` all ran and all passed. `B49` left on 2026-09-03
-  through `W4` at `16cd05c`.
+- **Gates green, playtest written and not yet run — none.** `B51` was the last
+  entry, its check `D7` written with the fix on 2026-09-04 and run the same day.
+  `B50` and `B52` were the two before it, at `1b991ae`, and both left on
+  2026-09-04: `W1` at every codelevel, `W5` and `W6` all ran and all passed.
+  `B49` left on 2026-09-03 through `W4` at `16cd05c`. **Every check in
+  `PLAYTEST.md` now carries a result**, which has not been true before.
 - **Explained by reading, confirmed by playing it, fixed, then confirmed again:**
   `B50`. The cause is a reading of the 5.17.0 engine source —
   `serveractiveobject.h:123-129` and `serverenvironment.cpp:1685-1690` for the
@@ -1322,15 +1336,18 @@ document says so.
   nothing in the suite runs in a world: **what proved `1b991ae` on the day was
   three `integration_spec` assertions about the seam, and what proves it now is
   `W1`, `W5` and `W6` at `23f0227`.**
-- **Found by reading, observed broken, fixed but not observed fixed:** `B51`. It
+- **Found by reading, observed broken, then observed fixed — all inside three
+  days:** `B51`. It
   was a certainty from the source — two callers passing `'completed'` — and
-  `W1`'s discriminator run showed it to a player: *le drone a disparu* followed
+  `W1`'s discriminator run of 2026-09-03 showed it to a player: *le drone a
+  disparu* followed
   by *programme terminé*, about a run killed roughly 48 blocks short of what it
   asked for. **The two lines contradicted each other**, which is the finding. One
   of the two callers went with `B50`'s fix; `Drone.on_remove` now passes
-  `'stopped'`. **The fixed state is committed to nothing and seen by nobody:** it
-  is in the working tree, no spec asserts what `Drone.finish` sends, and `D7` is
-  unrun.
+  `'stopped'`. **Both states are observed**: `D7` on 2026-09-04, at `8de3cea`
+  plus a comment-only edit, read *stopped* with a partial count and *arrêté* in
+  French. No spec asserts what `Drone.finish` sends, so those two runs are the
+  whole file on it.
 - **Found by reading, never observed broken, observed fixed:** `B52`. Nobody
   reported it — it was `resetUsageTimer` and `Map::timerUpdate` read out of the
   engine with nothing timed against it — and `W5`, its first and only check, ran
@@ -1391,15 +1408,18 @@ document says so.
 
 ---
 
-2026-09-04 · describes codeblock at `23f0227` plus an uncommitted working tree.
-**No finding is open.** `B51` was the last and is fixed in that tree — a run cut
-short now says *stopped* — with **no commit** and its playtest `D7` **unrun**.
+2026-09-04 · describes codeblock at `8de3cea`, plus this record change and a
+comment-only edit in `lib/drone.lua`, both uncommitted at the time of writing.
+`origin/master` is at `7dbe18f` and **has seen none of the work since**.
+**No finding is open.** `B51` was the last and is fixed at `8de3cea` — a run cut
+short now says *stopped* — and its playtest `D7` **passed on 2026-09-04**, engine
+version not restated.
 **`B50` and `B52` are fixed in `1b991ae` and confirmed in a
 running world**: the record and the run were decoupled from the drone's entity,
 and the three checks that were the rest of the evidence — `W1` at every
 codelevel, `W5`, `W6` — all passed at `23f0227` on 2026-09-04, engine version
-not restated. **Gates green, unproven in a world is three**, `B14`, `S7`'s log
-half and now `B51`. Gates at `1b991ae` and again over the `B51` tree, same
+not restated. **Gates green, unproven in a world is two**, `B14` and `S7`'s log
+half. Gates at `1b991ae` and again at `8de3cea`, same
 figures both times, engine 5.17.0, read from output rather than exit codes: luacheck silent,
 `doc/api.md`, `locale/template.txt` and `settingtypes.txt` up to date,
 `locale/*.tr` covering every message and nothing else, nine in-engine specs
