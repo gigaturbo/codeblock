@@ -2,6 +2,7 @@
 
 dofile(codeblock.modpath .. "/lib/intl.lua")
 dofile(codeblock.modpath .. "/lib/config.lua")
+dofile(codeblock.modpath .. "/lib/nodes.lua")
 dofile(codeblock.modpath .. "/lib/api.lua")
 dofile(codeblock.modpath .. "/lib/utils.lua")
 dofile(codeblock.modpath .. "/lib/pathjoin.lua")
@@ -58,18 +59,13 @@ if core.settings:get_bool("codeblock_gen_docs") then
         f:close()
     end
 
-    -- Sorted rather than in declaration order: sorting needs no parsing of
-    -- config.lua's source, gives the same answer here and in
-    -- scripts/gen_docs.lua, and makes a name easier to find in a long list.
-    -- iwools keeps its own order, which is meaningful - it is a rainbow.
-    local sorted = codeblock.utils.table_convert_ik
-    local allowed = codeblock.config.allowed_blocks
-    local wanted, why = codeblock.api.compose_markdown(current, {
-        blocks = sorted(allowed.cubes),
-        plants = sorted(allowed.plants),
-        wools = sorted(allowed.wools),
-        iwools = allowed.iwools
-    })
+    -- The block lists come out in palette order, not sorted: that order is the
+    -- rainbow color() maps onto, so a list in it reads as one. config.lua owns
+    -- it, and both this and scripts/gen_docs.lua hand the same table to the
+    -- same renderer, which is what keeps their answers identical.
+    local wanted, why = codeblock.api.compose_markdown(current,
+                                                      codeblock.config
+                                                          .allowed_blocks)
 
     if not wanted then
         print("[codeblock] doc/api.md: " .. tostring(why))

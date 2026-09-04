@@ -56,13 +56,13 @@ end
 --------------------------------------------------------------------------------
 
 do
-    local shared = {red = 'wool:red', blue = 'wool:blue'}
+    local shared = {red = 'codeblock:red', blue = 'codeblock:blue'}
     local copy = env.snapshot(shared)
 
-    it('snapshot copies every entry', copy.red, 'wool:red')
+    it('snapshot copies every entry', copy.red, 'codeblock:red')
 
     copy.red = 'tampered'
-    it('writing to the copy leaves the original alone', shared.red, 'wool:red')
+    it('writing to the copy leaves the original alone', shared.red, 'codeblock:red')
 
     copy.extra = 'new'
     it('adding to the copy does not add to the original', shared.extra, nil)
@@ -88,7 +88,7 @@ end
 --------------------------------------------------------------------------------
 
 do
-    local shared = {red = 'wool:red', blue = 'wool:blue'}
+    local shared = {red = 'codeblock:red', blue = 'codeblock:blue'}
     local seen, hits
     local function on_miss(k)
         seen = k
@@ -98,7 +98,7 @@ do
     local copy = env.snapshot(shared, on_miss)
 
     hits = nil
-    it('a present key still reads its value', copy.red, 'wool:red')
+    it('a present key still reads its value', copy.red, 'codeblock:red')
     it('a present key does not call on_miss', hits, nil)
 
     seen, hits = nil, nil
@@ -177,7 +177,7 @@ end
 --------------------------------------------------------------------------------
 
 do
-    local api = {place = function() return 'placed' end, blocks = {stone = 1}}
+    local api = {place = function() return 'placed' end, colors = {grey = 1}}
     local e = env.new_env(api)
 
     it('an API name reads through', e.place(), 'placed')

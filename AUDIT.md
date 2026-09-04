@@ -56,18 +56,17 @@ both are corrected, and the correction is under the entry below.
 | C compliance and packaging | 15 | — (`C21` fixed by `F10` at `b23a8bc`, confirmed in a world by `F10-1`) |
 | A architecture and performance | 12 | — |
 
-CI was green on all three jobs through `471526e` (runs 44 and 45), so the limit
-retuning, `F9` and the paused clock are covered by CI rather than by local gates
-alone. **`B47`'s fix, `settingtypes.txt`'s generator and `C20` are `d8d44cd` and
-have local gates only**, pending the next run — which also proves the fourth CI
-step that commit adds. Everything committed since is the record, the images and
+**CI is green on all three jobs at `65b4c46`, which is `HEAD` and is pushed** —
+run 47, checked against the Actions API on 2026-09-04. So nothing here carries
+local gates only any more, `B47`'s fix and `settingtypes.txt`'s generator
+included, and run 46 over `7dbe18f` was the first to prove the fourth CI step
+`d8d44cd` added. Everything committed since is the record, the images and
 the README, and touches no code. **The three changes that sat in one working tree
 at `b9143b0` are now committed, all on 2026-09-03**: `B48`'s one-line fix is
 `4179877`, `F10`'s rework of `lib/register.lua` — which resolves `C21` and
 renames two chat commands — is `b23a8bc`, and `B49`'s unknown-block warning in
 `lib/env.lua` and `lib/sandbox.lua` is `d8c32f7`, with the record following at
-`16cd05c`. **CI has still seen none of them**: the last run was `471526e`
-(run 45), so everything from `d8d44cd` up carries local gates only.
+`16cd05c`. **CI has since seen all of them**, run 47 at `65b4c46`.
 **The gates are green at `1b991ae` and again over `B51`'s fix, now `8de3cea`, on
 2026-09-04**, with the same figures both times — engine 5.17.0, read from output rather
 than exit codes: luacheck silent, `doc/api.md`, `locale/template.txt` and
@@ -78,10 +77,9 @@ pre-existing. The in-engine count has moved 458 → 471 → 474: 13 `env_spec` c
 for `B49`, then three for `B50`/`B52` in `integration_spec`'s drone-seam block,
 which went from six cases to nine. Nothing was added for `B47`, because **no
 spec can reach it** — the gates call the handler directly and the defect is in
-the client's menu. **CI has seen none of this**: the last run was `471526e`
-(run 45), so everything from `d8d44cd` up carries local gates only. The
-standalone run is the same command CI runs, so plain Lua 5.1 is covered locally;
-a real CI run waits on a push.
+the client's menu. **CI has since seen all of this**: run 47 is green on all
+three jobs at `65b4c46`, which is `HEAD`. The record claimed the opposite until
+2026-09-04.
 
 **Every defect the playtests found is fixed, and no finding is open.** `W1`'s
 re-run at codelevel 1 on 2026-09-03 was `B50`, and diagnosing it produced `B51`
@@ -1260,11 +1258,11 @@ Never blurred. **Verified** means a run or a reading demonstrates it,
 **committed** means the code is there and unproven, **claimed** means only a
 document says so.
 
-- **Verified by machine.** CI run 44 at `dc09d48`, all three jobs green:
-  luacheck, the six standalone specs under plain Lua 5.1, and both `--check`
-  gates — three now, `settingtypes.txt` having joined them. **CI never runs the
-  nine in-engine specs**, which is why the editor findings rest on the local
-  suite and the playtests.
+- **Verified by machine.** CI runs 44 (`dc09d48`), 45 (`471526e`),
+  46 (`7dbe18f`) and **47 (`65b4c46`, `HEAD`)**, all three jobs green in each:
+  luacheck, the six standalone specs under plain Lua 5.1, and the three
+  `--check` gates. **CI never runs the nine in-engine specs**, which is why the
+  editor findings rest on the local suite and the playtests.
 - **Verified locally** (engine 5.17.0, read from output rather than exit codes —
   `$?` does not survive this machine's WSL layer): nine in-engine specs, **474
   passed / 0 failed / 1 xfail / 0 xpass** at `1b991ae`, with all five gates
@@ -1424,7 +1422,7 @@ figures both times, engine 5.17.0, read from output rather than exit codes: luac
 `doc/api.md`, `locale/template.txt` and `settingtypes.txt` up to date,
 `locale/*.tr` covering every message and nothing else, nine in-engine specs
 **474 passed / 0 failed / 1 xfail / 0 xpass** — the xfail `preprocess_spec`'s and
-pre-existing — and six standalone under Lua 5.1. **CI has seen none of it.** It
-was last green on all three jobs at `dc09d48` (run 44) and `471526e` (run 45), so
-everything from `d8d44cd` up carries local gates only, and `HEAD` is ahead of
-`origin/master`.
+pre-existing — and six standalone under Lua 5.1. **CI has caught up**: runs 46
+(`7dbe18f`) and **47 (`65b4c46`)** are green on all three jobs, `65b4c46` is
+`HEAD`, and `HEAD` is pushed. Checked against the Actions API on 2026-09-04; the
+record had said CI had seen nothing since `471526e`.

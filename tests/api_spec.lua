@@ -157,7 +157,7 @@ do
 
     -- `random` is callable AND a namespace; that combination is easy to break
     it('random is a table', type(built.random), 'table')
-    it('random.block resolves', type(built.random.block), 'function')
+    it('random.color resolves', type(built.random.color), 'function')
     it('random is also callable', built.random(), 'random')
 end
 
@@ -178,7 +178,10 @@ do
         return lines
     end)(), #api.entries() + #api.groups)
 
-    local m = api.to_markdown({blocks = {'stone', 'glass'}})
+    local m = api.to_markdown({
+        categories = {{name = 'colors', names = {'white', 'red'}}},
+        hues = {'red'}
+    })
     it('markdown is produced', (#m > 0), true)
     it('markdown says where to edit instead',
        (m:find('lib/api.lua', 1, true) ~= nil), true)
@@ -189,7 +192,7 @@ do
         return true
     end)(), true)
     it('markdown includes the block tables it was given',
-       (m:find('stone, glass', 1, true) ~= nil), true)
+       (m:find('white, red', 1, true) ~= nil), true)
 end
 
 --------------------------------------------------------------------------------
@@ -207,9 +210,10 @@ do
         'sphere', 'dome', 'cylinder', 'vertical.cylinder',
         'horizontal.cylinder', 'centered.cube', 'centered.sphere',
         'centered.dome', 'centered.cylinder', 'centered.vertical.cylinder',
-        'centered.horizontal.cylinder', 'wools', 'iwools', 'blocks', 'plants',
-        'vector', 'get_block', 'print', 'color', 'ipairs', 'pairs', 'random',
-        'random.block', 'random.plant', 'random.wool', 'table.randomizer',
+        'centered.horizontal.cylinder', 'colors', 'glass', 'lamps', 'hues',
+        'air', 'vector', 'get_block', 'print', 'color', 'ipairs', 'pairs',
+        'random', 'random.color', 'random.glass', 'random.lamp',
+        'table.randomizer',
         'floor', 'ceil', 'round', 'round0', 'deg', 'rad', 'exp', 'log', 'max',
         'min', 'pow', 'sqrt', 'abs', 'sin', 'sinh', 'asin', 'cos', 'cosh',
         'acos', 'tan', 'tanh', 'atan', 'atan2', 'pi', 'e', 'error'
@@ -225,7 +229,7 @@ do
 
     it('no previously exposed name has been dropped',
        table.concat(lost, ', '), '')
-    it('the expected list itself is complete', #expected, 67)
+    it('the expected list itself is complete', #expected, 68)
 end
 
 --------------------------------------------------------------------------------

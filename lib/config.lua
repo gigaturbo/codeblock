@@ -250,155 +250,77 @@ for old, new in pairs(replaced) do
     end
 end
 
+
 --------------------------------------------------------------------------------
--- Allowed blocks with their names
+-- The block palette
+--
+-- Thirty-three colours the mod registers itself: six neutrals, then
+-- twenty-seven chromatic ones in colour-wheel order, each family light / plain
+-- / dark so the plain name a player reaches for first always exists.
+--
+-- The order is load-bearing. `hues` below is the chromatic tail as an array and
+-- color(v, min, max) maps a number onto it, so a gradient across it has to read
+-- as a rainbow. NEUTRALS is where that tail starts.
+--
+-- The hexes are read by lib/nodes.lua and by nothing else: one shared tile is
+-- multiplied by each of them rather than 33 images being drawn.
 --------------------------------------------------------------------------------
 
-local allowed_blocks = {
-    cubes = {
-        air = 'air',
-        stone = 'default:stone',
-        cobble = 'default:cobble',
-        stonebrick = 'default:stonebrick',
-        stone_block = 'default:stone_block',
-        mossycobble = 'default:mossycobble',
-        desert_stone = 'default:desert_stone',
-        desert_cobble = 'default:desert_cobble',
-        desert_stonebrick = 'default:desert_stonebrick',
-        desert_stone_block = 'default:desert_stone_block',
-        sandstone = 'default:sandstone',
-        sandstonebrick = 'default:sandstonebrick',
-        sandstone_block = 'default:sandstone_block',
-        desert_sandstone = 'default:desert_sandstone',
-        desert_sandstone_brick = 'default:desert_sandstone_brick',
-        desert_sandstone_block = 'default:desert_sandstone_block',
-        silver_sandstone = 'default:silver_sandstone',
-        silver_sandstone_brick = 'default:silver_sandstone_brick',
-        silver_sandstone_block = 'default:silver_sandstone_block',
-        obsidian = 'default:obsidian',
-        obsidianbrick = 'default:obsidianbrick',
-        obsidian_block = 'default:obsidian_block',
-        dirt = 'default:dirt',
-        dirt_with_grass = 'default:dirt_with_grass',
-        dirt_with_dry_grass = 'default:dirt_with_dry_grass',
-        dirt_with_snow = 'default:dirt_with_snow',
-        dirt_with_rainforest_litter = 'default:dirt_with_rainforest_litter',
-        dirt_with_coniferous_litter = 'default:dirt_with_coniferous_litter',
-        dry_dirt = 'default:dry_dirt',
-        dry_dirt_with_dry_grass = 'default:dry_dirt_with_dry_grass',
-        permafrost = 'default:permafrost',
-        permafrost_with_stones = 'default:permafrost_with_stones',
-        permafrost_with_moss = 'default:permafrost_with_moss',
-        clay = 'default:clay',
-        snowblock = 'default:snowblock',
-        ice = 'default:ice',
-        tree = 'default:tree',
-        wood = 'default:wood',
-        leaves = 'default:leaves',
-        jungletree = 'default:jungletree',
-        junglewood = 'default:junglewood',
-        jungleleaves = 'default:jungleleaves',
-        pine_tree = 'default:pine_tree',
-        pine_wood = 'default:pine_wood',
-        pine_needles = 'default:pine_needles',
-        acacia_tree = 'default:acacia_tree',
-        acacia_wood = 'default:acacia_wood',
-        acacia_leaves = 'default:acacia_leaves',
-        aspen_tree = 'default:aspen_tree',
-        aspen_wood = 'default:aspen_wood',
-        aspen_leaves = 'default:aspen_leaves',
-        stone_with_coal = 'default:stone_with_coal',
-        coalblock = 'default:coalblock',
-        stone_with_iron = 'default:stone_with_iron',
-        steelblock = 'default:steelblock',
-        stone_with_copper = 'default:stone_with_copper',
-        copperblock = 'default:copperblock',
-        stone_with_tin = 'default:stone_with_tin',
-        tinblock = 'default:tinblock',
-        bronzeblock = 'default:bronzeblock',
-        stone_with_gold = 'default:stone_with_gold',
-        goldblock = 'default:goldblock',
-        stone_with_mese = 'default:stone_with_mese',
-        mese = 'default:mese',
-        stone_with_diamond = 'default:stone_with_diamond',
-        diamondblock = 'default:diamondblock',
-        cactus = 'default:cactus',
-        bush_leaves = 'default:bush_leaves',
-        acacia_bush_leaves = 'default:acacia_bush_leaves',
-        pine_bush_needles = 'default:pine_bush_needles',
-        bookshelf = 'default:bookshelf',
-        glass = 'default:glass',
-        obsidian_glass = 'default:obsidian_glass',
-        brick = 'default:brick',
-        meselamp = 'default:meselamp'
-    },
-    plants = {
-        sapling = 'default:sapling',
-        apple = 'default:apple',
-        junglesapling = 'default:junglesapling',
-        emergent_jungle_sapling = 'default:emergent_jungle_sapling',
-        pine_sapling = 'default:pine_sapling',
-        acacia_sapling = 'default:acacia_sapling',
-        aspen_sapling = 'default:aspen_sapling',
-        large_cactus_seedling = 'default:large_cactus_seedling',
-        dry_shrub = 'default:dry_shrub',
-        junglegrass = 'default:junglegrass',
-        grass_1 = 'default:grass_1',
-        grass_2 = 'default:grass_2',
-        grass_3 = 'default:grass_3',
-        grass_4 = 'default:grass_4',
-        grass_5 = 'default:grass_5',
-        dry_grass_1 = 'default:dry_grass_1',
-        dry_grass_2 = 'default:dry_grass_2',
-        dry_grass_3 = 'default:dry_grass_3',
-        dry_grass_4 = 'default:dry_grass_4',
-        dry_grass_5 = 'default:dry_grass_5',
-        fern_1 = 'default:fern_1',
-        fern_2 = 'default:fern_2',
-        fern_3 = 'default:fern_3',
-        marram_grass_1 = 'default:marram_grass_1',
-        marram_grass_2 = 'default:marram_grass_2',
-        marram_grass_3 = 'default:marram_grass_3',
-        bush_stem = 'default:bush_stem',
-        bush_sapling = 'default:bush_sapling',
-        acacia_bush_stem = 'default:acacia_bush_stem',
-        acacia_bush_sapling = 'default:acacia_bush_sapling',
-        pine_bush_stem = 'default:pine_bush_stem',
-        pine_bush_sapling = 'default:pine_bush_sapling'
-    },
-    wools = {
-        white = 'wool:white',
-        grey = 'wool:grey',
-        dark_grey = 'wool:dark_grey',
-        black = 'wool:black',
-        violet = 'wool:violet',
-        blue = 'wool:blue',
-        cyan = 'wool:cyan',
-        dark_green = 'wool:dark_green',
-        green = 'wool:green',
-        yellow = 'wool:yellow',
-        brown = 'wool:brown',
-        orange = 'wool:orange',
-        red = 'wool:red',
-        magenta = 'wool:magenta',
-        pink = 'wool:pink'
-    }
+local NEUTRALS = 6
+
+local palette = {
+    {'white', '#f2f0eb'}, {'ash', '#c9c6bf'}, {'grey', '#8f8d88'},
+    {'slate', '#5c6066'}, {'ink', '#33363b'}, {'black', '#1a1a1c'},
+
+    {'salmon', '#e8836f'}, {'red', '#c0392b'}, {'maroon', '#7a2230'},
+    {'apricot', '#f0a860'}, {'orange', '#e07b23'}, {'rust', '#a8501c'},
+    {'sand', '#d8c091'}, {'brown', '#9a6b3f'}, {'chocolate', '#5b3a24'},
+    {'butter', '#f2dd84'}, {'yellow', '#e0b422'}, {'ochre', '#a8801c'},
+    {'lime', '#a8cc48'}, {'green', '#4a9d3f'}, {'forest', '#2c5e34'},
+    {'aqua', '#7fd4c8'}, {'teal', '#2f8f86'}, {'cyan', '#2bb3c4'},
+    {'sky', '#7fb8e0'}, {'blue', '#2f6fc4'}, {'navy', '#1e3a6e'},
+    {'lavender', '#b4a6dd'}, {'violet', '#7a4fbf'}, {'indigo', '#43307a'},
+    {'magenta', '#c44bb0'}, {'rose', '#d9628a'}, {'pink', '#f0a8c0'}
 }
 
-codeblock.config.allowed_blocks = {
-    all = {},
-    iwools = {
-        'red', 'brown', 'orange', 'yellow', 'green',
-        'dark_green', 'cyan', 'blue', 'violet',
-        'magenta', 'pink'
-    }
-}
+codeblock.config.palette = palette
 
-for category, blocks in pairs(allowed_blocks) do
-    codeblock.config.allowed_blocks[category] = {}
-    for k, v in pairs(blocks) do
-        codeblock.config.allowed_blocks[category][k] = k
-        codeblock.config.allowed_blocks.all[k] = v
+--------------------------------------------------------------------------------
+-- What a program may name, and what each name places
+--
+-- `all` is the flat short-name -> itemstring union every write path resolves a
+-- block through, so the short names have to stay unique across the categories:
+-- place() takes one string and knows nothing about which table it came from.
+-- The category tables spell a name for the player and hold that unique key -
+-- colors.red is 'red', glass.red is 'red_glass', lamps.red is 'red_lamp'.
+--
+-- `air` is engine-provided, belongs to no category, and is a name of its own.
+--
+-- `categories` is the ordered list the help panels, the block picker and
+-- doc/api.md all render from, in palette order rather than alphabetically.
+--------------------------------------------------------------------------------
+
+local blocks = {all = {air = 'air'}, hues = {}, categories = {}}
+
+for _, variant in ipairs({
+    {'colors', ''}, {'glass', '_glass'}, {'lamps', '_lamp'}
+}) do
+    local spelled, names = {}, {}
+    for i, entry in ipairs(palette) do
+        local key = entry[1] .. variant[2]
+        spelled[entry[1]] = key
+        names[i] = entry[1]
+        blocks.all[key] = 'codeblock:' .. key
     end
-
+    blocks[variant[1]] = spelled
+    blocks.categories[#blocks.categories + 1] = {
+        name = variant[1],
+        names = names
+    }
 end
+
+for i = NEUTRALS + 1, #palette do
+    blocks.hues[#blocks.hues + 1] = palette[i][1]
+end
+
+codeblock.config.allowed_blocks = blocks

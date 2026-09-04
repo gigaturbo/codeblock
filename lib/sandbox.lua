@@ -42,11 +42,11 @@ local drone_get_block = codeblock.commands.drone_get_block
 -- there - as it does for use_call - would be two names for one function. (F3)
 local sleep = codeblock.cost.sleep
 
-local cubes = codeblock.config.allowed_blocks.cubes
-local plants = codeblock.config.allowed_blocks.plants
-local wools = codeblock.config.allowed_blocks.wools
-local iwools = codeblock.config.allowed_blocks.iwools
-local niwools = #iwools
+local colors = codeblock.config.allowed_blocks.colors
+local glass = codeblock.config.allowed_blocks.glass
+local lamps = codeblock.config.allowed_blocks.lamps
+local hues = codeblock.config.allowed_blocks.hues
+local nhues = #hues
 local table_randomizer = codeblock.utils.table_randomizer
 
 local snapshot = codeblock.env.snapshot
@@ -67,21 +67,22 @@ end
 
 local function round0(num) return floor(num + 0.5) end
 
--- Map a number in [m, M] onto the wool palette, clamping out-of-range values
--- to the end colours.
+-- Map a number in [m, M] onto the hue palette, clamping out-of-range values to
+-- the end colours. The default range is the palette's own length, so color(i)
+-- over 1..#hues walks the whole rainbow.
 local color
 do
-    local tmp1 = niwools - 1
+    local tmp1 = nhues - 1
     color = function(v, m, M)
         local m = (type(m) == 'number') and m or 1
-        local M = (type(M) == 'number') and M or 11
+        local M = (type(M) == 'number') and M or nhues
         m, M = min(m, M), max(m, M)
-        if type(v) ~= 'number' then return iwools[1] end
-        if M == m then return iwools[1] end
+        if type(v) ~= 'number' then return hues[1] end
+        if M == m then return hues[1] end
         local i = round0((v - m) / (M - m) * tmp1) + 1
         if i < 1 then i = 1 end
-        if i > niwools then i = niwools end
-        return iwools[i]
+        if i > nhues then i = nhues end
+        return hues[i]
     end
 end
 
@@ -171,16 +172,18 @@ local function getScriptEnv(drone)
         end,
         -- Block tables: snapshots, so a program cannot alter them for others,
         -- and name-indexed, so a name that is not in one is a misspelling worth
-        -- reporting. iwools is the rainbow order as an array, where reading
-        -- past the end is a legitimate thing to do, so it gets no such report.
-        ['blocks'] = snapshot(cubes, unknown_block),
-        ['plants'] = snapshot(plants, unknown_block),
-        ['wools'] = snapshot(wools, unknown_block),
-        ['iwools'] = snapshot(iwools),
+        -- reporting. hues is the wheel order as an array, where reading past
+        -- the end is a legitimate thing to do, so it gets no such report. air
+        -- is engine-provided and belongs to no category, so it is a plain name.
+        ['colors'] = snapshot(colors, unknown_block),
+        ['glass'] = snapshot(glass, unknown_block),
+        ['lamps'] = snapshot(lamps, unknown_block),
+        ['hues'] = snapshot(hues),
+        ['air'] = 'air',
         -- choosing blocks
-        ['random.block'] = table_randomizer(cubes),
-        ['random.plant'] = table_randomizer(plants),
-        ['random.wool'] = table_randomizer(wools),
+        ['random.color'] = table_randomizer(colors),
+        ['random.glass'] = table_randomizer(glass),
+        ['random.lamp'] = table_randomizer(lamps),
         ['color'] = color,
         ['get_block'] = function() return drone_get_block(drone) end,
         -- vectors. snapshot_module keeps the metatable so vector(x, y, z) still

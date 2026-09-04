@@ -6,14 +6,14 @@ local pos = mvt:scale(0.95 * (R1 + R2)):floor()
 
 up(2 * R1 + R2)
 save('center')
-centered.sphere(R1, wools.grey)
-centered.sphere(R1 - 1, wools.cyan)
+centered.sphere(R1, colors.grey)
+centered.sphere(R1 - 1, colors.cyan)
 
 move(pos.x, pos.y, pos.z)
-centered.sphere(R2, blocks.air)
+centered.sphere(R2, air)
 
 go('center')
 for i = 1, 2 * R1 + R2, 1 do
-    centered.sphere(2, blocks.meselamp)
+    centered.sphere(2, lamps.butter)
     move(mvt.x, mvt.y, mvt.z)
 end

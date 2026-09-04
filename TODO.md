@@ -120,6 +120,24 @@ Features
       both cases — so the fixed behaviour is observed while the defect itself
       never was (audit B52)
 - [ ] FEAT: Make possible to change codelevel while running a program (audit F5)
+- [ ] FEAT: the mod brings its own blocks and drops the `default` and `wool`
+      dependencies — settled 2026-09-04 as `F11`, large, and the last feature
+      before the tag. Neither dependency is a ContentDB package, so today the
+      engine refuses to load this mod in any game that does not ship both:
+      Minetest Game, codecube and a few others. `mod.conf` becomes
+      `depends = vector3` and the mod provides `colors` (solid uniform coloured
+      blocks, hand-picked names ordered by hue), plus `glass` and `lamps` one per
+      colour; a game may register its own category in its own namespace, checked
+      for a valid identifier, no collision, a registered node and a load-time
+      call, and trusted after that. `blocks`, `plants`, `wools` and `iwools` all
+      go, and `color(v, min, max)` maps onto the new hue ramp. **Breaking:** all
+      121 short names change, which breaks saved programs — free before v1.0.0
+      and impossible after it, which is why it is in Phase 8. Nothing is
+      implemented. Three things still want your answer: where `air` lives, a
+      flat tile or a faint grain, and the palette list itself — it is 33 names
+      rather than the 36 described, and it has no `red`, no `yellow` and no
+      `brown`. The shape and what was argued out are in ROADMAP.md under `F11`
+      (audit F11)
 - [x] FEAT: stop forcing the two tools into every joining player's inventory —
       settled 2026-09-03 as `F10`, your choice of the two: a command, not a
       setting. `set_tools` and its join callback go, the tools become droppable,
@@ -294,4 +312,4 @@ Elsewhere
 - format lua programs when saving ? https://github.com/LuaDevelopmentTools/luaformatter/blob/master/formatter.lua
 - render code with html widget? (highlight)
 - show line error on save?
-- colored concrete instead of wool? : https://github.com/nikolaus-albinger/colored_concrete - block list is the mod's, the nodes come from the game
+- colored concrete instead of wool? : https://github.com/nikolaus-albinger/colored_concrete - block list is the mod's, the nodes come from the game — **answered by `F11` on 2026-09-04, the other way round**: the nodes come from this mod, and a game adds its own on top in its own namespace

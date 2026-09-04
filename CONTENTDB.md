@@ -4,11 +4,13 @@ can imagine: learn to code, or give your inner computer artist somewhere to play
 
 ## Features
 
+- **Its own blocks.** Thirty-three named colours, each as a solid block, a
+  glass and a lamp, so the mod installs into any game and a program means the
+  same thing in all of them.
 - **An editor in the game.** A per-player program list, create, edit and save,
   and helpers beside the code for when you forget a command or a block name.
 - **A large API.** Shapes, maths and conveniences: cubes, spheres, domes and
-  cylinders, a random block, plant or wool colour, and named checkpoints the
-  drone can return to.
+  cylinders, a random colour, and named checkpoints the drone can return to.
 - **Real Lua.** Loops, functions, recursion and maths, everything in a sandbox
   that cannot harm the server.
 - **Example programs to discover.** Spirals, fractals, 3D plots and other more
@@ -55,6 +57,9 @@ Experiment and discover with the other examples, or write your own!
 
 ## Recent changes
 
+- **Its own blocks** The mod no longer needs Minetest Game: it brings its own
+  palette of 33 colours as `colors`, `glass` and `lamps`, and installs into any
+  game. The old `blocks`, `plants`, `wools` and `iwools` names are gone.
 - **HUD** A display in the top right corner while a program runs, showing how
   much of its budget it has spent.
 - **Control panel** Left click with the **drone setter** tool to show a panel with the drone limits, plus pause and stop buttons.

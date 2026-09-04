@@ -6,7 +6,6 @@ codeblock.formspecs = {}
 
 local S = codeblock.S
 
-local tcik = codeblock.utils.table_convert_ik
 local scroll_max = codeblock.utils.scroll_max
 local split = codeblock.utils.split
 
@@ -21,22 +20,28 @@ local explode_scrollbar_event = core.explode_scrollbar_event
 local get_player_by_name = core.get_player_by_name
 
 local blocks = codeblock.config.allowed_blocks.all
-local cubes = codeblock.config.allowed_blocks.cubes
-local plants = codeblock.config.allowed_blocks.plants
-local wools = codeblock.config.allowed_blocks.wools
-local cubes_ik = tcik(cubes)
-local plants_ik = tcik(plants)
-local wools_ik = tcik(wools)
+local categories = codeblock.config.allowed_blocks.categories
 
 -- Every name the default-block picker offers, with the API path to show beside
--- it. One list rather than a tab per table: the three share one namespace, so
--- default_block and place() take a name from any of them. (F1)
-local pickable = {}
-for _, group in ipairs({
-    {cubes_ik, 'blocks'}, {plants_ik, 'plants'}, {wools_ik, 'wools'}
-}) do
-    for _, key in ipairs(group[1]) do
-        pickable[#pickable + 1] = {key = key, label = group[2] .. '.' .. key}
+-- it. One list rather than a tab per table: the categories share one flat
+-- namespace, so default_block and place() take a name from any of them. (F1)
+--
+-- In palette order rather than sorted, like the help panels below: the order is
+-- the colour wheel, so the list reads as one rather than as an alphabet.
+-- `air` opens it because it belongs to no category and is the one name that
+-- erases rather than builds.
+local pickable = {{key = 'air', label = 'air'}}
+-- meta.help holds a category name while a block panel is open, and one of the
+-- two literals below otherwise, so this is what tells the two apart.
+local help_categories = {}
+for _, category in ipairs(categories) do
+    help_categories[category.name] = category
+    local spelled = codeblock.config.allowed_blocks[category.name]
+    for _, name in ipairs(category.names) do
+        pickable[#pickable + 1] = {
+            key = spelled[name],
+            label = category.name .. '.' .. name
+        }
     end
 end
 
@@ -92,7 +97,7 @@ local file_editor = {
         local loe = false
         local sos = false
         local dhud = false
-        local dblock = cubes.stone
+        local dblock = codeblock.config.allowed_blocks.colors.grey
         local player = get_player_by_name(name)
         if player then
             local meta = player:get_meta()
@@ -145,10 +150,10 @@ local file_editor = {
             contents = contents,
             dirty = dirty,
             active = active,
-            help = 'cubes',
-            scroll_c = 0,
-            scroll_p = 0,
-            scroll_w = 0,
+            help = categories[1].name,
+            -- One scroll position per help panel, keyed by category name so a
+            -- category added later needs no field of its own here.
+            scroll = {},
             default_block = dblock,
             picking = false,
             soe = soe,
@@ -176,9 +181,9 @@ local file_editor = {
         fs = fs .. 'style[remove;bgcolor=red]'
         fs = fs .. 'style[content;font=mono;font_size=-2;textcolor=#115555]'
         fs = fs .. 'style[create;bgcolor=green]'
-        fs = fs .. 'style[help_cubes;bgcolor=blue]'
-        fs = fs .. 'style[help_plants;bgcolor=blue]'
-        fs = fs .. 'style[help_wools;bgcolor=blue]'
+        fs = fs .. 'style[help_colors;bgcolor=blue]'
+        fs = fs .. 'style[help_glass;bgcolor=blue]'
+        fs = fs .. 'style[help_lamps;bgcolor=blue]'
         fs = fs .. 'style[help_cmds;bgcolor=blue]'
         fs = fs .. 'style[help_settings;bgcolor=blue]'
 
@@ -249,10 +254,14 @@ local file_editor = {
         -- Five across the same 14-to-20 span the four used, so Settings fits
         -- without the row running off the form. It is the wider one: the word
         -- does not fit 1.1. (F1)
-        fs = fs .. 'button[14,0;1.1, 0.75;help_cubes;' .. S('Blocks') .. ']'
-        fs = fs .. 'button[15.1,0;1.1, 0.75;help_plants;' .. S('Plants') .. ']'
-        fs = fs .. 'button[16.2,0;1.1, 0.75;help_wools;' .. S('Wools') .. ']'
-        fs = fs .. 'button[17.3,0;1.1, 0.75;help_cmds;' .. S('API') .. ']'
+        -- The widths are per word, not uniform: Colors is Couleurs in French
+        -- and does not fit what Glass does. They still sum to 6, and each
+        -- button starts where the one before it ends. Written out rather than
+        -- looped over the categories for that reason. (F11)
+        fs = fs .. 'button[14,0;1.3, 0.75;help_colors;' .. S('Colors') .. ']'
+        fs = fs .. 'button[15.3,0;1, 0.75;help_glass;' .. S('Glass') .. ']'
+        fs = fs .. 'button[16.3,0;1.15, 0.75;help_lamps;' .. S('Lamps') .. ']'
+        fs = fs .. 'button[17.45,0;0.95, 0.75;help_cmds;' .. S('API') .. ']'
         fs = fs .. 'button[18.4,0;1.6, 0.75;help_settings;' .. S('Settings') ..
                  ']'
 
@@ -274,62 +283,32 @@ local file_editor = {
         end
 
         -- help
-        if meta.help == 'cubes' then
+        if help_categories[meta.help] then
 
-            fs = fs .. 'scrollbaroptions[min=0;max=' .. scroll_max(cubes_ik) ..
+            -- One panel per block category, drawn from the same code: the
+            -- categories differ only in which names they list and which key
+            -- their scroll position is kept under. In palette order, not
+            -- sorted, so the colours run round the wheel the way color() maps
+            -- them.
+            local category = help_categories[meta.help]
+            local spelled = codeblock.config.allowed_blocks[category.name]
+            local field = 'scroll_' .. category.name
+
+            fs = fs .. 'scrollbaroptions[min=0;max=' ..
+                     scroll_max(category.names) ..
                      ';smallstep=1;largestep=5]'
-            fs = fs .. 'scrollbar[19.5, 1;0.3, 9.25;vertical;c_scroll;' ..
-                     meta.scroll_c .. ']'
-            fs = fs ..
-                     'scroll_container[17.75, 1.25;7.25, 10.75;c_scroll;vertical;' ..
-                     0.5 .. ']'
+            fs = fs .. 'scrollbar[19.5, 1;0.3, 9.25;vertical;' .. field .. ';' ..
+                     (meta.scroll[category.name] or 0) .. ']'
+            fs = fs .. 'scroll_container[17.75, 1.25;7.25, 10.75;' .. field ..
+                     ';vertical;' .. 0.5 .. ']'
             local yi, yl
-            for i, v in pairs(cubes_ik) do
-                yi = tostring(i - 1 - 0.25)
-                yl = tostring(i - 1)
-                fs =
-                    fs .. 'item_image[' .. '0,' .. yi .. ';1,1;' .. blocks[v] ..
-                        ']'
-                fs = fs .. 'label[1,' .. yl .. ';blocks.' .. v .. ']'
-            end
-            fs = fs .. 'scroll_container_end[]'
-
-        elseif meta.help == 'plants' then
-
-            fs = fs .. 'scrollbaroptions[min=0;max=' .. scroll_max(plants_ik) ..
-                     ';smallstep=1;largestep=5]'
-            fs = fs .. 'scrollbar[19.5, 1;0.3, 9.25;vertical;p_scroll;' ..
-                     meta.scroll_p .. ']'
-            fs = fs ..
-                     'scroll_container[17.75, 1.25;7.25, 10.75;p_scroll;vertical;' ..
-                     0.5 .. ']'
-            local yi, yl
-            for i, v in pairs(plants_ik) do
-                yi = tostring(i - 1 - 0.25)
-                yl = tostring(i - 1)
-                fs =
-                    fs .. 'item_image[' .. '0,' .. yi .. ';1,1;' .. blocks[v] ..
-                        ']'
-                fs = fs .. 'label[1,' .. yl .. ';plants.' .. v .. ']'
-            end
-            fs = fs .. 'scroll_container_end[]'
-
-        elseif meta.help == 'wools' then
-
-            fs = fs .. 'scrollbaroptions[min=0;max=' .. scroll_max(wools_ik) ..
-                     ';smallstep=1;largestep=5]'
-            fs = fs .. 'scrollbar[19.5, 1;0.3, 9.25;vertical;w_scroll;' ..
-                     meta.scroll_w .. ']'
-            fs = fs ..
-                     'scroll_container[17.75, 1.25;7.25, 10.75;w_scroll;vertical;' ..
-                     0.5 .. ']'
-            local yi, yl
-            for i, v in pairs(wools_ik) do
+            for i, v in ipairs(category.names) do
                 yi = tostring(i - 1 - 0.25)
                 yl = tostring(i - 1)
                 fs = fs .. 'item_image[' .. '0,' .. yi .. ';1,1;' ..
-                         blocks[wools[v]] .. ']'
-                fs = fs .. 'label[1,' .. yl .. ';wools.' .. v .. ']'
+                         blocks[spelled[v]] .. ']'
+                fs = fs .. 'label[1,' .. yl .. ';' .. category.name .. '.' .. v ..
+                         ']'
             end
             fs = fs .. 'scroll_container_end[]'
 
@@ -618,21 +597,30 @@ local file_editor = {
         -- and then emits 'VAL:n' unconditionally, so this is state like
         -- fields.content and not an event. As a branch it sat above quit, the
         -- block picker and the new-file field and swallowed all three whenever
-        -- Blocks, Plants or Wools was showing - which is the panel the editor
-        -- opens on. Closing with ESC then never saved the open tabs. (B37)
+        -- a block panel was showing - which is the panel the editor opens on.
+        -- Closing with ESC then never saved the open tabs. (B37)
         --
         -- lua_api.md does not say this. It documents the two ways to read a
         -- scrollbar and the 'CHG'/'VAL' prefixes, but not that a scrollbar is
         -- always in the field table; guiFormSpecMenu.cpp's parseScrollBar and
         -- acceptInput are where it is visible.
-        if fields.c_scroll then
-            meta.scroll_c = explode_scrollbar_event(fields.c_scroll).value
+        for _, category in ipairs(categories) do
+            local sent = fields['scroll_' .. category.name]
+            if sent then
+                meta.scroll[category.name] =
+                    explode_scrollbar_event(sent).value
+            end
         end
-        if fields.p_scroll then
-            meta.scroll_p = explode_scrollbar_event(fields.p_scroll).value
-        end
-        if fields.w_scroll then
-            meta.scroll_w = explode_scrollbar_event(fields.w_scroll).value
+
+        -- Which help panel a button asks for, if any. A button is absent from
+        -- the field table unless it was the one pressed, so unlike the
+        -- scrollbars above this is an event: it is only read here so the chain
+        -- below can branch on it in one place.
+        local help_wanted
+        for _, category in ipairs(categories) do
+            if fields['help_' .. category.name] then
+                help_wanted = category.name
+            end
         end
 
         -- FIELDS INPUTS
@@ -700,14 +688,8 @@ local file_editor = {
                 open(selected)
                 update()
             end
-        elseif fields.help_cubes then
-            meta.help = 'cubes'
-            update()
-        elseif fields.help_plants then
-            meta.help = 'plants'
-            update()
-        elseif fields.help_wools then
-            meta.help = 'wools'
+        elseif help_wanted then
+            meta.help = help_wanted
             update()
         elseif fields.help_cmds then
             meta.help = 'commands'

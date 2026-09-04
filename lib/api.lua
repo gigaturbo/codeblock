@@ -87,7 +87,7 @@ api.groups = {
     }, {
         title = 'Placing one block',
         intro = 'Leave `block` out and the default block is used: the one ' ..
-            'chosen in the editor\'s Settings panel, or stone until a choice ' ..
+            'chosen in the editor\'s Settings panel, or grey until a choice ' ..
             'is made.',
         entries = {
             {
@@ -184,43 +184,50 @@ api.groups = {
             'below.',
         entries = {
             {
-                name = 'blocks',
+                name = 'colors',
                 kind = 'value',
-                doc = 'Building blocks, indexed by name. A name that does ' ..
-                    'not exist reads as nil and builds your default block ' ..
-                    'instead; the first time a run does that, it says so in ' ..
-                    'the chat.'
-            },
-            {name = 'plants', kind = 'value', doc = 'Plants, indexed by name.'},
-            {
-                name = 'wools',
-                kind = 'value',
-                doc = 'The full wool palette, indexed by name.'
+                doc = 'Solid coloured blocks, indexed by name. A name that ' ..
+                    'does not exist reads as nil and builds your default ' ..
+                    'block instead; the first time a run does that, it says ' ..
+                    'so in the chat.'
             }, {
-                name = 'iwools',
+                name = 'glass',
                 kind = 'value',
-                doc = 'The colourful wools as an array, in rainbow order, ' ..
-                    'without white, black or greys.'
+                doc = 'One see-through block per colour, indexed by name.'
+            }, {
+                name = 'lamps',
+                kind = 'value',
+                doc = 'One glowing block per colour, indexed by name. The ' ..
+                    'light itself is the same whatever the colour.'
+            }, {
+                name = 'hues',
+                kind = 'value',
+                doc = 'The chromatic colours as an array, in colour-wheel ' ..
+                    'order, without the neutrals.'
+            }, {
+                name = 'air',
+                kind = 'value',
+                doc = 'Empty space. Place it to carve rather than to build.'
             }
         }
     }, {
         title = 'Choosing blocks',
         entries = {
             {
-                name = 'random.block',
+                name = 'random.color',
                 params = {},
-                doc = 'A random building block.'
-            }, {name = 'random.plant', params = {}, doc = 'A random plant.'},
-            {name = 'random.wool', params = {}, doc = 'A random wool colour.'},
-            {
+                doc = 'A random solid colour.'
+            },
+            {name = 'random.glass', params = {}, doc = 'A random glass block.'},
+            {name = 'random.lamp', params = {}, doc = 'A random lamp.'}, {
                 name = 'color',
                 params = {'v', 'min', 'max'},
-                doc = 'Map a number onto the iwools palette.',
+                doc = 'Map a number onto the hues palette.',
                 note = 'Values at or below `min` give the first colour and ' ..
                     'those at or above `max` the last; anything outside the ' ..
                     'range is clamped rather than wrapped. `min` and `max` ' ..
-                    'default to 1 and 11. Useful for colouring a shape by ' ..
-                    'height or distance.'
+                    'default to 1 and the number of hues. Useful for ' ..
+                    'colouring a shape by height or distance.'
             }, {
                 name = 'get_block',
                 params = {},
@@ -346,7 +353,7 @@ end
 --
 -- Names are dotted, so 'centered.vertical.cylinder' becomes a nested table. A
 -- name that is both a leaf and a parent - `random` is callable and also carries
--- random.block - gets a __call metamethod.
+-- random.color - gets a __call metamethod.
 --
 -- Raises if the two sets differ in either direction, so a missing or an
 -- undocumented implementation stops the mod loading rather than shipping a
@@ -410,7 +417,7 @@ function api.build(impls)
         local key, value, node = leaf[1], leaf[2], leaf[3]
         local existing = node[key]
         if type(existing) == 'table' and type(value) == 'function' then
-            -- both a callable and a namespace: random() and random.block()
+            -- both a callable and a namespace: random() and random.color()
             node[key] = setmetatable(existing, {
                 __call = function(_, ...) return value(...) end
             })
@@ -464,10 +471,12 @@ end
 --------------------------------------------------------------------------------
 
 --- The "Lua api" section of doc/api.md.
--- `block_tables` is an optional map of table name to a list of the names it
--- holds, so the reference can list the real block names from the config rather
--- than a copy that drifts.
-function api.to_markdown(block_tables)
+-- `allowed` is codeblock.config.allowed_blocks, or nil to leave the block
+-- listing out. Reading it rather than a copy is what stops the reference
+-- drifting from the palette; the categories are listed in the order the config
+-- holds them, which is the palette's own, so a category a game adds appears
+-- here with no change to this file.
+function api.to_markdown(allowed)
 
     local out = {}
     local function w(s) out[#out + 1] = s or '' end
@@ -512,19 +521,23 @@ function api.to_markdown(block_tables)
         end
     end
 
-    if block_tables then
+    if allowed then
         w('# Block types')
         w()
-        w('The names each block table holds. Generated from `lib/config.lua`.')
+        w('The names each block table holds, in palette order. Generated from')
+        w('`lib/config.lua`.')
         w()
-        local order = {'blocks', 'plants', 'wools', 'iwools'}
-        for _, tname in ipairs(order) do
-            local list = block_tables[tname]
-            if list then
-                w('## `' .. tname .. '`')
+        local listed = {}
+        for _, category in ipairs(allowed.categories or {}) do
+            listed[#listed + 1] = category
+        end
+        listed[#listed + 1] = {name = 'hues', names = allowed.hues}
+        for _, category in ipairs(listed) do
+            if category.names then
+                w('## `' .. category.name .. '`')
                 w()
                 w('```lua')
-                w(table.concat(list, ', '))
+                w(table.concat(category.names, ', '))
                 w('```')
                 w()
             end
@@ -541,7 +554,7 @@ end
 -- reason if the marker is missing, rather than guessing.
 api.GENERATED_FROM = '# Lua api'
 
-function api.compose_markdown(current, block_tables)
+function api.compose_markdown(current, allowed)
     current = current or ''
     local head = current:match('^(.-)\n' .. api.GENERATED_FROM)
     if not head then
@@ -551,7 +564,7 @@ function api.compose_markdown(current, block_tables)
         end
         head = ''
     end
-    return head .. '\n' .. api.to_markdown(block_tables) .. '\n'
+    return head .. '\n' .. api.to_markdown(allowed) .. '\n'
 end
 
 --------------------------------------------------------------------------------

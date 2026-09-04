@@ -27,7 +27,7 @@ function mosely(size, block)
 
         for _, n in ipairs(empty_pos) do
             go('origin', x + n[1] * inc, y + n[2] * inc, z + n[3] * inc)
-            cube(inc, inc, inc, blocks.air)
+            cube(inc, inc, inc, air)
         end
 
         for _, n in ipairs(solid_pos) do
@@ -46,4 +46,4 @@ end
 --
 
 up()
-mosely(pow(3, 3), blocks.snowblock)
+mosely(pow(3, 3), colors.white)

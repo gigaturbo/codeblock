@@ -184,7 +184,7 @@ go(name, n_right, n_up, n_forward) -- Return to a checkpoint, with an optional o
 
 ## Placing one block
 
-Leave `block` out and the default block is used: the one chosen in the editor's Settings panel, or stone until a choice is made.
+Leave `block` out and the default block is used: the one chosen in the editor's Settings panel, or grey until a choice is made.
 
 ```lua
 place(block)                                                -- Place one block at the drone position.
@@ -227,23 +227,24 @@ centered.horizontal.cylinder(length, radius, block, hollow) -- A lying cylinder 
 Anything taking a `block` argument wants a value from one of these. The names each table holds are listed under Block types below.
 
 ```lua
-blocks -- Building blocks, indexed by name. A name that does not exist reads as nil and builds your default block instead; the first time a run does that, it says so in the chat.
-plants -- Plants, indexed by name.
-wools  -- The full wool palette, indexed by name.
-iwools -- The colourful wools as an array, in rainbow order, without white, black or greys.
+colors -- Solid coloured blocks, indexed by name. A name that does not exist reads as nil and builds your default block instead; the first time a run does that, it says so in the chat.
+glass  -- One see-through block per colour, indexed by name.
+lamps  -- One glowing block per colour, indexed by name. The light itself is the same whatever the colour.
+hues   -- The chromatic colours as an array, in colour-wheel order, without the neutrals.
+air    -- Empty space. Place it to carve rather than to build.
 ```
 
 ## Choosing blocks
 
 ```lua
-random.block()     -- A random building block.
-random.plant()     -- A random plant.
-random.wool()      -- A random wool colour.
-color(v, min, max) -- Map a number onto the iwools palette.
+random.color()     -- A random solid colour.
+random.glass()     -- A random glass block.
+random.lamp()      -- A random lamp.
+color(v, min, max) -- Map a number onto the hues palette.
 get_block()        -- The block at the drone position, or false if it is not one the drone can place.
 ```
 
-**`color`** &mdash; Values at or below `min` give the first colour and those at or above `max` the last; anything outside the range is clamped rather than wrapped. `min` and `max` default to 1 and 11. Useful for colouring a shape by height or distance.
+**`color`** &mdash; Values at or below `min` give the first colour and those at or above `max` the last; anything outside the range is clamped rather than wrapped. `min` and `max` default to 1 and the number of hues. Useful for colouring a shape by height or distance.
 
 ## Vectors
 
@@ -298,29 +299,30 @@ table.randomizer(t) -- Return a function that picks a random value from t.
 
 # Block types
 
-The names each block table holds. Generated from `lib/config.lua`.
+The names each block table holds, in palette order. Generated from
+`lib/config.lua`.
 
-## `blocks`
+## `colors`
 
 ```lua
-acacia_bush_leaves, acacia_leaves, acacia_tree, acacia_wood, air, aspen_leaves, aspen_tree, aspen_wood, bookshelf, brick, bronzeblock, bush_leaves, cactus, clay, coalblock, cobble, copperblock, desert_cobble, desert_sandstone, desert_sandstone_block, desert_sandstone_brick, desert_stone, desert_stone_block, desert_stonebrick, diamondblock, dirt, dirt_with_coniferous_litter, dirt_with_dry_grass, dirt_with_grass, dirt_with_rainforest_litter, dirt_with_snow, dry_dirt, dry_dirt_with_dry_grass, glass, goldblock, ice, jungleleaves, jungletree, junglewood, leaves, mese, meselamp, mossycobble, obsidian, obsidian_block, obsidian_glass, obsidianbrick, permafrost, permafrost_with_moss, permafrost_with_stones, pine_bush_needles, pine_needles, pine_tree, pine_wood, sandstone, sandstone_block, sandstonebrick, silver_sandstone, silver_sandstone_block, silver_sandstone_brick, snowblock, steelblock, stone, stone_block, stone_with_coal, stone_with_copper, stone_with_diamond, stone_with_gold, stone_with_iron, stone_with_mese, stone_with_tin, stonebrick, tinblock, tree, wood
+white, ash, grey, slate, ink, black, salmon, red, maroon, apricot, orange, rust, sand, brown, chocolate, butter, yellow, ochre, lime, green, forest, aqua, teal, cyan, sky, blue, navy, lavender, violet, indigo, magenta, rose, pink
 ```
 
-## `plants`
+## `glass`
 
 ```lua
-acacia_bush_sapling, acacia_bush_stem, acacia_sapling, apple, aspen_sapling, bush_sapling, bush_stem, dry_grass_1, dry_grass_2, dry_grass_3, dry_grass_4, dry_grass_5, dry_shrub, emergent_jungle_sapling, fern_1, fern_2, fern_3, grass_1, grass_2, grass_3, grass_4, grass_5, junglegrass, junglesapling, large_cactus_seedling, marram_grass_1, marram_grass_2, marram_grass_3, pine_bush_sapling, pine_bush_stem, pine_sapling, sapling
+white, ash, grey, slate, ink, black, salmon, red, maroon, apricot, orange, rust, sand, brown, chocolate, butter, yellow, ochre, lime, green, forest, aqua, teal, cyan, sky, blue, navy, lavender, violet, indigo, magenta, rose, pink
 ```
 
-## `wools`
+## `lamps`
 
 ```lua
-black, blue, brown, cyan, dark_green, dark_grey, green, grey, magenta, orange, pink, red, violet, white, yellow
+white, ash, grey, slate, ink, black, salmon, red, maroon, apricot, orange, rust, sand, brown, chocolate, butter, yellow, ochre, lime, green, forest, aqua, teal, cyan, sky, blue, navy, lavender, violet, indigo, magenta, rose, pink
 ```
 
-## `iwools`
+## `hues`
 
 ```lua
-red, brown, orange, yellow, green, dark_green, cyan, blue, violet, magenta, pink
+salmon, red, maroon, apricot, orange, rust, sand, brown, chocolate, butter, yellow, ochre, lime, green, forest, aqua, teal, cyan, sky, blue, navy, lavender, violet, indigo, magenta, rose, pink
 ```
 

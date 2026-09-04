@@ -46,7 +46,7 @@ local function stub_drone(auth_level)
         checkpoints = {},
         -- The real record carries one from the moment it is made, because
         -- placement() falls back to nothing further. (F1)
-        default_block = 'stone',
+        default_block = 'grey',
         -- The real budget for that codelevel, as lib/drone.lua builds it: the
         -- counters and every ceiling the commands check live in here now.
         budget = codeblock.limits.new(codeblock.config, al,
@@ -76,7 +76,7 @@ local function run(src, auth_level)
         -- a real API name to attack
         place = function() end,
         up = function() end,
-        blocks = envlib.snapshot({stone = 'stone', air = 'air'})
+        colors = envlib.snapshot({grey = 'grey', white = 'white'})
     }
     api._G = envlib.seal({
         print = api.print,
@@ -182,10 +182,10 @@ end
 
 do
     -- S1: a program must not be able to corrupt shared config for everyone.
-    local ok = run('blocks.stone = "tampered"\n')
+    local ok = run('colors.grey = "tampered"\n')
     it('mutating the block table is allowed within the run', ok, true)
     it('but the real config is untouched',
-       codeblock.config.allowed_blocks.cubes.stone, 'stone')
+       codeblock.config.allowed_blocks.colors.grey, 'grey')
 end
 
 do
@@ -260,7 +260,7 @@ do
         scroll_c = 0,
         scroll_p = 0,
         scroll_w = 0,
-        default_block = 'stone',
+        default_block = 'grey',
         picking = false,
         soe = false,
         loe = false,
@@ -727,17 +727,17 @@ do
 
     local drone = stub_drone(4)
 
-    set_default(drone, 'glass')
-    it('default_block sets what a bare place() will use', drone.default_block,
-       'glass')
-
-    -- A wool and a plant too, not just another cube: the three tables share one
-    -- namespace, so a name from any of them is legal here exactly as it is in
-    -- place(block).
     set_default(drone, 'red')
-    it('default_block takes a wool', drone.default_block, 'red')
-    set_default(drone, 'sapling')
-    it('default_block takes a plant', drone.default_block, 'sapling')
+    it('default_block sets what a bare place() will use', drone.default_block,
+       'red')
+
+    -- A glass and a lamp too, not just a solid colour: the categories share one
+    -- flat namespace, so a name from any of them is legal here exactly as it is
+    -- in place(block).
+    set_default(drone, 'red_glass')
+    it('default_block takes a glass', drone.default_block, 'red_glass')
+    set_default(drone, 'red_lamp')
+    it('default_block takes a lamp', drone.default_block, 'red_lamp')
 
     -- air is allowed on purpose: it is already a legal argument to place(), so
     -- excluding it only from the default would be an inconsistency with
@@ -754,8 +754,96 @@ do
     -- Charged like every other command, so a loop of them cannot run free.
     local before = stub_drone(4)
     local commands = before.commands
-    set_default(before, 'stone')
+    set_default(before, 'grey')
     it('default_block is charged as a command', before.commands, commands + 1)
+end
+
+--------------------------------------------------------------------------------
+-- the block palette, and the nodes it registers (F11)
+--
+-- The mod registers its own blocks now, so whether `place(name)` lands on a
+-- real node is this mod's problem and no longer the host game's. Nothing else
+-- in the suite reaches a registered node - but lib/nodes.lua has run by the
+-- time a spec does, so core.registered_nodes is the one piece of a world that
+-- exists here. What a block looks like, drops, or sounds like is a PLAYTEST
+-- matter; that every name a program may write resolves to a definition is not.
+--
+-- The two counts below are the shape F11 settled on: 33 colours, of which the
+-- first six are neutral. Changing the palette deliberately means changing them
+-- here and re-running gen_docs, which is the point of pinning them.
+--------------------------------------------------------------------------------
+
+do
+    local palette = codeblock.config.palette
+    local blocks = codeblock.config.allowed_blocks
+
+    it('the palette has 33 colours', #palette, 33)
+
+    local badhex = {}
+    for _, e in ipairs(palette) do
+        if not (type(e[2]) == 'string' and e[2]:match('^#%x%x%x%x%x%x$')) then
+            badhex[#badhex + 1] = tostring(e[1])
+        end
+    end
+    it('every colour carries a six-digit hex', table.concat(badhex, ', '), '')
+
+    -- color(v, min, max) maps a number onto hues, so its order has to be the
+    -- palette's own and not sorted, or a gradient stops reading as a rainbow.
+    it('hues drops the six neutrals', #palette - #blocks.hues, 6)
+    local tail = {}
+    for i = #palette - #blocks.hues + 1, #palette do
+        tail[#tail + 1] = palette[i][1]
+    end
+    it('hues is the palette tail, in palette order',
+       table.concat(blocks.hues, ','), table.concat(tail, ','))
+
+    -- place() takes one string and knows nothing about which category it came
+    -- from, so a collision between two categories would silently shadow one.
+    local flat = 0
+    for _ in pairs(blocks.all) do flat = flat + 1 end
+    it('the flat namespace holds three per colour plus air', flat,
+       #palette * 3 + 1)
+
+    it('there are three categories', #blocks.categories, 3)
+
+    local shortfall = {}
+    for _, cat in ipairs(blocks.categories) do
+        if #cat.names ~= #palette then shortfall[#shortfall + 1] = cat.name end
+    end
+    it('every category spells every colour', table.concat(shortfall, ', '), '')
+
+    local unresolved = {}
+    for _, cat in ipairs(blocks.categories) do
+        for _, name in ipairs(cat.names) do
+            local key = blocks[cat.name][name]
+            if not (key and blocks.all[key]) then
+                unresolved[#unresolved + 1] = cat.name .. '.' .. tostring(name)
+            end
+        end
+    end
+    it('every spelled name resolves through the flat namespace',
+       table.concat(unresolved, ', '), '')
+
+    -- The whole of F11 in one line: a name a program may write that the engine
+    -- does not know is a write that silently does nothing, far from anyone
+    -- watching. air is in here too, and is engine-provided.
+    local missing = {}
+    for _, item in pairs(blocks.all) do
+        if not core.registered_nodes[item] then
+            missing[#missing + 1] = item
+        end
+    end
+    it('every block a program may place is a registered node',
+       table.concat(missing, ', '), '')
+
+    -- One per variant. A copy-paste in lib/nodes.lua's variant table would
+    -- register a solid block under a glass name, and nothing else would say so.
+    it('a glass block is see-through',
+       core.registered_nodes['codeblock:red_glass'].drawtype, 'glasslike')
+    it('a lamp emits light',
+       (core.registered_nodes['codeblock:red_lamp'].light_source or 0) > 0, true)
+    it('a solid block emits none',
+       (core.registered_nodes['codeblock:red'].light_source or 0), 0)
 end
 
 --------------------------------------------------------------------------------

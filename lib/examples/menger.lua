@@ -24,7 +24,7 @@ function menger(size, block)
 
         for _, n in ipairs(empty_pos) do
             go('origin', x + n[1] * inc, y + n[2] * inc, z + n[3] * inc)
-            cube(inc, inc, inc, blocks.air)
+            cube(inc, inc, inc, air)
         end
 
         for _, n in ipairs(solid_pos) do
@@ -45,4 +45,4 @@ end
 local sizes = {pow(3, 3), pow(3, 2), pow(3, 1), pow(3, 0)}
 
 up()
-for i, size in ipairs(sizes) do menger(size, iwools[i]) end
+for i, size in ipairs(sizes) do menger(size, color(i, 1, #sizes)) end

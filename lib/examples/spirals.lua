@@ -29,7 +29,7 @@ end
 --
 
 local mblocks = {
-    blocks.sandstone, blocks.silver_sandstone, blocks.desert_sandstone
+    colors.sand, colors.ash, colors.apricot
 }
 
 for i = 1, #mblocks do

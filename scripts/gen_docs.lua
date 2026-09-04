@@ -49,25 +49,10 @@ codeblock = codeblock or {}
 dofile(root .. '/lib/config.lua')
 local api = dofile(root .. '/lib/api.lua')
 
+-- Handed to the renderer whole rather than picked apart here: config.lua holds
+-- the categories in palette order, api.to_markdown lists them in it, and this
+-- and the in-engine generator in init.lua therefore cannot disagree.
 local allowed = codeblock.config.allowed_blocks
-
---- The names a block table holds, sorted.
--- Sorted rather than in declaration order so this needs no parsing of
--- config.lua's source and gives the same answer as the in-engine generator in
--- init.lua. iwools keeps its own order, which is meaningful - it is a rainbow.
-local function sorted_keys(t)
-    local names = {}
-    for k in pairs(t or {}) do names[#names + 1] = k end
-    table.sort(names)
-    return names
-end
-
-local block_tables = {
-    blocks = sorted_keys(allowed and allowed.cubes),
-    plants = sorted_keys(allowed and allowed.plants),
-    wools = sorted_keys(allowed and allowed.wools),
-    iwools = allowed and allowed.iwools or nil
-}
 
 --------------------------------------------------------------------------------
 -- compose
@@ -83,7 +68,7 @@ do
     end
 end
 
-local wanted, why = api.compose_markdown(current, block_tables)
+local wanted, why = api.compose_markdown(current, allowed)
 if not wanted then
     io.stderr:write('doc/api.md: ' .. tostring(why) .. '\n')
     os.exit(2)

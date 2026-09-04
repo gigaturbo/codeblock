@@ -1,15 +1,15 @@
 local funs = {
-    function() place(blocks.obsidian) end,
-    function() place_relative(1, 1, 1, wools.cyan, _) end,
-    function() cube(_, _, _, wools.yellow) end,
-    function() sphere(_, wools.green) end, function() dome(_, wools.blue) end,
-    function() vertical.cylinder(_, _, wools.red) end,
-    function() horizontal.cylinder(_, _, wools.orange) end,
-    function() centered.vertical.cylinder(_, _, wools.white) end,
-    function() centered.horizontal.cylinder(_, _, wools.magenta) end,
-    function() centered.cube(_, _, _, wools.black) end,
-    function() centered.sphere(5, wools.pink) end,
-    function() centered.dome(5, wools.violet) end
+    function() place(colors.ink) end,
+    function() place_relative(1, 1, 1, colors.cyan, _) end,
+    function() cube(_, _, _, colors.yellow) end,
+    function() sphere(_, colors.green) end, function() dome(_, colors.blue) end,
+    function() vertical.cylinder(_, _, colors.red) end,
+    function() horizontal.cylinder(_, _, colors.orange) end,
+    function() centered.vertical.cylinder(_, _, colors.white) end,
+    function() centered.horizontal.cylinder(_, _, colors.magenta) end,
+    function() centered.cube(_, _, _, colors.black) end,
+    function() centered.sphere(5, colors.pink) end,
+    function() centered.dome(5, colors.violet) end
 }
 
 for _, fun in ipairs(funs) do

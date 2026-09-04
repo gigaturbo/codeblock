@@ -1,10 +1,10 @@
 --- Building the environment a player program runs in.
 --
 -- `snapshot` gives each run its own copy of the tables the API exposes, so a
--- program assigning into `blocks` or `vector` cannot corrupt them for every
+-- program assigning into `colors` or `vector` cannot corrupt them for every
 -- other player until the server restarts. Copies rather than read-only proxies:
--- Lua 5.1 has no __pairs or __len, so a proxy would break pairs(blocks) and
--- #iwools for player code.
+-- Lua 5.1 has no __pairs or __len, so a proxy would break pairs(colors) and
+-- #hues for player code.
 --
 -- A copy may still carry an __index, and that is not the proxy above: the
 -- metamethod is consulted only for a key the copy does not have, so pairs(), #

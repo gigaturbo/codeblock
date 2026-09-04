@@ -55,7 +55,7 @@ read_globals = {
     "ValueNoise", "ValueNoiseMap", "SecureRandom", "Settings", "AreaStore",
     "Raycast", "ItemStackMetaRef", "DEFAULT_ALLOW_MOVE", "INIT",
     -- declared dependencies (see mod.conf)
-    "vector3", "default", "dye", "wool",
+    "vector3",
     -- Lua 5.1 / LuaJIT builtins that luacheck's lua51 std can miss
     "jit"
 }
@@ -106,7 +106,7 @@ stds.codeblock_sandbox = {
         -- checkpoints
         "save", "go",
         -- blocks
-        "blocks", "plants", "wools", "iwools",
+        "colors", "glass", "lamps", "hues", "air",
         -- utilities
         "get_block", "print", "color", "ipairs", "pairs", "random", "table",
         "vector", "error",

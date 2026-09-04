@@ -15,7 +15,7 @@ for x = -R, R do
 
             if (pow(x, 2) + pow(z, 2) < pow(R, 2)) then
                 if random() < density(y) then
-                    place_relative(x, y, z, blocks.stone, 'o')
+                    place_relative(x, y, z, colors.grey, 'o')
                 end
             end
 

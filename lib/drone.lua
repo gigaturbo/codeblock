@@ -55,7 +55,7 @@ local server_step_budget_us = codeblock.config.server_step_budget_us
 local blocks = codeblock.config.allowed_blocks.all
 -- What a bare place() uses until a player chooses otherwise. Described in
 -- lib/api.lua, so the two have to agree.
-local fallback_block = codeblock.config.allowed_blocks.cubes.stone
+local fallback_block = codeblock.config.allowed_blocks.colors.grey
 
 local tmp1 = 2 / pi
 local tmp3 = pi / 2
@@ -75,7 +75,7 @@ local serial = 0
 local respawn_period_s = 1
 local respawn_wait = 0
 
---- The block this player has chosen for a bare place(), or stone.
+--- The block this player has chosen for a bare place(), or grey.
 --
 -- Validated on read rather than trusted from the write: a player who joined
 -- before the setting existed has no key at all, and player meta outlives a

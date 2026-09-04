@@ -45,7 +45,7 @@ local h = 3
 for nx = 0, 2 do
     for nz = 0, 2 do
         go('grid', nx * 2 * (R + r + 2) + 30, 2 * r, nz * 2 * (r + R + 2))
-        wavy_donut(r, R, h, color(h))
+        wavy_donut(r, R, h, color(h, 3, 11))
         h = h + 1
     end
 end
