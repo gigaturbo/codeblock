@@ -1,15 +1,16 @@
 # v1.0.0 (unreleased)
 
 **Breaking for existing player programs, for server operators and for
-redistributors.** The sixteen items under *Breaking* change behaviour you may be
-relying on.
+redistributors.** The seventeen items under *Breaking* change behaviour you may
+be relying on, and the first of them changes **every block name a program
+writes**.
 
 ## Breaking
 
-- Wool names lost their prefix: `wools.wool_red` is now `wools.red`
+- **Every block name has changed, and the mod now brings its own blocks.** `blocks`, `plants`, `wools` and `iwools` are gone. In their place: **`colors`**, 33 named colours the mod registers itself, **`glass`** and **`lamps`**, one of each per colour, **`hues`** — the chromatic colours as an ordered array, which `color(v, min, max)` maps onto — and **`air`**, now a name of its own rather than a member of a table. `random.block`, `random.plant` and `random.wool` became `random.color`, `random.glass` and `random.lamp`. **A saved program naming a `default` or `wool` block stops working**, and no game can migrate it: `place(blocks.stone)` and `place(wools.red)` have to become `place(colors.grey)` and `place(colors.red)` by hand. Every bundled example was ported. **Why it is worth it:** `default` and `wool` are Minetest Game's and are not ContentDB packages, so until now the engine refused to load this mod in any game that did not ship both — which is Minetest Game, Codecube and a handful of others. It now installs into any game, and a program means the same thing in all of them
 - `color(v, min, max)` clamps instead of wrapping past the palette
 - `round(x, decimals)` fixed, its arguments having been the reverse of what was documented
-- API names are read-only: assigning to `place`, `blocks`, etc. now raises. A saved program using an API name as its own global fails on that line
+- API names are read-only: assigning to `place`, `colors`, etc. now raises. A saved program using an API name as its own global fails on that line
 - Unavailable names (`os`, `io`, `pcall`, ...) fail immediately, naming what you asked for
 - Generating the examples no longer overwrites existing files (the command is now `/codeblock generate`)
 - Dropped the `worldedit` dependency: cube, sphere, dome and cylinder are now `lib/shapes.lua`, one VoxelManip pass each
@@ -26,7 +27,9 @@ relying on.
 
 ## Added
 
-- **A default block for `place()`**: a *Settings* panel in the editor picks the block a bare `place()` builds. Saved with your player and read once at the start of every run, so changing it will not split a build in progress. `air` can be chosen, which makes a bare `place()` erase. **Note:** a saved program calling `place()` with no argument built stone before and now builds whatever you have chosen
+- **A default block for `place()`**: a *Settings* panel in the editor picks the block a bare `place()` builds. Saved with your player and read once at the start of every run, so changing it will not split a build in progress. `air` can be chosen, which makes a bare `place()` erase. **Note:** a saved program calling `place()` with no argument built the fallback block before and now builds whatever you have chosen
+- **The mod registers 99 blocks of its own** — 33 named colours in colour-wheel order, each as a solid block, a **glass** and a **lamp**. Six neutrals (`white ash grey slate ink black`) then nine families of three, light / plain / dark, so the plain word always exists: `red`, `orange`, `brown`, `yellow`, `green`, `cyan`, `blue`, `violet`, `rose` are all real names. They are tinted from two shared 16×16 tiles, so they carry a faint grain rather than being flat fills. The default block for a bare `place()` is `grey`
+- **`codeblock.register_blocks(category, entries)`, for game authors.** A mod that names `codeblock` in its own `depends` can add a block category of its own — `codeblock.register_blocks('wool', {red = 'wool:red'})` — and `wool.red` becomes a block a player's program can place, listed in the editor's picker and help panel beside `colors`, `glass` and `lamps`. Names are checked at load time for being spellable as Lua keys, for colliding with nothing, and for naming a node that exists; what the node *does* is the game's business and is not policed. **A bad entry is logged naming your mod and dropped — it never aborts the server.** A registered category's names are namespaced (`wool.red`), so a game cannot shadow one of the mod's own
 - `default_block(block)`, which changes the default for the rest of one run without touching what you have saved. Deliberately run-only: nothing a program does can rewrite your saved choice
 - `sleep(seconds)`, which pauses the drone and hands the server its step back, so a program can build at a pace it chooses. Fractions allowed; defaults to one second. Other drones keep building while yours waits. The wait counts against the same runtime ceiling as everything else and is charged before it starts, so `sleep` cannot make a program live for ever
 - **Create a copy** in the editor: writes what is on screen to the next free `<name>_N.lua` and opens it, so you can try a variation without touching the version that works. It does **not** save the original first — what you copy is what you can see. A freed number is reused. One quirk: filenames cap at 15 characters, so copying a name already at the cap shortens it to fit `_10` onwards
@@ -64,6 +67,13 @@ relying on.
 - **The bundled examples shrank so every one completes at codelevel 2.** `planet.lua`, `death_star.lua` and `mosely.lua` are smaller
 - The release archive holds only what the mod needs at runtime, plus the `README.md` and `doc/api.md` a player is told to read — 1.60 MB of it down to 1.42 MB. It is **2.21 MB** as shipped, the difference being a new `screenshot.png`: Luanti shows that one in the main menu's Mods tab, so it is kept deliberately and is now the current editor rather than a four-feature-old one
 - Documented `color()`, and corrected block lists that had drifted from the config
+- **The editor's help row is one `Blocks` button and a category selector**, in every game, instead of the three fixed Blocks / Plants / Wools buttons. It is drawn the same whether a game has registered a category or not, deliberately: a layout that only appears in the rare case is where a defect goes unnoticed. The mod's own categories show a translated name; a game's shows the raw name, because the raw name is what a program types
+- **The bundled examples were ported to the new palette.** All eleven of them build the same shapes in the nearest colours
+
+## Removed
+
+- **The `default` and `wool` dependencies.** `mod.conf` now reads `depends = vector3` and nothing else. Neither of the two was a ContentDB package — they are Minetest Game's — and nothing here ever called a function from either or used an asset from either; the only use was their node names. **This is the change that lets the mod be installed into any game on ContentDB**, and it is why the whole palette had to be replaced
+- **The `blocks`, `plants`, `wools` and `iwools` tables**, replaced as described under *Breaking*
 
 ## Fixed
 
@@ -127,6 +137,7 @@ relying on.
 - A file can only be removed from the editor once it has been opened — the *Remove file* button appears only with a file open
 - The unsaved-tab `*` records that the buffer changed, not that it differs from disk, so typing a character and undoing it leaves the tab marked until the next save
 - Nothing in CI checks `.gitattributes`, so a file added to this repository ships inside the release archive unless a rule excludes it, and nothing fails locally when one does
+- **The mod's 99 blocks are silent** — no footstep, dig or place sound. Every sound set in Luanti belongs to a game, and using one would put this mod back to needing a game to provide something, which is the whole point of it bringing its own blocks
 
 # v0.7.0
 

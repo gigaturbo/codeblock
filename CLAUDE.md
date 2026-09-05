@@ -109,12 +109,15 @@ writes `codeblock_run_tests = true` into the player's real config, and it must b
 removed afterwards or every ordinary launch runs the tests. The script strips it
 in a `finally` block.
 
-**`tests/game` exists because Luanti will not load a mod whose `depends` are
-unmet.** `mod.conf` names `default`, `wool` and `vector3`, but this mod calls no
-function from `default` or `wool` and borrows no asset from them — the only use is
-the node names in the palette tables of `lib/config.lua`. So the stubs there
-register nothing but the three mapgen aliases the engine validates at startup. If
-a spec ever needs a real node, register that one node and no more.
+**`tests/game` exists because the engine needs a game to boot, and because
+`mod.conf` names `vector3`, which is a submodule under `tests/game/mods/`.** It
+used to hold empty `default` and `wool` stubs as well, to satisfy dependencies
+this mod no longer has: `F11` dropped both and `mod.conf` now reads
+`depends = vector3` alone. What is left in their place is
+**`tests/game/mods/cbfixture`**, which registers nothing but the three mapgen
+aliases the engine validates at startup. **The mod registers its own 99 nodes**,
+so a spec wanting a real node has one; if one is ever needed that the mod does
+not provide, register that one node in `cbfixture` and no more.
 
 Six specs also run standalone under a Lua 5.1 interpreter, which is how CI runs
 them and the only way to catch behaviour differing between plain 5.1 and the
@@ -182,7 +185,7 @@ The pipeline spans several files and is the thing worth understanding first.
    identifiers — a message-quality feature, *not* the security boundary.
 2. **`lib/env.lua`** builds the environment. `snapshot` gives each run its own
    copy of the API's tables — copies, not read-only proxies, because Lua 5.1 has
-   no `__pairs` or `__len` and a proxy would break `pairs(blocks)` for player
+   no `__pairs` or `__len` and a proxy would break `pairs(colors)` for player
    code. `new_env` makes API names unassignable, which is what stops a program
    reaching the injected counter.
 3. **`lib/sandbox.lua`** pairs every name with an implementation, calls
@@ -301,6 +304,42 @@ Three rules for a string a player sees, the first two learned from C17:
   on 2026-09-04**, so what `F10` leaves behind is the lesson and not a gap. Read
   the check's *untranslated* list, not just its exit line.
 
+### The mod's own blocks, and a game's
+
+`F11` gave the mod 99 registered nodes of its own — 33 colours in
+`lib/config.lua`'s `palette`, each a solid, a glass and a lamp, built in
+`lib/nodes.lua` from two shared tiles tinted with **`^[multiply:#rrggbb`**. Not
+`^[colorize:<hex>:255`, which at ratio 255 replaces every pixel and would throw
+the tiles' grain away and opaque the glass. `mod.conf` is `depends = vector3`.
+
+**A category is a namespace and the flat key space behind it is not.** `place()`
+takes one string, so `colors.red`, `glass.red` and `lamps.red` resolve to the
+unique keys `red`, `red_glass` and `red_lamp`. A game's category is namespaced —
+`wool.red` — so a game can never shadow one of the mod's own.
+
+**Read a category through `allowed_blocks.by_name[name].spelled`, never by
+indexing the structure table.** A game chooses its own category name, so a name
+that indexed `allowed_blocks` directly could be `all` or `fallback` and overwrite
+the map every write path resolves through.
+
+**`codeblock.register_blocks` is queued at the call and validated at
+`register_on_mods_loaded`** (`lib/blocks.lua`). That ordering is the constraint:
+`core.registered_nodes` is complete only then, so checking at the call would
+refuse a node belonging to a mod that loads later. A refusal is
+`core.log('error', ...)` naming the calling mod — **never a raise**, because a
+game's typo must not abort the server — and a call arriving after the seal is
+refused rather than warned about.
+
+**Derive every view of the palette in `config.add_category` and nowhere else.** A
+list built at load time in a reader is a snapshot taken before any game has
+registered anything. Three such snapshots existed and all three were invisible to
+the suite; `rev_blocks` in `lib/commands.lua` was a live defect, `get_block()`
+answering `false` for every game-registered node. The views are mutated and never
+replaced, so a local reference still sees a late arrival.
+
+**None of the 99 nodes has a `sounds` field, deliberately** — every
+`node_sound_*_defaults()` belongs to a game.
+
 ### Per-codelevel limits
 
 Seven limits in `lib/config.lua` are four-element arrays indexed by the player's
@@ -403,7 +442,7 @@ survives a redraw, field routing, one form per player.
 invisible until something is drawn in the wrong place (roadmap F1, F2). A `scroll_container` maps its contents into a
 different space from the elements around it and clips them to its own rectangle,
 so rows drawn in one land somewhere else; and an `item_image_button` inside one
-gets a hit area that does not match where it is drawn. The three help panels get
+gets a hit area that does not match where it is drawn. The help panels get
 away with a container only because `item_image` takes no clicks. That is why the
 block picker is a `textlist` — a legacy element that scrolls itself, as the file
 list in the same form already does. And **a button's `W` is not a width**: the

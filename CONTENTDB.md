@@ -45,8 +45,8 @@ Experiment and discover with the other examples, or write your own!
 - **Every player has a `codelevel`**, and it bounds what one program may spend of
   the server: how long it runs, how many blocks it writes, how much of the map it
   holds at once. If a program stops early, that is usually why, and the chat says
-  which limit it hit. While it is still running, the corner display says which
-  limit it is heading for.
+  which limit it hit. While it is still running, the corner display shows how
+  much of each it has spent, and colours whichever one it will reach first.
 - **At codelevels 1 and 2 the drone builds slowly on purpose**, so a beginner can
   watch a loop happen. Levels 3 and 4 do not wait.
 - **A very large shape takes time and memory on the server.** It is not
@@ -59,7 +59,9 @@ Experiment and discover with the other examples, or write your own!
 
 - **Its own blocks** The mod no longer needs Minetest Game: it brings its own
   palette of 33 colours as `colors`, `glass` and `lamps`, and installs into any
-  game. The old `blocks`, `plants`, `wools` and `iwools` names are gone.
+  game. The old `blocks`, `plants`, `wools` and `iwools` names are gone. A game
+  can add a block category of its own with `codeblock.register_blocks`, and it
+  shows up in the editor beside the built-in ones.
 - **HUD** A display in the top right corner while a program runs, showing how
   much of its budget it has spent.
 - **Control panel** Left click with the **drone setter** tool to show a panel with the drone limits, plus pause and stop buttons.

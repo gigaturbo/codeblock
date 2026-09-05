@@ -20,7 +20,32 @@ it.
 
 ## Where it stands
 
-**83 findings. 82 resolved, none open, 1 won't fix (`B34`).**
+**85 findings. 82 resolved, 2 open (`A17`, `A18`), 1 won't fix (`B34`).**
+
+**Both open findings are pre-existing, low, and were filed on 2026-09-05 while
+recording `F11`** — neither is a defect `F11` introduced and neither blocks the
+tag. `A17` is three exported functions in `lib/utils.lua` with no caller left,
+kept rather than deleted because `codeblock.utils` is a published global and a
+game may be reading them; what it wants is the author's decision. `A18` is
+`meta.active = #meta.tabs` written as a loop in two places in
+`lib/formspecs.lua`, verified equivalent, and the last `LUACHECK_STRICT=1`
+`W421` in that file.
+
+**`F11` is committed in two passes and `test-agent` filed no finding against
+it.** `d075742` gives the mod its own 99 nodes and drops `default` and `wool`;
+`6126abe` adds `codeblock.register_blocks`. Both passes were verified
+independently, every gate was made to fail before it was trusted, and every new
+assertion was killed by a named mutant. **Three gaps were found and closed
+before either commit, so none of them is a finding here**: two load-time palette
+snapshots in `lib/formspecs.lua` (`pickable`, `help_categories`) and a third in
+`lib/commands.lua` (`rev_blocks`) that a later `add_category` would not have
+reached. The third **was a live defect** — `get_block()` would have answered
+`false` for every game-registered node — and it was wrong only in code that never
+shipped, which is the `F2` precedent: a feature wrong before it ships is recorded
+in its `ROADMAP.md` entry, not given an id. The reasoning is under `F11` there.
+**Two things about `F11` are outstanding and neither is a finding: CI has seen no
+part of it**, both commits being unpushed, **and none of its eleven `PLAYTEST.md`
+checks has been run**, which is outstanding *checking*.
 
 **`B50` and `B52` are fixed in `1b991ae` and now verified in a running world.**
 The fix is the one chosen on 2026-09-03 — decouple the drone record from its
@@ -54,7 +79,7 @@ both are corrected, and the correction is under the entry below.
 | B bugs | 49 | — (`B51` fixed at `8de3cea` and confirmed in a world by `D7`) — and `B34` won't fix, `B47` resolved with a residue, `B48` fixed at `4179877` and confirmed by `E16`, `B49` fixed at `d8c32f7` and confirmed by `W4`, `B50` and `B52` fixed at `1b991ae` and confirmed in a world by `W1`, `W5` and `W6` on 2026-09-04 |
 | S sandbox and security | 7 | — |
 | C compliance and packaging | 15 | — (`C21` fixed by `F10` at `b23a8bc`, confirmed in a world by `F10-1`) |
-| A architecture and performance | 12 | — |
+| A architecture and performance | 14 | `A17`, `A18` — both low, both pre-existing, both filed 2026-09-05 while recording `F11` |
 
 **CI is green on all three jobs at `65b4c46`, which is `HEAD` and is pushed** —
 run 47, checked against the Actions API on 2026-09-04. So nothing here carries
@@ -110,10 +135,20 @@ retuning's effect on the bundled examples off this list too.
 
 ## Open and won't fix
 
-**Nothing is open.** `B51` was the last, and it is fixed at `8de3cea` on
-2026-09-04 and **observed fixed in a world the same day** — the entry is in
-*B · Bugs* below, with the wording decision, the second caller whose behaviour
-changed with it, and the constraint the fix was built to.
+**Two are open, `A17` and `A18`, both low and both pre-existing.** Their entries
+are in *A · Architecture and performance* below. Neither is a defect a player
+can reach: `A17` is three dead exports on `codeblock.utils` kept because the
+table is a published global and something downstream may read them — the author
+decides whether v1.0.0 deletes them or the surface is declared public — and
+`A18` is one clear-code fix in `lib/formspecs.lua`, verified equivalent and the
+last `LUACHECK_STRICT=1` `W421` in it. **Neither blocks the tag.**
+
+**No bug, sandbox or compliance finding is open.** `B51` was the last, and it is
+fixed at `8de3cea` on 2026-09-04 and **observed fixed in a world the same day** —
+the entry is in *B · Bugs* below, with the wording decision, the second caller
+whose behaviour changed with it, and the constraint the fix was built to.
+**`F11` added none**: it was verified pass by pass and the three gaps that were
+found were closed before either commit landed.
 
 `B34` is the one **won't fix**: it is in *B · Bugs* below. `B47` is resolved with
 a residue that ships, also below, and that residue is under *What ships broken*
@@ -1140,7 +1175,8 @@ and `C15` are the game's; `C9` never used.
 
 ## A · Architecture and performance
 
-12 findings, all resolved. `A7`, `A8`, `A13`, `A14` are the game's. Closing `A3`,
+14 findings, 12 resolved, `A17` and `A18` open. `A7`, `A8`, `A13`, `A14` are the
+game's. Closing `A3`,
 `A6`, `A9` and `A11` in Phase 7 left four regressions behind (`B27`, `B28`,
 `B29`, `B30`): **a clean architecture section was not a clean phase, and a
 refactor's findings should not be closed without a review of what the refactor
@@ -1249,6 +1285,31 @@ introduced.**
   checking the description against itself and `api.build`'s bidirectional raise
   firing only in-engine. **Consequence: adding an API name is an `api_spec` edit
   too.**
+- **A17 · low · open** — three exported functions in `lib/utils.lua` have no
+  caller anywhere in the repository: `table_reverse` (line 47), which lost its
+  last one in `F11`'s second pass, `table_convert_ik` (53), which lost its last
+  in the first pass, and `table_convert_iv` (60), which never had one. Found
+  2026-09-05 while recording `F11`; grepping `lib/`, `init.lua`, `scripts/` and
+  `tests/` for each name returns only its own definition.
+  **Not deleted, deliberately, and that is the whole finding.** They are on
+  `codeblock.utils`, which is a global table this mod publishes, so a game or
+  another mod could be reading them — the same reasoning `F11` used for
+  `codeblock.register_blocks`, one level down. Deleting them is a silent
+  breaking change to an unversioned surface; keeping them is three functions
+  nothing exercises. **What is wanted is the author's decision, not a cleanup:**
+  either delete all three in v1.0.0, where a breaking change is free, or state
+  that `codeblock.utils` is public and leave them. Doing nothing keeps them dead
+  and keeps the question.
+- **A18 · low · open** — `lib/formspecs.lua` writes `meta.active = #meta.tabs`
+  as a loop in two places: `remove_active` (line 470) and `close_active` (578)
+  each end with
+  `for i, filename in ipairs(meta.tabs) do meta.active = i end`, whose body runs
+  once per tab to leave the last index behind, and whose `filename` is never
+  read. **Verified equivalent**, so this is clarity and not correctness — and it
+  is the last remaining `LUACHECK_STRICT=1` `W421` in that file, which is the
+  only reason it is worth an id at all. Pre-existing; `F11` touched neither
+  function. Fixing it is two one-line replacements and wants a spec run behind
+  it like any other edit to that file.
 
 ---
 
@@ -1262,14 +1323,22 @@ document says so.
   46 (`7dbe18f`) and **47 (`65b4c46`, `HEAD`)**, all three jobs green in each:
   luacheck, the six standalone specs under plain Lua 5.1, and the three
   `--check` gates. **CI never runs the nine in-engine specs**, which is why the
-  editor findings rest on the local suite and the playtests.
+  editor findings rest on the local suite and the playtests. **CI has seen no
+  part of `F11`**: `d075742` and `6126abe` are both unpushed and `origin/master`
+  is still at `65b4c46`.
 - **Verified locally** (engine 5.17.0, read from output rather than exit codes —
   `$?` does not survive this machine's WSL layer): nine in-engine specs, **474
   passed / 0 failed / 1 xfail / 0 xpass** at `1b991ae`, with all five gates
   green. The count moved 458 → 471 → 474: 458 was the run after `B47`'s beat
   change and the `settingtypes.txt` generator, 471 added 13 `env_spec` cases for
   `B49`, and 474 added three to `integration_spec`'s drone-seam block for
-  `B50`/`B52`.
+  `B50`/`B52`. **`F11` was verified the same way over both its passes** —
+  luacheck silent, all four `--check` generators up to date, the six standalone
+  specs under Lua 5.1 and the nine in-engine, **0 failed and 0 xpass**, with
+  `integration_spec` at **167 assertions**. `test-agent` also **made every gate
+  fail on purpose** before reading it as green, and killed each new assertion
+  with a named mutant, which is the `C20` rule applied to a whole feature rather
+  than to one check.
 - **Verified by making the check fail.** Both generators' completeness guards,
   by adding a fake per-codelevel limit to `config.lua` and watching each name it
   and exit 1 (`C20`). That is the only evidence that distinguishes a check which
@@ -1312,12 +1381,23 @@ document says so.
   committed as well (`4179877`, `b23a8bc`, `d8c32f7`). **`B50` and `B52` left it
   on 2026-09-04**, when all three of the checks written for them passed at
   `23f0227`.
-- **Gates green, playtest written and not yet run — none.** `B51` was the last
-  entry, its check `D7` written with the fix on 2026-09-04 and run the same day.
-  `B50` and `B52` were the two before it, at `1b991ae`, and both left on
-  2026-09-04: `W1` at every codelevel, `W5` and `W6` all ran and all passed.
-  `B49` left on 2026-09-03 through `W4` at `16cd05c`. **Every check in
-  `PLAYTEST.md` now carries a result**, which has not been true before.
+- **Gates green, playtest written and not yet run — `F11`, all eleven of its
+  checks.** Written 2026-09-05 with the record, at `6126abe`, and none has been
+  run. That is the whole of the outstanding evidence for the feature: **nothing
+  `F11` does is provable by the specs** — a registered node, a texture, a
+  creative-inventory listing, the picker, the help row and a game's own
+  registration all need a world. No finding is behind them; a feature's checks
+  being unrun is outstanding *checking*, not unfinished work. Before that entry
+  this list was empty and every check in `PLAYTEST.md` carried a result, which
+  had not been true before: `B51`'s `D7` was written with the fix on 2026-09-04
+  and run the same day, `B50` and `B52`'s three checks all ran on 2026-09-04,
+  and `B49`'s `W4` on 2026-09-03 at `16cd05c`.
+- **Correct by reading, unprovable by running.** The `rev_blocks` fix in
+  `lib/commands.lua` — the third of `F11`'s load-time snapshots, and the one
+  that was a live defect. `lib/commands.lua` captures `core.get_node` at load,
+  and calling it for real at mod load dies because content ids are not cached
+  yet, so no spec can exercise `get_block()` at all. Its evidence is playtest
+  `F11-11` and nothing else.
 - **Explained by reading, confirmed by playing it, fixed, then confirmed again:**
   `B50`. The cause is a reading of the 5.17.0 engine source —
   `serveractiveobject.h:123-129` and `serverenvironment.cpp:1685-1690` for the

@@ -20,18 +20,21 @@ way.
 
 ## The fixture game
 
-Luanti will not load a mod whose `depends` are unmet, and `mod.conf` names
-`default`, `wool` and `vector3`. So `tests/game` is a game whose whole purpose is
-to satisfy that: `game.conf` on singlenode, empty `default` and `wool` stubs, and
-`vector3` as a submodule. The mod calls no function from `default` or `wool` and
-borrows no asset from them — the only use is the node names in the palette tables
-of `lib/config.lua` — so the stubs register nothing but the three mapgen aliases
-the engine validates at startup.
+The engine needs a game to boot, and it will not load a mod whose `depends` are
+unmet. `mod.conf` names `vector3` and nothing else, so `tests/game` is a game
+whose whole purpose is to satisfy that: `game.conf` on singlenode, `vector3` as a
+submodule, and **`tests/game/mods/cbfixture`**, which registers nothing but the
+three mapgen aliases the engine validates at startup.
+
+**It used to hold empty `default` and `wool` stubs as well.** `F11` dropped both
+dependencies — the mod registers its own 99 nodes now — and the two stubs went
+with them, `cbfixture` taking over the mapgen aliases. If a spec needs a node the
+mod does not provide, register that one node in `cbfixture` and no more.
 
 The game cannot live in the repository, because it has to contain the repository
 as one of its mods. `scripts/run_tests.ps1` assembles it in
-`%APPDATA%\Minetest\games\cbtest`: `tests/game` copied for `game.conf` and the
-stubs, plus a junction for the mod itself.
+`%APPDATA%\Minetest\games\cbtest`: `tests/game` copied for `game.conf` and
+`cbfixture`, plus a junction for the mod itself.
 
 If a submodule was never initialised, the boot fails on `vector3`:
 

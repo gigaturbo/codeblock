@@ -30,17 +30,37 @@ A recipe also **names the shell it is for** — that has cost a session twice
 
 ## Where it stands
 
-**60 checks, and every one of them carries a result.** **`D7` was the last
-without one**: written 2026-09-04 with `B51`'s fix and played the same day, at
-`8de3cea` plus a comment-only edit — *stopped* with a partial node count, and
-*arrêté* in French. That is **`B51` observed fixed in a world**, and nothing else
-can ever show it, no spec asserting what `Drone.finish` sends. The engine version
-was not restated by the author.
-**No check has a fail as its most recent result**, and one is a partial — `H8`,
-and only because two of its cases cannot be performed. `F9-1`, `R1`, `E16`, `W1`,
-`W3` and the four `F10-n` checks each carry two results or more.
+**71 checks, eleven of them unrun — `F11-1` to `F11-11`.** They were written on
+2026-09-05 at `6126abe`, when `F11` landed in two passes, and **none has been
+run**. Before them every one of the 60 older checks carried a result, which had
+not been true before 2026-09-04. **This is outstanding *checking*, not
+unfinished work:** `F11` is committed with its gates green and no finding
+against it, and what these eleven cover is the part no spec can reach —
+a registered node, a texture, the creative inventory, the picker, the help row
+and a game's own `register_blocks` call.
+
+**Run `F11-1` first**, the category selector on a French client. It is the only
+one of the eleven whose failure would be expensive: a legacy dropdown returning
+displayed text rather than the stored item would mean converting the editor out
+of legacy coordinates. Everything else in the group is appearance, digging,
+inventory or a game's registration, and a fail there is a small fix.
+
+**Of the 60 with results, none has a fail as its most recent one**, and one is a
+partial — `H8`, and only because two of its cases cannot be performed. `F9-1`,
+`R1`, `E16`, `W1`, `W3` and the four `F10-n` checks each carry two results or
+more. **`D7` was the last of the 60 to get one**: written 2026-09-04 with `B51`'s
+fix and played the same day, at `8de3cea` plus a comment-only edit — *stopped*
+with a partial node count, and *arrêté* in French. That is **`B51` observed fixed
+in a world**, and nothing else can ever show it, no spec asserting what
+`Drone.finish` sends. The engine version was not restated by the author.
 **`H10` passed 2026-09-02 with a few presses still missing** — the residue
 `B47`'s fix leaves, accepted rather than closed.
+
+**`R1` and `R2` are stale rather than unrun, and `F11` made them more so.** Both
+describe the release archive, which now carries the mod's own textures and no
+`default` or `wool` dependency; `R2` last ran at `7c5bceb`, before `F4` and
+before `.gitattributes` changed. `F11-3` overlaps them and replaces neither: it
+checks a real install into a foreign game, not what the archive contains.
 
 - **`D7` passed on 2026-09-04 and lost half its recipe in the same run.** It
   asked for two routes and one of them stopped existing at `F8`: the setter
@@ -1845,6 +1865,179 @@ Result: pass — `b9143b0` + uncommitted `B48`/`F10` · engine 5.17.0 · 2026-09
 
 Result: pass — `16cd05c` · engine 5.17.0 · 2026-09-03 — re-affirmed at the
 committed code, `b23a8bc`.
+
+### F11-1 · The category selector, in French [F11, B37]
+
+**Run this one first.** It is the only check here whose failure is expensive: it
+would mean converting the editor out of legacy coordinates.
+
+Play on a **French** client. Open the editor.
+
+1. **Move the category selector to *Verre*, then press `Blocks`.** The **glass**
+   panel must open — not the colours panel, and not nothing.
+2. **Press `API`.** The API panel opens.
+3. **Press `ESC`.** The editor closes and **the open tabs are still saved** —
+   the same thing `E14` checks, re-checked here because the selector is an
+   always-sent field sitting in the same handler.
+4. Repeat 1 in **English**, moving it to *Glass*.
+
+**Pass:** the selector switches the panel in both languages, and ESC still saves.
+
+**If it works in English and does nothing in French, that is a finding and not a
+mystery:** the client is returning the *displayed* text rather than the stored
+item, so a translated label never matches the untranslated one the guard
+compares against. The fix would be formspec-version-4 `index event`
+(`lua_api.md` 5.17.0 line 3579), which this form cannot use while it is in
+legacy coordinates — see `F11` in `ROADMAP.md`.
+
+Result: not yet run.
+
+### F11-2 · The help row's geometry [F11, F1]
+
+The arithmetic is exact and derived from `src/gui/guiFormSpecMenu.cpp`, and it
+has **never been on a screen**. A legacy button's `W` is short by a fixed 0.2
+units and a dropdown's is not, which is the trap the whole row is built around.
+
+Look at the top right of the editor, in **English and in French**, whose words
+are longer.
+
+**Pass:** `Blocks`, the selector, `API` and `Settings` sit flush on one row, the
+same height, none overlapping another, and no label clipped.
+
+Result: not yet run.
+
+### F11-3 · The mod installs into a game that ships neither `default` nor `wool` [F11, C16, C10]
+
+**This is the whole point of the feature and nothing local proves it** —
+`tests/game` is a fixture this project wrote for itself.
+
+Install the mod, plus `vector3`, into a third-party game from ContentDB that
+ships neither `default` nor `wool`. Start a world, get the tools with
+`/codeblock tools`, place a drone and run a program that places a block.
+
+**Pass:** the game starts, the mod loads with no dependency error, and the block
+lands. **Anything in `debug.txt` naming `codeblock` is worth reading** even on a
+pass.
+
+Result: not yet run.
+
+### F11-4 · The 33 colours look like their hexes [F11]
+
+`^[multiply` over a near-white grained tile, rather than `^[colorize` over
+anything — the appearance is the entire difference between the two.
+
+1. **Build a row of all 33 solids** and look at them together.
+2. **Build a large wall of one colour** and stand back from it.
+
+**Pass:** each colour reads as the hex `lib/config.lua` gives it, in all three
+variants; the wall shows the grain without an obvious repeating tile pattern;
+and the 33 are distinguishable from one another at a glance, which is what the
+palette was sized for.
+
+Result: not yet run.
+
+### F11-5 · Coloured glass and coloured lamps [F11]
+
+1. **Build a glass wall** of two or three colours, with light behind it. Join two
+   faces at a corner.
+2. **Put one lamp in a dark room**, then swap it for a different colour.
+
+**Pass:** the glass tints what you see through it and **does not go opaque where
+two faces meet**; a lamp lights the room.
+
+**Every colour of lamp lights the room identically, and that is correct, not a
+defect.** Luanti's light carries no hue — a light source has a level and no
+colour — so a blue lamp gives white light. A player will test this first, so it
+is written down here rather than left to be filed.
+
+Result: not yet run.
+
+### F11-6 · The blocks are silent, deliberately [F11]
+
+Walk on one, dig one, place one, and listen.
+
+**Pass:** nothing. **None of the 99 has a `sounds` field**, on purpose: every
+`node_sound_*_defaults()` belongs to a game, and calling one would put the mod
+back to needing a game to provide something. **A player will read silence as
+broken**, so the point of this check is to have it seen once and recorded as
+intended.
+
+Result: not yet run.
+
+### F11-7 · Digging, in a game that is not `codecube` [F11, B48]
+
+Dig one of the mod's blocks **by hand** and then **with a pick**, in a game that
+provides its own tools.
+
+**Pass:** the block breaks in a sensible time by each route and drops itself.
+Watch for the block reappearing after it looked broken — that is client-side dig
+prediction disagreeing with the server, and it is the shape `B48` was.
+
+Result: not yet run.
+
+### F11-8 · The creative inventory [F11]
+
+Open the creative inventory in a game with a small item set, and search
+`codeblock`.
+
+**Pass:** 99 items with descriptions that read sensibly, and the mod's section
+does not swamp the game's own.
+
+**The descriptions read *"Bloc red"* on a French client, and that is
+deliberate** — the colour name is the identifier a program types, so translating
+it would show a word `place()` does not accept.
+
+Result: not yet run.
+
+### F11-9 · `is_ground_content = false` survives mapgen [F11]
+
+In a game that **generates terrain** — not a flat or singlenode world — build
+something with the mod's blocks, then travel far enough that the area unloads and
+come back. Better still, build near a cave or an ore-bearing depth.
+
+**Pass:** the build is intact. `is_ground_content = false` is what keeps mapgen
+from carving a player's structure away, and only a real mapgen can show it.
+
+Result: not yet run.
+
+### F11-10 · A real game mod calls `register_blocks` [F11]
+
+Write a small mod that names `codeblock` in its `depends` and calls
+`codeblock.register_blocks` at load time — the contract is in `lib/blocks.lua`'s
+header.
+
+1. **A good call.** Two or three names pointing at nodes the game registers.
+   **Pass:** the category appears in the sandbox, in the editor's block picker
+   and in the help panel's selector, showing its **raw** name.
+2. **A bad call.** A name that is not a valid identifier, a name colliding with
+   one of the mod's own, and an itemstring naming no node. **Pass:** each is
+   refused with a line in `debug.txt` **naming your mod, the name and the rule**,
+   and the server keeps running.
+3. **A late call.** Call `register_blocks` from inside a `core.after` or a
+   globalstep, after loading is done. **Pass:** it is **refused** and logged —
+   not accepted, and not merely warned about. It cannot be validated after the
+   seal, so accepting it would be accepting an unchecked name.
+
+Result: not yet run.
+
+### F11-11 · A registered category reaches `place()`, `get_block()` and player meta [F11]
+
+With the mod from `F11-10` installed. **This is the `rev_blocks` fix's only
+possible evidence** — `lib/commands.lua` captures `core.get_node` at load and
+calling it for real at mod load dies, so no spec can reach `get_block()` at all.
+
+1. Run `place('wool.red')`.
+   **Pass:** the node lands.
+2. Move the drone onto it and print `get_block()`.
+   **Pass:** it answers the name for that node — **not `false`**, which is what a
+   load-time snapshot of the reverse map would have given for every
+   game-registered node.
+3. **Pick `wool.red` as your default block** in the editor's *Settings* panel,
+   disconnect and rejoin.
+   **Pass:** the dotted key survived in player meta as `default_block`, and a
+   bare `place()` builds it.
+
+Result: not yet run.
 
 ---
 
