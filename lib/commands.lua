@@ -35,9 +35,12 @@ local end_command = codeblock.cost.end_command
 local place_block = codeblock.cost.place_block
 
 local S = codeblock.S
-local table_reverse = codeblock.utils.table_reverse
 
 local blocks = codeblock.config.allowed_blocks.all
+-- The same map read backwards, for get_block(). Taken from the config rather
+-- than reversed here: a game may add a category after this file has run, and a
+-- table reversed at load time would be a snapshot that never grew. (F11)
+local rev_blocks = codeblock.config.allowed_blocks.by_node
 
 -- The engine's own edge of the world, from mapgen_limit. Past it a write
 -- silently does nothing, which is the lost write load_area was added to stop, so
@@ -51,7 +54,6 @@ local world_edge = tonumber(core.settings:get('mapgen_limit')) or 31000
 local tmp2 = pi / 2
 local tmp3 = 4 / 3 * pi
 local tmp4 = 2 / 3 * pi
-local rev_blocks = table_reverse(blocks)
 
 -------------------------------------------------------------------------------
 -- private

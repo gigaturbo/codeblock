@@ -55,7 +55,7 @@ local server_step_budget_us = codeblock.config.server_step_budget_us
 local blocks = codeblock.config.allowed_blocks.all
 -- What a bare place() uses until a player chooses otherwise. Described in
 -- lib/api.lua, so the two have to agree.
-local fallback_block = codeblock.config.allowed_blocks.colors.grey
+local fallback_block = codeblock.config.allowed_blocks.fallback
 
 local tmp1 = 2 / pi
 local tmp3 = pi / 2

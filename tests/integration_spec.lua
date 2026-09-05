@@ -185,7 +185,7 @@ do
     local ok = run('colors.grey = "tampered"\n')
     it('mutating the block table is allowed within the run', ok, true)
     it('but the real config is untouched',
-       codeblock.config.allowed_blocks.colors.grey, 'grey')
+       codeblock.config.allowed_blocks.by_name.colors.spelled.grey, 'grey')
 end
 
 do
@@ -815,7 +815,7 @@ do
     local unresolved = {}
     for _, cat in ipairs(blocks.categories) do
         for _, name in ipairs(cat.names) do
-            local key = blocks[cat.name][name]
+            local key = cat.spelled[name]
             if not (key and blocks.all[key]) then
                 unresolved[#unresolved + 1] = cat.name .. '.' .. tostring(name)
             end
@@ -844,6 +844,340 @@ do
        (core.registered_nodes['codeblock:red_lamp'].light_source or 0) > 0, true)
     it('a solid block emits none',
        (core.registered_nodes['codeblock:red'].light_source or 0), 0)
+end
+
+--------------------------------------------------------------------------------
+-- a game registering a block category of its own (F11)
+--
+-- codeblock.blocks.install is driven directly rather than through
+-- codeblock.register_blocks, because the queue that function feeds is emptied
+-- at register_on_mods_loaded and this spec runs at mod load, before that. Given
+-- a batch it returns what it installed and one line per rule broken, which is
+-- what makes a refusal assertable at all: the mod logs those lines and drops
+-- them, so nothing else here could see one.
+--
+-- The refusals are the valuable half. Each is a rule the decision named, and a
+-- game hitting one has to be told which by name - that is the whole reason for
+-- validating rather than trusting outright.
+--------------------------------------------------------------------------------
+
+do
+    local blocks = codeblock.config.allowed_blocks
+
+    --- Install one request from a fictional mod. Returns the refusal text, or
+    -- '' when it was accepted, so a case asserts on what a game would read.
+    local function refusal(category, entries)
+        local installed, refusals = codeblock.blocks.install({
+            {mod = 'agame', category = category, entries = entries}
+        })
+        if installed > 0 then return '' end
+        return table.concat(refusals, ' | ')
+    end
+
+    local function refused_for(category, entries, what)
+        local why = refusal(category, entries)
+        return (why:find(what, 1, true) ~= nil) and why ~= ''
+    end
+
+    it('a category name that is not an identifier is refused',
+       refused_for('2wool', {red = 'codeblock:red'}, 'Lua identifier'), true)
+
+    it('a category name that is a Lua keyword is refused',
+       refused_for('end', {red = 'codeblock:red'}, 'Lua identifier'), true)
+
+    it('a category colliding with one of ours is refused',
+       refused_for('colors', {red = 'codeblock:red'}, 'already taken'), true)
+
+    -- Not a category, but a name the environment already holds: a table called
+    -- `color` would shadow the function that maps a number onto the hues.
+    it('a category colliding with any API name is refused',
+       refused_for('color', {red = 'codeblock:red'}, 'already taken'), true)
+
+    it('a block naming an unregistered node is refused',
+       refused_for('agame', {red = 'nosuch:node'}, 'no mod has registered'),
+       true)
+
+    it('a block name that is not an identifier is refused',
+       refused_for('agame', {['a b'] = 'codeblock:red'}, 'table key'), true)
+
+    it('a category with nothing placeable in it is refused',
+       refused_for('agame', {}, 'nothing that can be placed'), true)
+
+    it('a refusal names the mod that caused it',
+       refusal('2wool', {red = 'codeblock:red'}):sub(1, 11), 'mod agame: ')
+
+    -- The happy path, installed for real: everything below reads the palette
+    -- the mod is actually running on, which is the only way to prove the seam
+    -- carries a game's category rather than merely accepting one.
+    local before = #blocks.categories
+    local installed = codeblock.blocks.install({
+        {
+            mod = 'agame',
+            category = 'agame',
+            entries = {
+                mud = 'codeblock:brown',
+                -- Refused on its own, and must not cost the category the rest:
+                -- one typo is not worth a game's whole palette.
+                broken = 'nosuch:node'
+            }
+        }
+    })
+
+    it('a valid category installs', installed, 1)
+    it('one bad entry does not cost the category the good ones',
+       #blocks.categories - before, 1)
+
+    -- Defaulted so the two cases below report rather than abort the spec when
+    -- the one above has already failed: one reason to fail per case.
+    local category = blocks.by_name.agame or {names = {}, spelled = {}}
+    it('the category is reachable by name', blocks.by_name.agame ~= nil, true)
+    it('it holds only the entries that passed', #category.names, 1)
+    it('the flat key carries the category, so it cannot shadow ours',
+       category.spelled.mud, 'agame.mud')
+    it('the flat key resolves to the node the game named',
+       blocks.all['agame.mud'], 'codeblock:brown')
+    -- First registrant wins, so get_block() still answers colors.brown for the
+    -- node the mod registered itself.
+    it('a node the mod already owns keeps its own name',
+       blocks.by_node['codeblock:brown'], 'brown')
+
+    local picked = false
+    for _, entry in ipairs(blocks.pickable) do
+        if entry.key == 'agame.mud' then picked = true end
+    end
+    it('the block picker offers it', picked, true)
+
+    local described = false
+    for _, name in ipairs(codeblock.api.names()) do
+        if name == 'agame' then described = true end
+    end
+    it('lib/api.lua describes it, so the sandbox may implement it', described,
+       true)
+
+    it('the in-game help lists it',
+       codeblock.api.to_hypertext():find('agame', 1, true) ~= nil, true)
+
+    it('the reference renders it as a category',
+       codeblock.api.to_markdown(blocks):find('## `agame`', 1, true) ~= nil,
+       true)
+
+    it('registering the same name twice is refused',
+       refused_for('agame', {mud = 'codeblock:brown'}, 'already taken'), true)
+
+    ----------------------------------------------------------------------------
+    -- the editor's category selector
+    --
+    -- get_form is a pure function of the meta table, so the drawn string is
+    -- assertable here even though nothing about clicking it is. What these
+    -- cases hold in place is the decision: one layout, a Blocks button and a
+    -- selector, the same row whether a game registered a category or not - a
+    -- row that only appears once some game registers something is a row nobody
+    -- plays. Whether the two line up on screen is a playtest.
+    ----------------------------------------------------------------------------
+
+    local function help_row(help, chosen, picking)
+        return codeblock.formspecs.file_editor.get_form({
+            name = 'codeblock_spec_player',
+            tabs = {},
+            contents = {},
+            dirty = {},
+            active = 0,
+            help = help,
+            category = chosen,
+            scroll = {},
+            default_block = 'grey',
+            picking = picking or false,
+            soe = false,
+            loe = false,
+            sos = false,
+            newfile = ''
+        })
+    end
+
+    local selector = 'dropdown%[[^%]]-;help_pick;([^;]*);(%d+)%]'
+    -- Over the API panel, where meta.help names no category at all.
+    local items, index = help_row('commands', 'colors'):match(selector)
+
+    it('the selector is drawn over a panel that is not a block panel',
+       items ~= nil, true)
+    it('it shows the category that is selected, not the panel that is open',
+       index, '1')
+    -- The discriminating pair. The case above cannot tell meta.category from
+    -- meta.help on its own: 'commands' names no category, so drawing from
+    -- meta.help would leave the index at its default of 1 and the assertion
+    -- would still pass. These two disagree with each other, so only reading
+    -- meta.category satisfies both.
+    it('the selector follows the choice when a block panel names another',
+       select(2, help_row('agame', 'colors'):match(selector)), '1')
+    it('and follows it over a panel that names no category at all',
+       select(2, help_row('commands', 'agame'):match(selector)),
+       tostring(#blocks.categories))
+    it("it labels the mod's own categories in the player's language",
+       (items or ''):find(codeblock.S('Colors'), 1, true) ~= nil, true)
+    it("and a game's by the raw name a program types",
+       (items or ''):find('agame', 1, true) ~= nil, true)
+    local _, separators = (items or ''):gsub(',', '')
+    it('it offers every category', separators + 1, #blocks.categories)
+
+    -- The count is the point: three help buttons whatever the palette holds.
+    -- A row with one button per category is what this replaced, and it is the
+    -- shape that grows off the edge of the form once a game registers one.
+    local _, buttons = help_row('commands', 'colors'):gsub('button%[[^%]]-;help_',
+                                                           '')
+    it('the row keeps a fixed number of buttons as the palette grows', buttons,
+       3)
+
+    -- The panel itself, and not only the selector above it. The help panel
+    -- looks a category up by name, and a table of them copied at load time
+    -- makes that lookup simply false: a game's category then selects a panel
+    -- that draws nothing and raises nothing. (F11)
+    it("a game's block panel lists its blocks",
+       help_row('agame', 'agame'):find('agame.mud]', 1, true) ~= nil, true)
+
+    -- Drawn, and not merely held by the config. lib/formspecs.lua reads the
+    -- palette for the block picker too, and a list copied there at load time
+    -- would offer the mod's own blocks and nothing a game added - which the
+    -- case above cannot see, because it reads the config's own table. (F11)
+    it('the block picker draws it',
+       help_row('settings', 'colors', true):find('agame.mud', 1, true) ~= nil,
+       true)
+
+    local _, selected = help_row('agame', 'agame'):match(selector)
+    it("the selector follows a game's category too", selected,
+       tostring(#blocks.categories))
+
+    -- The one rule that cannot be reached through the public function from
+    -- here: the suite runs at mod load, where the queue is still open. The flag
+    -- is on the module so this case exists at all.
+    codeblock.blocks.sealed = true
+    it('a call after every mod has loaded is refused',
+       codeblock.register_blocks('late', {mud = 'codeblock:brown'}), false)
+    codeblock.blocks.sealed = false
+
+    ----------------------------------------------------------------------------
+    -- what the editor does with the value the selector sends back
+    --
+    -- A dropdown is in the field table on every submit, like a scrollbar and
+    -- unlike a button, so the handler has to decide from the value alone
+    -- whether the player moved it. Two properties carry that, and they fail in
+    -- opposite directions:
+    --
+    --   * a value is a choice only when it *matches* a category's label. A
+    --     guard reading "differs from what it was drawn with" would call every
+    --     submit a choice the moment a client ever answered with displayed
+    --     rather than stored text.
+    --   * the branch is last in the chain, below quit. So even a value that
+    --     does match loses to whatever else the player did, and what goes
+    --     wrong is the panel rather than the save. (B37)
+    --
+    -- on_close is driven directly with a fake player and no live form session.
+    -- update() therefore reaches forms.update, which finds no session and
+    -- sends nothing, and save_editor_state looks the name up and gets nil, so
+    -- no player meta is written. get_form still runs, which lists the player's
+    -- directory - a read of a path that does not exist. Nothing here writes.
+    ----------------------------------------------------------------------------
+
+    local function submit(fields)
+        local meta = {
+            name = 'codeblock_spec_player',
+            tabs = {},
+            contents = {},
+            dirty = {},
+            active = 0,
+            help = 'commands',
+            category = 'colors',
+            scroll = {},
+            default_block = 'grey',
+            picking = false,
+            soe = false,
+            loe = false,
+            sos = false,
+            newfile = ''
+        }
+        codeblock.formspecs.file_editor.on_close(meta, {
+            get_player_name = function() return 'codeblock_spec_player' end
+        }, fields)
+        return meta
+    end
+
+    -- The wire value for a category the mod owns. S() returns a translation
+    -- escape, so this is what the engine round-trips and not the word a French
+    -- client shows - which is what the next three cases send instead.
+    local glass_label = codeblock.S('Glass')
+
+    it('a matched value opens that category', submit({help_pick = glass_label})
+           .help, 'glass')
+    it('and is remembered as the choice',
+       submit({help_pick = glass_label}).category, 'glass')
+
+    -- The three below pin the fail-safe direction rather than catching a
+    -- regression that has happened: the guard has required a match since it was
+    -- written, so they pass against the previous chain too. They fail against a
+    -- guard simplified to "differs from the label it was drawn with".
+    it('a value matching no label opens no panel',
+       submit({help_pick = 'Couleurs'}).help, 'commands')
+    it('and leaves the remembered choice alone',
+       submit({help_pick = 'Couleurs'}).category, 'colors')
+    it('and does not consume the event it arrived with',
+       submit({help_pick = 'Couleurs', help_settings = 'x'}).help, 'settings')
+
+    -- The other half of the same guard, and the one an always-sent field makes
+    -- necessary: the selector reports the item it was drawn with on every
+    -- submit, so that value is a resend and not a choice. Without this the
+    -- block panel would open under any submit no branch above claimed.
+    it('the value the selector was drawn with reads as a resend',
+       submit({help_pick = codeblock.S('Colors')}).help, 'commands')
+
+    -- Ordering. Both cases send a value that does match, so neither can pass
+    -- by the guard failing to fire - the first two cases above are what proves
+    -- it fires. Against the chain that had this branch above quit, both fail.
+    it('a matched value loses to the event it arrived with',
+       submit({help_pick = glass_label, quit = 'true'}).help, 'commands')
+    -- The same, with a winner whose effect is visible: it is not only that the
+    -- selector lost, it is that the other event ran.
+    it('and the event it lost to is the one that runs',
+       submit({help_pick = glass_label, help_settings = 'x'}).help, 'settings')
+    -- The choice is still recorded on that submit, so pressing Blocks later
+    -- opens the category the player picked. Losing the event does not mean
+    -- forgetting it.
+    it('a choice that lost its submit is still remembered',
+       submit({help_pick = glass_label, quit = 'true'}).category, 'glass')
+
+    ----------------------------------------------------------------------------
+    -- no two categories share a label
+    --
+    -- Last in this block on purpose: it installs a category, so it changes the
+    -- palette every case above counts.
+    --
+    -- Why this is worth a case. The selector sends the item's *text* back, and
+    -- the handler decides whether the player moved it by comparing that text
+    -- against the label the selector was drawn with, so two categories under
+    -- one label are two the handler cannot tell apart and one of them becomes
+    -- unreachable. `glass` is taken and `Glass` is not, and the English for
+    -- S('Glass') is the word itself - which reads like a collision waiting to
+    -- happen and is not one, because S() returns a translation escape
+    -- (\27(T@codeblock)Glass\27(E)) and a raw category name never contains one.
+    -- The engine round-trips it exactly: parseDropDown stores
+    -- unescape_string(item) and acceptInput sends that, not the displayed text
+    -- (guiFormSpecMenu.cpp 1447 and 4319).
+    --
+    -- So this holds the escape in place. Labelling the mod's own three with
+    -- plain words would create the collision the moment a game picked one of
+    -- them, and nothing else here would notice.
+    ----------------------------------------------------------------------------
+
+    it('a category differing from one of ours only in case is accepted',
+       codeblock.blocks.install({
+        {mod = 'agame', category = 'Glass', entries = {pane = 'codeblock:brown'}}
+    }), 1)
+
+    local seen, duplicate = {}, nil
+    for item in (help_row('commands', 'colors'):match(selector) or ''):gmatch(
+                    '[^,]+') do
+        if seen[item] then duplicate = item end
+        seen[item] = true
+    end
+    it('no two categories are drawn under the same label', duplicate, nil)
 end
 
 --------------------------------------------------------------------------------

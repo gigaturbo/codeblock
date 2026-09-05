@@ -179,6 +179,10 @@ api.groups = {
         }
     }, {
         title = 'Block tables',
+        -- Named, because lib/blocks.lua appends an entry here for every
+        -- category a game registers and matching on the title would break on a
+        -- rewording. It is the only group that grows at run time. (F11)
+        id = 'blocks',
         intro = 'Anything taking a `block` argument wants a value from one of ' ..
             'these. The names each table holds are listed under Block types ' ..
             'below.',

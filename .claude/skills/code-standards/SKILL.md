@@ -88,6 +88,7 @@ Do not re-derive these, and do not undo the guards they bought.
 | `Drone.finish` is the single place an outcome is announced (B12, B30). A new ending is a new **branch and a new `S()` key inside it**, never a second announcement path — that is how *cut short* was added: `Drone.on_remove` passes `'stopped'`, which the stepper never produces. | B51 |
 | `get_int` cannot tell an unset key from a stored `0`. Read a boolean preference with `get_string`, where absent is `""`. | B5 |
 | A **scrollbar arrives in the field table on every submit**; a **checkbox is absent unless it was the box clicked**. `lua_api.md` reads as though the opposite. So: in one `elseif` chain, every always-sent field comes last or is read before the chain. | B37 |
+| A **dropdown is always-sent too** (`parseDropDown` sets `send = true`), so it belongs in that same class. Two exceptions: on the submit a dropdown's *own* change fires, `OnEvent` clears `send` on every **other** dropdown and restores it after; and a dropdown drawn with selected index `0` selects nothing, so `acceptInput` skips it and the field is absent. Compare an arriving value against the state it was **drawn** from, never against something else that happens to correlate. | B37, F11 |
 | Every editor redraw re-renders the text area, so `fields.content` is captured once before the branch chain, never inside a branch. | B35 |
 | `on_place` fires only with a node under the crosshair; aiming at sky or unloaded ground calls `on_secondary_use`. Both route into one call, and the no-node check sits above the busy check. | B38 |
 | **Never clear a player's inventory** — add what is missing, and read both `main` and `craft` so a tool parked in the craft grid is not duplicated on every join. | B39 |
@@ -99,6 +100,27 @@ contents into a different space and clips them; an `item_image_button` inside on
 gets a hit area that does not match where it is drawn; a legacy button's `W` is
 short by a fixed 0.2 units and its `H` only shifts it down. Anything new in that
 form has to know all of it.
+
+**Every legacy element's `W` is its own unit, so two of them do not line up by
+sharing a number.** Legacy `spacing` is `(1.25·S, 15/13·S)` for imgsize `S`, and
+a position is always `x · spacing.X` — but a `button` is `W · spacing.X − 0.25·S`
+wide, a `textlist` is `W · spacing.X`, and a **`dropdown` is `W · spacing.Y`**,
+with no offset. Converting between them is arithmetic, not a guess: the editor's
+selector spans a button row's 2.625·S at `W = 2.275`, and sits at `y = -0.025` so
+its rectangle (`y` to `y + 2·m_btn_height`) lands on the buttons' (`H·S/2 ±
+m_btn_height`). A **dropdown returns the item's *text*, not its index**, unless
+the `index event` parameter is given — which is a formspec version 4 parameter
+and so unavailable in a legacy form. Neither the widths nor that last point is
+in `lua_api.md`; `parseButton`, `parseDropDown` and `acceptInput` are.
+
+**Branch on a value *matching* something you drew, never on it *differing*.**
+For an always-sent field whose round trip you cannot check offline — a dropdown's
+item text, which for a translated label is an escape sequence — the two are not
+symmetric. Match, and a value you do not recognise is ignored: the control
+silently does nothing. Differ, and an unrecognised value reads as a change on
+every submit, consuming whatever else the player did in the same event, ESC
+included. The first failure is cosmetic and the second loses their work, so pick
+the shape rather than the fact you could not verify.
 
 ## What a change drags with it
 

@@ -42,9 +42,15 @@ local drone_get_block = codeblock.commands.drone_get_block
 -- there - as it does for use_call - would be two names for one function. (F3)
 local sleep = codeblock.cost.sleep
 
-local colors = codeblock.config.allowed_blocks.colors
-local glass = codeblock.config.allowed_blocks.glass
-local lamps = codeblock.config.allowed_blocks.lamps
+-- The categories as a list, because a game may register one of its own and the
+-- environment names them all the same way. The mod's own three are also read by
+-- name, for random.color, random.glass and random.lamp, which are ours: a
+-- registered category is reached with table.randomizer instead. (F11)
+local categories = codeblock.config.allowed_blocks.categories
+local by_name = codeblock.config.allowed_blocks.by_name
+local colors = by_name.colors.spelled
+local glass = by_name.glass.spelled
+local lamps = by_name.lamps.spelled
 local hues = codeblock.config.allowed_blocks.hues
 local nhues = #hues
 local table_randomizer = codeblock.utils.table_randomizer
@@ -170,14 +176,11 @@ local function getScriptEnv(drone)
         ['centered.horizontal.cylinder'] = function(l, r, block, hollow)
             place_ccylinder(drone, 'H', l, r, block, hollow)
         end,
-        -- Block tables: snapshots, so a program cannot alter them for others,
-        -- and name-indexed, so a name that is not in one is a misspelling worth
-        -- reporting. hues is the wheel order as an array, where reading past
-        -- the end is a legitimate thing to do, so it gets no such report. air
-        -- is engine-provided and belongs to no category, so it is a plain name.
-        ['colors'] = snapshot(colors, unknown_block),
-        ['glass'] = snapshot(glass, unknown_block),
-        ['lamps'] = snapshot(lamps, unknown_block),
+        -- The block categories are added below, after this table: they are not
+        -- known until every mod has loaded. hues is the wheel order as an
+        -- array, where reading past the end is a legitimate thing to do, so it
+        -- gets no misspelling report. air is engine-provided and belongs to no
+        -- category, so it is a plain name.
         ['hues'] = snapshot(hues),
         ['air'] = 'air',
         -- choosing blocks
@@ -223,6 +226,17 @@ local function getScriptEnv(drone)
         ['pairs'] = pairs,
         ['table.randomizer'] = table_randomizer
     }
+
+    -- Every block category, the mod's own three and any the game registered.
+    -- Snapshots, so a program cannot alter one for every other player, and
+    -- name-indexed, so a name that is not in one is a misspelling worth
+    -- reporting. Built here rather than listed above because the list is only
+    -- complete once every mod has loaded, and lib/blocks.lua has by then
+    -- described each one in lib/api.lua - which is what stops build_api below
+    -- refusing an implementation nothing describes. (F11)
+    for _, category in ipairs(categories) do
+        impls[category.name] = snapshot(category.spelled, unknown_block)
+    end
 
     local api = build_api(impls)
 

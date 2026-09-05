@@ -30,20 +30,30 @@ local categories = codeblock.config.allowed_blocks.categories
 -- the colour wheel, so the list reads as one rather than as an alphabet.
 -- `air` opens it because it belongs to no category and is the one name that
 -- erases rather than builds.
-local pickable = {{key = 'air', label = 'air'}}
+--
+-- Both of these are the config's own tables, not lists built here: a game may
+-- register a category after this file has run, and a list built at load time
+-- would be a snapshot missing it. (F11)
+local pickable = codeblock.config.allowed_blocks.pickable
 -- meta.help holds a category name while a block panel is open, and one of the
 -- two literals below otherwise, so this is what tells the two apart.
-local help_categories = {}
-for _, category in ipairs(categories) do
-    help_categories[category.name] = category
-    local spelled = codeblock.config.allowed_blocks[category.name]
-    for _, name in ipairs(category.names) do
-        pickable[#pickable + 1] = {
-            key = spelled[name],
-            label = category.name .. '.' .. name
-        }
-    end
-end
+local help_categories = codeblock.config.allowed_blocks.by_name
+
+-- The label the help row's category selector shows for a category, and the
+-- value the client sends back when that item is picked. Both sides read this,
+-- because a legacy dropdown returns the item *text* and not its index, so the
+-- two spellings have to come from one place.
+--
+-- The mod's own three carry a translation. A game's category shows its raw
+-- name, deliberately: the raw name is what a program types, and codeblock has
+-- no translation for a name it has never seen. (F11)
+local CATEGORY_LABELS = {
+    colors = S('Colors'),
+    glass = S('Glass'),
+    lamps = S('Lamps')
+}
+
+local function category_label(name) return CATEGORY_LABELS[name] or name end
 
 local get_user_data = codeblock.filesystem.get_user_data
 local read_file = codeblock.filesystem.read_file
@@ -97,7 +107,7 @@ local file_editor = {
         local loe = false
         local sos = false
         local dhud = false
-        local dblock = codeblock.config.allowed_blocks.colors.grey
+        local dblock = codeblock.config.allowed_blocks.fallback
         local player = get_player_by_name(name)
         if player then
             local meta = player:get_meta()
@@ -151,6 +161,11 @@ local file_editor = {
             dirty = dirty,
             active = active,
             help = categories[1].name,
+            -- Which category the selector shows, and so which one the Blocks
+            -- button opens. Separate from `help` because it outlives the panel:
+            -- a player who reads the API and comes back gets the category they
+            -- left, not the first one. (F11)
+            category = categories[1].name,
             -- One scroll position per help panel, keyed by category name so a
             -- category added later needs no field of its own here.
             scroll = {},
@@ -181,9 +196,9 @@ local file_editor = {
         fs = fs .. 'style[remove;bgcolor=red]'
         fs = fs .. 'style[content;font=mono;font_size=-2;textcolor=#115555]'
         fs = fs .. 'style[create;bgcolor=green]'
-        fs = fs .. 'style[help_colors;bgcolor=blue]'
-        fs = fs .. 'style[help_glass;bgcolor=blue]'
-        fs = fs .. 'style[help_lamps;bgcolor=blue]'
+        -- No style for the selector beside it: a dropdown is one of the two
+        -- elements the engine will not colorize.
+        fs = fs .. 'style[help_blocks;bgcolor=blue]'
         fs = fs .. 'style[help_cmds;bgcolor=blue]'
         fs = fs .. 'style[help_settings;bgcolor=blue]'
 
@@ -251,16 +266,37 @@ local file_editor = {
         -- help panel switches. Outside the block above on purpose: the panel is
         -- drawn with no file open, so without these it opens on the block list
         -- with no way to reach the others.
-        -- Five across the same 14-to-20 span the four used, so Settings fits
-        -- without the row running off the form. It is the wider one: the word
-        -- does not fit 1.1. (F1)
-        -- The widths are per word, not uniform: Colors is Couleurs in French
-        -- and does not fit what Glass does. They still sum to 6, and each
-        -- button starts where the one before it ends. Written out rather than
-        -- looped over the categories for that reason. (F11)
-        fs = fs .. 'button[14,0;1.3, 0.75;help_colors;' .. S('Colors') .. ']'
-        fs = fs .. 'button[15.3,0;1, 0.75;help_glass;' .. S('Glass') .. ']'
-        fs = fs .. 'button[16.3,0;1.15, 0.75;help_lamps;' .. S('Lamps') .. ']'
+        -- Across the same 14-to-20 span the four used, so Settings fits without
+        -- the row running off the form. It is the wider one: the word does not
+        -- fit 1.1. (F1)
+        --
+        -- One layout, always. The three category buttons are gone and a Blocks
+        -- button with a selector beside it stands where they did, drawn the
+        -- same whether a game has registered a category or not. Two layouts for
+        -- one row would mean the rare one is the one nobody plays: B38 and B39
+        -- both shipped because the path this game never took was the broken
+        -- one. Do not make either half conditional. (F11)
+        --
+        -- The geometry, since lua_api.md gives none of it and the three offsets
+        -- here differ per element (guiFormSpecMenu.cpp: parseButton at 1038,
+        -- parseDropDown at 1403, spacing at 3374). With imgsize S, legacy
+        -- spacing is (1.25 S, 15/13 S) and a position is x * spacing.X. A
+        -- button is W * spacing.X - 0.25 S wide, so consecutive buttons whose
+        -- x values touch stand 0.25 S apart. A dropdown is W * spacing.**Y**
+        -- wide, with no offset, so its W is a different unit from a button's:
+        -- 15.15 to the 0.25 S before API's edge is 2.625 S, which is W = 2.275.
+        -- A button's H shifts it down by H * imgsize.Y / 2 and its height is a
+        -- fixed 2 * m_btn_height; a dropdown's is the same height but hangs
+        -- from its y, so -0.025 puts the two rectangles on each other exactly
+        -- (0.375 - 0.35 * 15/13 = -0.375/13 of S, over spacing.Y).
+        fs = fs .. 'button[14,0;1.15, 0.75;help_blocks;' .. S('Blocks') .. ']'
+        local items, index = {}, 1
+        for i, category in ipairs(categories) do
+            items[i] = formspec_escape(category_label(category.name))
+            if category.name == meta.category then index = i end
+        end
+        fs = fs .. 'dropdown[15.15,-0.025;2.275;help_pick;' ..
+                 table.concat(items, ',') .. ';' .. index .. ']'
         fs = fs .. 'button[17.45,0;0.95, 0.75;help_cmds;' .. S('API') .. ']'
         fs = fs .. 'button[18.4,0;1.6, 0.75;help_settings;' .. S('Settings') ..
                  ']'
@@ -291,7 +327,7 @@ local file_editor = {
             -- sorted, so the colours run round the wheel the way color() maps
             -- them.
             local category = help_categories[meta.help]
-            local spelled = codeblock.config.allowed_blocks[category.name]
+            local spelled = category.spelled
             local field = 'scroll_' .. category.name
 
             fs = fs .. 'scrollbaroptions[min=0;max=' ..
@@ -344,14 +380,14 @@ local file_editor = {
             -- this same form already uses. The price is that the rows are names
             -- only, with the texture of the chosen one shown above. (F1)
             if meta.picking then
-                local index = 0
+                local chosen = 0
                 fs = fs .. 'textlist[14.5,2.2;5.2,7.5;pick;'
                 for i, v in ipairs(pickable) do
                     if i ~= 1 then fs = fs .. ',' end
                     fs = fs .. formspec_escape(v.label)
-                    if v.key == meta.default_block then index = i end
+                    if v.key == meta.default_block then chosen = i end
                 end
-                fs = fs .. ';' .. index .. ']'
+                fs = fs .. ';' .. chosen .. ']'
             end
 
             -- The three preferences, together on the panel that is for
@@ -612,14 +648,39 @@ local file_editor = {
             end
         end
 
-        -- Which help panel a button asks for, if any. A button is absent from
-        -- the field table unless it was the one pressed, so unlike the
-        -- scrollbars above this is an event: it is only read here so the chain
-        -- below can branch on it in one place.
+        -- The category selector, read here and not as a branch below, for the
+        -- same reason as the scrollbars: a dropdown is in the field table on
+        -- every submit. parseDropDown sets send = true and acceptInput reads
+        -- the combo box unconditionally, so what arrives is the item the
+        -- selector was *drawn* with unless the player moved it. Compare against
+        -- that item and not against which panel is open - the selector is drawn
+        -- over the API and Settings panels too, where a comparison with
+        -- meta.help would read as a choice every time. (B37, F11)
+        --
+        -- What arrives is the item's text, so it is matched back through the
+        -- same label function that drew it. The index form of dropdown[] would
+        -- remove the question entirely and is a formspec version 4 parameter;
+        -- this form is in legacy coordinates, so reaching for it means
+        -- converting the whole editor.
+        --
+        -- A value is acted on only when it *matches* a category's label, and
+        -- that direction is the point. The mod's own three labels are
+        -- translation escapes, so a client that ever answered with the text it
+        -- displays rather than the item it was given would send, on a
+        -- translated client, a value matching nothing here. Ignoring such a
+        -- value costs a selector that does nothing; treating "differs from the
+        -- label it was drawn with" as a choice would instead read as a change
+        -- on every single submit and swallow whatever else the player did -
+        -- ESC included, which is unsaved tabs. Do not simplify the match away.
         local help_wanted
+        local picked = fields.help_pick
+        local drawn = category_label(meta.category)
         for _, category in ipairs(categories) do
-            if fields['help_' .. category.name] then
+            local label = category_label(category.name)
+            if picked == label and label ~= drawn then
+                meta.category = category.name
                 help_wanted = category.name
+                break
             end
         end
 
@@ -688,8 +749,8 @@ local file_editor = {
                 open(selected)
                 update()
             end
-        elseif help_wanted then
-            meta.help = help_wanted
+        elseif fields.help_blocks then
+            meta.help = meta.category
             update()
         elseif fields.help_cmds then
             meta.help = 'commands'
@@ -738,6 +799,14 @@ local file_editor = {
                 open(get_user_data(name).byname[filename])
                 update()
             end
+        -- Last, below quit, because a dropdown is always sent and the match
+        -- above is the only thing keeping it from reading as an event. If a
+        -- value that does match one ever arrives on a submit the player made
+        -- with something else, the something else wins and the panel is what
+        -- goes wrong, not the save. (B37)
+        elseif help_wanted then
+            meta.help = help_wanted
+            update()
         end
 
     end

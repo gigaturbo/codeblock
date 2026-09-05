@@ -288,35 +288,80 @@ codeblock.config.palette = palette
 --------------------------------------------------------------------------------
 -- What a program may name, and what each name places
 --
--- `all` is the flat short-name -> itemstring union every write path resolves a
--- block through, so the short names have to stay unique across the categories:
--- place() takes one string and knows nothing about which table it came from.
--- The category tables spell a name for the player and hold that unique key -
--- colors.red is 'red', glass.red is 'red_glass', lamps.red is 'red_lamp'.
+-- `all` is the flat key -> itemstring union every write path resolves a block
+-- through: place() takes one string and knows nothing about which table it came
+-- from, so the keys have to be unique across every category. A category spells
+-- a name for the player and holds that unique key - colors.red is 'red',
+-- glass.red is 'red_glass', lamps.red is 'red_lamp'.
+--
+-- `by_node` is the same map read backwards, for get_block().
 --
 -- `air` is engine-provided, belongs to no category, and is a name of its own.
 --
 -- `categories` is the ordered list the help panels, the block picker and
--- doc/api.md all render from, in palette order rather than alphabetically.
+-- doc/api.md all render from, in palette order rather than alphabetically;
+-- `by_name` is the same records keyed by name, and `pickable` the flat ordered
+-- list the editor's block picker draws.
+--
+-- A game adds a category of its own through codeblock.register_blocks - see
+-- lib/blocks.lua - so none of these lists is complete until every mod has
+-- loaded. They are mutated and never replaced, which is what lets a reader hold
+-- a local reference to one and still see a late arrival. (F11)
 --------------------------------------------------------------------------------
 
-local blocks = {all = {air = 'air'}, hues = {}, categories = {}}
+local blocks = {
+    all = {air = 'air'},
+    by_node = {air = 'air'},
+    hues = {},
+    categories = {},
+    by_name = {},
+    pickable = {{key = 'air', label = 'air'}},
+    -- What a bare place() uses until a player picks something else: the flat
+    -- key of the grey solid block. lib/api.lua says so in prose, so the two
+    -- have to agree.
+    fallback = 'grey'
+}
+
+--- Add one block category, and every view of it, in one place.
+--
+-- `name` is the table a program reads. `entries` is an array of
+-- {short, key, itemstring} in the order the name lists are drawn in: `short` is
+-- what a player spells after the dot, `key` is the unique flat name place()
+-- takes, and `itemstring` is what lands in the world.
+--
+-- Deriving the views here rather than in each reader is what keeps a late
+-- registration visible: a list built once at load time by lib/commands.lua or
+-- lib/formspecs.lua would be a snapshot taken before any game had registered.
+function codeblock.config.add_category(name, entries)
+    local spelled, names = {}, {}
+    for i, entry in ipairs(entries) do
+        local short, key, item = entry[1], entry[2], entry[3]
+        names[i] = short
+        spelled[short] = key
+        blocks.all[key] = item
+        -- First registrant wins, so a game listing one of the mod's own nodes
+        -- in its category cannot change what get_block() answers for it.
+        if blocks.by_node[item] == nil then blocks.by_node[item] = key end
+        blocks.pickable[#blocks.pickable + 1] = {
+            key = key,
+            label = name .. '.' .. short
+        }
+    end
+    local category = {name = name, names = names, spelled = spelled}
+    blocks.categories[#blocks.categories + 1] = category
+    blocks.by_name[name] = category
+    return category
+end
 
 for _, variant in ipairs({
     {'colors', ''}, {'glass', '_glass'}, {'lamps', '_lamp'}
 }) do
-    local spelled, names = {}, {}
+    local entries = {}
     for i, entry in ipairs(palette) do
         local key = entry[1] .. variant[2]
-        spelled[entry[1]] = key
-        names[i] = entry[1]
-        blocks.all[key] = 'codeblock:' .. key
+        entries[i] = {entry[1], key, 'codeblock:' .. key}
     end
-    blocks[variant[1]] = spelled
-    blocks.categories[#blocks.categories + 1] = {
-        name = variant[1],
-        names = names
-    }
+    codeblock.config.add_category(variant[1], entries)
 end
 
 for i = NEUTRALS + 1, #palette do

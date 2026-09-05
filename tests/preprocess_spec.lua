@@ -297,6 +297,8 @@ it('charges nothing for a program with no loop or function',
 -- avoids, since `while f(function() ... end) do` is legal Lua. The cost is one
 -- spurious count on a construct players rarely write. Recorded as a known gap
 -- rather than hidden, so it stays visible if anyone revisits the trade-off.
+-- The finding is B4, whose Keep paragraph says why pairing constructs to fix
+-- this would undo the design.
 xfail('does not charge a plain do-block',
       select(1, run_with_budget('do local x = 1 end\n', 500)), 0)
 
