@@ -14,6 +14,6 @@ centered.sphere(R2, air)
 
 go('center')
 for i = 1, 2 * R1 + R2, 1 do
-    centered.sphere(2, lamps.butter)
+    centered.sphere(2, lamps.red)
     move(mvt.x, mvt.y, mvt.z)
 end

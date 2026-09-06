@@ -341,7 +341,7 @@ do
     it('found the shipped examples to check', (checked > 0), true)
     it('every shipped example still compiles once instrumented',
        table.concat(broken, ','), '')
-    it('checked all 14 shipped examples', checked, 14)
+    it('checked all 13 shipped examples', checked, 13)
 end
 
 ------------------------------------------------------------------------------

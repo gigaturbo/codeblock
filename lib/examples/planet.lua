@@ -2,8 +2,8 @@ local R = 25
 
 up(R * 2)
 save('center')
-centered.sphere(R, colors.grey)
-centered.sphere(R - 1, colors.black)
+centered.sphere(R, colors.forest)
+centered.sphere(R - 1, colors.brown)
 
 local r, pos
 for i = 1, R do
@@ -18,5 +18,5 @@ for i = 1, round0(R * R / 3) do
     v = vector.prandom(round0(R * 2), round0(R * 3)):rotate_around(vector.xz,
         pi / 6)
     go('center', v.x, v.y, v.z)
-    centered.sphere(random(1, 2), colors.ink)
+    centered.sphere(random(1, 2), colors.sky)
 end
