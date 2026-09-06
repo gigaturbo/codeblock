@@ -115,7 +115,7 @@ used to hold empty `default` and `wool` stubs as well, to satisfy dependencies
 this mod no longer has: `F11` dropped both and `mod.conf` now reads
 `depends = vector3` alone. What is left in their place is
 **`tests/game/mods/cbfixture`**, which registers nothing but the three mapgen
-aliases the engine validates at startup. **The mod registers its own 99 nodes**,
+aliases the engine validates at startup. **The mod registers its own 105 nodes**,
 so a spec wanting a real node has one; if one is ever needed that the mod does
 not provide, register that one node in `cbfixture` and no more.
 
@@ -306,11 +306,28 @@ Three rules for a string a player sees, the first two learned from C17:
 
 ### The mod's own blocks, and a game's
 
-`F11` gave the mod 99 registered nodes of its own — 33 colours in
-`lib/config.lua`'s `palette`, each a solid, a glass and a lamp, built in
-`lib/nodes.lua` from two shared tiles tinted with **`^[multiply:#rrggbb`**. Not
-`^[colorize:<hex>:255`, which at ratio 255 replaces every pixel and would throw
-the tiles' grain away and opaque the glass. `mod.conf` is `depends = vector3`.
+`F11` gave the mod registered nodes of its own and `F12` replaced the palette:
+**105 nodes, 35 colours**, each a solid, a glass and a lamp, built in
+`lib/nodes.lua` from **three** shared tiles tinted with **`^[multiply:#rrggbb`**.
+Not `^[colorize:<hex>:255`, which at ratio 255 replaces every pixel and would
+throw the glass and lamp tiles away and opaque the glass. `mod.conf` is
+`depends = vector3`.
+
+**`lib/config.lua` holds two literals — `neutrals` and `families` — and derives
+`palette` and `hues` from them** (`F12`). Five neutrals light to dark, then ten
+hue families in colour-wheel order, each `light_x` / `x` / `dark_x`. `hues` is
+the plain shade of each family, and it is the only view that reads as a rainbow.
+Do not flatten this back into one list: F11's flat list with an index range for
+the neutrals could not express *the plain shade of each family*, which is what
+`hues` now means. `fallback` is still `grey`.
+
+**The solid tile is flat pure white**, so `^[multiply` reproduces the palette hex
+exactly and a solid block is a flat fill. The glass tile keeps its frame and
+highlight; `textures/codeblock_lamp.png` is a faint grid, ground 252 with lines
+at 234 every 8 px, so a wall of lamps reads as blocks rather than one slab. The
+cost of the flat solid is that a wall of one colour has **no node-edge
+definition at all** — that is `F12-2`'s to judge in a world, and the decision may
+come back.
 
 **A category is a namespace and the flat key space behind it is not.** `place()`
 takes one string, so `colors.red`, `glass.red` and `lamps.red` resolve to the
@@ -337,8 +354,30 @@ the suite; `rev_blocks` in `lib/commands.lua` was a live defect, `get_block()`
 answering `false` for every game-registered node. The views are mutated and never
 replaced, so a local reference still sees a late arrival.
 
-**None of the 99 nodes has a `sounds` field, deliberately** — every
+**None of the 105 nodes has a `sounds` field, deliberately** — every
 `node_sound_*_defaults()` belongs to a game.
+
+**One ramp per category, and `ramp.hues`** (`F12`). `ramp_over(list)` in
+`lib/sandbox.lua` is the whole of it, built once per category per run from
+`add_category`'s `keys` view, so a game's category gets a ramp on the same
+terms as the mod's own — appended to `lib/api.lua`'s *Choosing blocks* group by
+`lib/blocks.lua`, which is why that group carries an `id`. `color(v, min, max)`
+is **gone with no alias**. Only `ramp.hues` is a gradient; `ramp.colors`,
+`ramp.glass` and `ramp.lamps` walk light/plain/dark inside each family and
+strobe, which is a consequence of one ramp per category and is not a defect.
+
+**`get_block(n_right, n_up, n_forward)` reads without moving the drone**, the
+offsets rotated by its facing like `place_relative`. It calls
+`codeblock.cost.load_block` — shared with `place_block`, memo still per-resume —
+because `get_node` on a block that is not in server memory answers `ignore`,
+which is indistinguishable from map that does not exist. Three answers: a block
+name, `false` for a node no program can place, `nil` for map that was never
+generated or a position outside the world. **`nil` is permanent**: `load_area`
+does not run mapgen. The edge is one predicate, `inside_world`, shared with
+`check_inside_world` so the query's edge and the raise's cannot drift — and the
+asymmetry is deliberate, a write raising out of the world while a read answers
+`nil`, because raising on the query a player uses to look before they leap is
+the wrong shape. Do not turn it into a raise.
 
 ### Per-codelevel limits
 

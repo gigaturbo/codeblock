@@ -30,20 +30,35 @@ A recipe also **names the shell it is for** — that has cost a session twice
 
 ## Where it stands
 
-**71 checks, eleven of them unrun — `F11-1` to `F11-11`.** They were written on
-2026-09-05 at `6126abe`, when `F11` landed in two passes, and **none has been
-run**. Before them every one of the 60 older checks carried a result, which had
-not been true before 2026-09-04. **This is outstanding *checking*, not
-unfinished work:** `F11` is committed with its gates green and no finding
-against it, and what these eleven cover is the part no spec can reach —
-a registered node, a texture, the creative inventory, the picker, the help row
-and a game's own `register_blocks` call.
+**77 entries, of which `F11-4` is superseded — so 76 live checks, sixteen of
+them unrun.** The unrun sixteen are `F11-1` to `F11-11` less `F11-4`, written
+2026-09-05 at `6126abe` when `F11` landed, and `F12-1` to `F12-6`, written
+2026-09-06 at `01f9641`. Before them every one of the 60 older checks carried a
+result, which had not been true before 2026-09-04. **This is outstanding
+*checking*, not unfinished work:** both features are committed with their gates
+green and no finding against either, and what these sixteen cover is the part no
+spec can reach — a registered node, a texture, the creative inventory, the
+picker, the help row, a game's own `register_blocks` call, a colour ramp read as
+a gradient, and a `get_block` that lands inside the world.
 
 **Run `F11-1` first**, the category selector on a French client. It is the only
-one of the eleven whose failure would be expensive: a legacy dropdown returning
+one of the sixteen whose failure would be expensive: a legacy dropdown returning
 displayed text rather than the stored item would mean converting the editor out
-of legacy coordinates. Everything else in the group is appearance, digging,
-inventory or a game's registration, and a fail there is a small fix.
+of legacy coordinates. Everything else in both groups is appearance, digging,
+inventory, a game's registration or a read, and a fail there is a small fix.
+
+**`F12-2` is the one that may hand a decision back.** `F12` made the solid tile
+a flat pure white so `^[multiply` reproduces each hex exactly, which means a
+wall of one solid colour now has **no node-edge definition at all** — the grain
+`F11` chose deliberately is gone from the solids, though the glass keeps its
+frame and the lamps gained a grid. That is a judgement only a wall in a world
+can make, and the answer may be to put a grain back.
+
+**`F11-4` is superseded, not run and forgotten.** It checked 33 colours reading
+as their hexes and a wall showing the grain; `F12` replaced the palette with 35
+and removed the grain from the solids, so both halves of it moved — the hexes to
+`F12-1`, the wall to `F12-2`. The entry is kept in place as a pointer, because
+`F11`'s checks are numbered in commit messages and the record.
 
 **Of the 60 with results, none has a fail as its most recent one**, and one is a
 partial — `H8`, and only because two of its cases cannot be performed. `F9-1`,
@@ -1539,10 +1554,12 @@ Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — four drones shared
 **Pass:** no `tests/` directory. ContentDB builds releases with `git archive`, and
 nothing in CI checks `.gitattributes`.
 
-**The obvious command misleads.** `git archive HEAD | tar -t | grep tests` prints
-`lib/examples/tests.lua` even when the archive is correct — a player-facing
-example, the one that exercises every API command. Read as a bare pass/fail it
-says *fail*. What answers the question is listing the top level:
+**Read the top level, not a grep of the whole listing.**
+`git archive HEAD | tar -t | grep tests` answered *fail* on a correct archive for
+the project's whole life, because `lib/examples/tests.lua` — a player-facing
+example — matched it. **That file was deleted at `b752ea3`**, so the grep no
+longer misleads for that reason; use the top-level listing anyway, because it is
+the question being asked:
 
 ```bash
 git archive --format=tar HEAD | tar -t | awk -F/ '{print $1}' | sort -u
@@ -1558,6 +1575,13 @@ Result: pass — `7dbe18f` · engine n/a · 2026-09-02 — re-checked because
 entries, and `textures/` ships four PNGs with the two `.svg` sources excluded.
 No engine is needed for this one: it reads `git archive`, not an install. **That
 is also what it cannot tell you** — whether the archive *loads* is `R2`.
+
+**Both results are stale on the texture count.** `F11` added
+`codeblock_block.png` and `codeblock_glass.png` and `F12` added
+`codeblock_lamp.png`, so `textures/` now holds **seven PNGs and two `.svg`
+sources**, and `lib/examples/tests.lua` is gone. Nothing in CI checks
+`.gitattributes`, so the next run is what says whether the new PNGs ship and the
+`.svg` pair still does not.
 
 ### R2 · A real install with the test flag set [C16]
 
@@ -1921,20 +1945,13 @@ pass.
 
 Result: not yet run.
 
-### F11-4 · The 33 colours look like their hexes [F11]
+### F11-4 · Superseded by `F12-1` and `F12-2` [F11, F12]
 
-`^[multiply` over a near-white grained tile, rather than `^[colorize` over
-anything — the appearance is the entire difference between the two.
-
-1. **Build a row of all 33 solids** and look at them together.
-2. **Build a large wall of one colour** and stand back from it.
-
-**Pass:** each colour reads as the hex `lib/config.lua` gives it, in all three
-variants; the wall shows the grain without an obvious repeating tile pattern;
-and the 33 are distinguishable from one another at a glance, which is what the
-palette was sized for.
-
-Result: not yet run.
+**Do not run this one.** It asked for a row of the 33 solids reading as their
+hexes and a wall showing the tile's grain. `F12` replaced the palette with 35
+colours and made the solid tile a flat pure white, so both halves moved: the
+hexes and the palette order are **`F12-1`**, the wall is **`F12-2`**. The id is
+kept so nothing that cites it dangles. Never run, so no result was lost.
 
 ### F11-5 · Coloured glass and coloured lamps [F11]
 
@@ -1956,7 +1973,7 @@ Result: not yet run.
 
 Walk on one, dig one, place one, and listen.
 
-**Pass:** nothing. **None of the 99 has a `sounds` field**, on purpose: every
+**Pass:** nothing. **None of the 105 has a `sounds` field**, on purpose: every
 `node_sound_*_defaults()` belongs to a game, and calling one would put the mod
 back to needing a game to provide something. **A player will read silence as
 broken**, so the point of this check is to have it seen once and recorded as
@@ -1980,8 +1997,10 @@ Result: not yet run.
 Open the creative inventory in a game with a small item set, and search
 `codeblock`.
 
-**Pass:** 99 items with descriptions that read sensibly, and the mod's section
-does not swamp the game's own.
+**Pass:** 105 items with descriptions that read sensibly, and the mod's section
+does not swamp the game's own. **`F12-1` counts them**; what this check is for
+is whether they read sensibly and whether 105 of them swamp a small game's own
+item set.
 
 **The descriptions read *"Bloc red"* on a French client, and that is
 deliberate** — the colour name is the identifier a program types, so translating
@@ -2023,19 +2042,170 @@ Result: not yet run.
 ### F11-11 · A registered category reaches `place()`, `get_block()` and player meta [F11]
 
 With the mod from `F11-10` installed. **This is the `rev_blocks` fix's only
-possible evidence** — `lib/commands.lua` captures `core.get_node` at load and
-calling it for real at mod load dies, so no spec can reach `get_block()` at all.
+possible evidence.** A spec *can* call `get_block` —
+`codeblock.commands.drone_get_block` is exported and `integration_spec` asserts
+its out-of-world branch — but **no spec can make a read land inside the world**:
+`lib/commands.lua` captures `core.get_node` at load, and a probe at the origin
+at mod load dies inside builtin with `bad argument #1 to '__index' (number
+expected, got nil)`, content ids not being cached yet. Measured 2026-09-06, not
+assumed.
 
 1. Run `place('wool.red')`.
    **Pass:** the node lands.
-2. Move the drone onto it and print `get_block()`.
-   **Pass:** it answers the name for that node — **not `false`**, which is what a
-   load-time snapshot of the reverse map would have given for every
-   game-registered node.
+2. Print `get_block(0, 0, 1)` from one step behind it, then move onto it and
+   print `get_block()`.
+   **Pass:** both answer the name for that node — **not `false`**, which is what
+   a load-time snapshot of the reverse map would have given for every
+   game-registered node, and **not `nil`**, which is what a missing
+   `load_block` would give.
 3. **Pick `wool.red` as your default block** in the editor's *Settings* panel,
    disconnect and rejoin.
    **Pass:** the dotted key survived in player meta as `default_block`, and a
    bare `place()` builds it.
+
+Result: not yet run.
+
+### F12-1 · 105 nodes register, and the picker shows them in palette order [F12]
+
+Written 2026-09-06 at `01f9641`. This replaces the counting half of `F11-4`.
+
+1. **Count them.** Creative inventory, search `codeblock`.
+   **Pass:** 105 items — 35 solids, 35 glass, 35 lamps.
+2. **Open the editor's block picker** and read the `colors` list top to bottom.
+   **Pass:** five neutrals light to dark — `white`, `light_grey`, `grey`,
+   `dark_grey`, `black` — then ten families in wheel order, `pink red orange
+   yellow olive lime green cyan blue violet`, each as `light_<name>`, `<name>`,
+   `dark_<name>`. Not alphabetical.
+3. **Build a row of all 35 solids** and look at them together.
+   **Pass:** each reads as the hex `lib/config.lua` gives it, and adjacent ones
+   are distinguishable at a glance.
+
+**The five neutral hexes are `project-manager`'s, not the author's** — an even
+grey ramp `#ffffff #c0c0c0 #808080 #404040 #101010`, chosen because the author
+named the five neutrals and gave no values. **They are the easiest thing here to
+change**, so say if they read wrong.
+
+Result: not yet run.
+
+### F12-2 · A lamp wall shows the grid; a solid wall shows nothing [F12]
+
+Written 2026-09-06 at `01f9641`. This replaces the wall half of `F11-4`, and
+**it is the check that may hand a decision back.**
+
+`F12` made `textures/codeblock_block.png` a **flat pure white**, so
+`^[multiply:#rrggbb` reproduces the palette hex exactly and a solid block is a
+flat fill of its colour. The grain `F11` chose is gone from the solids. Glass
+keeps its frame and highlight; the new `textures/codeblock_lamp.png` is a faint
+grid, ground 252 with lines at 234 every 8 px.
+
+1. **Build a wall of one lamp colour**, several blocks each way, and stand back.
+   **Pass:** the grid is visible enough that individual blocks read as blocks,
+   and faint enough that it is not a pattern you look at.
+2. **Build the same wall in the matching solid** and stand back from it.
+   **Pass is a judgement, not a behaviour:** decide whether a flat wall with no
+   node-edge definition reads acceptably in a build, or whether it reads as a
+   texture-missing surface — which is the reason `F11` put a grain there in the
+   first place.
+3. **Put the two walls side by side** and look at the corner where they meet.
+
+**If (2) reads badly, that is not a finding — it is the decision coming back.**
+Say so and the solid tile gets a grain again, at the cost of the hex no longer
+being reproduced exactly. Both options are in `ROADMAP.md` under `F12`.
+
+Result: not yet run.
+
+### F12-3 · `get_block` answers three ways over real map [F12]
+
+Written 2026-09-06 at `01f9641`. In a game with **ungenerated map** you can
+reach — not a fully pre-generated world.
+
+1. Place one of the mod's blocks, move the drone onto it, and
+   `print(get_block())`.
+   **Pass:** the block's name.
+2. Move the drone onto a node the game provides that no program can place —
+   any node not in the mod's palette and not in a registered category.
+   **Pass:** `false`.
+3. Point the drone at map the engine has never generated — far out, or well
+   above or below the generated band — and read it.
+   **Pass:** `nil`.
+
+**What distinguishes a pass from *did not crash*: `false` and `nil` must be
+different answers.** If the unplaceable node in (2) also reads `nil`, the
+`load_block` call is not happening and every read is coming back `ignore`, so
+everything reads as absent. That is the one failure this check exists for.
+
+**`nil` in (3) is permanent and correct.** `core.load_area` does not run mapgen,
+so reading never generates terrain and waiting will not turn it into a name.
+
+Result: not yet run.
+
+### F12-4 · `get_block`'s offsets turn with the drone and move nothing [F12]
+
+Written 2026-09-06 at `01f9641`. **Genuinely unreachable by any spec** — every
+rotation that moves a target outside the world moves another one inside it, and
+an in-world read cannot be asked for at mod load at all.
+
+Stand the drone one node from a wall, facing it, then:
+
+```lua
+for i = 1, 4 do
+    print(i, get_block(0, 0, 1))
+    turn_left()
+end
+place()
+```
+
+**Pass:** the wall is reported at exactly one of the four facings — the one
+pointing at it — and `nil` or the surrounding node at the other three. Then the
+`place()` afterwards lands **where it would have landed before the reads**: the
+drone has not moved and, after four `turn_left()`, is facing where it started.
+
+Result: not yet run.
+
+### F12-5 · A ramp reads as a gradient, and the other ramps strobe [F12]
+
+Written 2026-09-06 at `01f9641`. **Observable nowhere else** —
+`ramp_over`'s clamping has no spec coverage at all, and `test-agent` recommends
+against exporting a private closure factory to get some. This check is the
+honest one.
+
+```lua
+for i = 1, 20 do place(ramp.hues(i, 1, 20)); up(1) end
+```
+
+**Pass:** the column walks the colour wheel once, smoothly, and the first and
+last blocks are visibly different colours.
+
+Then the same loop with `ramp.colors`.
+
+**Pass:** it **strobes** — light, plain, dark inside each family in turn. That
+is correct and not a defect: it follows from the author's own answer that every
+category gets a ramp, and `colors` is ordered by family rather than by
+lightness. `ramp.hues` is the one that reads as a rainbow.
+
+Finally check the clamp: `ramp.hues(-5, 1, 20)` and `ramp.hues(99, 1, 20)`.
+
+**Pass:** the first and last hue, not a wrap round to the other end.
+
+Result: not yet run.
+
+### F12-6 · A game-registered category gets a ramp of its own [F12, F11]
+
+Written 2026-09-06 at `01f9641`. With the mod from `F11-10` installed, so it is
+cheapest run in the same session.
+
+1. `print(ramp.wool(1, 1, 3))` — substituting your category's name and a range
+   matching how many entries it has.
+   **Pass:** a name from that category, and walking the range gives each of them
+   in turn.
+2. **Open the help panel's *Choosing blocks* group.**
+   **Pass:** `ramp.<name>` is listed there beside `ramp.hues`, `ramp.colors`,
+   `ramp.glass` and `ramp.lamps`, and its text says the order is alphabetical
+   and therefore a lookup rather than a gradient.
+
+**A registered category is sorted alphabetically**, so its ramp is not a
+gradient and the generated documentation says so. That is deliberate: the mod
+cannot know a game's colour order, or whether its category is colours at all.
 
 Result: not yet run.
 

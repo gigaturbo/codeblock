@@ -27,7 +27,7 @@ submodule, and **`tests/game/mods/cbfixture`**, which registers nothing but the
 three mapgen aliases the engine validates at startup.
 
 **It used to hold empty `default` and `wool` stubs as well.** `F11` dropped both
-dependencies — the mod registers its own 99 nodes now — and the two stubs went
+dependencies — the mod registers its own 105 nodes now — and the two stubs went
 with them, `cbfixture` taking over the mapgen aliases. If a spec needs a node the
 mod does not provide, register that one node in `cbfixture` and no more.
 
@@ -102,6 +102,9 @@ A healthy run prints one summary per spec, and `none` under errors. As of
 
 474 assertions. Treat the numbers as the shape of a healthy run, not as a
 checksum: they rise whenever a spec gains a case, and they were 357 before `F1`.
+The block above is the shape at `6126abe`; at `01f9641` the run reports **544
+across the nine**, `integration_spec` alone at **182**, with 0 failed, 0 xpass
+and 1 known xfail.
 
 **The script's report filter drops the spec-name lines**, keeping only the lines
 matching `passed|failed|FAIL|want|got|skipped|xfail`, so

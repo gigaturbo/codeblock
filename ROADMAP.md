@@ -9,7 +9,7 @@ stays.
 Findings and their reasoning are in `AUDIT.md`. Manual checks are in
 `PLAYTEST.md`. Intentions not yet planned are in `TODO.md`.
 
-Phases are `Phase 0`–`Phase 10`, features `F1`–`F11`, findings `B`/`S`/`C`/`A`.
+Phases are `Phase 0`–`Phase 10`, features `F1`–`F12`, findings `B`/`S`/`C`/`A`.
 **Nothing is ever renumbered.**
 
 Three releases, settled 2026-08-28. **`Phase 8` is v1.0.0** — a correct sandbox,
@@ -21,22 +21,28 @@ thinking rather than a queue position.
 
 ## Now
 
-**Play `F11`, starting with `F11-1`.** The feature is built and committed in two
-passes — `d075742` gives the mod its own 99 nodes and drops `default` and `wool`,
-`6126abe` lets a game register a category — with every gate green over both and
-**no finding filed against either**. What is left is the part no spec can do:
-**eleven `PLAYTEST.md` checks, none of them run.** Start with `F11-1`, the
-category selector on a **French** client, because it is the one whose failure
-would be expensive: if the selector works in English and does nothing in French,
-the client is returning displayed text rather than the stored item, and the fix
-is formspec-version-4 `index event`, which means converting the editor out of
-legacy coordinates. Everything else in the group is appearance, digging,
-inventory and a game's own registration.
+**Play `F11` and `F12` in one session, starting with `F11-1`.** Both features are
+built and committed with every gate green and **no finding filed against
+either** — `d075742` and `6126abe` for `F11`, `01f9641` for `F12` — and what is
+left is the part no spec can do: **sixteen `PLAYTEST.md` checks, none of them
+run.** Start with `F11-1`, the category selector on a **French** client, because
+it is the one whose failure would be expensive: if the selector works in English
+and does nothing in French, the client is returning displayed text rather than
+the stored item, and the fix is formspec-version-4 `index event`, which means
+converting the editor out of legacy coordinates.
 
-**Then push.** `HEAD` is `6126abe` and `origin/master` is at `65b4c46`, so **CI
-has seen no part of `F11`** — the largest change in the release is the one change
-CI has not looked at. After that the release list is `README.md`, the
-screenshots, `R2` and the tag.
+**The one that may hand a decision back is `F12-2`.** `F12` made the solid tile
+a flat pure white so `^[multiply` reproduces each hex exactly, which removed the
+grain `F11` deliberately put there — so a wall of one solid colour now has no
+node-edge definition at all. That is a judgement only a wall in a world can
+make. Everything else in both groups is appearance, digging, inventory, a game's
+own registration, a ramp and a read.
+
+**Then push.** `HEAD` is `01f9641` and `origin/master` is at `65b4c46`, so **CI
+has seen no part of `F11` or `F12`** — five unpushed commits, `d075742`,
+`6126abe`, `7514f39`, `b752ea3` and `01f9641`, and the two largest changes in
+the release are the two CI has not looked at. After that the release list is
+`README.md`, the screenshots, `R2` and the tag.
 
 **Two low findings were filed on 2026-09-05 while recording this**, both
 pre-existing and neither blocking: `A17`, three dead exports on
@@ -44,7 +50,7 @@ pre-existing and neither blocking: `A17`, three dead exports on
 global, and `A18`, `meta.active = #meta.tabs` written as a loop twice in
 `lib/formspecs.lua`. `A17` wants the author's decision, not a cleanup.
 
-**Behind `F11`, everything else in `Phase 8` is closed and played.** `B50` and
+**Behind `F11` and `F12`, everything else in `Phase 8` is closed and played.** `B50` and
 `B52` were fixed at `1b991ae` and confirmed in a world on 2026-09-04 by `W1` at
 every codelevel, `W5` and `W6`; `B51` was fixed at `8de3cea` the same day and
 confirmed by `D7`; `B48`, `F10`/`C21` and `B49` were all committed and played on
@@ -52,7 +58,7 @@ confirmed by `D7`; `B48`, `F10`/`C21` and `B49` were all committed and played on
 writing the second found `C20`. `AUDIT.md` holds the reasoning for each, and the
 milestone list below the phases holds the ordering. **CI run 47 is green on all
 three jobs at `65b4c46`** — which is `origin/master`, and is everything except
-`F11`.
+`F11` and `F12`.
 
 **Two things `1b991ae` changed about older findings, recorded so they are not
 re-broken.** `B29`'s serial now guards the **replacement's object** rather than
@@ -87,18 +93,20 @@ not restated here; what is below is what *this* version still needs, and
 `release-check` is the gate that says whether it got it.
 
 **The work — everything through step 4 is done, so are the two unnumbered steps
-ahead of them and `B51`; what is left is playing `F11`, pushing, then the README,
-the screenshots, `R2` and the tag.**
+ahead of them and `B51`; what is left is playing `F11` and `F12`, pushing, then
+the README, the screenshots, `R2` and the tag.**
 
-**Before step 5 — play `F11` and push it.** Kept unnumbered so the steps below
-keep the numbers commit messages and the release skill cite. The feature is
-**built and committed**, `d075742` and `6126abe`, gates green over both and no
-finding against either; its entry under *The features* holds the shape, the four
-points it settled and pass 2's two decisions. What is outstanding is **its eleven
-`PLAYTEST.md` checks, none run**, and **CI, which has seen no part of it** —
-both commits are unpushed and `origin/master` is at `65b4c46`. Run `F11-1`
-first. `CHANGELOG.md` took its **Changed** and **Removed** sections on
-2026-09-05, so step 4 is back to the heading alone. (F11)
+**Before step 5 — play `F11` and `F12`, and push them.** Kept unnumbered so the
+steps below keep the numbers commit messages and the release skill cite. Both
+features are **built and committed**, `d075742` + `6126abe` and `01f9641`, gates
+green over all three and no finding against any; their entries under *The
+features* hold the shapes and the decisions. What is outstanding is **sixteen
+`PLAYTEST.md` checks, none run**, and **CI, which has seen no part of either** —
+five commits unpushed and `origin/master` at `65b4c46`. Run `F11-1` first, and
+expect `F12-2` to hand a decision back about the flat solid tile.
+`CHANGELOG.md` took `F11`'s **Changed** and **Removed** sections on 2026-09-05
+and `F12`'s revisions on 2026-09-06, so step 4 is back to the heading alone.
+(F11, F12)
 
 **The unnumbered step before step 0 — play `W1`, `W5` and `W6` — is done,
 2026-09-04 at `23f0227`, all three passing.** It is kept unnumbered so the steps
@@ -177,8 +185,11 @@ waits on `B51` any more.** (B51)
    privilege grant — and `B48` and `B49` are in *Fixed* beside them. **`F11`'s
    Changed and Removed sections went in on 2026-09-05**, once both passes were
    committed and green: the palette renamed, the two dependencies gone, the mod's
-   own 99 nodes and `register_blocks`. **So this step is the heading alone.**
-   (F10, F11)
+   own nodes and `register_blocks`. **`F12` revised the same entries on
+   2026-09-06** rather than adding new ones — 105 nodes and 35 colours, three
+   tiles with a flat solid, `ramp` in place of `color`, and `get_block`'s
+   coordinates as a new *Added* line. **So this step is the heading alone.**
+   (F10, F11, F12)
 5. **`README.md` has three problems now, and `F11` added the worst.** Line 10
    says the mod *"works in any game that provides the blocks it places"* — false
    since `d075742`, and **backwards**: bringing its own blocks so it needs no
@@ -270,7 +281,7 @@ were fixed the same day at `1b991ae` and **confirmed in a world on 2026-09-04**,
 and `B51` was fixed at `8de3cea` on 2026-09-04 and confirmed by `D7` the same
 day. **So all fifteen fixes are played.**
 
-### 8 · Features for v1.0.0 — in progress (9/9 shipped, 25 findings, none open; `F11` unplayed)
+### 8 · Features for v1.0.0 — in progress (10/10 shipped, 25 findings, none open; `F11` and `F12` unplayed)
 
 The last phase before v1.0.0 and the only one that adds rather than repairs.
 Started as seven features: `F6` moved out on 2026-08-28 (Blockly is `Phase 10`)
@@ -279,17 +290,24 @@ end."* **`F10` was added on 2026-09-03** and is in `Phase 8` rather than `Phase 
 for one reason: it renames two chat commands, and a rename is free before the
 first tag and breaking after it.
 
-**`F11` was added on 2026-09-04 and shipped on 2026-09-05, the last feature
-before the tag.** The mod brings its own 99 nodes and drops the `default` and
-`wool` dependencies, so it can be installed into any game on ContentDB rather
-than the three that ship both. Same reason for the phase as `F10`, only larger:
-it renames the whole player-facing block palette. **Every feature in the phase is
-now shipped**, and `F11` is the one that is **shipped and not yet checked** —
-eleven `PLAYTEST.md` entries, none run, and no CI over either commit.
+**`F11` was added on 2026-09-04 and shipped on 2026-09-05.** The mod brings its
+own nodes and drops the `default` and `wool` dependencies, so it can be
+installed into any game on ContentDB rather than the three that ship both. Same
+reason for the phase as `F10`, only larger: it renames the whole player-facing
+block palette.
+
+**`F12` was added and shipped on 2026-09-06, the last feature before the tag.**
+It replaces `F11`'s palette outright — 35 colours, 105 nodes — swaps
+`color(v, min, max)` for one `ramp` per block category, and gives `get_block`
+relative coordinates. Same reason for the phase again: both are breaking changes
+to names a saved program writes, and both are free only while v1.0.0 is
+untagged. **Every feature in the phase is now shipped**, and `F11` and `F12` are
+the two that are **shipped and not yet checked** — sixteen `PLAYTEST.md`
+entries, none run, and no CI over any of the five commits.
 
 Shipped: `F1` `500dd85`, `F2` `dee0bc7`, `F3` `90cfb70`, `F7` `afbe504`,
 `F4` `729c255`, `F8` `d619fba` revised `60dc8dd`, `F9` `8869d8c` revised
-`cd13414`, `F10` `b23a8bc`, `F11` `d075742` + `6126abe`. **`F9` was added and shipped on 2026-09-02** out of `F8`'s playtest,
+`cd13414`, `F10` `b23a8bc`, `F11` `d075742` + `6126abe`, `F12` `01f9641`. **`F9` was added and shipped on 2026-09-02** out of `F8`'s playtest,
 the second time a feature here has come from playing the one before it — and the
 second time in a row that what a display *said* was the thing playing it found.
 
@@ -298,10 +316,12 @@ Shipped with them: **`F10` `b23a8bc`, played and committed 2026-09-03**, with
 phase has shipped.** **The three playtest checks against `1b991ae` — `W1`, `W5`
 and `W6`, the only evidence `B50` and `B52` will ever have — all passed on
 2026-09-04 at `23f0227`.** **`B51` was fixed the same day at `8de3cea`** — a run
-cut short says *stopped* — and `D7` passed that day too, leaving the phase with
-**no open finding and no unrun check**. Left in it: `README.md`, the screenshots, `R2` on the release archive
-— the one check whose result has gone stale. **CI is no longer outstanding**:
-run 47 is green on all three jobs at `65b4c46`. `H10` passed 2026-09-02. **`F9`
+cut short says *stopped* — and `D7` passed that day too, which left the phase
+with **no open finding and no unrun check** until `F11` and `F12` added sixteen
+of the latter. Left in it: `README.md`, the screenshots, `R2` on the release archive
+— the one check whose result has gone stale. **CI is outstanding again**: run 47
+is green on all three jobs at `65b4c46`, which is `origin/master` and five
+commits behind `HEAD`, so it has seen neither `F11` nor `F12`. `H10` passed 2026-09-02. **`F9`
 passed its playtest on 2026-09-02** — all eight cases in both languages, no
 defect, and one decision reversed: the paused clock, built and re-checked the same
 day. **`B47` and `settingtypes.txt` closed the same day**, and writing the second
@@ -954,15 +974,22 @@ demonstrate it.
 
 ### F11 · large · shipped `d075742` + `6126abe`, unplayed — the mod brings its own blocks
 
+**`F12` replaced the palette this feature introduced.** The 33 names below are
+what `d075742` shipped and are gone; the current palette is 35 colours and 105
+nodes, under `F12`. What survives from here and is still load-bearing is
+everything *except* the list: why the dependencies were dropped, the naming
+rule, the category namespacing, the tile technique, and the whole of pass 2.
+
 **Built in two passes on 2026-09-04 and 2026-09-05, with the gates green over
 both, and not yet played.** `d075742` registers the mod's own 99 nodes and drops
 `default` and `wool`; `6126abe` lets a game add a category of its own. It is
-**the last feature before v1.0.0**, and it went in `Phase 8` rather than
+in `Phase 8` rather than
 `Phase 9` for the same reason `F10` did, only more so: it renames the whole block
 palette, and a rename is free before the first tag and breaking after it.
 **Two things about it are outstanding, and neither is unfinished work:** CI has
-seen no part of it, both commits being unpushed, and **none of its eleven
-`PLAYTEST.md` checks has been run**.
+seen no part of it, both commits being unpushed, and **none of its `PLAYTEST.md`
+checks has been run** — ten live ones, `F11-4` having been superseded by `F12-1`
+and `F12-2`.
 
 **Why it exists: distribution.** `mod.conf` read
 `depends = default, wool, vector3` and now reads `depends = vector3`. Neither `default` nor `wool` is a ContentDB
@@ -984,7 +1011,8 @@ the one whose window closes at the tag.
 - **A game may register its own category** under its own name — `wool`,
   `plants`, `minetest`, whatever it calls it — in its own namespace.
 - **`blocks`, `plants`, `wools` and `iwools` all go.** `iwools` is replaced by
-  the hue-ordered `colors` array, and `color(v, min, max)` maps onto that.
+  the hue-ordered `hues` array, and `color(v, min, max)` mapped onto that —
+  `F12` has since replaced `color` with `ramp.hues`.
 
 **Agreed 2026-09-04, and load-bearing.**
 
@@ -1012,27 +1040,15 @@ the one whose window closes at the tag.
 - **The palette is hand-picked and ordered by approximate hue.** Not a computed
   hue × shade grid — hand-picked names read better in a program — and not the
   fifteen wool names, which are not the large choice asked for. **The order is
-  load-bearing:** `color(v, min, max)` maps a number onto the ramp, so a gradient
-  across it has to read as a rainbow. That is exactly what `iwools` was and why
-  it kept an order of its own.
+  load-bearing:** a number maps onto the ramp, so a gradient across it has to
+  read as a rainbow. That is exactly what `iwools` was and why it kept an order
+  of its own.
 - **The names and their order are the decision; the hex values are not.**
   `code-expert` picks the hexes and the author judges them in a world.
-- **The list as built**, in order — six neutrals then nine hue families of
-  three, **33 names and not the 36 the size was first described as**:
-
-      white ash grey slate ink black
-      salmon red maroon
-      apricot orange rust
-      sand brown chocolate
-      butter yellow ochre
-      lime green forest
-      aqua teal cyan
-      sky blue navy
-      lavender violet indigo
-      magenta rose pink
-
-  Chosen at the tighter size so every colour is distinct from its neighbours at
-  a glance, which is what matters in a picker and at a distance in a world.
+- **`F11`'s own list of 33 names is superseded and not reproduced here.** It was
+  six neutrals and nine families of three, `salmon red maroon` through
+  `magenta rose pink`; `F12` replaced every one of them on 2026-09-06. The
+  current list is under `F12`.
 - **Every family reads light / plain / dark, and the plain word is the family's
   own name.** The list as first drafted had **no `red`, no `yellow` and no
   `brown`** — the three names a player types first — because each family's
@@ -1040,6 +1056,8 @@ the one whose window closes at the tag.
   the `F11` brief before any code, and each mid-tone was renamed to its plain
   word. **Do not re-prettify them.** The rule that came out of it: the obvious
   name for a colour must exist, and it must be the middle of its family.
+  **`F12` kept this rule and made it mechanical** — every family is
+  `light_x` / `x` / `dark_x` — so it survived the palette that produced it.
 - **A game's registration is validated, then trusted.** codeblock checks only
   what it alone can know: the short name is a valid Lua identifier, because a
   player reads it as a table key; it does not collide with a built-in category or
@@ -1060,17 +1078,17 @@ is not re-proposed.**
   `set_node{name = block}`. Grepping `lib/` for `param2` returns nothing. So a
   definition per colour costs nothing in either path, and a `param2` palette
   would change both.
-- **Two tile PNGs plus `^[multiply:#rrggbb`, not one image file per colour and
+- **Shared tile PNGs plus `^[multiply:#rrggbb`, not one image file per colour and
   not `^[colorize`.** A solid colour needs no per-colour art. The brief
   specified `^[colorize:<hex>:255` and **`code-expert` corrected it against
   `lua_api.md`**: at ratio 255 colorize *replaces* every pixel with the flat
-  colour and throws the tile's grain away, while multiply scales RGB per pixel
-  and leaves alpha alone — which is also what makes the one semi-transparent
-  glass tile safe. **Do not switch back to colorize**; it would flatten the
-  grain and make the glass opaque in the same edit. The two tiles are
-  `textures/codeblock_block.png` and `textures/codeblock_glass.png`, and the
-  hexes live in `lib/config.lua`'s `palette`, read by `lib/nodes.lua` and by
-  nothing else.
+  colour and throws the tile away, while multiply scales RGB per pixel
+  and leaves alpha alone — which is also what makes the semi-transparent
+  glass tile safe. **Do not switch back to colorize**; it would destroy the
+  glass and the lamps in the same edit. `F11` had two tiles and `F12` has
+  three — `textures/codeblock_block.png`, `codeblock_glass.png` and
+  `codeblock_lamp.png` — and the hexes live in `lib/config.lua`, read by
+  `lib/nodes.lua` and by nothing else.
 - **The short-name space stays flat and unique behind the category tables.**
   `place()` takes one string and the write paths are unchanged, so
   `colors.crimson`, `glass.crimson` and `lamps.crimson` cannot all be the key
@@ -1085,10 +1103,15 @@ is not re-proposed.**
   for the same reason.
 - **The tile carries a faint grain, not a flat fill.** A perfectly uniform colour
   reads as a texture-missing surface at distance, and the grain is what
-  `^[multiply` preserves and `^[colorize` would have destroyed. How it reads on a
-  large wall is `F11-4`'s to confirm; the decision is made.
-- **`lib/config.lua` is now a `palette` of `{name, hex}` pairs with the derived
-  views built beside it**, and `allowed_blocks`'s `all` union stays as the flat
+  `^[multiply` preserves and `^[colorize` would have destroyed.
+  **`F12` reversed this for the solids** — the block tile is now flat pure white
+  so the hex is reproduced exactly — and it is the one `F11` decision `F12`
+  overturned without a playtest having judged it. The grain moved to the lamps,
+  as a grid. **`F12-2` is where the question comes back.**
+- **`lib/config.lua` is a `palette` of `{name, hex}` pairs with the derived
+  views built beside it** — `F12` moved the source one level back, to the two
+  literals `neutrals` and `families` that `palette` and `hues` are derived from
+  — and `allowed_blocks`'s `all` union stays as the flat
   key → itemstring map every write path resolves through. The views —
   `by_node`, `categories`, `by_name`, `pickable`, `hues` — are all maintained by
   one function, `config.add_category`. **They are mutated and never replaced**,
@@ -1100,11 +1123,10 @@ is not re-proposed.**
   a name indexed `allowed_blocks` directly a game could name a category `all` or
   `fallback` and overwrite the map every write path reads. `by_name` is the one
   table a game-chosen string may index.
-- **The list is 33 names and was always going to be** — the 36 in the first
-  sizing was wrong arithmetic, six neutrals and twenty-seven chromatic being 33.
-  Five of the fifteen wool short names have no equivalent (`dark_grey`,
-  `dark_green` among them), which is accepted: the palette is the mod's own and
-  is not a translation of `wool`'s.
+- **The palette is the mod's own and is not a translation of `wool`'s.** Five of
+  the fifteen wool short names had no equivalent in `F11`'s 33 and that was
+  accepted; `F12`'s 35 has `dark_grey` and `dark_green` but the principle is
+  unchanged. Do not size a palette to match another mod's.
 
 **Pass 2 — a game adds a category, `6126abe`.**
 
@@ -1167,8 +1189,8 @@ the block picker and the help panel beside `colors`, `glass` and `lamps`.
 and a top-level `air`; `random.block|plant|wool` became `random.color|glass|lamp`),
 the `impls` table and `color` in `lib/sandbox.lua`, `lib/commands.lua`,
 `lib/drone.lua`, `lib/formspecs.lua`, `scripts/gen_docs.lua`, `init.lua`,
-`tests/api_spec.lua`'s name list, `tests/integration_spec.lua`, and **all eleven
-bundled examples**. It added the mod's **first registered nodes and its first
+`tests/api_spec.lua`'s name list, `tests/integration_spec.lua`, and **every
+bundled example**. It added the mod's **first registered nodes and its first
 textures**, so `.gitattributes` and the release archive moved with it.
 `tests/game/mods/default` and `tests/game/mods/wool` — empty stubs that existed
 only to satisfy `depends` — are **deleted**, replaced by
@@ -1196,6 +1218,117 @@ If a legacy dropdown returns displayed text on one client and something else on
 another, French is where it shows. **Unlike `F10`, this feature is not waiting on
 translation; it is waiting on a French client proving the round trip.**
 
+### F12 · large · shipped `01f9641`, unplayed — a new palette, one ramp per category, and `get_block` coordinates
+
+**Shipped 2026-09-06 with every gate green and no finding filed**, in two
+commits: `b752ea3` is the author's own recolouring of the bundled examples onto
+`F11`'s palette, plus the deletion of `lib/examples/tests.lua` and
+`preprocess_spec`'s example count moving 14 → 13; `01f9641` is the feature, 24
+files. **What is outstanding is checking**: six `PLAYTEST.md` entries, `F12-1`
+to `F12-6`, none run, and CI has seen neither commit.
+
+**It went into `Phase 8` for `F11`'s reason.** Every `F11` colour name is gone
+and `color` is gone with no alias — two breaks to names a saved program writes,
+free only while v1.0.0 is untagged, and a major bump after it.
+
+**How it was shaped.** The author gave it as a list of notes rather than as a
+feature, so steps 1 to 3 of `build-feature` happened compressed inside one
+`AskUserQuestion` exchange. Their notes asked for: the example edits committed,
+a solid texture made homogeneous and the lamps given a grid, the blocks
+reordered by rainbow then lightness, `color(v, min, max)` renamed to something
+like `ramp.colors`, and `get_block` given parameters relative to the drone so a
+program need not move to read — with the observation that it could already
+answer `nil`, probably in unloaded chunks.
+
+**What the author decided, and what they did not.**
+
+- **The palette is the author's, the neutral hexes are not.** Offered two
+  reorderings of `F11`'s 33, the author **replaced the palette outright**,
+  giving thirty hexes and their names: ten hue families —
+  `pink red orange yellow olive lime green cyan blue violet`, in that wheel
+  order — each as `light_x` / `x` / `dark_x`, plus *"white, light_grey,
+  grey_dark_grey, black"*, five neutrals read through a typo. **They gave no
+  neutral hex values**, so `project-manager` chose an even grey ramp —
+  `#ffffff #c0c0c0 #808080 #404040 #101010`. **Those five are the easiest thing
+  in the palette to change** and `F12-1` is where they get looked at.
+- **The ramp is called `ramp`** — *"ramp colors/glass/lamps/hues"*, the author's
+  own wording out of the options offered.
+- **Every category gets a ramp, including a game's** — *"for every category
+  blocks/hues/lamps/glass"*. **The consequence is worth not re-arguing:** only
+  `ramp.hues` reads as a gradient. `ramp.colors`, `ramp.glass` and `ramp.lamps`
+  walk light, plain and dark inside each family in turn and therefore **strobe**,
+  because those categories are ordered by family and not by lightness. That
+  follows from the author's own answer, it is documented in the help text, and
+  it is not a defect. `F12-5` is where both are seen side by side.
+- **`get_block` loads the map it reads** — *"Load the block first, charged as map
+  footprint"* — rather than answering `nil` for anything the drone has not
+  already visited.
+
+**Constraints a future change would re-break.**
+
+- **`lib/config.lua` holds two literals, `neutrals` and `families`, and derives
+  `palette` and `hues` from them.** `F11`'s flat list with an index range for
+  the neutrals **could not express *the plain shade of each family***, which is
+  what `hues` now means. Do not flatten it back. `fallback` is still `grey`.
+- **The solid tile is flat pure white**, so `^[multiply` reproduces the palette
+  hex exactly. Glass is unchanged; `textures/codeblock_lamp.png` is new, a faint
+  grid at ground 252 with lines at 234 every 8 px, so a wall of lamps reads as
+  blocks. `scripts/gen_textures.py` writes all three. **The cost is real and is
+  not yet judged:** a wall of same-coloured solid blocks has **no node-edge
+  definition at all**, the grain having gone. That is the one `F11` decision
+  reversed here without a playtest behind it, and `F12-2` may hand it back.
+- **`ramp_over(list)` in `lib/sandbox.lua` is `color`'s body verbatim** with
+  `nhues` generalised — `test-agent` diffed it against `HEAD:lib/sandbox.lua` to
+  confirm the clamping semantics did not move. **It has no spec coverage at
+  all**, six clamping behaviours resting on that diff, and `test-agent`
+  recommends **against** exporting a private closure factory to get coverage.
+  `F12-5` is the honest check.
+- **`add_category` gained a `keys` view**, derived there and nowhere else, per
+  `F11`'s rule about load-time snapshots. That is what a ramp indexes.
+- **`lib/api.lua`'s *Choosing blocks* group gained an `id`**, so `lib/blocks.lua`
+  can append a registered category's ramp to it without matching on a title that
+  a rewording would break — the same reasoning already commented on the `blocks`
+  group. **A registered category is sorted alphabetically**, so its ramp is a
+  lookup and not a gradient, and the generated documentation says so: the mod
+  cannot know a game's colour order, or whether the category is colours at all.
+- **`get_block(n_right, n_up, n_forward)` moves nothing.** Three optional
+  offsets, rotated by the drone's facing exactly as `place_relative` does,
+  neither position nor facing touched. It loads the mapblock it reads through a
+  new `codeblock.cost.load_block`, shared with `place_block` — the memo is still
+  **per-resume** and `release()` is still the **only** `coroutine.yield` in
+  `lib/cost.lua`. Without the load, `get_node` answers `ignore` for anything not
+  in server memory, which is indistinguishable from map that does not exist, so
+  every read outside the drone's own footprint would come back `nil`.
+- **Three answers, and `nil` is permanent.** A block name; `false` for a node no
+  program can place; `nil` for map that was never generated or a position
+  outside the world. `core.load_area` **does not run mapgen**, so waiting will
+  not turn a `nil` into a name.
+- **The world edge is one predicate.** A new `inside_world` is shared with
+  `check_inside_world`, so the query's edge and the raise's edge cannot drift.
+  **The asymmetry is deliberate** — a write raises out of the world, a read
+  answers `nil` — because raising on the query a player uses to look before they
+  leap is the wrong shape. It is commented in `lib/commands.lua`. **Do not turn
+  it into a raise.**
+
+**What the suite can and cannot reach, measured rather than assumed.**
+`codeblock.commands.drone_get_block` is exported, so `integration_spec` **does**
+reach and assert the out-of-world branch — `code-expert`'s report that
+`get_block` was unreachable was wrong. What is unreachable is a read that lands
+**inside** the world: a probe at the origin at mod load dies inside builtin with
+`bad argument #1 to '__index' (number expected, got nil)`, content ids not being
+cached yet, so **there is no position anywhere at which an in-world read can be
+asked for from the suite**. `F12-3` and `F12-4` are the only evidence there will
+be. Two other things the record had wrong are in `AUDIT.md`'s corrections list.
+
+**Gates at `01f9641`, local only.** luacheck silent; `doc/api.md`,
+`locale/template.txt` and `settingtypes.txt` each *up to date*; `locale/*.tr`
+covering every message and nothing else; six standalone specs under Lua 5.1;
+nine in-engine, none skipped, **544 passed / 0 failed / 0 xpass / 1 known
+xfail**, `integration_spec` at **182 assertions**. Every changed and new
+assertion was made to fail once against ten separate deliberate breaks, with
+`md5sum` confirming `lib/` restored byte-identical, and `codeblock_run_tests`
+was confirmed gone from the real config afterwards.
+
 ## Other decisions worth not re-litigating
 
 - **`default` and `wool` are dropped outright rather than made optional**,
@@ -1208,8 +1341,26 @@ translation; it is waiting on a French client proving the round trip.**
   optional** was rejected as deferring the question rather than settling it.
   **A computed hue × shade grid** for the replacement palette was rejected in the
   same exchange: hand-picked names read better in a program. The order of the
-  palette is by hue and is not cosmetic — `color(v, min, max)` maps a number onto
-  it, so a gradient has to read as a rainbow.
+  palette is by hue and is not cosmetic — a ramp maps a number onto it, so a
+  gradient has to read as a rainbow.
+- **Every block category gets a ramp, and only `ramp.hues` is a gradient** —
+  the author's answer on 2026-09-06 with `F12`, *"for every category
+  blocks/hues/lamps/glass"*. `ramp.colors`, `ramp.glass` and `ramp.lamps` walk
+  light, plain and dark inside each family in turn and therefore **strobe**.
+  That is a consequence of the answer, not a defect, and it is said in the help
+  text. **Do not re-order `colors` by lightness to fix it** — the picker and the
+  creative inventory read by family, which is what a person looking for a colour
+  wants, and `ramp.hues` already exists for the gradient case.
+- **`get_block` answers `nil` outside the world; `place` raises there** —
+  decided with `F12` and commented in `lib/commands.lua`. Both use the one
+  `inside_world` predicate so the edges cannot drift. The asymmetry is the
+  point: a read is the query a player uses to look before they leap, and
+  stopping their program for asking is the wrong shape. **Do not make it
+  symmetrical.**
+- **`color(v, min, max)` was removed with no alias**, `F12`, 2026-09-06. An
+  alias was not considered worth its cost: v1.0.0 is untagged, the same release
+  already renames every block name a program writes, and a name kept for
+  compatibility with a version that was never released is a name kept for ever.
 - **The help row is one layout in every game — a `Blocks` button and an
   always-drawn category selector** — the author's choice on 2026-09-05, over
   `code-expert`'s proposal of a dropdown drawn only when a game has registered a
@@ -1556,11 +1707,20 @@ translation; it is waiting on a French client proving the round trip.**
 - `.gitattributes` decides what reaches a player and **no CI checks it**. (C10)
 - `README.md:14`'s trailing whitespace is deliberate — a Markdown hard break
   `gen_cdb_json.sh` folds into the ContentDB description. (B21)
-- **None of the mod's 99 nodes has a `sounds` field, so they are silent to walk
+- **None of the mod's 105 nodes has a `sounds` field, so they are silent to walk
   on, dig and place.** Deliberate: every `node_sound_*_defaults()` belongs to a
   game, and calling one would put this mod back in the position `F11` took it
   out of — needing a game to provide something. A player will read silence as
   broken, so `F11-6` exists to have it seen once and recorded as intended. (F11)
+- **A wall of one solid colour has no node-edge definition.** `F12` made the
+  solid tile a flat pure white so `^[multiply` reproduces each hex exactly, which
+  cost the grain `F11` put there for exactly this reason. **Not yet judged** —
+  `F12-2` may hand the decision back, and the choice is between an exact hex and
+  a wall that reads as blocks. (F12)
+- **`ramp_over`'s clamping has no spec coverage at all.** Six behaviours rest on
+  a diff against `color`'s body rather than on an assertion. Covering it would
+  mean exporting a private closure factory, which `test-agent` recommends
+  against; `F12-5` is what there is. (F12)
 - **A game's own block category shows its raw name in the help row's selector**,
   untranslated, where the mod's own three are translated. The raw name is what a
   program types; translating it would offer a French player a word `place()`
@@ -1587,41 +1747,48 @@ translation; it is waiting on a French client proving the round trip.**
 
 ---
 
-2026-09-05 · codeblock master at `6126abe`, plus this record change, uncommitted.
-`origin/master` is at `65b4c46` and **has seen none of `F11`**.
+2026-09-06 · codeblock master at `01f9641`, plus this record change,
+uncommitted. `origin/master` is at `65b4c46` and **has seen neither `F11` nor
+`F12`** — five unpushed commits, `d075742`, `6126abe`, `7514f39`, `b752ea3` and
+`01f9641`.
 
-**`F11` is shipped and unplayed.** Two passes: `d075742` — the mod registers its
-own 99 nodes (33 colours as a solid, a glass and a lamp), `mod.conf` drops to
+**`F11` and `F12` are both shipped and both unplayed.** `F11` in two passes:
+`d075742` — the mod registers nodes of its own, `mod.conf` drops to
 `depends = vector3`, `blocks`/`plants`/`wools`/`iwools` become
 `colors`/`glass`/`lamps`/`hues` plus a top-level `air`, the `default` and `wool`
-test stubs are replaced by `tests/game/mods/cbfixture`, and all eleven bundled
-examples are ported — and `6126abe`, `codeblock.register_blocks(category,
+test stubs are replaced by `tests/game/mods/cbfixture`, and every bundled
+example is ported — and `6126abe`, `codeblock.register_blocks(category,
 entries)`, queued at the call and validated at `register_on_mods_loaded`.
-**`test-agent` verified both passes and filed no finding**; three load-time
-palette snapshots were found and closed before either commit, one of them
-(`rev_blocks`) a live defect in code that never shipped.
+`F12` at `01f9641`: **35 colours and 105 nodes** from two literals in
+`lib/config.lua`, a flat solid tile and a new grid tile for the lamps,
+`color(v, min, max)` replaced by **one `ramp` per block category** including a
+game's, and `get_block` given three optional offsets that turn with the drone
+and load the map they read. **`test-agent` verified all three commits and filed
+no finding against any.**
 
-**Gates over both passes**, engine 5.17.0, read from output rather than exit
-codes: luacheck silent, all four `--check` generators up to date, six standalone
-specs under Lua 5.1, nine in-engine with **0 failed and 0 xpass** and
-`integration_spec` at **167 assertions**. Every gate was made to fail on purpose
-before it was read as green, and every new assertion killed with a named mutant.
+**Gates at `01f9641`**, engine 5.17.0, read from output rather than exit codes:
+luacheck silent, all three `--check` generators up to date, `locale/*.tr`
+complete, six standalone specs under Lua 5.1, nine in-engine with **544 passed /
+0 failed / 0 xpass / 1 known xfail** and `integration_spec` at **182
+assertions**. Every gate was made to fail on purpose before it was read as
+green, and every changed or new assertion killed against ten deliberate breaks.
 
-**`PLAYTEST.md` stands at 71 checks, eleven of them unrun** — `F11-1` to
-`F11-11`, written 2026-09-05 at `6126abe`. That is the first time since
-2026-09-04 that a check has had no result, and it is outstanding *checking*
-rather than unfinished work. Of the other 60, none has a fail as its most recent
-result; the one partial is `H8`.
+**`PLAYTEST.md` stands at 77 entries, one superseded, sixteen unrun** — `F11-1`
+to `F11-11` less `F11-4`, and `F12-1` to `F12-6` written 2026-09-06 at
+`01f9641`. Outstanding *checking*, not unfinished work. Of the 60 with results,
+none has a fail as its most recent one; the one partial is `H8`. **`F11-4` is
+superseded by `F12-1` and `F12-2`** and was never run, so no result was lost.
 
 **`AUDIT.md` stands at 85 findings, two open** — `A17` and `A18`, both low, both
 pre-existing, both filed 2026-09-05 while recording `F11`, and neither blocking
-the tag. No bug, sandbox or compliance finding is open.
+the tag. No bug, sandbox or compliance finding is open, and `F12` added none.
 
-What is left before the tag: **play `F11` and push it**, then `README.md`'s three
-problems — line 10's now-false portability claim, the missing *For game authors*
-section, the pre-rename ContentDB URLs — the screenshots, `R2` on the release
-archive, then `release-check`, the heading and the tag.
+What is left before the tag: **play `F11` and `F12`, and push**, then
+`README.md`'s three problems — line 10's now-false portability claim, the
+missing *For game authors* section, the pre-rename ContentDB URLs — the
+screenshots, `R2` on the release archive, then `release-check`, the heading and
+the tag. **Expect `F12-2` to hand back the flat-solid-tile decision.**
 
 ---
 
-Last reviewed **2026-09-05**, describing commit **`6126abe`**.
+Last reviewed **2026-09-06**, describing commit **`01f9641`**.

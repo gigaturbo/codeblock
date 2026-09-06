@@ -4,7 +4,7 @@ can imagine: learn to code, or give your inner computer artist somewhere to play
 
 ## Features
 
-- **Its own blocks.** Thirty-three named colours, each as a solid block, a
+- **Its own blocks.** Thirty-five named colours, each as a solid block, a
   glass and a lamp, so the mod installs into any game and a program means the
   same thing in all of them.
 - **An editor in the game.** A per-player program list, create, edit and save,
@@ -58,10 +58,17 @@ Experiment and discover with the other examples, or write your own!
 ## Recent changes
 
 - **Its own blocks** The mod no longer needs Minetest Game: it brings its own
-  palette of 33 colours as `colors`, `glass` and `lamps`, and installs into any
+  palette of 35 colours as `colors`, `glass` and `lamps`, and installs into any
   game. The old `blocks`, `plants`, `wools` and `iwools` names are gone. A game
   can add a block category of its own with `codeblock.register_blocks`, and it
   shows up in the editor beside the built-in ones.
+- **Colour ramps** `ramp.hues(v, min, max)` maps a number onto the colour wheel,
+  so a shape can be coloured by height or distance. There is one ramp per block
+  category — `ramp.colors`, `ramp.glass`, `ramp.lamps` and one for a category a
+  game has registered. It replaces `color(v, min, max)`, which is gone.
+- **`get_block(right, up, forward)`** Read the block at an offset from the drone
+  without moving it. The offsets turn with the drone, the same way
+  `place_relative` does.
 - **HUD** A display in the top right corner while a program runs, showing how
   much of its budget it has spent.
 - **Control panel** Left click with the **drone setter** tool to show a panel with the drone limits, plus pause and stop buttons.

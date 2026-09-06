@@ -31,9 +31,20 @@ game may be reading them; what it wants is the author's decision. `A18` is
 `lib/formspecs.lua`, verified equivalent, and the last `LUACHECK_STRICT=1`
 `W421` in that file.
 
+**`F12` is committed at `01f9641` and `test-agent` filed no finding against it
+either** — a new 35-colour palette (105 nodes), one `ramp` per block category in
+place of `color(v, min, max)`, and relative coordinates for `get_block`. Nothing
+in the committed or the uncommitted code was demonstrable as a defect, so
+**there is no new id here**; what `F12` changed in this document is two wordings,
+both marked below — `C10`'s misleading-command note, whose example file was
+deleted at `b752ea3`, and the *unprovable by running* entry, which claimed no
+spec could reach `get_block()` at all and was narrower than that. Its six
+in-world checks are `F12-1` to `F12-6` in `PLAYTEST.md`, none run.
+
 **`F11` is committed in two passes and `test-agent` filed no finding against
 it.** `d075742` gives the mod its own 99 nodes and drops `default` and `wool`;
-`6126abe` adds `codeblock.register_blocks`. Both passes were verified
+`6126abe` adds `codeblock.register_blocks`. (`F12` has since replaced that
+palette with 105 nodes; the number here is what `d075742` did.) Both passes were verified
 independently, every gate was made to fail before it was trusted, and every new
 assertion was killed by a named mutant. **Three gaps were found and closed
 before either commit, so none of them is a finding here**: two load-time palette
@@ -44,8 +55,12 @@ reached. The third **was a live defect** — `get_block()` would have answered
 shipped, which is the `F2` precedent: a feature wrong before it ships is recorded
 in its `ROADMAP.md` entry, not given an id. The reasoning is under `F11` there.
 **Two things about `F11` are outstanding and neither is a finding: CI has seen no
-part of it**, both commits being unpushed, **and none of its eleven `PLAYTEST.md`
-checks has been run**, which is outstanding *checking*.
+part of it**, both commits being unpushed, **and none of its `PLAYTEST.md` checks
+has been run**, which is outstanding *checking*. **The same is true of `F12`,
+and worse.** `origin/master` is at `65b4c46`; `d075742`, `6126abe`, `7514f39`,
+`b752ea3` and `01f9641` are all unpushed, so **CI has looked at nothing since
+`B51`**. Anything below claiming a CI state describes `65b4c46` and no later
+commit.
 
 **`B50` and `B52` are fixed in `1b991ae` and now verified in a running world.**
 The fix is the one chosen on 2026-09-03 — decouple the drone record from its
@@ -81,8 +96,10 @@ both are corrected, and the correction is under the entry below.
 | C compliance and packaging | 15 | — (`C21` fixed by `F10` at `b23a8bc`, confirmed in a world by `F10-1`) |
 | A architecture and performance | 14 | `A17`, `A18` — both low, both pre-existing, both filed 2026-09-05 while recording `F11` |
 
-**CI is green on all three jobs at `65b4c46`, which is `HEAD` and is pushed** —
-run 47, checked against the Actions API on 2026-09-04. So nothing here carries
+**CI is green on all three jobs at `65b4c46`, which is `origin/master` and is
+five commits behind `HEAD`** — run 47, checked against the Actions API on
+2026-09-04. `d075742`, `6126abe`, `7514f39`, `b752ea3` and `01f9641` are
+unpushed, so **CI has seen no part of `F11` or `F12`**. So nothing here carries
 local gates only any more, `B47`'s fix and `settingtypes.txt`'s generator
 included, and run 46 over `7dbe18f` was the first to prove the fourth CI step
 `d8d44cd` added. Everything committed since is the record, the images and
@@ -103,8 +120,12 @@ for `B49`, then three for `B50`/`B52` in `integration_spec`'s drone-seam block,
 which went from six cases to nine. Nothing was added for `B47`, because **no
 spec can reach it** — the gates call the handler directly and the defect is in
 the client's menu. **CI has since seen all of this**: run 47 is green on all
-three jobs at `65b4c46`, which is `HEAD`. The record claimed the opposite until
-2026-09-04.
+three jobs at `65b4c46`. The record claimed the opposite until 2026-09-04.
+**`F11` and `F12` are past that line**: the gates at `01f9641` are local only,
+and they read luacheck silent, all three `--check` generators up to date,
+`locale/*.tr` covering every message and nothing else, six standalone specs
+under Lua 5.1, and **nine in-engine specs 544 passed / 0 failed / 1 xfail /
+0 xpass**, `integration_spec` alone at 182.
 
 **Every defect the playtests found is fixed, and no finding is open.** `W1`'s
 re-run at codelevel 1 on 2026-09-03 was `B50`, and diagnosing it produced `B51`
@@ -1002,10 +1023,12 @@ and `C15` are the game's; `C9` never used.
   — the first time anything had looked.
   **Keep — the standing hazard, which outlives the fix.** It is in `CLAUDE.md`:
   `.gitattributes` decides what reaches a player and **nothing in CI checks it**.
-  **Keep — `R1`'s own command misleads.** `git archive HEAD | tar -t | grep tests`
-  prints `lib/examples/tests.lua` even when the archive is correct — a
-  player-facing example. What answers the question is listing the top level:
-  `git archive --format=tar HEAD | tar -t | awk -F/ '{print $1}' | sort -u`.
+  **Keep — read the archive by its top level, not by grepping it.**
+  `git archive --format=tar HEAD | tar -t | awk -F/ '{print $1}' | sort -u` is
+  what answers the question. `grep tests` over the whole listing answered *fail*
+  on a correct archive for the project's whole life, because `lib/examples/tests.lua`
+  is a player-facing example and matched it. That file was **deleted at
+  `b752ea3`**, so the example no longer bites — the rule it taught does.
   **A check whose command needs its output interpreted has to say so.**
 - **C11 · low · resolved** — the changelog shipped two "known limitations" the
   same section contradicted. Both deleted rather than reworded, since a reworded
@@ -1320,12 +1343,12 @@ Never blurred. **Verified** means a run or a reading demonstrates it,
 document says so.
 
 - **Verified by machine.** CI runs 44 (`dc09d48`), 45 (`471526e`),
-  46 (`7dbe18f`) and **47 (`65b4c46`, `HEAD`)**, all three jobs green in each:
-  luacheck, the six standalone specs under plain Lua 5.1, and the three
+  46 (`7dbe18f`) and **47 (`65b4c46`, `origin/master`)**, all three jobs green in
+  each: luacheck, the six standalone specs under plain Lua 5.1, and the three
   `--check` gates. **CI never runs the nine in-engine specs**, which is why the
   editor findings rest on the local suite and the playtests. **CI has seen no
-  part of `F11`**: `d075742` and `6126abe` are both unpushed and `origin/master`
-  is still at `65b4c46`.
+  part of `F11` or `F12`**: `d075742`, `6126abe`, `7514f39`, `b752ea3` and
+  `01f9641` are all unpushed and `origin/master` is still at `65b4c46`.
 - **Verified locally** (engine 5.17.0, read from output rather than exit codes —
   `$?` does not survive this machine's WSL layer): nine in-engine specs, **474
   passed / 0 failed / 1 xfail / 0 xpass** at `1b991ae`, with all five gates
@@ -1338,7 +1361,13 @@ document says so.
   `integration_spec` at **167 assertions**. `test-agent` also **made every gate
   fail on purpose** before reading it as green, and killed each new assertion
   with a named mutant, which is the `C20` rule applied to a whole feature rather
-  than to one check.
+  than to one check. **`F12` the same, at `01f9641`**: 544 in-engine assertions
+  across the nine, `integration_spec` at **182**, 0 failed, 0 xpass, 1 known
+  xfail, three `--check` generators up to date, `locale/*.tr` complete, six
+  standalone specs green — and every changed or new assertion made to fail once
+  against **ten separate deliberate breaks**, with `md5sum` confirming `lib/`
+  was restored byte-identical afterwards. `codeblock_run_tests` was confirmed
+  gone from `%APPDATA%\Minetest\minetest.conf` after the run.
 - **Verified by making the check fail.** Both generators' completeness guards,
   by adding a fake per-codelevel limit to `config.lua` and watching each name it
   and exit 1 (`C20`). That is the only evidence that distinguishes a check which
@@ -1381,12 +1410,15 @@ document says so.
   committed as well (`4179877`, `b23a8bc`, `d8c32f7`). **`B50` and `B52` left it
   on 2026-09-04**, when all three of the checks written for them passed at
   `23f0227`.
-- **Gates green, playtest written and not yet run — `F11`, all eleven of its
-  checks.** Written 2026-09-05 with the record, at `6126abe`, and none has been
-  run. That is the whole of the outstanding evidence for the feature: **nothing
-  `F11` does is provable by the specs** — a registered node, a texture, a
-  creative-inventory listing, the picker, the help row and a game's own
-  registration all need a world. No finding is behind them; a feature's checks
+- **Gates green, playtest written and not yet run — `F11` and `F12`, sixteen
+  checks between them.** `F11-1` to `F11-11` were written 2026-09-05 at
+  `6126abe` and `F11-4` has since been superseded by `F12-1` and `F12-2`,
+  leaving ten; `F12-1` to `F12-6` were written 2026-09-06 at `01f9641`. None has
+  been run. That is the whole of the outstanding evidence for both features:
+  **nothing either does is provable by the specs** — a registered node, a
+  texture, a creative-inventory listing, the picker, the help row, a game's own
+  registration, a ramp read as a gradient and a `get_block` that lands inside
+  the world all need a world. No finding is behind them; a feature's checks
   being unrun is outstanding *checking*, not unfinished work. Before that entry
   this list was empty and every check in `PLAYTEST.md` carried a result, which
   had not been true before: `B51`'s `D7` was written with the fix on 2026-09-04
@@ -1394,10 +1426,17 @@ document says so.
   and `B49`'s `W4` on 2026-09-03 at `16cd05c`.
 - **Correct by reading, unprovable by running.** The `rev_blocks` fix in
   `lib/commands.lua` — the third of `F11`'s load-time snapshots, and the one
-  that was a live defect. `lib/commands.lua` captures `core.get_node` at load,
-  and calling it for real at mod load dies because content ids are not cached
-  yet, so no spec can exercise `get_block()` at all. Its evidence is playtest
-  `F11-11` and nothing else.
+  that was a live defect. Its evidence is playtest `F11-11` and nothing else.
+  **`F12` narrowed this claim and it is worth stating exactly, because it was
+  overstated once.** `codeblock.commands.drone_get_block` is exported, so a spec
+  *can* call `get_block`, and `integration_spec` now asserts its out-of-world
+  branch. What no spec can do is a read that lands **inside** the world:
+  `lib/commands.lua` captures `core.get_node` at load, and `test-agent` probed
+  it at the origin at mod load, where it dies inside builtin with
+  `bad argument #1 to '__index' (number expected, got nil)` because content ids
+  are not cached yet. **There is no position anywhere at which an in-world read
+  can be asked for from the suite** — measured, not assumed, so nobody spends
+  the afternoon again.
 - **Explained by reading, confirmed by playing it, fixed, then confirmed again:**
   `B50`. The cause is a reading of the 5.17.0 engine source —
   `serveractiveobject.h:123-129` and `serverenvironment.cpp:1685-1690` for the
@@ -1483,26 +1522,45 @@ document says so.
 - **An id is for a defect in committed code.** A wrong check is a defect in this
   record and is fixed there: playtests `D3` and `F-3` got no ids, and `E12` has
   none after three fails.
+- **Three things `F12` found the record had wrong, none of them a finding.**
+  (1) `tests/api_spec.lua`'s name list was described here and in `ROADMAP.md` as
+  a pre-existing historical capture; it was **68 names against 73 described**,
+  `sleep` and `default_block` having been added to `lib/api.lua` and never
+  written down, and the one-way check could not say so. It is now bidirectional.
+  (2) `integration_spec`'s `refused_for('color', …)` was reported by
+  `code-expert` as passing vacuously; it was **failing** in the baseline, `color`
+  being free so the category installs. Replaced by `ramp`, which also proves a
+  dotted name reserves its first segment. (3) `code-expert` reported `get_block`
+  as unreachable from the suite; `codeblock.commands.drone_get_block` is
+  exported, so only an **in-world** read is unreachable — see *unprovable by
+  running* above.
 
 ---
 
-2026-09-04 · describes codeblock at `8de3cea`, plus this record change and a
-comment-only edit in `lib/drone.lua`, both uncommitted at the time of writing.
-`origin/master` is at `7dbe18f` and **has seen none of the work since**.
-**No finding is open.** `B51` was the last and is fixed at `8de3cea` — a run cut
-short now says *stopped* — and its playtest `D7` **passed on 2026-09-04**, engine
-version not restated.
-**`B50` and `B52` are fixed in `1b991ae` and confirmed in a
-running world**: the record and the run were decoupled from the drone's entity,
-and the three checks that were the rest of the evidence — `W1` at every
-codelevel, `W5`, `W6` — all passed at `23f0227` on 2026-09-04, engine version
-not restated. **Gates green, unproven in a world is two**, `B14` and `S7`'s log
-half. Gates at `1b991ae` and again at `8de3cea`, same
-figures both times, engine 5.17.0, read from output rather than exit codes: luacheck silent,
-`doc/api.md`, `locale/template.txt` and `settingtypes.txt` up to date,
-`locale/*.tr` covering every message and nothing else, nine in-engine specs
-**474 passed / 0 failed / 1 xfail / 0 xpass** — the xfail `preprocess_spec`'s and
-pre-existing — and six standalone under Lua 5.1. **CI has caught up**: runs 46
-(`7dbe18f`) and **47 (`65b4c46`)** are green on all three jobs, `65b4c46` is
-`HEAD`, and `HEAD` is pushed. Checked against the Actions API on 2026-09-04; the
-record had said CI had seen nothing since `471526e`.
+2026-09-06 · describes codeblock at `01f9641`, plus this record change,
+uncommitted at the time of writing.
+
+**85 findings, two open — `A17` and `A18`, both low, both pre-existing, neither
+blocking the tag.** `F11` (`d075742`, `6126abe`) and `F12` (`01f9641`) each
+landed with every gate green and **no finding filed against either**, so this
+document gained no id from the last two features. What it gained from `F12` is
+three corrections, all above: `C10`'s misleading-command note, whose example file
+`lib/examples/tests.lua` was deleted at `b752ea3`; the claim that no spec can
+reach `get_block()` at all, which was narrower than true; and the three things
+the previous record had wrong about `tests/api_spec.lua` and
+`integration_spec`.
+
+**Gates at `01f9641`, local only**, engine 5.17.0, read from output rather than
+exit codes: luacheck silent, `doc/api.md`, `locale/template.txt` and
+`settingtypes.txt` each *up to date*, `locale/*.tr` covering every message and
+nothing else, six standalone specs under Lua 5.1, and nine in-engine
+**544 passed / 0 failed / 1 xfail / 0 xpass**, `integration_spec` at 182. The
+xfail is `preprocess_spec`'s and pre-existing.
+
+**CI has looked at none of it.** `origin/master` is at `65b4c46` — run 47, green
+on all three jobs, checked against the Actions API on 2026-09-04 — and
+`d075742`, `6126abe`, `7514f39`, `b752ea3` and `01f9641` are all unpushed.
+
+**Gates green, unproven in a world is two**, `B14` and `S7`'s log half; and
+**sixteen playtest checks are unrun** — `F11`'s ten live ones, `F11-4` having
+been superseded by `F12-1` and `F12-2`, plus `F12`'s six.

@@ -123,17 +123,35 @@ Features
 - [x] FEAT: the mod brings its own blocks and drops the `default` and `wool`
       dependencies — settled 2026-09-04 as `F11` and **shipped in two passes**,
       d075742 and 6126abe. `mod.conf` is `depends = vector3`; the mod registers
-      99 nodes of its own, 33 hand-picked colours in hue order each as a solid,
-      a glass and a lamp. `blocks`, `plants`, `wools` and `iwools` became
-      `colors`, `glass`, `lamps`, `hues` and a top-level `air`, and
-      `codeblock.register_blocks` lets a game add a category of its own in its
-      own namespace. **All three open questions were settled:** `air` is a plain
-      top-level name, the tile carries a faint grain, and the palette is 33
-      names with `red`, `yellow` and `brown` in it — each family's mid-tone
-      renamed to its plain word. Gates green over both passes and no finding
-      filed. **What is left is playing it — eleven PLAYTEST.md checks, none run,
-      F11-1 first — and pushing, since CI has seen no part of it.** The shape
-      and the decisions are in ROADMAP.md under `F11` (audit F11)
+      its own nodes, each colour as a solid, a glass and a lamp. `blocks`,
+      `plants`, `wools` and `iwools` became `colors`, `glass`, `lamps`, `hues`
+      and a top-level `air`, and `codeblock.register_blocks` lets a game add a
+      category of its own in its own namespace. **All three open questions were
+      settled:** `air` is a plain top-level name, the tile carried a faint grain
+      (since reversed for the solids by `F12`), and each family's mid-tone is
+      its plain word. Gates green over both passes and no finding filed.
+      **What is left is playing it — ten live PLAYTEST.md checks, none run,
+      F11-1 first, F11-4 superseded by F12 — and pushing, since CI has seen no
+      part of it.** The shape and the decisions are in ROADMAP.md under `F11`
+      (audit F11)
+- [x] FEAT: a new palette, a ramp per block category, and coordinates for
+      `get_block` — your five notes of 2026-09-06, shaped in one exchange and
+      **shipped as `F12` at 01f9641** (with b752ea3 for your own example edits).
+      The palette is the 35 colours you gave: five neutrals, then ten families
+      `pink red orange yellow olive lime green cyan blue violet` in wheel order,
+      each `light_x` / `x` / `dark_x` — 105 nodes. **The five neutral hexes are
+      mine, not yours** — an even grey ramp, since you named them without
+      values, and the easiest thing here to change. The solid tile is flat so
+      each hex comes out exact, and the lamps got a faint grid.
+      `color(v, min, max)` is gone with no alias, replaced by `ramp.hues` plus
+      one ramp per category including a game's; only `ramp.hues` reads as a
+      gradient, the others strobe, which follows from your own answer that every
+      category gets one. `get_block(right, up, forward)` turns with the drone,
+      moves nothing, and loads the map it reads, charged as footprint as you
+      asked — `nil` still means never-generated or outside the world, and that
+      one is permanent. Gates green, no finding filed. **What is left is playing
+      it: six PLAYTEST.md checks, none run, and F12-2 may hand the flat-solid
+      decision back to you.** The shape is in ROADMAP.md under `F12` (audit F12)
 - [ ] DECIDE: three exported functions in `lib/utils.lua` have no caller left —
       `table_reverse`, `table_convert_ik`, `table_convert_iv`. Found 2026-09-05
       while recording `F11`, which took the last caller of two of them. They are
