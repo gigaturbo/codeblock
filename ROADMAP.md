@@ -9,7 +9,7 @@ stays.
 Findings and their reasoning are in `AUDIT.md`. Manual checks are in
 `PLAYTEST.md`. Intentions not yet planned are in `TODO.md`.
 
-Phases are `Phase 0`–`Phase 10`, features `F1`–`F12`, findings `B`/`S`/`C`/`A`.
+Phases are `Phase 0`–`Phase 10`, features `F1`–`F13`, findings `B`/`S`/`C`/`A`.
 **Nothing is ever renumbered.**
 
 Three releases, settled 2026-08-28. **`Phase 8` is v1.0.0** — a correct sandbox,
@@ -21,11 +21,13 @@ thinking rather than a queue position.
 
 ## Now
 
-**Play `F11` and `F12` in one session, starting with `F11-1`.** Both features are
-built and committed with every gate green and **no finding filed against
-either** — `d075742` and `6126abe` for `F11`, `01f9641` for `F12` — and what is
+**Play `F11`, `F12` and `F13` in one session, starting with `F11-1`.** All three
+features are built and committed with every gate green — `d075742` and `6126abe`
+for `F11`, `01f9641` for `F12`, `4450ce1` for `F13` — and what is
 left is the part no spec can do: **sixteen `PLAYTEST.md` checks, none of them
-run.** Start with `F11-1`, the category selector on a **French** client, because
+run.** `F13` adds no entry of its own: `is_block` is `get_block`'s read path, so
+`F12-3` and `F12-4` were extended instead. Start with `F11-1`, the category
+selector on a **French** client, because
 it is the one whose failure would be expensive: if the selector works in English
 and does nothing in French, the client is returning displayed text rather than
 the stored item, and the fix is formspec-version-4 `index event`, which means
@@ -38,11 +40,12 @@ node-edge definition at all. That is a judgement only a wall in a world can
 make. Everything else in both groups is appearance, digging, inventory, a game's
 own registration, a ramp and a read.
 
-**Then push.** `HEAD` is `01f9641` and `origin/master` is at `65b4c46`, so **CI
-has seen no part of `F11` or `F12`** — five unpushed commits, `d075742`,
-`6126abe`, `7514f39`, `b752ea3` and `01f9641`, and the two largest changes in
-the release are the two CI has not looked at. After that the release list is
-`README.md`, the screenshots, `R2` and the tag.
+**Then push.** `HEAD` is `4450ce1` and `origin/master` is at `65b4c46`, so **CI
+has seen no part of `F11`, `F12` or `F13`** — seven unpushed commits, `d075742`,
+`6126abe`, `7514f39`, `b752ea3`, `01f9641`, `6aadd16` and `4450ce1`, and the two
+largest changes in the release are among the ones CI has not looked at. The new
+`.luacheckrc` check in `gen_docs.lua --check` is unseen by CI as well. After that
+the release list is `README.md`, the screenshots, `R2` and the tag.
 
 **Two low findings were filed on 2026-09-05 while recording this**, both
 pre-existing and neither blocking: `A17`, three dead exports on
@@ -93,20 +96,21 @@ not restated here; what is below is what *this* version still needs, and
 `release-check` is the gate that says whether it got it.
 
 **The work — everything through step 4 is done, so are the two unnumbered steps
-ahead of them and `B51`; what is left is playing `F11` and `F12`, pushing, then
-the README, the screenshots, `R2` and the tag.**
+ahead of them and `B51`; what is left is playing `F11`, `F12` and `F13`,
+pushing, then the README, the screenshots, `R2` and the tag.**
 
-**Before step 5 — play `F11` and `F12`, and push them.** Kept unnumbered so the
-steps below keep the numbers commit messages and the release skill cite. Both
-features are **built and committed**, `d075742` + `6126abe` and `01f9641`, gates
-green over all three and no finding against any; their entries under *The
+**Before step 5 — play `F11`, `F12` and `F13`, and push them.** Kept unnumbered
+so the steps below keep the numbers commit messages and the release skill cite.
+All three are **built and committed**, `d075742` + `6126abe`, `01f9641` and
+`4450ce1`, gates green over all four commits; their entries under *The
 features* hold the shapes and the decisions. What is outstanding is **sixteen
-`PLAYTEST.md` checks, none run**, and **CI, which has seen no part of either** —
-five commits unpushed and `origin/master` at `65b4c46`. Run `F11-1` first, and
+`PLAYTEST.md` checks, none run** — `F13`'s folded into `F12-3` and `F12-4` — and
+**CI, which has seen no part of any of them**: seven commits unpushed and
+`origin/master` at `65b4c46`. Run `F11-1` first, and
 expect `F12-2` to hand a decision back about the flat solid tile.
 `CHANGELOG.md` took `F11`'s **Changed** and **Removed** sections on 2026-09-05
-and `F12`'s revisions on 2026-09-06, so step 4 is back to the heading alone.
-(F11, F12)
+and `F12`'s and `F13`'s on 2026-09-06, so step 4 is back to the heading alone.
+(F11, F12, F13)
 
 **The unnumbered step before step 0 — play `W1`, `W5` and `W6` — is done,
 2026-09-04 at `23f0227`, all three passing.** It is kept unnumbered so the steps
@@ -281,7 +285,7 @@ were fixed the same day at `1b991ae` and **confirmed in a world on 2026-09-04**,
 and `B51` was fixed at `8de3cea` on 2026-09-04 and confirmed by `D7` the same
 day. **So all fifteen fixes are played.**
 
-### 8 · Features for v1.0.0 — in progress (10/10 shipped, 25 findings, none open; `F11` and `F12` unplayed)
+### 8 · Features for v1.0.0 — in progress (11/11 shipped, 26 findings, none open; `F11`, `F12` and `F13` unplayed)
 
 The last phase before v1.0.0 and the only one that adds rather than repairs.
 Started as seven features: `F6` moved out on 2026-08-28 (Blockly is `Phase 10`)
@@ -301,13 +305,20 @@ It replaces `F11`'s palette outright — 35 colours, 105 nodes — swaps
 `color(v, min, max)` for one `ramp` per block category, and gives `get_block`
 relative coordinates. Same reason for the phase again: both are breaking changes
 to names a saved program writes, and both are free only while v1.0.0 is
-untagged. **Every feature in the phase is now shipped**, and `F11` and `F12` are
-the two that are **shipped and not yet checked** — sixteen `PLAYTEST.md`
-entries, none run, and no CI over any of the five commits.
+untagged.
+
+**`F13` was added and shipped on 2026-09-06 as well**, and is the last: one new
+name, `is_block`, the predicate form of `F12`'s `get_block`. Adding a name
+breaks nothing, so its phase is a matter of when it was asked for rather than of
+the tag. The same commit closed `C22`. **Every feature in the phase is now
+shipped**, and `F11`, `F12` and `F13` are the three that are **shipped and not
+yet checked** — sixteen `PLAYTEST.md` entries, none run, `F13`'s checking folded
+into two of them, and no CI over any of the seven commits.
 
 Shipped: `F1` `500dd85`, `F2` `dee0bc7`, `F3` `90cfb70`, `F7` `afbe504`,
 `F4` `729c255`, `F8` `d619fba` revised `60dc8dd`, `F9` `8869d8c` revised
-`cd13414`, `F10` `b23a8bc`, `F11` `d075742` + `6126abe`, `F12` `01f9641`. **`F9` was added and shipped on 2026-09-02** out of `F8`'s playtest,
+`cd13414`, `F10` `b23a8bc`, `F11` `d075742` + `6126abe`, `F12` `01f9641`,
+`F13` `4450ce1`. **`F9` was added and shipped on 2026-09-02** out of `F8`'s playtest,
 the second time a feature here has come from playing the one before it — and the
 second time in a row that what a display *said* was the thing playing it found.
 
@@ -320,8 +331,8 @@ cut short says *stopped* — and `D7` passed that day too, which left the phase
 with **no open finding and no unrun check** until `F11` and `F12` added sixteen
 of the latter. Left in it: `README.md`, the screenshots, `R2` on the release archive
 — the one check whose result has gone stale. **CI is outstanding again**: run 47
-is green on all three jobs at `65b4c46`, which is `origin/master` and five
-commits behind `HEAD`, so it has seen neither `F11` nor `F12`. `H10` passed 2026-09-02. **`F9`
+is green on all three jobs at `65b4c46`, which is `origin/master` and seven
+commits behind `HEAD`, so it has seen no part of `F11`, `F12` or `F13`. `H10` passed 2026-09-02. **`F9`
 passed its playtest on 2026-09-02** — all eight cases in both languages, no
 defect, and one decision reversed: the paused clock, built and re-checked the same
 day. **`B47` and `settingtypes.txt` closed the same day**, and writing the second
@@ -1279,10 +1290,12 @@ answer `nil`, probably in unloaded chunks.
   reversed here without a playtest behind it, and `F12-2` may hand it back.
 - **`ramp_over(list)` in `lib/sandbox.lua` is `color`'s body verbatim** with
   `nhues` generalised — `test-agent` diffed it against `HEAD:lib/sandbox.lua` to
-  confirm the clamping semantics did not move. **It has no spec coverage at
-  all**, six clamping behaviours resting on that diff, and `test-agent`
-  recommends **against** exporting a private closure factory to get coverage.
-  `F12-5` is the honest check.
+  confirm the clamping semantics did not move. It had **no spec coverage at all**
+  when `F12` shipped; `F13` gave it **57 assertions** across all four built-in
+  ramps at `4450ce1`, and the closure factory was **not** exported to get them —
+  the spec writes a program into the throwaway world and runs it. What `F12-5`
+  is still the only check for is the *visual* half: a gradient reading as a
+  gradient.
 - **`add_category` gained a `keys` view**, derived there and nowhere else, per
   `F11`'s rule about load-time snapshots. That is what a ramp indexes.
 - **`lib/api.lua`'s *Choosing blocks* group gained an `id`**, so `lib/blocks.lua`
@@ -1329,8 +1342,78 @@ assertion was made to fail once against ten separate deliberate breaks, with
 `md5sum` confirming `lib/` restored byte-identical, and `codeblock_run_tests`
 was confirmed gone from the real config afterwards.
 
+### F13 · small · shipped `4450ce1`, unplayed — `is_block`
+
+**Shipped 2026-09-06 with every gate green.** One new player-facing name,
+`is_block(block, n_right, n_up, n_forward)`, the predicate form of `F12`'s
+`get_block` and beside it in the *Choosing blocks* group. The author asked for
+it in these words: *"add is_block(block, nx, ny, nz) to check if a block at a
+pos is as specified. nx,ny,nz optional and if not specified default to actual
+block. In choose block category"* — the parameter names became `get_block`'s,
+and everything else is as asked.
+
+**In `Phase 8` because a new API name is free before the tag**, like `F11` and
+`F12`, though this one adds rather than renames and so breaks nothing.
+
+**Constraints a future change would re-break.**
+
+- **It calls `drone_get_block`, it does not read the map itself.** The mapblock
+  load, the footprint charge and `end_command` all have to happen identically to
+  `get_block`'s or the two answers drift. One call is one command whatever the
+  answer.
+- **`type(block) == 'string'` is load-bearing and is pinned by a spec driven to
+  failure.** Outside the world the read answers `nil`, and `colors.typo` is also
+  `nil`, so a plain `found == block` would report `true` for a misspelt name at
+  a position that has no answer at all. Do not simplify it away.
+- **A nil block does **not** resolve through the default-block fallback.**
+  `place()` substituting grey for a name that does not exist is right for a
+  write and a trap for a query, so `is_block(colors.typo)` is `false`. The
+  reporting was already there: reading `colors.typo` warns once per run through
+  the environment's `unknown_block` (`B49`).
+- **Everything false is one answer** — a node no program can place, ungenerated
+  map, outside the world, a name that does not exist, a different block. That is
+  what a predicate is, and `get_block` is what tells them apart. It is under
+  *what ships broken* as well, because someone will read it as a defect.
+
+**A known imprecision, left as it is deliberately.** `unknown_block`'s message
+reads *"no block named '@1', the default block is used instead"*, and in
+`is_block` no default block is used — the answer is just `false`. Rewording the
+key would orphan the French translation (`C17`), and the wording is correct for
+`place()`, which is where it fires almost always. Not a finding; recorded here so
+it is not rediscovered.
+
+**Its in-world checking folds into `F12-3` and `F12-4`**, which were extended
+rather than joined by new entries: `is_block` is the same read path, so a
+separate group would mean walking to the same three positions twice. Neither has
+been run.
+
+**Gates at `4450ce1`, local only.** luacheck silent — it was **not** silent
+before, which is how `C22` was found; `doc/api.md`, `locale/template.txt` and
+`settingtypes.txt` each *up to date*; six standalone specs under Lua 5.1; nine
+in-engine, **610 passed / 0 failed / 0 xpass / 1 known xfail**,
+`integration_spec` at **248 assertions**. The same commit closed `C22` and
+covered `ramp_over`, which is where 66 of those assertions came from.
+
 ## Other decisions worth not re-litigating
 
+- **Exporting `getScriptEnv` to give the sandbox implementations coverage was
+  offered and refused**, 2026-09-06 with `F13`. Pinning a spec to a private
+  closure factory is pinning to the implementation, and the factory would then
+  be public for the sake of a test. What was done instead is the only real door:
+  the spec **writes a program into the throwaway world** and runs it through
+  `get_safe_coroutine`. The `run-tests` skill's rule against a spec touching a
+  user directory stands for *a spec that passes vacuously because none exists*;
+  this one was driven to failure eight ways, so it is the opposite case, and the
+  distinction is written into the skill so nobody deletes the write.
+- **`.luacheckrc`'s sandbox std stays hand-written and is checked, not
+  generated**, decided 2026-09-06 with `C22`. It is a linter configuration a
+  human also edits, so generating it would take the file away from the person
+  who has to change it. `gen_docs.lua --check` compares it with `api.names()`
+  both ways instead. **The std holds API names and nothing else** — that rule is
+  what makes the comparison a plain equality, and the bare `_` the examples pass
+  lives in `files["lib/examples/**"].read_globals` for exactly that reason. The
+  reasoning, and the bare-string escape hatch that switches typo-catching off
+  without going red, are under `C22` in `AUDIT.md`.
 - **`default` and `wool` are dropped outright rather than made optional**,
   decided 2026-09-04 with `F11`. **Optional dependencies keeping them when the
   game has them** were rejected because the palette would then vary by game: a
@@ -1717,10 +1800,10 @@ was confirmed gone from the real config afterwards.
   cost the grain `F11` put there for exactly this reason. **Not yet judged** —
   `F12-2` may hand the decision back, and the choice is between an exact hex and
   a wall that reads as blocks. (F12)
-- **`ramp_over`'s clamping has no spec coverage at all.** Six behaviours rest on
-  a diff against `color`'s body rather than on an assertion. Covering it would
-  mean exporting a private closure factory, which `test-agent` recommends
-  against; `F12-5` is what there is. (F12)
+- **`is_block` cannot say *why* it answered false.** A node no program can
+  place, ungenerated map, outside the world, a name that does not exist and a
+  different block are one answer. Deliberate — it is a predicate — and
+  `get_block` tells them apart. (F13)
 - **A game's own block category shows its raw name in the help row's selector**,
   untranslated, where the mod's own three are translated. The raw name is what a
   program types; translating it would offer a French player a word `place()`
@@ -1747,10 +1830,10 @@ was confirmed gone from the real config afterwards.
 
 ---
 
-2026-09-06 · codeblock master at `01f9641`, plus this record change,
-uncommitted. `origin/master` is at `65b4c46` and **has seen neither `F11` nor
-`F12`** — five unpushed commits, `d075742`, `6126abe`, `7514f39`, `b752ea3` and
-`01f9641`.
+2026-09-06 · codeblock master at `4450ce1`, plus this record change,
+uncommitted. `origin/master` is at `65b4c46` and **has seen no part of `F11`,
+`F12` or `F13`** — seven unpushed commits, `d075742`, `6126abe`, `7514f39`,
+`b752ea3`, `01f9641`, `6aadd16` and `4450ce1`.
 
 **`F11` and `F12` are both shipped and both unplayed.** `F11` in two passes:
 `d075742` — the mod registers nodes of its own, `mod.conf` drops to
@@ -1764,14 +1847,16 @@ entries)`, queued at the call and validated at `register_on_mods_loaded`.
 `color(v, min, max)` replaced by **one `ramp` per block category** including a
 game's, and `get_block` given three optional offsets that turn with the drone
 and load the map they read. **`test-agent` verified all three commits and filed
-no finding against any.**
+no finding against any.** `F13` at `4450ce1` adds `is_block`, closes `C22` and
+covers `ramp_over`; its in-world checking folds into `F12-3` and `F12-4`.
 
-**Gates at `01f9641`**, engine 5.17.0, read from output rather than exit codes:
+**Gates at `4450ce1`**, read from output rather than exit codes:
 luacheck silent, all three `--check` generators up to date, `locale/*.tr`
-complete, six standalone specs under Lua 5.1, nine in-engine with **544 passed /
-0 failed / 0 xpass / 1 known xfail** and `integration_spec` at **182
-assertions**. Every gate was made to fail on purpose before it was read as
-green, and every changed or new assertion killed against ten deliberate breaks.
+complete, six standalone specs under Lua 5.1, nine in-engine with **610 passed /
+0 failed / 0 xpass / 1 known xfail** and `integration_spec` at **248
+assertions**. At `01f9641` the same run was 544 and 182. Every gate was made to
+fail on purpose before it was read as green, and every changed or new assertion
+killed against a deliberate break.
 
 **`PLAYTEST.md` stands at 77 entries, one superseded, sixteen unrun** — `F11-1`
 to `F11-11` less `F11-4`, and `F12-1` to `F12-6` written 2026-09-06 at
@@ -1779,9 +1864,10 @@ to `F11-11` less `F11-4`, and `F12-1` to `F12-6` written 2026-09-06 at
 none has a fail as its most recent one; the one partial is `H8`. **`F11-4` is
 superseded by `F12-1` and `F12-2`** and was never run, so no result was lost.
 
-**`AUDIT.md` stands at 85 findings, two open** — `A17` and `A18`, both low, both
+**`AUDIT.md` stands at 86 findings, two open** — `A17` and `A18`, both low, both
 pre-existing, both filed 2026-09-05 while recording `F11`, and neither blocking
 the tag. No bug, sandbox or compliance finding is open, and `F12` added none.
+`C22` was filed and fixed on 2026-09-06, both inside `4450ce1`'s work.
 
 What is left before the tag: **play `F11` and `F12`, and push**, then
 `README.md`'s three problems — line 10's now-false portability claim, the
@@ -1791,4 +1877,4 @@ the tag. **Expect `F12-2` to hand back the flat-solid-tile decision.**
 
 ---
 
-Last reviewed **2026-09-06**, describing commit **`01f9641`**.
+Last reviewed **2026-09-06**, describing commit **`4450ce1`**.

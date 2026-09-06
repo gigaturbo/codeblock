@@ -20,18 +20,25 @@ it.
 
 ## Where it stands
 
-**86 findings. 82 resolved, 3 open (`A17`, `A18`, `C22`), 1 won't fix (`B34`).**
+**86 findings. 83 resolved, 2 open (`A17`, `A18`), 1 won't fix (`B34`).**
 
-**All three open findings are pre-existing and low, and none blocks the tag.**
+**Both open findings are pre-existing and low, and neither blocks the tag.**
 `A17` and `A18` were filed on 2026-09-05 while recording `F11`, and neither is a
-defect `F11` introduced. `C22` was filed on 2026-09-06 while covering
-`is_block`, and is older than either: `.luacheckrc`'s sandbox std has been
-missing `sleep` since `F3` and `default_block` since `F1`. `A17` is three exported functions in `lib/utils.lua` with no caller left,
+defect `F11` introduced. **`C22` was filed on 2026-09-06 and fixed the same day
+at `4450ce1`**, so no bug, sandbox or compliance finding is open.
+`A17` is three exported functions in `lib/utils.lua` with no caller left,
 kept rather than deleted because `codeblock.utils` is a published global and a
 game may be reading them; what it wants is the author's decision. `A18` is
 `meta.active = #meta.tabs` written as a loop in two places in
 `lib/formspecs.lua`, verified equivalent, and the last `LUACHECK_STRICT=1`
 `W421` in that file.
+
+**`F13` is committed at `4450ce1` and closed `C22` with it.** `is_block(block,
+n_right, n_up, n_forward)` is the predicate form of `F12`'s `get_block`, and the
+same commit gave `.luacheckrc`'s sandbox std the both-directions check that
+`C22` asked for. The finding's full entry is under *C · Compliance and
+packaging* below. Its in-world checking folds into `F12-3` and `F12-4`, which
+were extended rather than joined by new entries, and neither has been run.
 
 **`F12` is committed at `01f9641` and `test-agent` filed no finding against it
 either** — a new 35-colour palette (105 nodes), one `ramp` per block category in
@@ -60,8 +67,9 @@ in its `ROADMAP.md` entry, not given an id. The reasoning is under `F11` there.
 part of it**, both commits being unpushed, **and none of its `PLAYTEST.md` checks
 has been run**, which is outstanding *checking*. **The same is true of `F12`,
 and worse.** `origin/master` is at `65b4c46`; `d075742`, `6126abe`, `7514f39`,
-`b752ea3` and `01f9641` are all unpushed, so **CI has looked at nothing since
-`B51`**. Anything below claiming a CI state describes `65b4c46` and no later
+`b752ea3`, `01f9641`, `6aadd16` and `4450ce1` — **seven commits** — are all
+unpushed, so **CI has looked at nothing since `B51`**, and it has never run the
+new `.luacheckrc` check. Anything below claiming a CI state describes `65b4c46` and no later
 commit.
 
 **`B50` and `B52` are fixed in `1b991ae` and now verified in a running world.**
@@ -95,13 +103,13 @@ both are corrected, and the correction is under the entry below.
 |---|---|---|
 | B bugs | 49 | — (`B51` fixed at `8de3cea` and confirmed in a world by `D7`) — and `B34` won't fix, `B47` resolved with a residue, `B48` fixed at `4179877` and confirmed by `E16`, `B49` fixed at `d8c32f7` and confirmed by `W4`, `B50` and `B52` fixed at `1b991ae` and confirmed in a world by `W1`, `W5` and `W6` on 2026-09-04 |
 | S sandbox and security | 7 | — |
-| C compliance and packaging | 15 | — (`C21` fixed by `F10` at `b23a8bc`, confirmed in a world by `F10-1`) |
+| C compliance and packaging | 16 | — (`C21` fixed by `F10` at `b23a8bc`, confirmed in a world by `F10-1`; `C22` filed and fixed 2026-09-06 at `4450ce1`) |
 | A architecture and performance | 14 | `A17`, `A18` — both low, both pre-existing, both filed 2026-09-05 while recording `F11` |
 
 **CI is green on all three jobs at `65b4c46`, which is `origin/master` and is
-five commits behind `HEAD`** — run 47, checked against the Actions API on
-2026-09-04. `d075742`, `6126abe`, `7514f39`, `b752ea3` and `01f9641` are
-unpushed, so **CI has seen no part of `F11` or `F12`**. So nothing here carries
+seven commits behind `HEAD`** — run 47, checked against the Actions API on
+2026-09-04. `d075742`, `6126abe`, `7514f39`, `b752ea3`, `01f9641`, `6aadd16` and
+`4450ce1` are unpushed, so **CI has seen no part of `F11`, `F12` or `F13`**. So nothing here carries
 local gates only any more, `B47`'s fix and `settingtypes.txt`'s generator
 included, and run 46 over `7dbe18f` was the first to prove the fourth CI step
 `d8d44cd` added. Everything committed since is the record, the images and
@@ -123,11 +131,14 @@ which went from six cases to nine. Nothing was added for `B47`, because **no
 spec can reach it** — the gates call the handler directly and the defect is in
 the client's menu. **CI has since seen all of this**: run 47 is green on all
 three jobs at `65b4c46`. The record claimed the opposite until 2026-09-04.
-**`F11` and `F12` are past that line**: the gates at `01f9641` are local only,
-and they read luacheck silent, all three `--check` generators up to date,
+**`F11`, `F12` and `F13` are past that line**: the gates at `01f9641` were local
+only and so are those at `4450ce1`. At `4450ce1` they read luacheck silent, all
+three `--check` generators up to date — `gen_docs.lua --check` now also
+comparing `.luacheckrc`'s sandbox std with `api.names()` both ways —
 `locale/*.tr` covering every message and nothing else, six standalone specs
-under Lua 5.1, and **nine in-engine specs 544 passed / 0 failed / 1 xfail /
-0 xpass**, `integration_spec` alone at 182.
+under Lua 5.1, and **nine in-engine specs 610 passed / 0 failed / 1 xfail /
+0 xpass**, `integration_spec` alone at 248. At `01f9641` the same figures were
+544 and 182; the 66 new assertions are `is_block` and `ramp_over`.
 
 **Every defect the playtests found is fixed, and no finding is open.** `W1`'s
 re-run at codelevel 1 on 2026-09-03 was `B50`, and diagnosing it produced `B51`
@@ -166,7 +177,10 @@ decides whether v1.0.0 deletes them or the surface is declared public — and
 `A18` is one clear-code fix in `lib/formspecs.lua`, verified equivalent and the
 last `LUACHECK_STRICT=1` `W421` in it. **Neither blocks the tag.**
 
-**No bug, sandbox or compliance finding is open.** `B51` was the last, and it is
+**No bug, sandbox or compliance finding is open.** `C22` was the last, open for
+part of 2026-09-06 and fixed at `4450ce1` the same day; it needs no world, being
+a lint configuration, and what proves it is the check having been made to fail
+eight times. Before it, `B51` was the last, and it is
 fixed at `8de3cea` on 2026-09-04 and **observed fixed in a world the same day** —
 the entry is in *B · Bugs* below, with the wording decision, the second caller
 whose behaviour changed with it, and the constraint the fix was built to.
@@ -982,7 +996,8 @@ broken.
 
 ## C · Compliance and packaging
 
-16 findings, 15 resolved, `C22` open — `C21` by `F10`, committed at `b23a8bc`.
+16 findings, all resolved — `C21` by `F10`, committed at `b23a8bc`, and `C22`
+at `4450ce1`.
 `C2`–`C5` and `C15` are the game's; `C9` never used.
 
 - **C1 · high · resolved** — the version ceiling hid the package from every
@@ -1195,28 +1210,55 @@ broken.
   merely green. Same run: `b9143b0` plus what was then the uncommitted tree,
   engine 5.17.0, and re-affirmed at `16cd05c` once the code was committed.
   Nothing on this finding is outstanding.
-- **C22 · low · open** — `.luacheckrc`'s `codeblock_sandbox` std is a **fourth
-  hand-kept mirror of `lib/api.lua`** and has drifted: `sleep` (`F3`) and
-  `default_block` (`F1`) are in the API, in `getScriptEnv`'s `impls` and in
-  `doc/api.md`, and neither is in the std list. The list's own comment says
+- **C22 · low · resolved** — `.luacheckrc`'s `codeblock_sandbox` std is a
+  **fourth hand-kept mirror of `lib/api.lua`** and had drifted: `sleep` (`F3`)
+  and `default_block` (`F1`) were in the API, in `getScriptEnv`'s `impls` and in
+  `doc/api.md`, and in neither case in the std list. The list's own comment said
   *keep this list in sync with `getScriptEnv()`*, which is the note-about-
-  remembering that `C17`, `C19` and `C20` each proved does not hold.
-  **How it fails.** The list exists so luacheck catches a typo'd API name in a
+  remembering that `C17`, `C19` and `C20` each proved does not hold. Filed by
+  `test-agent` on 2026-09-06 while covering `is_block`, because `luacheck .` was
+  not silent; fixed the same day at `4450ce1`.
+  **How it failed.** The list exists so luacheck catches a typo'd API name in a
   shipped example (`A2`). A name missing from it inverts that: an example
   calling a **correct** name is reported `(W113) accessing undefined variable`,
   which reads as a typo and invites someone to change working player code.
-  Demonstrated 2026-09-06 on `lib/examples/game.lua`, an **untracked** file in
-  the author's tree that calls `sleep(0.03)` —
-  `lib/examples/game.lua:15:5: (W113) accessing undefined variable 'sleep'`.
-  Nothing tracked uses either name, so **the gate is silent on a clean
-  checkout** and CI has never seen this; committing that example, or any example
-  that pauses or sets a default, turns the luacheck job red for a correct
-  program.
-  **Not fixable from `test-agent`** — `.luacheckrc` is `code-expert`'s. Adding
-  the two names closes the instance; what closes the finding is deciding whether
-  a fourth mirror of `lib/api.lua` should be hand-kept at all, given that
-  `api.names()` already enumerates exactly this list and the other three mirrors
-  each ended up generated.
+  Nothing tracked used either name, so **the gate was silent on a clean
+  checkout** and CI never saw it; committing any example that pauses or sets a
+  default would have turned the luacheck job red for a correct program.
+  **A third discrepancy surfaced during the fix**: `_` was in the std while
+  `lib/api.lua` describes nothing of the kind. It is what the examples pass to
+  mean *use the default for this argument*, and it moved to
+  `files["lib/examples/**"].read_globals`, which luacheck adds to the std. That
+  is what makes the comparison a clean equality rather than an equality with an
+  exemption list.
+  **Fixed by checking rather than generating**, which is the difference between
+  this mirror and the other three: `.luacheckrc` is a linter configuration a
+  human also edits, so it stays hand-written and
+  `scripts/gen_docs.lua --check` compares its std against
+  `codeblock.api.names()` **in both directions** and names what is missing on
+  either side. It runs in write mode too, so the generator refuses to write
+  `doc/api.md` while the two disagree.
+  **Keep — the std holds API names and nothing else.** That rule is what the
+  check enforces, and anything that is not an API name goes in the
+  `files["lib/examples/**"]` block instead. Putting one back in the std fails
+  the gate by name.
+  **Keep — a bare string entry is an escape hatch, and a silent one.** luacheck
+  accepts *every* field of a bare-string name, which is what `table` and
+  `vector` need, so replacing `ramp = {fields = {...}}` with a plain `"ramp"`
+  passes the check and switches off typo-catching for `ramp.*` with nothing
+  going red. The check deliberately asserts what luacheck actually enforces
+  rather than something stricter, and the script's comment states the leniency.
+  `random` was tightened to `random = {fields = {"color", "glass", "lamp"}}` for
+  the same reason `ramp` is spelled out.
+  **Read by `loadfile` and `setfenv`, not by pattern-matching**, which is the
+  `C20` lesson applied before the fact: two earlier checks here matched nothing
+  from the day they were written because Lua's `%w` excludes the underscore
+  every name they matched contains. Loading the config means a nested
+  `ramp = {fields = {...}}` costs nothing to read correctly.
+  **Made to fail before being trusted, twice over and independently.**
+  `code-expert` broke it four ways; `test-agent` then broke it four ways of its
+  own rather than taking the report, at both nesting levels and in both
+  directions.
 
 ---
 
@@ -1558,32 +1600,48 @@ document says so.
   as unreachable from the suite; `codeblock.commands.drone_get_block` is
   exported, so only an **in-world** read is unreachable — see *unprovable by
   running* above.
+- **One thing `F13` found the record had wrong, and it was this document's own
+  and `ROADMAP.md`'s.** Both said `ramp_over`'s clamping *has no spec coverage
+  at all* and that covering it would mean exporting a private closure factory.
+  It has **57 assertions** across all four built-in ramps as of `4450ce1` — six
+  clamping semantics plus the property `ramp.hues` exists for, that its answers
+  are the plain shade of a family and never a `light_`/`dark_` one — and eight
+  mutations of `lib/sandbox.lua` were each caught. **Exporting `getScriptEnv`
+  was offered and refused**, because pinning a spec to a private closure factory
+  is pinning to the implementation. What reaches it instead is the only real
+  door: the spec **writes a program into the throwaway world** and runs it
+  through `get_safe_coroutine`. What remains unprovable is the *visual* half —
+  a gradient reading as a gradient — which is `F12-5`.
 
 ---
 
-2026-09-06 · describes codeblock at `01f9641`, plus this record change,
+2026-09-06 · describes codeblock at `4450ce1`, plus this record change,
 uncommitted at the time of writing.
 
-**85 findings, two open — `A17` and `A18`, both low, both pre-existing, neither
+**86 findings, two open — `A17` and `A18`, both low, both pre-existing, neither
 blocking the tag.** `F11` (`d075742`, `6126abe`) and `F12` (`01f9641`) each
-landed with every gate green and **no finding filed against either**, so this
-document gained no id from the last two features. What it gained from `F12` is
+landed with every gate green and **no finding filed against either**. `F13`
+(`4450ce1`) added `is_block` and, filed against code older than any of the
+three, `C22` — the fourth mirror of `lib/api.lua`, resolved in the same commit.
+What this document gained from `F12` is
 three corrections, all above: `C10`'s misleading-command note, whose example file
 `lib/examples/tests.lua` was deleted at `b752ea3`; the claim that no spec can
 reach `get_block()` at all, which was narrower than true; and the three things
 the previous record had wrong about `tests/api_spec.lua` and
 `integration_spec`.
 
-**Gates at `01f9641`, local only**, engine 5.17.0, read from output rather than
+**Gates at `4450ce1`, local only**, read from output rather than
 exit codes: luacheck silent, `doc/api.md`, `locale/template.txt` and
 `settingtypes.txt` each *up to date*, `locale/*.tr` covering every message and
 nothing else, six standalone specs under Lua 5.1, and nine in-engine
-**544 passed / 0 failed / 1 xfail / 0 xpass**, `integration_spec` at 182. The
-xfail is `preprocess_spec`'s and pre-existing.
+**610 passed / 0 failed / 1 xfail / 0 xpass**, `integration_spec` at 248. The
+xfail is `preprocess_spec`'s and pre-existing. At `01f9641` the same run was
+544 and 182.
 
 **CI has looked at none of it.** `origin/master` is at `65b4c46` — run 47, green
 on all three jobs, checked against the Actions API on 2026-09-04 — and
-`d075742`, `6126abe`, `7514f39`, `b752ea3` and `01f9641` are all unpushed.
+`d075742`, `6126abe`, `7514f39`, `b752ea3`, `01f9641`, `6aadd16` and `4450ce1`
+are all unpushed.
 
 **Gates green, unproven in a world is two**, `B14` and `S7`'s log half; and
 **sixteen playtest checks are unrun** — `F11`'s ten live ones, `F11-4` having

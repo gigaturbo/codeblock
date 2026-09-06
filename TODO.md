@@ -152,6 +152,20 @@ Features
       one is permanent. Gates green, no finding filed. **What is left is playing
       it: six PLAYTEST.md checks, none run, and F12-2 may hand the flat-solid
       decision back to you.** The shape is in ROADMAP.md under `F12` (audit F12)
+- [x] FEAT: `is_block(block, nx, ny, nz)` to check whether the block at a
+      position is the one specified, offsets optional and defaulting to the
+      drone's own block, in the *Choosing blocks* category — your words of
+      2026-09-06, **shipped as `F13` at 4450ce1** with the parameter names made
+      `get_block`'s (`n_right`, `n_up`, `n_forward`). It reads through
+      `get_block`, so the map load, the footprint charge and the one-command
+      cost are identical. `true` only on an exact match; **everything else is
+      false**, including a name that does not exist — a query does not fall back
+      to your default block the way `place()` does, and a misspelt name is
+      already warned about once per run. **One thing you may want to decide:**
+      that warning says *"the default block is used instead"*, which is not true
+      when `is_block` asked it; rewording the key would orphan the French
+      translation and it is right for `place()`, so it was left. Gates green.
+      Its playtest folds into F12-3 and F12-4, neither run (audit F13)
 - [ ] DECIDE: three exported functions in `lib/utils.lua` have no caller left —
       `table_reverse`, `table_convert_ik`, `table_convert_iv`. Found 2026-09-05
       while recording `F11`, which took the last caller of two of them. They are

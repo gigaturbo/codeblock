@@ -102,9 +102,10 @@ A healthy run prints one summary per spec, and `none` under errors. As of
 
 474 assertions. Treat the numbers as the shape of a healthy run, not as a
 checksum: they rise whenever a spec gains a case, and they were 357 before `F1`.
-The block above is the shape at `6126abe`; at `01f9641` the run reports **544
-across the nine**, `integration_spec` alone at **182**, with 0 failed, 0 xpass
-and 1 known xfail.
+The block above is the shape at `6126abe`; at `01f9641` the run reports 544
+across the nine with `integration_spec` at 182, and at `4450ce1` **610 across
+the nine**, `integration_spec` alone at **248**, with 0 failed, 0 xpass and 1
+known xfail.
 
 **The script's report filter drops the spec-name lines**, keeping only the lines
 matching `passed|failed|FAIL|want|got|skipped|xfail`, so
@@ -162,6 +163,18 @@ Concretely, in this suite:
   mod load, before any of those exist. A test that appears to cover a formspec, a
   file read or a node write is passing vacuously — the honest move is a
   `PLAYTEST.md` entry, which `project-manager` writes.
+  **The rule is about vacuity, not about the filesystem**, and the distinction
+  was nearly lost on 2026-09-06. The sandbox implementations live in a closure
+  inside the local `getScriptEnv`, whose only door is `get_safe_coroutine`, which
+  reads a program out of the player's directory — so `ramp_over`'s 57 assertions
+  reach it by **writing a file into the throwaway world** and running it. That is
+  legitimate: it was driven to failure eight ways, against eight mutations of
+  `lib/sandbox.lua`. **Exporting `getScriptEnv` to avoid the write was offered
+  and refused**, because pinning a spec to a private closure factory is pinning
+  to the implementation. So: a spec may use the world it is booted in when that
+  is the only real door to the behaviour and the spec has been made to fail —
+  and the reason is commented in the spec, so do not delete the write on the
+  strength of the sentence above it.
 - **Keep a spec standalone if it can be.** Six of the nine run under bare Lua 5.1
   in CI, and that is the only thing that catches plain 5.1 differing from the
   engine's LuaJIT. A new spec that pulls in `core` loses that for no gain unless

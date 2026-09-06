@@ -68,7 +68,9 @@ Experiment and discover with the other examples, or write your own!
   game has registered. It replaces `color(v, min, max)`, which is gone.
 - **`get_block(right, up, forward)`** Read the block at an offset from the drone
   without moving it. The offsets turn with the drone, the same way
-  `place_relative` does.
+  `place_relative` does. **`is_block(block, right, up, forward)`** asks the same
+  question as a yes or no — `is_block(air, 0, 0, 1)` is *is the way ahead
+  clear*.
 - **HUD** A display in the top right corner while a program runs, showing how
   much of its budget it has spent.
 - **Control panel** Left click with the **drone setter** tool to show a panel with the drone limits, plus pause and stop buttons.

@@ -35,11 +35,19 @@ them unrun.** The unrun sixteen are `F11-1` to `F11-11` less `F11-4`, written
 2026-09-05 at `6126abe` when `F11` landed, and `F12-1` to `F12-6`, written
 2026-09-06 at `01f9641`. Before them every one of the 60 older checks carried a
 result, which had not been true before 2026-09-04. **This is outstanding
-*checking*, not unfinished work:** both features are committed with their gates
-green and no finding against either, and what these sixteen cover is the part no
-spec can reach — a registered node, a texture, the creative inventory, the
+*checking*, not unfinished work:** all three features are committed with their
+gates green and no finding against any, and what these sixteen cover is the part
+no spec can reach — a registered node, a texture, the creative inventory, the
 picker, the help row, a game's own `register_blocks` call, a colour ramp read as
-a gradient, and a `get_block` that lands inside the world.
+a gradient, and a read that lands inside the world.
+
+**`F13` added no entry, and that is deliberate.** `is_block` is `get_block`'s
+read path, so `F12-3` and `F12-4` were **extended** at `4450ce1` rather than
+joined by a group of their own: a separate group would walk to the same three
+positions twice. Read those two before running them — both changed on
+2026-09-06 after the count above was written. `F12-5` was narrowed the same day:
+`ramp_over`'s clamping now has spec coverage, so what is left there is the
+visual half.
 
 **Run `F11-1` first**, the category selector on a French client. It is the only
 one of the sixteen whose failure would be expensive: a legacy dropdown returning
@@ -2114,20 +2122,31 @@ being reproduced exactly. Both options are in `ROADMAP.md` under `F12`.
 
 Result: not yet run.
 
-### F12-3 · `get_block` answers three ways over real map [F12]
+### F12-3 · `get_block` and `is_block` answer over real map [F12, F13]
 
-Written 2026-09-06 at `01f9641`. In a game with **ungenerated map** you can
+Written 2026-09-06 at `01f9641`, **extended the same day at `4450ce1`** with
+`is_block`, which is the same read path — a separate group would mean walking to
+the same three positions twice. In a game with **ungenerated map** you can
 reach — not a fully pre-generated world.
 
 1. Place one of the mod's blocks, move the drone onto it, and
-   `print(get_block())`.
-   **Pass:** the block's name.
+   `print(get_block(), is_block(colors.red), is_block(colors.blue))`,
+   substituting the colour you placed for the first of the two.
+   **Pass:** the block's name, then `true`, then `false`.
 2. Move the drone onto a node the game provides that no program can place —
-   any node not in the mod's palette and not in a registered category.
-   **Pass:** `false`.
+   any node not in the mod's palette and not in a registered category — and
+   `print(get_block(), is_block(colors.red))`.
+   **Pass:** `false`, then `false`.
 3. Point the drone at map the engine has never generated — far out, or well
-   above or below the generated band — and read it.
-   **Pass:** `nil`.
+   above or below the generated band — and
+   `print(get_block(), is_block(colors.red), is_block(colors.typo))`.
+   **Pass:** `nil`, then `false`, then `false`.
+   **The third of those is the one worth watching.** `colors.typo` is `nil` and
+   so is the read, so the guard that stops `nil == nil` reading as `true` is
+   what makes it `false`. A `true` here means that guard has been simplified
+   away. Expect one chat line naming `typo` as an unknown block — that warning
+   says *the default block is used instead*, which is wrong for `is_block` and
+   is a known imprecision, not a fail (`F13` in `ROADMAP.md`).
 
 **What distinguishes a pass from *did not crash*: `false` and `nil` must be
 different answers.** If the unplaceable node in (2) also reads `nil`, the
@@ -2139,35 +2158,42 @@ so reading never generates terrain and waiting will not turn it into a name.
 
 Result: not yet run.
 
-### F12-4 · `get_block`'s offsets turn with the drone and move nothing [F12]
+### F12-4 · The read offsets turn with the drone and move nothing [F12, F13]
 
-Written 2026-09-06 at `01f9641`. **Genuinely unreachable by any spec** — every
+Written 2026-09-06 at `01f9641`, **extended the same day at `4450ce1`**:
+`is_block` takes `get_block`'s offsets and has to turn with the drone the same
+way. **Genuinely unreachable by any spec** — every
 rotation that moves a target outside the world moves another one inside it, and
 an in-world read cannot be asked for at mod load at all.
 
-Stand the drone one node from a wall, facing it, then:
+Stand the drone one node from a wall of a known colour, facing it, then:
 
 ```lua
 for i = 1, 4 do
-    print(i, get_block(0, 0, 1))
+    print(i, get_block(0, 0, 1), is_block(colors.red, 0, 0, 1))
     turn_left()
 end
 place()
 ```
 
 **Pass:** the wall is reported at exactly one of the four facings — the one
-pointing at it — and `nil` or the surrounding node at the other three. Then the
+pointing at it — and `nil` or the surrounding node at the other three, with
+`is_block` `true` at that one facing and `false` at the other three. Then the
 `place()` afterwards lands **where it would have landed before the reads**: the
 drone has not moved and, after four `turn_left()`, is facing where it started.
+That covers both calls: `is_block` reads through `get_block`'s implementation,
+so a move introduced in one would show here.
 
 Result: not yet run.
 
 ### F12-5 · A ramp reads as a gradient, and the other ramps strobe [F12]
 
-Written 2026-09-06 at `01f9641`. **Observable nowhere else** —
-`ramp_over`'s clamping has no spec coverage at all, and `test-agent` recommends
-against exporting a private closure factory to get some. This check is the
-honest one.
+Written 2026-09-06 at `01f9641`, **narrowed the same day at `4450ce1`**: the
+clamping is no longer uncovered — `ramp_over` gained 57 assertions across all
+four built-in ramps, run as real programs in the sandbox rather than by
+exporting a private closure factory. **What is still observable nowhere else is
+the visual half**, which is cases one and two below; the clamp in case three is
+now belt and braces.
 
 ```lua
 for i = 1, 20 do place(ramp.hues(i, 1, 20)); up(1) end
