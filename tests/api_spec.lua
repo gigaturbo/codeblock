@@ -5,11 +5,21 @@
 --
 -- Or in-engine via codeblock_run_tests = true.
 --
--- The list at the bottom is the important part. Moving the API description into
--- a data file means a name could silently disappear from the environment, and no
--- other spec would notice: the examples only have to *compile*, and
--- integration_spec exercises a handful of calls. So every name the environment
--- used to expose is pinned here explicitly.
+-- The list at the bottom is the important part. The API description is data, so
+-- a name could silently disappear from the environment and no other spec would
+-- notice: the examples only have to *compile*, and integration_spec exercises a
+-- handful of calls. So the list is a hand-kept transcription of every name
+-- lib/api.lua describes, compared against it in *both* directions.
+--
+-- Both directions, because one direction is how the list stopped being a
+-- transcription before: it was written as a one-way "nothing has been dropped"
+-- capture, two names were added to lib/api.lua over the following months, and
+-- nothing said so. A mirror of the source that only has to be a subset of it
+-- drifts in silence, which is the same family as C17, C19 and C20.
+--
+-- So adding a player-facing name means adding it here. That is the cost, and it
+-- is the point: an entry appearing in the environment that nobody meant to
+-- expose fails this spec by name.
 
 local api
 do
@@ -196,40 +206,49 @@ do
 end
 
 --------------------------------------------------------------------------------
--- every name the environment used to expose is still described
+-- the environment's whole name list, transcribed
 --
--- Captured from the api table as it stood before it became generated. If a name
--- disappears from lib/api.lua this fails, which is the regression this whole
--- refactor could otherwise introduce silently.
+-- Kept in step with lib/api.lua by hand and checked both ways round. A name
+-- that vanishes from the description vanishes from the environment, which is
+-- the regression nothing else here would see; a name that appears without being
+-- written down is a surface nobody decided to ship.
 --------------------------------------------------------------------------------
 
 do
     local expected = {
         'move', 'forward', 'back', 'left', 'right', 'up', 'down', 'turn_left',
-        'turn_right', 'turn', 'place', 'place_relative', 'save', 'go', 'cube',
-        'sphere', 'dome', 'cylinder', 'vertical.cylinder',
-        'horizontal.cylinder', 'centered.cube', 'centered.sphere',
-        'centered.dome', 'centered.cylinder', 'centered.vertical.cylinder',
-        'centered.horizontal.cylinder', 'colors', 'glass', 'lamps', 'hues',
-        'air', 'vector', 'get_block', 'print', 'color', 'ipairs', 'pairs',
-        'random', 'random.color', 'random.glass', 'random.lamp',
-        'table.randomizer',
+        'turn_right', 'turn', 'sleep', 'place', 'place_relative',
+        'default_block', 'save', 'go', 'cube', 'sphere', 'dome', 'cylinder',
+        'vertical.cylinder', 'horizontal.cylinder', 'centered.cube',
+        'centered.sphere', 'centered.dome', 'centered.cylinder',
+        'centered.vertical.cylinder', 'centered.horizontal.cylinder',
+        'colors', 'glass', 'lamps', 'hues', 'air', 'vector', 'get_block',
+        'print', 'ipairs', 'pairs', 'random', 'random.color', 'random.glass',
+        'random.lamp', 'table.randomizer',
+        -- One ramp per block table, and a game that registers a category of its
+        -- own gets one too - that one is lib/blocks.lua's and is asserted in
+        -- integration_spec, because it does not exist until a game has loaded.
+        'ramp.hues', 'ramp.colors', 'ramp.glass', 'ramp.lamps',
         'floor', 'ceil', 'round', 'round0', 'deg', 'rad', 'exp', 'log', 'max',
         'min', 'pow', 'sqrt', 'abs', 'sin', 'sinh', 'asin', 'cos', 'cosh',
         'acos', 'tan', 'tanh', 'atan', 'atan2', 'pi', 'e', 'error'
     }
 
-    local described = {}
+    local described, listed = {}, {}
     for _, n in ipairs(api.names()) do described[n] = true end
+    for _, n in ipairs(expected) do listed[n] = true end
 
-    local lost = {}
+    local lost, unlisted = {}, {}
     for _, n in ipairs(expected) do
         if not described[n] then lost[#lost + 1] = n end
     end
+    for _, n in ipairs(api.names()) do
+        if not listed[n] then unlisted[#unlisted + 1] = n end
+    end
 
-    it('no previously exposed name has been dropped',
-       table.concat(lost, ', '), '')
-    it('the expected list itself is complete', #expected, 68)
+    it('no described name has been dropped', table.concat(lost, ', '), '')
+    it('no name is exposed that this list does not know about',
+       table.concat(unlisted, ', '), '')
 end
 
 --------------------------------------------------------------------------------

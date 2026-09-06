@@ -759,6 +759,76 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- get_block reads, and moves nothing
+--
+-- Only the outside-the-world branch is reachable from here, and that is not a
+-- shortcoming of the spec. get_block loads the mapblock it reads, and the suite
+-- runs at mod load: core.get_node then answers a node with no content id at
+-- all, and builtin's own get_name_from_content_id raises on it. So a read
+-- landing inside the world cannot be asked for here at any position, which is
+-- worth knowing before anyone tries again - it is not that the answer is wrong,
+-- it is that there is no map yet to be asked.
+--
+-- What the branch does reach is every part of the contract that is not the read
+-- itself: the answer where there is no answer, the offsets being applied at
+-- all, the command being charged, and the drone standing still. The three-way
+-- answer over real map, and the offsets turning with the drone, are PLAYTEST
+-- matters.
+--------------------------------------------------------------------------------
+
+do
+    local get_block = codeblock.commands.drone_get_block
+    local edge = tonumber(core.settings:get('mapgen_limit')) or 31000
+
+    -- Facing +z, at the origin, and asked about somewhere past the world's
+    -- edge. Deliberately far rather than at the boundary: what the boundary
+    -- itself does is check_inside_world's, which lib/commands.lua shares
+    -- between this and the write path.
+    local drone = stub_drone(4)
+    drone.x, drone.y, drone.z, drone.dir = 0, 0, 0, 0
+    drone.angle = function() return 0 end
+
+    local held = drone.budget.used.map
+    local charged = drone.commands
+    local ok, answer = pcall(get_block, drone, 0, 0, edge + 10)
+
+    -- Not a raise. A question about somewhere that cannot exist is answered,
+    -- not treated as an instruction the program got wrong - the write path
+    -- raises at the same edge and this deliberately does not.
+    it('a read outside the world does not raise', ok, true)
+    -- nil and not false: false means a node no program can place, which is a
+    -- different answer and one a program branches on differently.
+    it('and answers nil rather than false', answer, nil)
+
+    -- The same case proves the offsets are used at all: ignored, the read would
+    -- have landed on the drone itself, which is inside the world.
+    it('so the offset was applied, not dropped', ok and answer == nil, true)
+
+    it('the drone did not move', ('%s,%s,%s'):format(drone.x, drone.y, drone.z),
+       '0,0,0')
+    it('and did not turn', drone.dir, 0)
+
+    it('the read is charged as a command', drone.commands, charged + 1)
+    -- Outside the world there is nothing to load, so nothing is held; the
+    -- mapblock memo staying empty is the same fact read from the other side.
+    it('and takes no map footprint', drone.budget.used.map, held)
+    it('and loads no mapblock', drone.bx, nil)
+
+    -- Each offset is optional, and a program that hands one something that is
+    -- not a number gets zero rather than an arithmetic error out of a command
+    -- that was only asked a question. Read from outside the world so the case
+    -- needs no map: an offset that reached the addition unconverted would raise
+    -- there just as surely.
+    local adrift = stub_drone(4)
+    adrift.x, adrift.y, adrift.z, adrift.dir = edge + 5, 0, 0, 0
+    adrift.angle = function() return 0 end
+
+    local ok2, answer2 = pcall(get_block, adrift, 'east', nil, {})
+    it('a non-number offset does not raise', ok2, true)
+    it('and reads as zero, so the answer is the drone position', answer2, nil)
+end
+
+--------------------------------------------------------------------------------
 -- the block palette, and the nodes it registers (F11)
 --
 -- The mod registers its own blocks now, so whether `place(name)` lands on a
@@ -768,16 +838,27 @@ end
 -- exists here. What a block looks like, drops, or sounds like is a PLAYTEST
 -- matter; that every name a program may write resolves to a definition is not.
 --
--- The two counts below are the shape F11 settled on: 33 colours, of which the
--- first six are neutral. Changing the palette deliberately means changing them
--- here and re-running gen_docs, which is the point of pinning them.
+-- The palette's shape is pinned below: 35 colours, five neutrals light to dark
+-- and then ten hue families of three. Changing it deliberately means changing
+-- these and re-running gen_docs, which is the point of pinning them.
+--
+-- `hues` is the part with a contract behind it rather than a count. It is one
+-- name per family - the plain middle shade - in family order, and ramp.hues()
+-- maps a number straight onto it, so a value sweeping the range has to read as
+-- a rainbow. A `hues` that lost a family, gained a light_ or dark_ shade, or
+-- came out sorted would still be a plausible-looking array of colour names and
+-- would still index; only the relationship to the palette says it is wrong.
+-- So it is derived from the palette here and compared, not listed.
 --------------------------------------------------------------------------------
 
 do
     local palette = codeblock.config.palette
     local blocks = codeblock.config.allowed_blocks
 
-    it('the palette has 33 colours', #palette, 33)
+    -- 5 neutrals + 10 families x 3 shades.
+    local NEUTRALS, FAMILIES = 5, 10
+
+    it('the palette has 35 colours', #palette, NEUTRALS + FAMILIES * 3)
 
     local badhex = {}
     for _, e in ipairs(palette) do
@@ -787,15 +868,45 @@ do
     end
     it('every colour carries a six-digit hex', table.concat(badhex, ', '), '')
 
-    -- color(v, min, max) maps a number onto hues, so its order has to be the
-    -- palette's own and not sorted, or a gradient stops reading as a rainbow.
-    it('hues drops the six neutrals', #palette - #blocks.hues, 6)
-    local tail = {}
-    for i = #palette - #blocks.hues + 1, #palette do
-        tail[#tail + 1] = palette[i][1]
+    it('hues holds one name per family', #blocks.hues, FAMILIES)
+
+    -- The middle of each family, read out of the palette itself. This is the
+    -- assertion ramp.hues() rests on: same entries, same order, no neutral and
+    -- no light_ or dark_ shade among them.
+    -- Indexed through a guard, so a palette that has lost an entry reports one
+    -- failure here rather than aborting the spec on a nil index and taking
+    -- every case below it with it.
+    local function shade(i)
+        local e = palette[i]
+        return (e and e[1]) or ('<no palette entry ' .. i .. '>')
     end
-    it('hues is the palette tail, in palette order',
-       table.concat(blocks.hues, ','), table.concat(tail, ','))
+
+    local plains = {}
+    for i = 1, FAMILIES do plains[i] = shade(NEUTRALS + (i - 1) * 3 + 2) end
+    it('hues is the plain shade of each family, in family order',
+       table.concat(blocks.hues, ','), table.concat(plains, ','))
+
+    -- And the layout that reading gets its meaning from: every hue is the
+    -- middle of a light / plain / dark run, so the two names either side of a
+    -- hue are that hue's own shades and not another family's.
+    local malformed = {}
+    for i = 1, FAMILIES do
+        local at = NEUTRALS + (i - 1) * 3
+        local plain = shade(at + 2)
+        if shade(at + 1) ~= 'light_' .. plain or shade(at + 3) ~= 'dark_' ..
+            plain then
+            malformed[#malformed + 1] = plain
+        end
+    end
+    it('every family runs light, plain, dark under one name',
+       table.concat(malformed, ', '), '')
+
+    -- The neutrals are the head, so the arithmetic above lands where it means
+    -- to; naming them also pins the fallback block being one of them.
+    local head = {}
+    for i = 1, NEUTRALS do head[i] = shade(i) end
+    it('the neutrals come first, light to dark', table.concat(head, ','),
+       'white,light_grey,grey,dark_grey,black')
 
     -- place() takes one string and knows nothing about which category it came
     -- from, so a collision between two categories would silently shadow one.
@@ -823,6 +934,24 @@ do
     end
     it('every spelled name resolves through the flat namespace',
        table.concat(unresolved, ', '), '')
+
+    -- `keys` is the array form of the same thing, and it is what ramp.colors,
+    -- ramp.glass and ramp.lamps index: a ramp is a position in this list, so a
+    -- keys that disagreed with names in order or in length would colour a
+    -- gradient with the wrong blocks and nothing would raise. Compared against
+    -- names through spelled rather than listed, so it holds for a category a
+    -- game registers on exactly the same terms.
+    local mismatched = {}
+    for _, cat in ipairs(blocks.categories) do
+        local built = {}
+        for i, name in ipairs(cat.names) do built[i] = cat.spelled[name] end
+        if #(cat.keys or {}) ~= #built or
+            table.concat(cat.keys or {}, ',') ~= table.concat(built, ',') then
+            mismatched[#mismatched + 1] = cat.name
+        end
+    end
+    it('every category lists its keys in the order it spells its names',
+       table.concat(mismatched, ', '), '')
 
     -- The whole of F11 in one line: a name a program may write that the engine
     -- does not know is a write that silently does nothing, far from anyone
@@ -889,9 +1018,21 @@ do
        refused_for('colors', {red = 'codeblock:red'}, 'already taken'), true)
 
     -- Not a category, but a name the environment already holds: a table called
-    -- `color` would shadow the function that maps a number onto the hues.
+    -- `ramp` would shadow every ramp.* the sandbox builds.
+    --
+    -- The name has to be one the environment really holds. This case named
+    -- `color` until `color()` was replaced by the ramps; `ramp` is the honest
+    -- replacement and is the better one, because nothing is called plain `ramp`
+    -- - it is reserved by ramp.hues and its siblings alone, so this is also the
+    -- case proving a dotted name reserves its first segment.
+    --
+    -- The one thing it must not become is a case that cannot fail. It is not
+    -- one today: pointed at a free name, install_one accepts the category and
+    -- refused_for answers false rather than passing on a refusal for some other
+    -- rule. Keep it that way - the assertion is on the *reason*, not on the
+    -- refusal.
     it('a category colliding with any API name is refused',
-       refused_for('color', {red = 'codeblock:red'}, 'already taken'), true)
+       refused_for('ramp', {red = 'codeblock:red'}, 'already taken'), true)
 
     it('a block naming an unregistered node is refused',
        refused_for('agame', {red = 'nosuch:node'}, 'no mod has registered'),
@@ -915,7 +1056,7 @@ do
             mod = 'agame',
             category = 'agame',
             entries = {
-                mud = 'codeblock:brown',
+                mud = 'codeblock:olive',
                 -- Refused on its own, and must not cost the category the rest:
                 -- one typo is not worth a game's whole palette.
                 broken = 'nosuch:node'
@@ -932,14 +1073,21 @@ do
     local category = blocks.by_name.agame or {names = {}, spelled = {}}
     it('the category is reachable by name', blocks.by_name.agame ~= nil, true)
     it('it holds only the entries that passed', #category.names, 1)
+    -- The derived view a late registration is most likely to lose. F11 found
+    -- three palette snapshots taken at load time, one of them a live defect,
+    -- and all three were invisible here; `keys` is the same shape of thing, and
+    -- add_category building it is the only reason a game's ramp indexes
+    -- anything at all.
+    it("the category carries its keys, so it can have a ramp",
+       table.concat(category.keys or {}, ','), 'agame.mud')
     it('the flat key carries the category, so it cannot shadow ours',
        category.spelled.mud, 'agame.mud')
     it('the flat key resolves to the node the game named',
-       blocks.all['agame.mud'], 'codeblock:brown')
-    -- First registrant wins, so get_block() still answers colors.brown for the
+       blocks.all['agame.mud'], 'codeblock:olive')
+    -- First registrant wins, so get_block() still answers colors.olive for the
     -- node the mod registered itself.
     it('a node the mod already owns keeps its own name',
-       blocks.by_node['codeblock:brown'], 'brown')
+       blocks.by_node['codeblock:olive'], 'olive')
 
     local picked = false
     for _, entry in ipairs(blocks.pickable) do
@@ -954,6 +1102,17 @@ do
     it('lib/api.lua describes it, so the sandbox may implement it', described,
        true)
 
+    -- A category is two names now, the table and its ramp, and api.build
+    -- refuses a run where the description and the implementations disagree in
+    -- either direction. So a missing description here is not a thinner help
+    -- panel - it is every program failing to start once a game has registered
+    -- anything.
+    local ramped = false
+    for _, name in ipairs(codeblock.api.names()) do
+        if name == 'ramp.agame' then ramped = true end
+    end
+    it('and describes its ramp as well', ramped, true)
+
     it('the in-game help lists it',
        codeblock.api.to_hypertext():find('agame', 1, true) ~= nil, true)
 
@@ -962,7 +1121,7 @@ do
        true)
 
     it('registering the same name twice is refused',
-       refused_for('agame', {mud = 'codeblock:brown'}, 'already taken'), true)
+       refused_for('agame', {mud = 'codeblock:olive'}, 'already taken'), true)
 
     ----------------------------------------------------------------------------
     -- the editor's category selector
@@ -1051,7 +1210,7 @@ do
     -- is on the module so this case exists at all.
     codeblock.blocks.sealed = true
     it('a call after every mod has loaded is refused',
-       codeblock.register_blocks('late', {mud = 'codeblock:brown'}), false)
+       codeblock.register_blocks('late', {mud = 'codeblock:olive'}), false)
     codeblock.blocks.sealed = false
 
     ----------------------------------------------------------------------------
@@ -1168,7 +1327,7 @@ do
 
     it('a category differing from one of ours only in case is accepted',
        codeblock.blocks.install({
-        {mod = 'agame', category = 'Glass', entries = {pane = 'codeblock:brown'}}
+        {mod = 'agame', category = 'Glass', entries = {pane = 'codeblock:olive'}}
     }), 1)
 
     local seen, duplicate = {}, nil

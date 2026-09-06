@@ -49,6 +49,8 @@ map memory, which is charged below.
 `map_memory_mb` bounds the one resource none of the others can see. Writing a
 node needs the mapblock containing it to be in memory, so `place()` loads it
 first — without that the write silently does nothing and the build has holes.
+`get_block()` loads it too, and pays the same, because an unloaded block reads as
+nothing at all.
 Loading pins a 16×16×16 block, 16 KiB, in the server's memory, and may read it
 from disk to do so. `heap_mb` cannot see that, because it measures the Lua heap
 and a mapblock is not on it; `max_nodes_written` cannot either, because a program
@@ -230,21 +232,28 @@ Anything taking a `block` argument wants a value from one of these. The names ea
 colors -- Solid coloured blocks, indexed by name. A name that does not exist reads as nil and builds your default block instead; the first time a run does that, it says so in the chat.
 glass  -- One see-through block per colour, indexed by name.
 lamps  -- One glowing block per colour, indexed by name. The light itself is the same whatever the colour.
-hues   -- The chromatic colours as an array, in colour-wheel order, without the neutrals.
+hues   -- One name per hue family as an array, in colour-wheel order: the plain shade of each, without the lighter and darker ones and without the neutrals.
 air    -- Empty space. Place it to carve rather than to build.
 ```
 
 ## Choosing blocks
 
+A `ramp` maps a number onto one table of blocks, so a shape can be coloured by height, distance or anything else that is a number. Values at or below `min` give the first block and those at or above `max` the last; anything outside the range is clamped rather than wrapped. `min` and `max` default to 1 and the number of blocks in the table.
+
 ```lua
-random.color()     -- A random solid colour.
-random.glass()     -- A random glass block.
-random.lamp()      -- A random lamp.
-color(v, min, max) -- Map a number onto the hues palette.
-get_block()        -- The block at the drone position, or false if it is not one the drone can place.
+random.color()                      -- A random solid colour.
+random.glass()                      -- A random glass block.
+random.lamp()                       -- A random lamp.
+ramp.hues(v, min, max)              -- Map a number onto the hues: a smooth rainbow.
+ramp.colors(v, min, max)            -- Map a number onto the solid colours, in palette order.
+ramp.glass(v, min, max)             -- Map a number onto the glass blocks, in palette order.
+ramp.lamps(v, min, max)             -- Map a number onto the lamps, in palette order.
+get_block(n_right, n_up, n_forward) -- The block at an offset from the drone, without moving it.
 ```
 
-**`color`** &mdash; Values at or below `min` give the first colour and those at or above `max` the last; anything outside the range is clamped rather than wrapped. `min` and `max` default to 1 and the number of hues. Useful for colouring a shape by height or distance.
+**`ramp.hues`** &mdash; The one ramp that reads as a gradient, because `hues` is one name per family in colour-wheel order. The three below walk light, plain and dark inside each family in turn, so a gradient across one of them strobes.
+
+**`get_block`** &mdash; Each offset defaults to zero, so `get_block()` reads where the drone is and `get_block(0, 0, 1)` reads one step ahead of it. The offsets turn with the drone, the same way `place_relative` does. Three answers: the name of a block the drone could place, `false` for a node it could not, and `nil` where there is no answer at all - map that has never been generated, or a position outside the world.
 
 ## Vectors
 
@@ -305,24 +314,24 @@ The names each block table holds, in palette order. Generated from
 ## `colors`
 
 ```lua
-white, ash, grey, slate, ink, black, salmon, red, maroon, apricot, orange, rust, sand, brown, chocolate, butter, yellow, ochre, lime, green, forest, aqua, teal, cyan, sky, blue, navy, lavender, violet, indigo, magenta, rose, pink
+white, light_grey, grey, dark_grey, black, light_pink, pink, dark_pink, light_red, red, dark_red, light_orange, orange, dark_orange, light_yellow, yellow, dark_yellow, light_olive, olive, dark_olive, light_lime, lime, dark_lime, light_green, green, dark_green, light_cyan, cyan, dark_cyan, light_blue, blue, dark_blue, light_violet, violet, dark_violet
 ```
 
 ## `glass`
 
 ```lua
-white, ash, grey, slate, ink, black, salmon, red, maroon, apricot, orange, rust, sand, brown, chocolate, butter, yellow, ochre, lime, green, forest, aqua, teal, cyan, sky, blue, navy, lavender, violet, indigo, magenta, rose, pink
+white, light_grey, grey, dark_grey, black, light_pink, pink, dark_pink, light_red, red, dark_red, light_orange, orange, dark_orange, light_yellow, yellow, dark_yellow, light_olive, olive, dark_olive, light_lime, lime, dark_lime, light_green, green, dark_green, light_cyan, cyan, dark_cyan, light_blue, blue, dark_blue, light_violet, violet, dark_violet
 ```
 
 ## `lamps`
 
 ```lua
-white, ash, grey, slate, ink, black, salmon, red, maroon, apricot, orange, rust, sand, brown, chocolate, butter, yellow, ochre, lime, green, forest, aqua, teal, cyan, sky, blue, navy, lavender, violet, indigo, magenta, rose, pink
+white, light_grey, grey, dark_grey, black, light_pink, pink, dark_pink, light_red, red, dark_red, light_orange, orange, dark_orange, light_yellow, yellow, dark_yellow, light_olive, olive, dark_olive, light_lime, lime, dark_lime, light_green, green, dark_green, light_cyan, cyan, dark_cyan, light_blue, blue, dark_blue, light_violet, violet, dark_violet
 ```
 
 ## `hues`
 
 ```lua
-salmon, red, maroon, apricot, orange, rust, sand, brown, chocolate, butter, yellow, ochre, lime, green, forest, aqua, teal, cyan, sky, blue, navy, lavender, violet, indigo, magenta, rose, pink
+pink, red, orange, yellow, olive, lime, green, cyan, blue, violet
 ```
 

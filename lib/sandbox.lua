@@ -52,7 +52,6 @@ local colors = by_name.colors.spelled
 local glass = by_name.glass.spelled
 local lamps = by_name.lamps.spelled
 local hues = codeblock.config.allowed_blocks.hues
-local nhues = #hues
 local table_randomizer = codeblock.utils.table_randomizer
 
 local snapshot = codeblock.env.snapshot
@@ -73,22 +72,31 @@ end
 
 local function round0(num) return floor(num + 0.5) end
 
--- Map a number in [m, M] onto the hue palette, clamping out-of-range values to
--- the end colours. The default range is the palette's own length, so color(i)
--- over 1..#hues walks the whole rainbow.
-local color
-do
-    local tmp1 = nhues - 1
-    color = function(v, m, M)
+--- One ramp: a function mapping a number in [m, M] onto `list`, which is an
+-- ordered array of the flat block keys place() takes.
+--
+-- Out of range clamps to the end entries rather than wrapping, so a value at or
+-- below `min` gives the first block and one at or above `max` the last. The
+-- default range is the list's own length, so ramp(i) over 1..#list walks it
+-- once. A non-number `v`, and a range of zero width, both give the first entry -
+-- there is no other answer to give and raising would stop a program over an
+-- arithmetic accident.
+--
+-- Called once per category per run, so a game's category gets a ramp on the same
+-- footing as the mod's own.
+local function ramp_over(list)
+    local n = #list
+    local span = n - 1
+    return function(v, m, M)
         local m = (type(m) == 'number') and m or 1
-        local M = (type(M) == 'number') and M or nhues
+        local M = (type(M) == 'number') and M or n
         m, M = min(m, M), max(m, M)
-        if type(v) ~= 'number' then return hues[1] end
-        if M == m then return hues[1] end
-        local i = round0((v - m) / (M - m) * tmp1) + 1
+        if type(v) ~= 'number' then return list[1] end
+        if M == m then return list[1] end
+        local i = round0((v - m) / (M - m) * span) + 1
         if i < 1 then i = 1 end
-        if i > nhues then i = nhues end
-        return hues[i]
+        if i > n then i = n end
+        return list[i]
     end
 end
 
@@ -187,8 +195,13 @@ local function getScriptEnv(drone)
         ['random.color'] = table_randomizer(colors),
         ['random.glass'] = table_randomizer(glass),
         ['random.lamp'] = table_randomizer(lamps),
-        ['color'] = color,
-        ['get_block'] = function() return drone_get_block(drone) end,
+        -- The one ramp not built from a category: hues is already an array of
+        -- colors keys, one per family, so it is the only one that reads as a
+        -- gradient. The per-category ramps are added below with the categories.
+        ['ramp.hues'] = ramp_over(hues),
+        ['get_block'] = function(x, y, z)
+            return drone_get_block(drone, x, y, z)
+        end,
         -- vectors. snapshot_module keeps the metatable so vector(x, y, z) still
         -- resolves through its __call.
         ['vector'] = snapshot_module(vector3),
@@ -236,6 +249,10 @@ local function getScriptEnv(drone)
     -- refusing an implementation nothing describes. (F11)
     for _, category in ipairs(categories) do
         impls[category.name] = snapshot(category.spelled, unknown_block)
+        -- One ramp per category, over the keys in the order the category was
+        -- declared in. Not a snapshot: a closure over the list is already
+        -- private to this run, and the list itself is never handed out.
+        impls['ramp.' .. category.name] = ramp_over(category.keys)
     end
 
     local api = build_api(impls)

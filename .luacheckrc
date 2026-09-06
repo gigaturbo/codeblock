@@ -107,8 +107,12 @@ stds.codeblock_sandbox = {
         "save", "go",
         -- blocks
         "colors", "glass", "lamps", "hues", "air",
+        -- One ramp per block category. Spelled out rather than left open, so a
+        -- typo in an example is caught; a category a game registers gets a ramp
+        -- too, but no example can name one.
+        ramp = {fields = {"hues", "colors", "glass", "lamps"}},
         -- utilities
-        "get_block", "print", "color", "ipairs", "pairs", "random", "table",
+        "get_block", "print", "ipairs", "pairs", "random", "table",
         "vector", "error",
         -- math
         "floor", "ceil", "round", "round0", "deg", "rad", "exp", "log", "max",

@@ -6,15 +6,15 @@ function forest(radius)
         local R = floor(W / 2)
         local D = 3
 
-        cube(1, H, 1, colors.brown)
+        cube(1, H, 1, colors.dark_orange)
         up(H)
-        cube(W + 1, 1, 1, colors.brown)
+        cube(W + 1, 1, 1, colors.dark_orange)
         right(W)
         down(D)
-        cube(1, D, 1, colors.brown)
+        cube(1, D, 1, colors.dark_orange)
 
         move(-R, -2 * R, -R)
-        sphere(R, lamps.butter)
+        sphere(R, lamps.light_yellow)
         sphere(R, colors.green, true)
     end
 

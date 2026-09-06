@@ -206,8 +206,9 @@ api.groups = {
             }, {
                 name = 'hues',
                 kind = 'value',
-                doc = 'The chromatic colours as an array, in colour-wheel ' ..
-                    'order, without the neutrals.'
+                doc = 'One name per hue family as an array, in colour-wheel ' ..
+                    'order: the plain shade of each, without the lighter ' ..
+                    'and darker ones and without the neutrals.'
             }, {
                 name = 'air',
                 kind = 'value',
@@ -216,6 +217,16 @@ api.groups = {
         }
     }, {
         title = 'Choosing blocks',
+        -- Named, because lib/blocks.lua appends a ramp here for every category
+        -- a game registers and matching on the title would break on a
+        -- rewording. The other group that grows at run time. (F11)
+        id = 'choosing',
+        intro = 'A `ramp` maps a number onto one table of blocks, so a shape ' ..
+            'can be coloured by height, distance or anything else that is a ' ..
+            'number. Values at or below `min` give the first block and those ' ..
+            'at or above `max` the last; anything outside the range is ' ..
+            'clamped rather than wrapped. `min` and `max` default to 1 and ' ..
+            'the number of blocks in the table.',
         entries = {
             {
                 name = 'random.color',
@@ -224,19 +235,38 @@ api.groups = {
             },
             {name = 'random.glass', params = {}, doc = 'A random glass block.'},
             {name = 'random.lamp', params = {}, doc = 'A random lamp.'}, {
-                name = 'color',
+                name = 'ramp.hues',
                 params = {'v', 'min', 'max'},
-                doc = 'Map a number onto the hues palette.',
-                note = 'Values at or below `min` give the first colour and ' ..
-                    'those at or above `max` the last; anything outside the ' ..
-                    'range is clamped rather than wrapped. `min` and `max` ' ..
-                    'default to 1 and the number of hues. Useful for ' ..
-                    'colouring a shape by height or distance.'
+                doc = 'Map a number onto the hues: a smooth rainbow.',
+                note = 'The one ramp that reads as a gradient, because `hues` ' ..
+                    'is one name per family in colour-wheel order. The three ' ..
+                    'below walk light, plain and dark inside each family in ' ..
+                    'turn, so a gradient across one of them strobes.'
+            }, {
+                name = 'ramp.colors',
+                params = {'v', 'min', 'max'},
+                doc = 'Map a number onto the solid colours, in palette order.'
+            }, {
+                name = 'ramp.glass',
+                params = {'v', 'min', 'max'},
+                doc = 'Map a number onto the glass blocks, in palette order.'
+            }, {
+                name = 'ramp.lamps',
+                params = {'v', 'min', 'max'},
+                doc = 'Map a number onto the lamps, in palette order.'
             }, {
                 name = 'get_block',
-                params = {},
-                doc = 'The block at the drone position, or false if it is ' ..
-                    'not one the drone can place.'
+                params = {'n_right', 'n_up', 'n_forward'},
+                doc = 'The block at an offset from the drone, without ' ..
+                    'moving it.',
+                note = 'Each offset defaults to zero, so `get_block()` reads ' ..
+                    'where the drone is and `get_block(0, 0, 1)` reads one ' ..
+                    'step ahead of it. The offsets turn with the drone, the ' ..
+                    'same way `place_relative` does. Three answers: the name ' ..
+                    'of a block the drone could place, `false` for a node it ' ..
+                    'could not, and `nil` where there is no answer at all - ' ..
+                    'map that has never been generated, or a position ' ..
+                    'outside the world.'
             }
         }
     }, {

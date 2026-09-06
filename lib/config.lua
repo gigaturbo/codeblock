@@ -254,34 +254,48 @@ end
 --------------------------------------------------------------------------------
 -- The block palette
 --
--- Thirty-three colours the mod registers itself: six neutrals, then
--- twenty-seven chromatic ones in colour-wheel order, each family light / plain
--- / dark so the plain name a player reaches for first always exists.
+-- Thirty-five colours the mod registers itself: five neutrals light to dark,
+-- then ten hue families in colour-wheel order, each one light / plain / dark so
+-- the plain name a player reaches for first always exists.
 --
--- The order is load-bearing. `hues` below is the chromatic tail as an array and
--- color(v, min, max) maps a number onto it, so a gradient across it has to read
--- as a rainbow. NEUTRALS is where that tail starts.
---
--- The hexes are read by lib/nodes.lua and by nothing else: one shared tile is
--- multiplied by each of them rather than 33 images being drawn.
+-- The two literals below are the source, and both `palette` and `hues` are
+-- derived from them. `palette` is the flat {name, hex} list lib/nodes.lua reads
+-- - the hexes go nowhere else, one shared tile per variant being multiplied by
+-- each of them rather than 105 images being drawn. `hues` is the plain middle
+-- of each family, and ramp.hues(v, min, max) maps a number onto that, so the
+-- family order has to read as a wheel.
 --------------------------------------------------------------------------------
 
-local NEUTRALS = 6
-
-local palette = {
-    {'white', '#f2f0eb'}, {'ash', '#c9c6bf'}, {'grey', '#8f8d88'},
-    {'slate', '#5c6066'}, {'ink', '#33363b'}, {'black', '#1a1a1c'},
-
-    {'salmon', '#e8836f'}, {'red', '#c0392b'}, {'maroon', '#7a2230'},
-    {'apricot', '#f0a860'}, {'orange', '#e07b23'}, {'rust', '#a8501c'},
-    {'sand', '#d8c091'}, {'brown', '#9a6b3f'}, {'chocolate', '#5b3a24'},
-    {'butter', '#f2dd84'}, {'yellow', '#e0b422'}, {'ochre', '#a8801c'},
-    {'lime', '#a8cc48'}, {'green', '#4a9d3f'}, {'forest', '#2c5e34'},
-    {'aqua', '#7fd4c8'}, {'teal', '#2f8f86'}, {'cyan', '#2bb3c4'},
-    {'sky', '#7fb8e0'}, {'blue', '#2f6fc4'}, {'navy', '#1e3a6e'},
-    {'lavender', '#b4a6dd'}, {'violet', '#7a4fbf'}, {'indigo', '#43307a'},
-    {'magenta', '#c44bb0'}, {'rose', '#d9628a'}, {'pink', '#f0a8c0'}
+-- The neutral ramp, light to dark. These five hexes are a choice rather than a
+-- requirement - an even ramp - and retuning them touches nothing else.
+local neutrals = {
+    {'white', '#ffffff'}, {'light_grey', '#c0c0c0'}, {'grey', '#808080'},
+    {'dark_grey', '#404040'}, {'black', '#101010'}
 }
+
+-- {family, light, plain, dark}, in colour-wheel order.
+local families = {
+    {'pink', '#ec8faa', '#ff6f98', '#a64662'},
+    {'red', '#e98d82', '#f74931', '#a13526'},
+    {'orange', '#edb581', '#ff9c40', '#a5672e'},
+    {'yellow', '#f3e583', '#ffe32b', '#a49422'},
+    {'olive', '#d4e679', '#bcd92a', '#7d8f23'},
+    {'lime', '#bae379', '#90cf2a', '#628923'},
+    {'green', '#8ee3b4', '#57b886', '#3b7e5b'},
+    {'cyan', '#a8e2e9', '#49c1d1', '#33818b'},
+    {'blue', '#879de9', '#4563cc', '#314488'},
+    {'violet', '#a985de', '#7f56b8', '#563b7e'}
+}
+
+local palette, hues = {}, {}
+for _, neutral in ipairs(neutrals) do palette[#palette + 1] = neutral end
+for _, family in ipairs(families) do
+    local plain = family[1]
+    hues[#hues + 1] = plain
+    palette[#palette + 1] = {'light_' .. plain, family[2]}
+    palette[#palette + 1] = {plain, family[3]}
+    palette[#palette + 1] = {'dark_' .. plain, family[4]}
+end
 
 codeblock.config.palette = palette
 
@@ -312,7 +326,7 @@ codeblock.config.palette = palette
 local blocks = {
     all = {air = 'air'},
     by_node = {air = 'air'},
-    hues = {},
+    hues = hues,
     categories = {},
     by_name = {},
     pickable = {{key = 'air', label = 'air'}},
@@ -329,14 +343,19 @@ local blocks = {
 -- what a player spells after the dot, `key` is the unique flat name place()
 -- takes, and `itemstring` is what lands in the world.
 --
+-- The record carries `names`, the shorts in that order, `spelled`, short -> key,
+-- and `keys`, the same keys as an array - what ramp.<category>() indexes, so the
+-- ramp reads in whatever order the category was declared in.
+--
 -- Deriving the views here rather than in each reader is what keeps a late
 -- registration visible: a list built once at load time by lib/commands.lua or
 -- lib/formspecs.lua would be a snapshot taken before any game had registered.
 function codeblock.config.add_category(name, entries)
-    local spelled, names = {}, {}
+    local spelled, names, keys = {}, {}, {}
     for i, entry in ipairs(entries) do
         local short, key, item = entry[1], entry[2], entry[3]
         names[i] = short
+        keys[i] = key
         spelled[short] = key
         blocks.all[key] = item
         -- First registrant wins, so a game listing one of the mod's own nodes
@@ -347,7 +366,12 @@ function codeblock.config.add_category(name, entries)
             label = name .. '.' .. short
         }
     end
-    local category = {name = name, names = names, spelled = spelled}
+    local category = {
+        name = name,
+        names = names,
+        keys = keys,
+        spelled = spelled
+    }
     blocks.categories[#blocks.categories + 1] = category
     blocks.by_name[name] = category
     return category
@@ -362,10 +386,6 @@ for _, variant in ipairs({
         entries[i] = {entry[1], key, 'codeblock:' .. key}
     end
     codeblock.config.add_category(variant[1], entries)
-end
-
-for i = NEUTRALS + 1, #palette do
-    blocks.hues[#blocks.hues + 1] = palette[i][1]
 end
 
 codeblock.config.allowed_blocks = blocks

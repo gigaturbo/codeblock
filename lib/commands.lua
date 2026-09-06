@@ -33,6 +33,7 @@ local slabs = codeblock.cost.slabs
 local use_call = codeblock.cost.use_call
 local end_command = codeblock.cost.end_command
 local place_block = codeblock.cost.place_block
+local load_block = codeblock.cost.load_block
 
 local S = codeblock.S
 
@@ -74,6 +75,13 @@ local rotate = {
     [3] = function(x, y, z) return z, y, -x end
 }
 
+--- Whether a world position is one the engine has anywhere to put.
+-- Two commands ask: one raises, get_block() answers nil. Written once so the two
+-- cannot come to disagree about where the edge is.
+local function inside_world(x, y, z)
+    return abs(x) <= world_edge and abs(y) <= world_edge and abs(z) <= world_edge
+end
+
 --- Keep the drone inside the world; see world_edge above.
 --
 -- `level` is how many frames up the player's line is, and differs by caller:
@@ -82,7 +90,7 @@ local rotate = {
 -- number, which is the only thing telling the player where they went wrong.
 -- (B28)
 local function check_inside_world(x, y, z, level)
-    if abs(x) > world_edge or abs(y) > world_edge or abs(z) > world_edge then
+    if not inside_world(x, y, z) then
         error(S('The drone cannot leave the world (@1 nodes)', world_edge),
               level)
     end
@@ -581,17 +589,47 @@ end
 -- utilities
 -------------------------------------------------------------------------------
 
---- The block the drone is standing in: its player-facing name, false for a node
--- no program can place, and nil where the map is not loaded.
-local function drone_get_block(drone)
+--- The block at an offset from the drone, in the drone's own axes.
+--
+-- The offsets turn with the drone the way place_relative's do, so
+-- get_block(0, 0, 1) reads one step ahead of it. Unlike place_relative it moves
+-- nothing: neither the position nor the facing is touched, because a program
+-- looking before it leaps should not have to fly there and back.
+--
+-- Three answers. A block's player-facing name, false for a node no program can
+-- place, and nil where there is no answer at all: map the engine has never
+-- generated, or a position outside the world.
+--
+-- The read loads the mapblock and pays its footprint, exactly as a write does -
+-- get_node on a block that is not in server memory answers 'ignore', which is
+-- indistinguishable from map that does not exist, so without the load the answer
+-- would be nil wherever the drone had not already been.
+--
+-- Deliberately asymmetric with the write path, which raises through
+-- check_inside_world at the same edge: this is a question and not an
+-- instruction, so being asked about somewhere that cannot exist is answered with
+-- nil rather than stopping the program. Do not turn it into a raise. Outside the
+-- world there is nothing to load, so nothing is charged either.
+local function drone_get_block(drone, x, y, z)
 
     assert(drone, S("Error, drone does not exist"))
 
-    local block_name = get_node({x = drone.x, y = drone.y, z = drone.z}).name
+    local x = (type(x) == 'number') and round0(x) or 0
+    local y = (type(y) == 'number') and round0(y) or 0
+    local z = (type(z) == 'number') and round0(z) or 0
+
+    local dx, dy, dz = rotate[drone:angle()](x, y, z)
+    local pos = {x = drone.x + dx, y = drone.y + dy, z = drone.z + dz}
+
+    local block_name
+    if inside_world(pos.x, pos.y, pos.z) then
+        load_block(drone, pos)
+        block_name = get_node(pos).name
+    end
 
     end_command(drone)
 
-    if block_name == 'ignore' then return nil end
+    if block_name == nil or block_name == 'ignore' then return nil end
     return rev_blocks[block_name] or false
 
 end

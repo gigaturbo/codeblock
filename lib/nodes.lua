@@ -14,11 +14,13 @@
 -- lib/cost.lua's place_block writes set_node{name = block} - so a definition
 -- per colour costs nothing here and a palette would change both.
 --
--- One tile per variant rather than 33 images, tinted with [multiply, which
--- scales the tile's RGB per pixel. Not [colorize:<hex>:255, which replaces
--- every pixel with the flat colour and would throw the tile's grain away. The
--- tiles are near-white, so the result is the hex itself with the grain riding
--- on it. scripts/gen_textures.py draws them.
+-- One tile per variant - block, glass, lamp - rather than 105 images, tinted
+-- with [multiply, which scales the tile's RGB per pixel. Not
+-- [colorize:<hex>:255, which replaces every pixel with the flat colour and
+-- would throw the glass frame and the lamp grid away. The block tile is pure
+-- white, so a solid block is exactly its palette hex; the other two are
+-- near-white, so what they draw rides on that hex rather than replacing it.
+-- scripts/gen_textures.py draws all three.
 --
 -- No `sounds` field anywhere below: the engine ships no sound assets of its
 -- own and every node_sound_*_defaults() helper belongs to a game. Silence is
@@ -76,7 +78,7 @@ local variants = {
         make = function(name, tint)
             return {
                 description = S('@1 lamp', name),
-                tiles = {'codeblock_block.png^[multiply:' .. tint},
+                tiles = {'codeblock_lamp.png^[multiply:' .. tint},
                 paramtype = 'light',
                 light_source = LAMP_LIGHT,
                 groups = {

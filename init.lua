@@ -61,7 +61,7 @@ if core.settings:get_bool("codeblock_gen_docs") then
     end
 
     -- The block lists come out in palette order, not sorted: that order is the
-    -- rainbow color() maps onto, so a list in it reads as one. config.lua owns
+    -- rainbow a ramp maps onto, so a list in it reads as one. config.lua owns
     -- it, and both this and scripts/gen_docs.lua hand the same table to the
     -- same renderer, which is what keeps their answers identical.
     local wanted, why = codeblock.api.compose_markdown(current,

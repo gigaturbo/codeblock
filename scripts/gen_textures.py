@@ -1,18 +1,21 @@
-"""Write the two 16x16 tiles that lib/nodes.lua tints per colour.
+"""Write the three 16x16 tiles that lib/nodes.lua tints per colour.
 
     python scripts/gen_textures.py
 
 Run it when the tiles need redrawing; the PNGs it writes are committed, and
 nothing checks that they match this source. It is the editable source for
-textures/codeblock_block.png and textures/codeblock_glass.png the way the .svg
-files beside them are for the two tool icons.
+textures/codeblock_block.png, codeblock_glass.png and codeblock_lamp.png the
+way the .svg files beside them are for the two tool icons.
 
 No Pillow on this machine, so the PNGs are assembled from zlib + struct.
-Both tiles are near-white, because the node definitions apply
-`^[multiply:#rrggbb`, which scales RGB per pixel: a near-white base reproduces
-the hex almost exactly and any darker pixel becomes a proportionally darker
-shade of the same colour. `^[colorize:#rrggbb:255` would have replaced every
-pixel with the flat colour and thrown the grain away.
+
+The node definitions apply `^[multiply:#rrggbb`, which scales RGB per pixel, so
+what a tile draws survives the tint: a white pixel comes out as the palette hex
+exactly and a darker one as a proportionally darker shade of it.
+`^[colorize:#rrggbb:255` would have replaced every pixel with the flat colour
+instead. Hence the glass and lamp tiles being near-white, and hence the block
+tile being pure white and nothing else - a solid block is meant to read as a
+flat fill of its colour, so there is nothing for it to draw.
 """
 import os
 import struct
@@ -55,19 +58,10 @@ def hashnoise(x, y, salt):
 
 
 # --- codeblock_block.png ------------------------------------------------------
-# Opaque, near-white, with a faint grain so a large flat wall reads at a
-# distance instead of looking like a dead slab. The amplitude is deliberately
-# small: the tint multiplies it, so more contrast here would show as dirt on a
-# dark colour.
-block = []
-for y in range(H):
-    row = []
-    for x in range(W):
-        # Two octaves - a fine speck plus a slow 4x4 mottle - so a tiled wall
-        # does not read as television static.
-        v = 250 - int(round(hashnoise(x, y, 1) * 9 + hashnoise(x // 4, y // 4, 2) * 5))
-        row.append((v, v, v, 255))
-    block.append(row)
+# Opaque and pure white, so `^[multiply:#rrggbb` reproduces the palette hex
+# exactly: a solid block is a flat fill of its colour and draws nothing of its
+# own.
+block = [[(255, 255, 255, 255)] * W for _ in range(H)]
 print('codeblock_block.png', png(os.path.join(OUT, 'codeblock_block.png'), block))
 
 # --- codeblock_glass.png ------------------------------------------------------
@@ -90,3 +84,20 @@ for y in range(H):
             row.append((v, v, v, FILL))
     glass.append(row)
 print('codeblock_glass.png', png(os.path.join(OUT, 'codeblock_glass.png'), glass))
+
+# --- codeblock_lamp.png -------------------------------------------------------
+# Opaque and near-white, with a faint darker grid so a wall of lamps reads as
+# panels rather than as one lit surface. Lines every 8 px, which puts four
+# panes on a node face and keeps the pattern continuous across tiles - a
+# 16 px spacing would only outline each node, and anything finer reads as
+# texture rather than as a grid. The contrast is deliberately low, the tint
+# multiplying it: more here would show as dirt on a dark colour.
+GROUND, LINE = 252, 234
+lamp = []
+for y in range(H):
+    row = []
+    for x in range(W):
+        v = LINE if x % 8 == 0 or y % 8 == 0 else GROUND
+        row.append((v, v, v, 255))
+    lamp.append(row)
+print('codeblock_lamp.png', png(os.path.join(OUT, 'codeblock_lamp.png'), lamp))

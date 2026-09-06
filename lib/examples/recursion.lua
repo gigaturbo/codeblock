@@ -26,5 +26,7 @@ end
 ---
 
 save('origin')
-local mblocks = {colors.grey, colors.chocolate, colors.ink, colors.sand}
+local mblocks = {
+    colors.grey, colors.dark_orange, colors.black, colors.light_yellow
+}
 recursion('origin', mblocks, #mblocks)

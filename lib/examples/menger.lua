@@ -45,4 +45,4 @@ end
 local sizes = {pow(3, 3), pow(3, 2), pow(3, 1), pow(3, 0)}
 
 up()
-for i, size in ipairs(sizes) do menger(size, color(i, 1, #sizes)) end
+for i, size in ipairs(sizes) do menger(size, ramp.hues(i, 1, #sizes)) end

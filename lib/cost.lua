@@ -8,7 +8,7 @@
 -- mapblocks by itself.
 --
 -- Yielding is here for the same reason: what a command costs and when it hands
--- control back are the same question, and the mapblock memo in place_block is
+-- control back are the same question, and the mapblock memo in load_block is
 -- only correct because release() is the single yield in this file. (A3)
 --
 -- Errors raised here use level 4: this function, its command, the sandbox
@@ -190,31 +190,49 @@ local function sleep(drone, seconds)
 end
 
 -------------------------------------------------------------------------------
--- writing
+-- reading and writing the map
 -------------------------------------------------------------------------------
 
---- Place one node.
+--- Bring the mapblock holding `pos` into memory, and take its footprint.
 --
--- load_area first: set_node into a mapblock that is not in memory silently does
--- nothing, so a program that flew out and built left holes with no error at all.
+-- Both directions need it. set_node into a mapblock that is not in memory
+-- silently does nothing, so a program that flew out and built left holes with no
+-- error at all; get_node on the same block answers 'ignore', which is
+-- indistinguishable from map that was never generated.
 --
 -- Once per mapblock the drone crosses into rather than once per node. Comparing
--- floor(x/16) against the last block written is an exact test, not a guess, and
--- it turns a per-node cost into a per-block one. The memo is dropped at every
--- yield - see release() - because the engine may unload a block while the drone
--- is not running, so a memo that outlived a yield could skip a load that had
--- become necessary again and lose the write.
+-- floor(x/16) against the last block touched is an exact test, not a guess, and
+-- it turns a per-node cost into a per-block one. A read and a write share the
+-- memo because they ask the same question of it: whichever of the two loaded the
+-- block last, the block is resident.
+--
+-- The memo is dropped at every yield - see release() - because the engine may
+-- unload a block while the drone is not running, so a memo that outlived a yield
+-- could skip a load that had become necessary again and lose the write. Nothing
+-- unloads a block within one resume, which is what makes the memo safe at all.
+-- (S5, A4)
+local function load_block(drone, pos)
+
+    local bx = floor(pos.x / 16)
+    local by = floor(pos.y / 16)
+    local bz = floor(pos.z / 16)
+    if bx == drone.bx and by == drone.by and bz == drone.bz then return end
+
+    -- Footprint before the memo, because use_map may make the drone wait and so
+    -- may yield: recording the block first would leave the memo claiming a block
+    -- that was never loaded.
+    use_map(drone, 1)
+    drone.bx, drone.by, drone.bz = bx, by, bz
+    load_area(pos)
+
+end
+
+--- Place one node.
 local function place_block(drone, x, y, z, block)
 
     local pos = {x = x, y = y, z = z}
-    local bx, by, bz = floor(x / 16), floor(y / 16), floor(z / 16)
 
-    if bx ~= drone.bx or by ~= drone.by or bz ~= drone.bz then
-        use_map(drone, 1)
-        drone.bx, drone.by, drone.bz = bx, by, bz
-        load_area(pos)
-    end
-
+    load_block(drone, pos)
     set_node(pos, {name = block})
 
 end
@@ -228,4 +246,5 @@ codeblock.cost.slabs = slabs
 codeblock.cost.use_call = use_call
 codeblock.cost.end_command = end_command
 codeblock.cost.sleep = sleep
+codeblock.cost.load_block = load_block
 codeblock.cost.place_block = place_block

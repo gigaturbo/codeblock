@@ -12,7 +12,7 @@ function plot2D(XMIN, XMAX, ZMIN, ZMAX, FMIN, FMAX, NPOINTS, SIZE, fun)
             ry = 0
             rz = (z - ZMIN) / (ZMAX - ZMIN) * SIZE
 
-            place_relative(rx, ry, rz, color(y, FMIN, FMAX))
+            place_relative(rx, ry, rz, ramp.hues(y, FMIN, FMAX))
 
         end
     end

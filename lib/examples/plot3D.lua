@@ -15,7 +15,7 @@ function plot3D(XMIN, XMAX, ZMIN, ZMAX, FMIN, FMAX, NPOINTS, SIZE, fun)
             i = (rx - XMIN) / NPOINTS + (ry - FMIN) / NPOINTS * NPOINTS +
                     (rz - ZMIN) / NPOINTS * NPOINTS * NPOINTS + 3
             if not visited[i] then
-                place_relative(rx, ry, rz, color(y, FMIN, FMAX))
+                place_relative(rx, ry, rz, ramp.hues(y, FMIN, FMAX))
                 visited[i] = true
             end
 
