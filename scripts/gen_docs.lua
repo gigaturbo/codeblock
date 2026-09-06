@@ -114,6 +114,115 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- .luacheckrc's sandbox std has to name exactly the API, and nothing else
+--
+-- luacheck lints lib/examples/** against stds.codeblock_sandbox, so that list is
+-- a fourth hand-kept mirror of lib/api.lua alongside doc/api.md,
+-- locale/template.txt and settingtypes.txt - and like all three it drifts in
+-- silence, an omitted name showing up only as a false "undefined variable" in
+-- whichever example happens to use it. `sleep` and `default_block` were missing
+-- for a year that way (C22). Checked here because this is the gate that already
+-- loads lib/api.lua under a bare interpreter.
+--
+-- The config is Lua, so it is loaded with its own environment and read, rather
+-- than pattern-matched: a nested entry such as ramp = {fields = {...}} then
+-- costs nothing. A bare string entry lets luacheck accept every field of that
+-- name, so `table` covers table.randomizer; that leniency is luacheck's own and
+-- is mirrored here rather than worked around.
+--------------------------------------------------------------------------------
+
+do
+    local chunk, err = loadfile(root .. '/.luacheckrc')
+    if not chunk then
+        io.stderr:write('.luacheckrc: ' .. tostring(err) .. '\n')
+        os.exit(2)
+    end
+    -- os.getenv is the only thing the config reads; everything it assigns lands
+    -- in this table instead of in _G. `stds` and `files` are indexed rather
+    -- than assigned, because luacheck itself supplies them empty.
+    local cfg = {os = os, stds = {}, files = {}}
+    setfenv(chunk, cfg)
+    chunk()
+
+    local std = cfg.stds and cfg.stds.codeblock_sandbox
+    if not (std and std.read_globals) then
+        io.stderr:write(
+            '.luacheckrc: stds.codeblock_sandbox.read_globals is missing\n')
+        os.exit(2)
+    end
+
+    -- name -> true when the entry restricts its fields, false when it is a bare
+    -- string and so accepts any.
+    local listed = {}
+    local function flatten(fields, prefix)
+        for k, v in pairs(fields) do
+            local name, sub
+            if type(k) == 'number' then
+                name = prefix .. v
+            else
+                name = prefix .. k
+                if type(v) == 'table' then sub = v.fields end
+            end
+            listed[name] = sub ~= nil
+            if sub then flatten(sub, name .. '.') end
+        end
+    end
+    flatten(std.read_globals, '')
+
+    local described, prefixes = {}, {}
+    for _, n in ipairs(api.names()) do
+        described[n] = true
+        local at = n:find('.', 1, true)
+        while at do
+            prefixes[n:sub(1, at - 1)] = true
+            at = n:find('.', at + 1, true)
+        end
+    end
+
+    -- Neither side may be empty, or the comparison below would pass by matching
+    -- nothing at all. (C20)
+    if not next(listed) or not next(described) then
+        io.stderr:write('.luacheckrc: nothing to compare - the sandbox std or ' ..
+                            'the API description read empty\n')
+        os.exit(2)
+    end
+
+    local unlisted, undescribed = {}, {}
+    for _, n in ipairs(api.names()) do
+        local ok = listed[n] ~= nil
+        local at = n:find('.', 1, true)
+        while not ok and at do
+            -- a bare parent accepts every field, so it covers this name
+            ok = listed[n:sub(1, at - 1)] == false
+            at = n:find('.', at + 1, true)
+        end
+        if not ok then unlisted[#unlisted + 1] = n end
+    end
+    for name in pairs(listed) do
+        if not (described[name] or prefixes[name]) then
+            undescribed[#undescribed + 1] = name
+        end
+    end
+
+    if #unlisted > 0 or #undescribed > 0 then
+        table.sort(unlisted)
+        table.sort(undescribed)
+        if #unlisted > 0 then
+            io.stderr:write(('.luacheckrc: stds.codeblock_sandbox does not ' ..
+                                'list: %s\n'):format(table.concat(unlisted, ', ')))
+        end
+        if #undescribed > 0 then
+            io.stderr:write(
+                ('.luacheckrc: stds.codeblock_sandbox lists what lib/api.lua ' ..
+                    'does not describe: %s\n'):format(
+                    table.concat(undescribed, ', ')))
+        end
+        io.stderr:write('That list lints lib/examples/**; edit it by hand.\n')
+        os.exit(1)
+    end
+end
+
+--------------------------------------------------------------------------------
 -- write or check
 --------------------------------------------------------------------------------
 

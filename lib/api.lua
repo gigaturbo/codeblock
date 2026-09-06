@@ -267,6 +267,19 @@ api.groups = {
                     'could not, and `nil` where there is no answer at all - ' ..
                     'map that has never been generated, or a position ' ..
                     'outside the world.'
+            }, {
+                name = 'is_block',
+                params = {'block', 'n_right', 'n_up', 'n_forward'},
+                doc = 'Whether the block at an offset from the drone is the ' ..
+                    'one named.',
+                note = 'The offsets are `get_block`\'s: each defaults to ' ..
+                    'zero, they turn with the drone, and nothing is moved. ' ..
+                    'True only when the block there is exactly the one ' ..
+                    'named, so `is_block(air)` asks whether the space is ' ..
+                    'empty. Everything else is false - a node no program can ' ..
+                    'place, map that has never been generated, a position ' ..
+                    'outside the world, and a name that does not exist. Use ' ..
+                    '`get_block` to tell those apart.'
             }
         }
     }, {

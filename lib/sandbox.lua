@@ -202,6 +202,16 @@ local function getScriptEnv(drone)
         ['get_block'] = function(x, y, z)
             return drone_get_block(drone, x, y, z)
         end,
+        -- The read happens whatever `block` is, so one call costs one command
+        -- however it answers. A name that is not a block answers false rather
+        -- than resolving through place()'s default: substituting grey is right
+        -- for a write and a trap for a question, and a misspelling has already
+        -- been reported once by unknown_block, at the read where its spelling
+        -- was still known.
+        ['is_block'] = function(block, x, y, z)
+            local found = drone_get_block(drone, x, y, z)
+            return type(block) == 'string' and found == block
+        end,
         -- vectors. snapshot_module keeps the metatable so vector(x, y, z) still
         -- resolves through its __call.
         ['vector'] = snapshot_module(vector3),

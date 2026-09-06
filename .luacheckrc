@@ -85,14 +85,21 @@ files["tests/**"] = {
 -- their own std, luacheck will catch typo'd API names and stray globals in the
 -- examples - which is exactly the drift described in audit finding A2.
 --
--- Keep this list in sync with getScriptEnv() in lib/sandbox.lua.
+-- This list is a mirror of lib/api.lua and nothing but: it must name every
+-- described API name and nothing else. scripts/gen_docs.lua --check compares
+-- the two in both directions and fails CI on a difference (C22) - so an entry
+-- that is *not* an API name goes in the files[] block below, not here.
+--
+-- A bare string accepts any field of that name, which is what `table` and
+-- `vector` need; a name whose fields are all described is spelled out, so a
+-- typo in an example is caught.
 stds.codeblock_sandbox = {
     read_globals = {
         -- movement
         "move", "forward", "back", "left", "right", "up", "down",
-        "turn_left", "turn_right", "turn",
+        "turn_left", "turn_right", "turn", "sleep",
         -- placement
-        "place", "place_relative",
+        "place", "place_relative", "default_block",
         "cube", "sphere", "dome", "cylinder",
         vertical = {fields = {"cylinder"}},
         horizontal = {fields = {"cylinder"}},
@@ -111,21 +118,26 @@ stds.codeblock_sandbox = {
         -- typo in an example is caught; a category a game registers gets a ramp
         -- too, but no example can name one.
         ramp = {fields = {"hues", "colors", "glass", "lamps"}},
-        -- utilities
-        "get_block", "print", "ipairs", "pairs", "random", "table",
-        "vector", "error",
+        -- utilities. `table` and `vector` are left open: a program sees the
+        -- whole standard library and the whole vector3 module through them,
+        -- and only table.randomizer is an API name of ours.
+        "get_block", "is_block", "print", "ipairs", "pairs", "table", "vector",
+        "error",
+        random = {fields = {"color", "glass", "lamp"}},
         -- math
         "floor", "ceil", "round", "round0", "deg", "rad", "exp", "log", "max",
         "min", "pow", "sqrt", "abs", "sin", "sinh", "asin", "cos", "cosh",
-        "acos", "tan", "tanh", "atan", "atan2", "pi", "e",
-        -- Examples pass a bare `_` to mean "use the default for this argument".
-        -- It is never assigned, so it reads as nil by design.
-        "_"
+        "acos", "tan", "tanh", "atan", "atan2", "pi", "e"
     }
 }
 
 files["lib/examples/**"] = {
     std = "codeblock_sandbox",
+    -- Added to the std above rather than listed in it: examples pass a bare `_`
+    -- to mean "use the default for this argument", and it is never assigned, so
+    -- it reads as nil by design. It is not an API name and the std holds
+    -- nothing but API names.
+    read_globals = {"_"},
     -- Player code runs under setfenv with its own environment table, so a
     -- top-level `function foo()` is a normal, working way to declare a helper -
     -- it just lands in the sandbox env rather than the real _G. Eight examples

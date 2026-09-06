@@ -124,12 +124,13 @@ the shape rather than the fact you could not verify.
 
 ## What a change drags with it
 
-Three files here restate the source, are read by a human or by ContentDB rather
-than by the code, and **drift silently — nothing fails when they are wrong**.
+Four files here restate the source, are read by a human, by a linter or by
+ContentDB rather than by the code, and **drift silently — nothing fails when they
+are wrong**.
 
 | A change to | drags | checked by |
 |---|---|---|
-| a player-facing name | `lib/api.lua`, the `impls` table in `lib/sandbox.lua`, `doc/api.md`, the explicit name list in `tests/api_spec.lua` | `api.build` refuses to load on a mismatch in either direction; `lua scripts/gen_docs.lua --check` |
+| a player-facing name | `lib/api.lua`, the `impls` table in `lib/sandbox.lua`, `doc/api.md`, the explicit name list in `tests/api_spec.lua`, and `stds.codeblock_sandbox` in `.luacheckrc` | `api.build` refuses to load on a mismatch in either direction; `lua scripts/gen_docs.lua --check`, which compares the sandbox std with `api.names()` both ways (C22) |
 | any `S()` literal | `locale/template.txt`, and the orphaned key in every `locale/*.tr` | `lua scripts/gen_locale.lua --check` — template only; a `.tr` gap is legitimate |
 | a codelevel limit or setting | the plain literal in `lib/config.lua`, then regenerate `settingtypes.txt`; the codelevel row in `doc/api.md` is hand-written | `lua scripts/gen_settingtypes.lua --check` and `gen_docs.lua`'s documented-row guard, both matching **by shape** — a computed table turns both off without failing |
 | the ContentDB long description | `CONTENTDB.md`, then `bash scripts/gen_cdb_json.sh` | nothing. Never edit `.cdb.json` |
@@ -145,6 +146,14 @@ of the guards here were written, committed, believed and matched nothing — the
 second because Lua's `%w` excludes the underscore that every limit name contains
 (C20). So `[%w_]` wherever an identifier is matched, and **make a new check fail
 once**, against a deliberately broken input, before trusting it.
+
+**`stds.codeblock_sandbox` in `.luacheckrc` holds API names and nothing else.**
+It is what `lib/examples/**` is linted against, and an entry that is not an API
+name — the bare `_` the examples pass for "use the default" — belongs in
+`files["lib/examples/**"].read_globals`, which luacheck adds to the std. A bare
+string entry there accepts *any* field of that name, so `table` covers
+`table.randomizer` and the check cannot see a typo under it; a name whose fields
+are all described is spelled out instead.
 
 A player-facing rename breaks saved player programs, which are data no game can
 migrate. That is a **major version bump**, and it is the author's call before you

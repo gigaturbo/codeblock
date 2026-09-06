@@ -829,6 +829,245 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- running a real player program, through the real environment
+--
+-- The two sections below - is_block, and the ramps - cover implementations that
+-- live in a closure inside a local function in lib/sandbox.lua. The only door to
+-- that function is get_safe_coroutine, which reads the program out of the
+-- player's directory, so reaching either of them means writing one file. It goes
+-- into the throwaway world the suite boots, under the stub drone's own name, and
+-- is removed again at the end of the last section that uses it.
+--
+-- That write is not the thing the run-tests rule about a user directory
+-- forbids. The rule is there to stop a spec passing vacuously over a world that
+-- does not exist yet; these programs run the real forbidden-name check, the real
+-- instrumenter, the real environment and the real command budget, and every
+-- assertion built on them has been driven to fail. The two alternatives were
+-- exporting the private environment factory to the spec - pinning the spec to an
+-- implementation detail - and copying the code under test into the spec, which
+-- would assert nothing about what ships. Do not delete the write.
+--------------------------------------------------------------------------------
+
+local sandbox_edge = tonumber(core.settings:get('mapgen_limit')) or 31000
+local program_file = 'sandbox_spec_program.lua'
+
+--- Runs `src` as a real player program, through the real environment.
+-- Returns the drone, so the program's answer can be read off the record, and
+-- whatever went wrong on the way, so a failure to run reads as one.
+--
+-- The drone stands outside the world on x, which is what makes every map read
+-- answer nil with no map loaded. is_block needs that; the ramps read no map and
+-- do not care either way.
+local function sandboxed(src)
+
+    local half_pi = math.pi / 2
+    local drone = stub_drone(4)
+    drone.x, drone.y, drone.z, drone.dir = sandbox_edge + 5, 0, 0, 0
+    drone.update_entity = function() end
+    drone.angle = function(self)
+        return math.floor(self.dir / half_pi + .5) % 4
+    end
+
+    codeblock.filesystem.make_user_dir(drone.name)
+    local werr = codeblock.filesystem.write_file(drone.name, program_file, src)
+    if werr then return drone, tostring(werr) end
+
+    local ok, co = codeblock.sandbox.get_safe_coroutine(drone, program_file)
+    if not ok then return drone, tostring(co) end
+
+    for _ = 1, 10000 do
+        local alive, err = coroutine.resume(co)
+        if not alive then return drone, tostring(err) end
+        if coroutine.status(co) == 'dead' then return drone, nil end
+    end
+    return drone, 'runaway'
+end
+
+--------------------------------------------------------------------------------
+-- is_block answers, and is charged, through the real environment
+--
+-- is_block is two lines of glue over the read above.
+--
+-- Every read below lands outside the world, for the reason the get_block section
+-- gives: there is no map at mod load. So what is pinned here is the guard and
+-- the accounting; the answer over real map is a PLAYTEST matter, with
+-- get_block's.
+--
+-- Each program reports through turn_left, which touches nothing but the drone
+-- record. Comparing against `false` rather than testing for truth is
+-- deliberate: without the type guard is_block() answers true out here, and a
+-- merely broken one answers nil - `== false` tells those apart and a bare `if`
+-- would not.
+--------------------------------------------------------------------------------
+
+do
+    local edge = sandbox_edge
+
+    local named, err = sandboxed(
+                           'if is_block(colors.grey) == false then turn_left() end\n')
+    it('a program calling is_block runs at all', err, nil)
+    it('a block that is not the one there answers false', named:angle(), 1)
+
+    -- The guard. colors.typo is nil, and outside the world the read answers nil
+    -- too, so without `type(block) == 'string'` this is nil == nil and the
+    -- answer is true - a program asking about a misspelling would be told yes.
+    local guarded = sandboxed('if is_block() == false then turn_left() end\n')
+    it('no block named at all answers false, not true', guarded:angle(), 1)
+
+    local numbered = sandboxed('if is_block(42) == false then turn_left() end\n')
+    it('and a number answers false as well', numbered:angle(), 1)
+
+    -- One call, one command, whatever the answer: the read runs before the
+    -- guard, so what a question costs does not depend on what was asked.
+    local control = sandboxed('local x = 1\n')
+    it('a program with no command in it is charged none', control.commands, 0)
+
+    local counted = sandboxed('is_block(colors.grey)\n')
+    it('one is_block costs one command', counted.commands, 1)
+
+    local rejected = sandboxed('is_block(42)\n')
+    it('and costs the same when it was not handed a block at all',
+       rejected.commands, 1)
+
+    it('the read moves nothing',
+       ('%s,%s,%s'):format(counted.x, counted.y, counted.z),
+       ('%s,0,0'):format(edge + 5))
+    it('and turns nothing', counted.dir, 0)
+end
+
+--------------------------------------------------------------------------------
+-- the ramps, through the real environment (F12)
+--
+-- ramp_over is one closure in lib/sandbox.lua, built once per ramp per run, and
+-- it is what colours a shape by height or distance. Six things it promises: at
+-- or below `min` the first entry, at or above `max` the last, clamping rather
+-- than wrapping outside the range, `min` and `max` defaulting to 1 and the
+-- list's length, the first entry for a `v` that is not a number, and the first
+-- entry for a range of zero width.
+--
+-- All four built-in ramps are covered, not one. ramp.hues walks ten plain
+-- shades and the other three walk a whole 35-entry category, so the last entry
+-- differs between them: a ramp wired to the wrong list would still satisfy a
+-- spec pinned to one of them.
+--
+-- Each program reports by setting the drone's default block, which is the one
+-- command that writes a value onto the record a spec can read. It also refuses
+-- anything that is not a real block, so a ramp answering nil off the end of its
+-- list fails here as an error rather than as a wrong name.
+--------------------------------------------------------------------------------
+
+do
+    local blocks = codeblock.config.allowed_blocks
+
+    --- The block a one-line program's ramp call resolved to, or the error that
+    -- stopped it, so a run that did not happen reads as a failure.
+    local function answer(expr)
+        local drone, err = sandboxed('default_block(' .. expr .. ')\n')
+        if err then return 'error: ' .. err end
+        return drone.default_block
+    end
+
+    -- The readback channel itself: nothing else writes default_block, so a
+    -- program that did not run would report 'grey', and no case below expects
+    -- it.
+    local quiet = sandboxed('local x = 1\n')
+    it('a program setting no default block leaves the record alone',
+       quiet.default_block, 'grey')
+
+    -- The two list lengths every case below uses as an input. Pinned so that a
+    -- change to the palette fails here, naming itself, rather than quietly
+    -- turning the max cases into mid-list ones.
+    it('hues is one name per family', #blocks.hues, 10)
+    it('a colour category is the whole palette', #blocks.by_name.colors.keys, 35)
+
+    -- {name, length, first entry, last entry, a value mid-list and its answer}.
+    -- The first and last are literals rather than reads of the same tables the
+    -- implementation indexes, so a ramp built over the wrong list is caught by
+    -- what it answers and not merely by its length.
+    local ramps = {
+        {'hues', 10, 'pink', 'violet', 5, 'olive'},
+        {'colors', 35, 'white', 'dark_violet', 18, 'light_olive'},
+        {'glass', 35, 'white_glass', 'dark_violet_glass', 18, 'light_olive_glass'},
+        {'lamps', 35, 'white_lamp', 'dark_violet_lamp', 18, 'light_olive_lamp'}
+    }
+
+    for _, r in ipairs(ramps) do
+        local name, n, first, last, mid, mid_answer = r[1], r[2], r[3], r[4],
+                                                      r[5], r[6]
+        local call = 'ramp.' .. name
+
+        it(call .. '(1) is the first entry', answer(call .. '(1)'), first)
+        -- max defaulting to anything but the list length moves this one.
+        it(call .. '(#list) is the last entry', answer(call .. '(' .. n .. ')'),
+           last)
+        it(call .. ' maps the middle of the range onto the middle of the list',
+           answer(('%s(%d)'):format(call, mid)), mid_answer)
+
+        -- Below the range. An unclamped index reads list[0] and the program
+        -- dies on a nil block; a wrapped one lands at the far end.
+        it(call .. ' below min clamps to the first entry',
+           answer(call .. '(0)'), first)
+        it(call .. ' far below min still clamps', answer(call .. '(-1000)'),
+           first)
+        -- Above the range. Wrapping would answer an early entry here, and an
+        -- unclamped index runs off the end of the list.
+        it(call .. ' above max clamps to the last entry',
+           answer(('%s(%d)'):format(call, n + 5)), last)
+        it(call .. ' far above max still clamps', answer(call .. '(1000)'), last)
+
+        -- An explicit range, which is the whole point of min and max: the same
+        -- two ends, reached from numbers that have nothing to do with the
+        -- list's length.
+        it(call .. ' honours an explicit min',
+           answer(call .. '(-50, -50, 50)'), first)
+        it(call .. ' honours an explicit max', answer(call .. '(50, -50, 50)'),
+           last)
+        it(call .. ' clamps inside an explicit range too',
+           answer(call .. '(500, -50, 50)'), last)
+
+        it(call .. ' answers the first entry for a range of zero width',
+           answer(call .. '(3, 3, 3)'), first)
+        it(call .. ' answers the first entry for a value that is not a number',
+           answer(call .. '("middle")'), first)
+        it(call .. ' answers the first entry for no value at all',
+           answer(call .. '()'), first)
+    end
+
+    ----------------------------------------------------------------------------
+    -- What ramp.hues exists for
+    --
+    -- It is the one ramp that reads as a gradient, because every answer is the
+    -- plain shade of a family: never a light_ or dark_ one, and never a
+    -- neutral. A ramp wired to a colour category instead would still clamp and
+    -- still answer real blocks, and every case above for the other three would
+    -- still pass.
+    --
+    -- The sweep runs inside the program, over `hues` itself, which the
+    -- environment publishes: membership in that list is exactly the property,
+    -- and the two cases above pin its ends to literals.
+    ----------------------------------------------------------------------------
+
+    local swept, sweep_err = sandboxed([[
+local bad = 0
+for i = -3, 14 do
+    local answer = ramp.hues(i)
+    local plain = false
+    for _, name in ipairs(hues) do
+        if name == answer then plain = true end
+    end
+    if not plain then bad = bad + 1 end
+end
+if bad == 0 then default_block(colors.white) else default_block(colors.black) end
+]])
+    it('the hues sweep runs', sweep_err, nil)
+    it('every ramp.hues answer is the plain shade of a family',
+       swept.default_block, 'white')
+
+    codeblock.filesystem.remove_file('test_player', program_file)
+    codeblock.filesystem.remove_user_data('test_player')
+end
+
+--------------------------------------------------------------------------------
 -- the block palette, and the nodes it registers (F11)
 --
 -- The mod registers its own blocks now, so whether `place(name)` lands on a

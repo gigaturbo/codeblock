@@ -20,11 +20,13 @@ it.
 
 ## Where it stands
 
-**85 findings. 82 resolved, 2 open (`A17`, `A18`), 1 won't fix (`B34`).**
+**86 findings. 82 resolved, 3 open (`A17`, `A18`, `C22`), 1 won't fix (`B34`).**
 
-**Both open findings are pre-existing, low, and were filed on 2026-09-05 while
-recording `F11`** — neither is a defect `F11` introduced and neither blocks the
-tag. `A17` is three exported functions in `lib/utils.lua` with no caller left,
+**All three open findings are pre-existing and low, and none blocks the tag.**
+`A17` and `A18` were filed on 2026-09-05 while recording `F11`, and neither is a
+defect `F11` introduced. `C22` was filed on 2026-09-06 while covering
+`is_block`, and is older than either: `.luacheckrc`'s sandbox std has been
+missing `sleep` since `F3` and `default_block` since `F1`. `A17` is three exported functions in `lib/utils.lua` with no caller left,
 kept rather than deleted because `codeblock.utils` is a published global and a
 game may be reading them; what it wants is the author's decision. `A18` is
 `meta.active = #meta.tabs` written as a loop in two places in
@@ -980,8 +982,8 @@ broken.
 
 ## C · Compliance and packaging
 
-15 findings, all resolved — `C21` by `F10`, committed at `b23a8bc`. `C2`–`C5`
-and `C15` are the game's; `C9` never used.
+16 findings, 15 resolved, `C22` open — `C21` by `F10`, committed at `b23a8bc`.
+`C2`–`C5` and `C15` are the game's; `C9` never used.
 
 - **C1 · high · resolved** — the version ceiling hid the package from every
   modern user. The engine does not enforce these keys, but **ContentDB filters on
@@ -1193,6 +1195,28 @@ and `C15` are the game's; `C9` never used.
   merely green. Same run: `b9143b0` plus what was then the uncommitted tree,
   engine 5.17.0, and re-affirmed at `16cd05c` once the code was committed.
   Nothing on this finding is outstanding.
+- **C22 · low · open** — `.luacheckrc`'s `codeblock_sandbox` std is a **fourth
+  hand-kept mirror of `lib/api.lua`** and has drifted: `sleep` (`F3`) and
+  `default_block` (`F1`) are in the API, in `getScriptEnv`'s `impls` and in
+  `doc/api.md`, and neither is in the std list. The list's own comment says
+  *keep this list in sync with `getScriptEnv()`*, which is the note-about-
+  remembering that `C17`, `C19` and `C20` each proved does not hold.
+  **How it fails.** The list exists so luacheck catches a typo'd API name in a
+  shipped example (`A2`). A name missing from it inverts that: an example
+  calling a **correct** name is reported `(W113) accessing undefined variable`,
+  which reads as a typo and invites someone to change working player code.
+  Demonstrated 2026-09-06 on `lib/examples/game.lua`, an **untracked** file in
+  the author's tree that calls `sleep(0.03)` —
+  `lib/examples/game.lua:15:5: (W113) accessing undefined variable 'sleep'`.
+  Nothing tracked uses either name, so **the gate is silent on a clean
+  checkout** and CI has never seen this; committing that example, or any example
+  that pauses or sets a default, turns the luacheck job red for a correct
+  program.
+  **Not fixable from `test-agent`** — `.luacheckrc` is `code-expert`'s. Adding
+  the two names closes the instance; what closes the finding is deciding whether
+  a fourth mirror of `lib/api.lua` should be hand-kept at all, given that
+  `api.names()` already enumerates exactly this list and the other three mirrors
+  each ended up generated.
 
 ---
 

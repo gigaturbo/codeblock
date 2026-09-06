@@ -223,6 +223,7 @@ do
         'centered.sphere', 'centered.dome', 'centered.cylinder',
         'centered.vertical.cylinder', 'centered.horizontal.cylinder',
         'colors', 'glass', 'lamps', 'hues', 'air', 'vector', 'get_block',
+        'is_block',
         'print', 'ipairs', 'pairs', 'random', 'random.color', 'random.glass',
         'random.lamp', 'table.randomizer',
         -- One ramp per block table, and a game that registers a category of its
