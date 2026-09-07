@@ -465,12 +465,8 @@ local file_editor = {
                 table.remove(meta.tabs, meta.active)
                 table.remove(meta.contents, meta.active)
                 table.remove(meta.dirty, meta.active)
-                meta.active = 0
-                if #meta.tabs > 0 then
-                    for i, filename in ipairs(meta.tabs) do
-                        meta.active = i
-                    end
-                end
+                -- Fall back on the last remaining tab, or 0 when none is left.
+                meta.active = #meta.tabs
             end
         end
 
@@ -579,12 +575,8 @@ local file_editor = {
             table.remove(meta.tabs, meta.active)
             table.remove(meta.contents, meta.active)
             table.remove(meta.dirty, meta.active)
-            meta.active = 0
-            if #meta.tabs > 0 then
-                for i, filename in ipairs(meta.tabs) do
-                    meta.active = i
-                end
-            end
+            -- Fall back on the last remaining tab, or 0 when none is left.
+            meta.active = #meta.tabs
         end
 
         local function save_editor_state()

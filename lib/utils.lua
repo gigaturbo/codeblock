@@ -44,26 +44,6 @@ function codeblock.utils.parse_target(caller, params, rest_pattern)
     return nil, nil
 end
 
-function codeblock.utils.table_reverse(tbl)
-    local rev = {}
-    for k, v in pairs(tbl) do rev[v] = k end
-    return rev
-end
-
-function codeblock.utils.table_convert_ik(tbl)
-    local itable = {}
-    for k, _ in pairs(tbl) do table.insert(itable, k) end
-    table.sort(itable)
-    return itable
-end
-
-function codeblock.utils.table_convert_iv(tbl)
-    local itable = {}
-    for k, v in pairs(tbl) do table.insert(itable, v) end
-    table.sort(itable)
-    return itable
-end
-
 function codeblock.utils.table_randomizer(tbl)
     local keys = {}
     local random = math.random

@@ -87,12 +87,12 @@ if core.settings:get_bool("codeblock_gen_docs") then
     -- rainbow a ramp maps onto, so a list in it reads as one. config.lua owns
     -- it, and both this and scripts/gen_docs.lua hand the same table to the
     -- same renderer, which is what keeps their answers identical.
-    local wanted, why = codeblock.api.compose_markdown(current,
+    local wanted, err = codeblock.api.compose_markdown(current,
                                                       codeblock.config
                                                           .allowed_blocks)
 
     if not wanted then
-        print("[codeblock] doc/api.md: " .. tostring(why))
+        print("[codeblock] doc/api.md: " .. tostring(err))
     elseif wanted == current then
         print("[codeblock] doc/api.md is already up to date")
     else
