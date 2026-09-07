@@ -20,14 +20,12 @@ and security, `C` compliance and packaging, `A` architecture and performance;
 | `B` bugs | 51 | 50 | — | `B34` |
 | `S` sandbox and security | 9 | 9 | — | — |
 | `C` compliance and packaging | 18 | 17 | `C24` | — |
-| `A` architecture and performance | 14 | 12 | `A17`, `A18` | — |
-| **Total** | **92** | **88** | **3** | **1** |
+| `A` architecture and performance | 14 | 14 | — | — |
+| **Total** | **92** | **90** | **1** | **1** |
 
 | Id | Sev | What | Waiting on |
 |---|---|---|---|
 | `C24` | medium | CI boots no engine, so three specs and every engine-guarded case never run in CI | a CI job that boots Luanti |
-| `A17` | low | three exported functions in `lib/utils.lua` have no caller | the author's decision: delete in v1.0.0, or declare `codeblock.utils` public |
-| `A18` | low | `meta.active = #meta.tabs` written as a loop at two sites | nothing — two one-line replacements and a spec run |
 | `B34` | low | won't fix: a file cannot be removed without opening it first | decided — a working route exists |
 
 ## Open and won't fix
@@ -57,27 +55,6 @@ under CI for the first time. **Not by adding `lfs` to the standalone path** to
 enumerate a directory: a dependency for one case is not a trade worth making. It
 does not block the tag; the release is built from a tree a local run has
 covered.
-
-### A17 · low · open — three dead exports on a published global
-
-`lib/utils.lua`: `table_reverse` (47), `table_convert_ik` (53) and
-`table_convert_iv` (60) have no caller in `lib/`, `init.lua`, `scripts/` or
-`tests/`.
-
-**Not deleted, deliberately, and that is the whole finding.** They sit on
-`codeblock.utils`, a global this mod publishes, so a game or another mod could
-be reading them. **What is wanted is a decision:** delete all three in v1.0.0,
-where a breaking change is free, or state that `codeblock.utils` is public.
-
-### A18 · low · open — a loop written where an assignment was meant
-
-`lib/formspecs.lua` ends `remove_active` (470) and `close_active` (584) with
-`for i, filename in ipairs(meta.tabs) do meta.active = i end`, whose body runs
-once per tab to leave the last index behind and whose `filename` is never read.
-
-**Verified equivalent**, so this is clarity, not correctness — and it is the
-last `LUACHECK_STRICT=1` `W421` in that file, which is the only reason it has an
-id.
 
 ### B34 · low · won't fix — a file cannot be removed without opening it first
 
@@ -333,6 +310,11 @@ restated.
 - **`B44` — a drone with no usable file is taken away**, the same answer `B41`
   gave; two answers to one question is worse than either. The fix belongs at the
   caller: `lib/filesystem.lua` has no drone dependency and must not acquire one.
+- **`A18` — `meta.active = #meta.tabs` is equivalent only while `meta.tabs` has
+  no holes.** It is grown by `table.insert` and shrunk by `table.remove` alone,
+  so `#` agrees with where `ipairs` stops. A write that leaves a nil in the
+  middle breaks the fallback silently. `meta.dirty` is kept dense for the
+  neighbouring reason.
 - **`B53` — the new-file template names no individual colour** (`generated-files`),
   and `integration_spec` **reads it out of `lib/formspecs.lua`** rather than
   copying it, keeping the pre-`F11` text as a control that must fail. A copy
@@ -458,6 +440,14 @@ restated.
   below the marker is generated; `doc/api.md`'s codelevel table and command prose
   above it are hand-written.
 - **`A16` — adding an API name is an `api_spec` edit too.**
+- **`A17` — `codeblock.utils` is a published global whose status is undeclared.**
+  Deleting the three dead exports answered *these three*, not *this table*. What
+  is left is seven entries with callers — `check_auth_level`, `split`,
+  `parse_target`, `table_randomizer`, `scroll_max`, `html_commands`, and
+  `path_join`, attached from `lib/pathjoin.lua`. The group is incoherent and was
+  incoherent before, so incoherence is not the reason to change it. **Declaring
+  it, narrowing it or making it local is breaking, so v1.0.0 is the last free
+  moment**; the open question is a `TODO.md` line.
 - **`A12` — the specs run at mod load**, before a map, a player or a user
   directory exists, and every feature inherits that. **Static counting is unsafe
   here:** counting `it(` in `shapes_spec` gave 4 against a real 15.
@@ -582,6 +572,8 @@ a row carries a rule, it is above under *Keep*.
 | `A12` | low | no tests, on the component that most needs them | nine specs, six of them also standalone under Lua 5.1 | Phase 0 onward |
 | `A15` | medium | only 448 of the vendored WorldEdit fork's 2,299 lines were reachable, and the whole dependency was four functions | the fork is gone; `lib/shapes.lua` owns the geometry, covered standalone | Phase 4 |
 | `A16` | medium | `api_spec` was standalone-capable but not run by CI, so the change most likely to break every saved player program was the one CI could not see | added to the CI job | `a023ceb` |
+| `A17` | low | `table_reverse`, `table_convert_ik` and `table_convert_iv` sat on `codeblock.utils` with no caller anywhere in the tree | all three deleted, 19 lines; the half the deletion does not answer is under *Keep* | `c089f78` |
+| `A18` | low | `meta.active = #meta.tabs` was written as a `0` followed by a guarded `ipairs` loop assigning the index every iteration, at two sites | one assignment and a comment at each site; the `init.lua` shadow the entry misnamed as the file's last went with it | `c089f78` |
 
 ## Evidence: verified, committed, claimed
 
@@ -591,10 +583,18 @@ blurred.
 
 **Claimed only: nothing.**
 
-**`S8`'s fix is in the working tree and not committed.** `HEAD` is `72b614d`
-and `git status` shows `init.lua`, `lib/env.lua` and `lib/sandbox.lua` modified.
-Gates were run over it and are green, and no spec count moved. The resolved row
-carries no commit until it has one.
+**`A17` and `A18` landed at `c089f78`**, touching `init.lua`,
+`lib/formspecs.lua` and `lib/utils.lua`. Gates over it: luacheck baseline
+silent, `LUACHECK_STRICT=1` reporting **no `W421` in the tree**, the three
+`--check` generators up to date, 253 standalone and 665 in-engine assertions
+with 0 failed, 0 xpass and the one known `B4` xfail. **No count moved.**
+
+**`A17`'s deletion is verified by reading, not by the suite.** A grep over the
+whole tree with `.git` excluded — so `lib/examples/`, `doc/`, `locale/` and
+`CONTENTDB.md` were in scope — found six hits: the three definitions and three
+mentions in the record. A second grep for `codeblock\.utils` and `utils\[` found
+no dynamic indexing, so every reader names a field literally. No spec covered
+the three, so no count could have moved.
 
 **Committed with gates green, unproven in a world — three:**
 
@@ -605,6 +605,13 @@ carries no commit until it has one.
   `warning`. The player-facing half is confirmed by `F-3` case 2.
 - **`lib/examples/game.lua`'s constant fix (`3548d58`)** — its check `F-6` is
   unrun. The specs compile every example and run none.
+
+**`A18`'s only in-world evidence is stale.** `E3` walks `close_active` end to
+end — three files open, close the middle one, then the last — and covers both
+branches the assignment replaced. `E2` covers `remove_active` with one file
+open, so it reaches the empty case and not the fallback, and it is widened by
+one case. Both carry a pass predating the change and both are **owed a re-run**,
+not unrun.
 
 **Unproven in a world — the `S9` load-time warning.** `init.lua` logs one
 `warning` when the installed `vector3` hands back its method table. No spec can
@@ -695,6 +702,12 @@ Each of these is a wrong claim that would otherwise be repeated as fact.
 - **An id is for a defect in committed code.** A wrong *check* is a defect in the
   record and is fixed in `PLAYTEST.md`: playtests `D3` and `F-3` got no ids, and
   `E12`'s symptom got none after three fails and a disproof.
+- **`A18` was filed as *the last `LUACHECK_STRICT=1` `W421` in that file*, and
+  that reads as the last in the tree.** It was not. `init.lua`'s doc-generation
+  block held a second — `local wanted, why` shadowing `strguard.install()`'s
+  `why` — pre-existing and present at `72b614d`. The inner one is renamed `err`,
+  so the tree now reports no `W421` at all. **A count scoped to one file is not
+  a count of the tree**, and neither the entry nor the phrase said which.
 - **`B34` and `B47` had no entries at all in this document** between `0837b58`
   and this pass, while five sections pointed at them. Both are restored above,
   from `16cd05c`.
@@ -713,5 +726,4 @@ Each of these is a wrong claim that would otherwise be repeated as fact.
 
 ---
 
-Last reviewed **2026-09-07**, describing `124d032` — the `S8` fix and the `S9`
-load-time warning.
+Last reviewed **2026-09-08**, describing `c089f78` — the `A17` and `A18` fixes.

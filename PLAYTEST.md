@@ -65,7 +65,8 @@ Checks needing action:
 |---|---|---|
 | [`F-6`](#f-6--gamelua-starts-in-the-same-direction-every-time-s8) | unrun | `S8`'s only in-world reading, and now the check that confirms the fix. |
 | [`R5`](#r5--an-old-vector3-is-named-in-the-log-at-mod-load-s9) | unrun | The load-time warning about an old `vector3`. Needs the submodule swapped by hand. |
-| [`F-7`](#f-7--every-shipped-example-still-runs-after-a-dependency-bump-c23-c24-s8) | owed again | Passed on the v2.0.2 bump. The `S8` fix changes the `vector` table every example runs in. |
+| [`E2`](#e2--create-and-remove-a-file-b14-a9-a18) | owed | `A18` rewrote `remove_active`'s fallback. A case for two files open is new and unrun. |
+| [`E3`](#e3--tabs-b33-a18) | owed | `A18` rewrote `close_active`'s fallback, and this is its only in-world evidence. |
 | [`R1`](#r1--the-archive-contains-no-tests-c16-c10) | stale | Texture and example counts have changed since the last run. |
 | [`R2`](#r2--a-real-install-with-the-test-flag-set-c16) | stale | Last run at `7c5bceb`, before `F4` and two `.gitattributes` changes. |
 | [`H8`](#h8--the-panel-over-the-editor-and-a-run-that-ends-under-it-f4-f8-b33-b29) | partial | Cases 1 and 3 cannot be performed by hand. |
@@ -85,13 +86,20 @@ Open a file, type, save, close with **Save**, reopen.
 
 Result: pass — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27.
 
-### E2 · Create and remove a file [B14, A9]
+### E2 · Create and remove a file [B14, A9, A18]
 
-Create a new file from the chooser, then remove it.
+1. Create a new file from the chooser, then remove it.
+2. With **two** files open, remove the active one.
 
-**Pass:** both succeed.
+**Pass:** case 1 succeeds both ways and leaves an empty editor. In case 2 the
+remaining file becomes the active tab and its content is on screen.
 
-Result: pass — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27.
+**Owed a re-run for `A18`.** `remove_active` now sets `meta.active =
+#meta.tabs`. Case 1 reaches the empty branch and **case 2 is the fallback
+branch**, which the check did not reach before.
+
+Result: pass — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27 — case 1
+only; case 2 was added later.
 
 **A second case was removed 2026-09-02 as untestable**, on the author's call. It
 asked for the removal of a file never opened this session — `B14`'s cold-cache
@@ -99,12 +107,16 @@ path — and the editor cannot do it: the four file buttons draw only inside
 `if meta.active ~= 0 then` (`B34`, won't fix). **`B14` has no route from this
 check.**
 
-### E3 · Tabs [B33]
+### E3 · Tabs [B33, A18]
 
 Open three files, switch between them, close the middle one, then the last.
 
 **Pass:** each tab shows its own content; the active tab is sensible after a
 close; closing the last leaves an empty editor rather than an error.
+
+**Owed a re-run for `A18`.** `close_active` now sets `meta.active =
+#meta.tabs`, and this check walks both branches of it — closing the middle one
+is the fallback, closing the last is the empty case.
 
 Result: pass — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27.
 
@@ -834,8 +846,6 @@ Result: not yet run.
 release.** `tests/preprocess_spec.lua` **compiles** every shipped example and
 **nothing runs one**, so a compile cannot see a call that raises.
 
-**Owed again by the `S8` fix**, which changes the `vector` table every example
-runs in. The v2.0.2 bump is covered by the result below.
 
 In a world at codelevel 3 or 4, on open ground with room around and above the
 drone: run `/codeblock generate`, then open each generated example in the editor
@@ -851,9 +861,14 @@ expected.
 on — report the file, the line and the message.
 
 Result: pass — `72b614d` · engine 5.17.0 · 2026-09-07 — `vector3` v2.0.2, every
-shipped example still runs after the bump. **The world was launched against a
-clean `72b614d`**, before the `S8` fix entered the working tree, so this is
-evidence about the bump alone.
+shipped example still runs after the bump. Run against a clean `72b614d`, before
+the `S8` fix, so this reads on the bump alone.
+
+Result: pass — `01b2af9`, record-only over `124d032` · engine 5.17.0 ·
+2026-09-08 — `vector3` v2.0.2, every shipped example still runs with the `S8`
+per-constant copy in place. The `A17` and `A18` edits were in the working tree
+and reach no example: the three deleted exports have no caller anywhere in it,
+and `A18` is editor code.
 
 ---
 

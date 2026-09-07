@@ -23,14 +23,19 @@ and the submodule is bumped to `fc8a5b8`. `S9` is still live for a player on
 v1.5 or v2.0.1, which the mod now names in `debug.txt` at load and which the
 support matrix in the `run-tests` skill tracks.
 
-**Twenty-four commits are unpushed.** `origin/master` is `65b4c46`; CI has seen
+**`A17` and `A18` are closed at `c089f78`.** The three dead `codeblock.utils`
+exports are deleted and both `meta.active` loops are assignments. Gates are
+green and no spec count moved. **`C24` is the one open finding left**, and it is
+`Phase 9`'s.
+
+**Twenty-six commits are unpushed.** `origin/master` is `65b4c46`; CI has seen
 no part of `F11`, `F12`, `F13`, `F14`, `B53`, `C23`, `B54` or either `vector3`
 bump. Take the count from `git rev-list --count origin/master..HEAD`, never from
 counting hashes.
 
 **Every feature in `Phase 8` has shipped and been played.** `PLAYTEST.md`
-carries no fail, two unrun checks — `F-6` and `R5` — and `F-7` owed again by the
-`S8` fix.
+carries no fail, two unrun checks — `F-6` and `R5` — and `E2` and `E3` owed a
+re-run as `A18`'s only in-world evidence.
 
 ## Finalising v1.0.0
 
@@ -48,10 +53,9 @@ Steps 6–10 are the `release-codeblock` skill's procedure and are not restated.
 4. **Upload the new screenshots to the ContentDB page** — it loads them from raw
    GitHub URLs on `master`, so the new names go up and the dropped 2021 file
    comes off. (`C19`)
-5. **Run playtests `F-6`, `R5` and `F-7`.** `F-6` and `R5` are unrun; `F-7`
-   passed on the v2.0.2 bump and is owed again by the `S8` fix, which changes
-   the `vector` table every example runs in. `R5` needs the submodule swapped by
-   hand and put back. (`S8`, `S9`, `C23`)
+5. **Run playtests `F-6` and `R5`**, both unrun. `F-6` is the `S8` fix's only
+   in-world reading. `R5` needs the submodule swapped by hand and put back.
+   (`S8`, `S9`)
 6. **Re-run `R2`** on the archive built from the release tag, not `HEAD`. Stale
    since `7c5bceb`, before `F4`, `F11`'s textures and `.gitattributes`. Install
    it in a game that is not `codecube`. (`C16`, `C10`)
@@ -83,7 +87,7 @@ answered in writing before any code.
 | 5 | Limits that track real load | done | 4/4 |
 | 6 | Limits for what the server spends | done | 3/3 |
 | 7 | Clear the way for features | done | 26/26 |
-| 8 | Features for v1.0.0 | in progress | 12/12 features; `C24`, `A17`, `A18` open |
+| 8 | Features for v1.0.0 | in progress | 12/12 features; `C24` open |
 | 9 | v1.x.y — after the release | not started | 0/1 |
 | 10 | v2.0.0 — the Blockly editor | not started | 0/1 |
 
@@ -100,9 +104,9 @@ done — `B36`–`B44`, `C17`, `C18`, `S7`, `B50`–`B52` — and all fifteen ar
 and played.
 
 **Phase 8's one open finding is `C24`**, queued for `Phase 9`. `S8` closed with
-the per-constant copy and `S9` with the v2.0.2 bump. `A17` and `A18` are low
-and pre-existing; `A17` wants the author's decision, not a cleanup. `B10`'s refusal is out of the phase rather
-than done — its check was removed as untestable and reaching it needs a way to
+the per-constant copy, `S9` with the v2.0.2 bump, `A17` with the deletion and
+`A18` with the two assignments. `B10`'s refusal is out of the phase rather than
+done — its check was removed as untestable and reaching it needs a way to
 observe the server releasing a mapblock.
 
 **Phase 9 holds one item:** give CI a job that boots the engine, so the three
@@ -737,6 +741,21 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
   because this project tags; push would publish every commit on `master`.
 - **A reverse "no unexpected API name" check in `api_spec`** would duplicate
   `api.build` and make every API addition a spec edit. (`A16`, `F1`)
+- **The three dead `codeblock.utils` exports were deleted rather than kept.**
+  `table_reverse`, `table_convert_ik` and `table_convert_iv` had no caller
+  anywhere in the tree. `codeblock.utils` is a global this mod publishes, so
+  removing one is breaking for a game or mod reading it — and **v1.0.0 is the
+  release where breaking a published global is free**, which will not come round
+  again. Kept-in-case was refused: four lines each, and copying one into the mod
+  that wants it is cheaper than a name this project has to keep for ever.
+  (`A17`)
+- **Whether `codeblock.utils` is a public interface is still unanswered**, and
+  the deletion did not answer it. Seven entries with callers are left and the
+  group is incoherent — an auth check, two string helpers, a random picker, a
+  formspec geometry constant, a chunk of rendered hypertext, and `path_join`
+  attached from outside. It was incoherent before, so that is not a reason to
+  act. It is a `TODO.md` line, and **deciding it after the tag costs a major
+  bump.** (`A17`)
 - **The last `.editorconfig` difference stays.** `align_call_args = true` fixes
   wrapped arguments but pushes a table constructor out to the paren column.
 - **Chasing the remaining `minetest` names** — what is left must stay: the
@@ -835,8 +854,6 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 
 ---
 
-Last reviewed **2026-09-07**, describing `124d032` — the `S8` fix and the `S9`
-load-time warning. `origin/master` is **`65b4c46`**, **24
-commits behind**. `PLAYTEST.md`: 85 entries, `F11-4` retired, two unrun (`F-6`,
-`R5`), `F-7` owed again, no fail. `AUDIT.md`: 92 findings, three open — `C24`
-medium, `A17` and `A18` low.
+Last reviewed **2026-09-08**, describing `c089f78` — the `A17` and `A18` fixes. `origin/master` is **`65b4c46`**, **26 commits
+behind**. `PLAYTEST.md`: 85 entries, `F11-4` retired, two unrun (`F-6`, `R5`),
+`E2` and `E3` owed, no fail. `AUDIT.md`: 92 findings, one open — `C24` medium.

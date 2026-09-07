@@ -14,10 +14,6 @@ Features
       *nearest of 256* through a palette node, deliberately not scheduled. Two
       questions open: which 256 colours, and how the value reaches `place()`
       (audit F15)
-- [ ] DECIDE: three exported functions in `lib/utils.lua` have no caller left —
-      `table_reverse`, `table_convert_ik`, `table_convert_iv`. Delete them in
-      v1.0.0 where breaking is free, or declare `codeblock.utils` public and keep
-      them (audit A17)
 - [ ] warn when the editor is closed with unsaved changes — `soe` is read,
       written and acted on nowhere; `F7` marks unsaved tabs first, which may be
       enough (audit F7)
@@ -36,6 +32,10 @@ Features
 
 Decisions wanted from the author
 
+- [ ] DECIDE: whether `codeblock.utils` is a public interface. Seven entries
+      with callers are left after the A17 deletion. Declare it, narrow it, or
+      make it local — all three are breaking, so v1.0.0 is the last free moment
+      (audit A17, resolved)
 - [ ] DECIDE: what `tests/game/mods/vector3` should pin, now that three releases
       are in the wild and the submodule is at v2.0.2. Pin the newest, the oldest
       supported, or document a floor (audit S8)
@@ -49,10 +49,6 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
 - [ ] run R5 — swap the vector3 submodule to v1.5 and v2.0.1 by hand, start a
       world on each, and read `debug.txt` for the one warning naming the version.
       Put the pin back afterwards (audit S9; playtest R5)
-- [ ] run F-7 — every shipped example, one at a time. Standing check, after any
-      dependency bump and before a release; passed on the v2.0.2 bump and owed
-      again by the S8 fix, which changes the vector table every example runs in
-      (audit C23, C24, S8; playtest F-7)
 - [ ] re-run R2 on the archive built from the release commit. Install it in a
       game that is not codecube (audit C16, C10)
 
