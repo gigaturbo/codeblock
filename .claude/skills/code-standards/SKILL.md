@@ -59,6 +59,23 @@ A snapshot gives each run **copies** of the API's tables, not read-only proxies:
 Lua 5.1 has no `__pairs` or `__len`, so a proxy would break `pairs(blocks)` for
 player code. Do not "improve" that into a proxy.
 
+**Those copies are shallow, so they isolate *assigning into* a table and not
+*mutating through* it** (S8, open). Every value the snapshots hold is a string, a number or
+a closure — except `vector`, whose fourteen constants (`vector.one`, `vector.x`,
+`vector.nx`, …) are real `vector3` instances built once at load, so
+`dir = vector.one; dir.x = -dir.x` writes into the module's own constant for
+every run and every mod on the server. Adding a table-valued entry to the
+environment inherits that, so pass a fresh one per run or copy its leaves.
+
+**And any `vector3` instance exposes the shared class table as `v.__index`**
+(S9, open, and ranked above S8), because `vector3.__index = vector3`: `vector(1,1,1).__index.unpack = 0` replaces
+the method for every subsequent run and for every other mod using the `vector3`
+global. Metamethod lookup is raw on the metatable, so a write onto an *instance*
+is harmless and a write *through* `.__index` is not; only vector3 itself can
+close that, by separating the metatable from the methods table. The
+forbidden-name list does not and must not help — it deliberately ignores a name
+after `.`.
+
 Everything a player's program can spend has a ceiling in `lib/limits.lua`, in the
 unit it is checked in, converted once. `charge` stops the run; `hold` makes the
 drone wait. Adding a cost means adding it there, not counting it locally.

@@ -1,32 +1,26 @@
-save("home")
-cube(30, 10, 50, colors.dark_grey, true)
-up(9)
-cube(30, 1, 50, air)
-go("home", 15, 1, 25)
-dir = vector(1, 0, 1)
+cube(40, 40, 40, glass.cyan, true)
+move(11, 7, 3)
+dir = vector(1, 1, 1)
 
-while 1 == 1 do
+while true do
 
-  if get_block(dir:unpack()) == "air" then
-
+  if is_block("air", dir:unpack()) then
     place(air)
     move(dir:unpack())
     place(lamps.yellow)
     sleep(0.03)
+  end
 
-  else
+  if (not is_block("air", vector.x:unpack())) or (not is_block("air", vector.nx:unpack())) then
+    dir.x = -dir.x
+  end
 
-    if get_block(vector.x:unpack()) ~= "air" or get_block(vector.nx:unpack()) ~= "air" then
-      dir.x = -dir.x
-    end
-    if get_block(vector.z:unpack()) ~= "air" or get_block(vector.nz:unpack()) ~= "air" then
-      dir.z = -dir.z
-    end
+  if (not is_block("air", vector.y:unpack())) or (not is_block("air", vector.ny:unpack())) then
+    dir.y = -dir.y
+  end
 
-    place(air)
-    move(dir:unpack())
-    place(lamps.yellow)
-
+  if (not is_block("air", vector.z:unpack())) or (not is_block("air", vector.nz:unpack())) then
+    dir.z = -dir.z
   end
 
 end

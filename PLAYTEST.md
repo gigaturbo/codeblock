@@ -40,12 +40,24 @@ A recipe also **names the shell it is for** — that has cost a session twice
 
 ## Where it stands
 
-**82 entries, of which `F11-4` is retired — so 81 live checks. Nothing is
-outstanding: no unrun check, no fail.** 80 carry a pass as their most recent
+**83 entries, of which `F11-4` is retired — so 82 live checks. One is unrun,
+`F-6`, and no check carries a fail.** 80 carry a pass as their most recent
 result and one, `H8`, carries a partial because two of its cases cannot be
-performed at all. **That is the first time this document has had nothing to
-ask for**, and it is what the two sessions of 2026-09-07 bought. The one thing
-it still asks for is not a check but a re-check: **`R1` and `R2` are stale**,
+performed at all.
+
+**`F-6` is what this document asks for now.** It was written later on 2026-09-07
+for audit `S8` — `env.snapshot` is shallow, so `vector`'s fourteen load-time
+constants are shared between runs and players — and it does three things nothing
+else can: it watches the shipped `game.lua` **after its one-line fix**, which no
+gate covers because the specs compile every example and run none; it runs the
+same program **three times** and reads the start direction, the aliasing's
+symptom being a flip that flips back; and its case 3 is **`S8`'s only possible
+in-world evidence**, expected to fail against today's code and recorded as a
+measurement rather than a pass.
+
+Earlier the same day this document had **nothing outstanding for the first
+time**, which is what the two playtest sessions of 2026-09-07 bought. The other
+thing it asks for is not a check but a re-check: **`R1` and `R2` are stale**,
 last run at `afbe504` and `7c5bceb`, and both describe a release archive that
 `F4`, `F11` and `.gitattributes` have changed since.
 
@@ -1059,8 +1071,11 @@ that is the change to make, and it needs no new finding.
 
 ## Filesystem and example generation
 
-F-1 – F-5. Four runs across 2026-08-27 and 2026-08-28, which produced `B40` — the
+F-1 – F-6. Four runs across 2026-08-27 and 2026-08-28, which produced `B40` — the
 worst defect this project has recorded against committed code — and `S7`.
+**`F-6` is newer and unrun**: written 2026-09-07 for `S8`, the shallow snapshot
+that shares `vector`'s constants between runs, and it is the only check here
+about what an example does the *second* time it runs.
 
 ### F-1 · `/codegenerate` on your own files [B8, B15]
 
@@ -1177,8 +1192,9 @@ different fourteen. Run whatever is in your directory rather than a count:
 written out with them.
 
 **`game.lua` is the exception to this check and must not be read as a failure.**
-It ends in `while 1 == 1 do` with no exit, so it is the one shipped example that
-never terminates: at codelevel 2 it stops with *"Maximum running time"*, and that
+It ends in an unconditional `while` loop with no exit — `while 1 == 1 do` as
+committed at `63c3c33`, `while true do` in the author's uncommitted rewrite — so
+it is the one shipped example that never terminates: at codelevel 2 it stops with *"Maximum running time"*, and that
 is the intended behaviour, not a limit that needs retuning. Judge the other
 thirteen.
 
@@ -1214,6 +1230,61 @@ codelevel 2. **This is now a measurement and not arithmetic**, which is what the
 check was written to change, and it covers the same day's `max_runtime_s` cut at
 that level, 500 s → 60 s: the runtime nobody had measured is inside 60 s of
 charged time for every example, `torus.lua` and `density.lua` included.
+
+### F-6 · `game.lua` starts in the same direction every time [S8]
+
+**Written 2026-09-07 with the fix and not yet run. It is the only evidence that
+fix can have**, and its second case is the only in-world evidence `S8` itself
+can have. The fix is **one line** in `lib/examples/game.lua` —
+`dir = vector.one` became `dir = vector(1, 1, 1)` — and it is **uncommitted at
+the time of writing**.
+
+**Why no gate reaches it.** `tests/preprocess_spec.lua:314–348` **compiles**
+every shipped example and **nothing ever runs one**. So the fix is
+compile-verified, not run-verified, which is `B53`'s family one level up: there
+the template compiled nothing because nobody ran it, here the example runs and
+nobody watches what it does on the second attempt.
+
+**Setup, because `generate` will not overwrite.** `/codeblock generate` leaves
+an existing file alone (`F-1`), so **remove your own `game.lua` in the editor
+first**, then run `/codeblock generate` to get the fixed copy. Place a drone
+with the **poser** on open ground with room above it, and run `game.lua`.
+Codelevel 2 or above; the program **never terminates** — it ends in
+`while true do` — so at level 2 it eventually stops with *"Maximum running
+time"*, which is expected and is `F-5`'s note, not a fail here. The first few
+seconds are all this check needs; cut it short with the panel's **Stop**.
+
+**Case 1 — the example itself. Pass:** the drone builds a 40-cube of cyan glass,
+then **bounces around inside it**, leaving a trail of yellow lamps, and does not
+escape it. No error in chat on the opening statements.
+
+**Case 2 — the same run three times, which is the point of the check.** Stop it
+and run it again, then a third time. **Pass: it sets off in the same direction
+every time** — up and away, `+1 +1 +1`. **A fail reads as
+`1 1 1`, then `-1 -1 -1`, then `1 1 1`**: the direction flipping and flipping
+back is exactly the symptom the aliasing produced, and *it works on every other
+attempt* is what makes it hard to see. **Do not stop at two runs** — two runs
+that differ could be read as a fresh drone facing differently.
+
+**Case 3 — the reproducer for `S8`, which is a measurement rather than a pass.**
+Put this in a file of its own and run it **three times**:
+
+```lua
+dir = vector.one
+print(dir.x, dir.y, dir.z)
+dir.x = -dir.x
+```
+
+**Against today's code it is expected to print `1 1 1`, then `-1 1 1`, then
+`1 1 1`** — the module's own constant, written through a shallow snapshot and
+shared by every player until the server restarts. **Record what it actually
+prints**, because that reading is `S8`'s only possible in-world evidence, and
+**this case is not a defect in the example**: fixing `game.lua` does not fix
+`S8`, and once `S8` is fixed this case must print `1 1 1` three times. Nothing
+here needs a second player, but a second player running the same file is what
+makes the consequence plain.
+
+Result: not yet run.
 
 ---
 

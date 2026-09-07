@@ -20,7 +20,30 @@ it.
 
 ## Where it stands
 
-**90 findings. 86 resolved, 3 open (`A17`, `A18`, `C24`), 1 won't fix (`B34`).**
+**92 findings. 86 resolved, 5 open (`S9`, `S8`, `C24`, `A17`, `A18`), 1 won't
+fix (`B34`).**
+
+**Two sandbox findings were filed on 2026-09-07, and they are the first ones
+open since Phase 2.** Both come out of one probe session under plain Lua 5.1
+against the real `lib/env.lua` and the real `tests/game/mods/vector3/vector3.lua`,
+and **both are open with their options rather than fixed**, because each needs a
+decision the code cannot make. **`S9`, high, is ranked above `S8`**: any
+`vector3` instance hands back the shared class table as `v.__index`, so a
+player program can replace vector3's methods — and its metamethods — **for every
+other mod on the server**, and a freshly constructed vector suffices. **`S8`,
+medium**, is that `env.snapshot` is shallow: `vector`'s fourteen load-time
+constants are shared, so `dir = vector.one; dir.x = -dir.x` corrupts the
+module's own constant for every player until restart, and the symptom
+**alternates** run to run. The entries are under *Open and won't fix* with the
+probe output, the fix options, and what a spec can have. **Neither is
+escalation** — `getfenv` and `debug` are out of the environment, so a poisoned
+method still cannot reach `core`; both are corruption that outlives the run.
+**One shipped example aliased a constant and is fixed uncommitted**
+(`lib/examples/game.lua`, `dir = vector.one` → `dir = vector(1, 1, 1)`); the
+aliasing itself never shipped, the defect behind it did. That fix is
+**compile-verified only** — `tests/preprocess_spec.lua` compiles every example
+and nothing runs one — so it has a playtest, `F-6`, which is now the one unrun
+check in `PLAYTEST.md`.
 
 **Two playtest sessions ran on 2026-09-07, engine 5.17.0, and between them they
 produced exactly one finding: `B54`.** The first, at `8e6350f`, gave sixteen
@@ -30,7 +53,8 @@ it carries `8e6350f`**, the commit it was run at, not `HEAD` — `B54`'s fix
 landed afterwards at `24842d3`. The second cleared the six checks that were
 left — `F11-10`, `F11-11`, `F12-6`, `E17`, `W7` and `F12-4` re-run — **all six
 passing, with no defect reported and so no finding filed**, at `2feadb1` over
-code `24842d3`. **`PLAYTEST.md` now has no unrun check and no fail.**
+code `24842d3`. **`PLAYTEST.md` had no unrun check and no fail after them** —
+`F-6`, written later the same day for `S8`, is now the one unrun check.
 
 **`B54` is `print` printing only its first argument, and the entry below is worth
 reading for what its coverage does *not* witness.** `print` took one parameter,
@@ -303,6 +327,126 @@ retuning's effect on the bundled examples off this list too.
 
 ## Open and won't fix
 
+- **S9 · high · open, filed 2026-09-07** — every `vector3` instance exposes the
+  shared class table as a writable field, so a player program can replace
+  vector3's methods for the whole server.
+  `tests/game/mods/vector3/vector3.lua` sets `vector3.__index = vector3`, which
+  makes the metatable and the methods table **the same table**, so any instance
+  hands it back as an ordinary field:
+
+  ```lua
+  local v = vector(1, 2, 3)
+  v.__index.unpack = function() return 'poisoned' end
+  ```
+
+  **It needs no named constant** — a freshly constructed vector will do — so no
+  fix to `S8` touches it. And because the instance metatable *is* the class
+  table, `__add`, `__eq` and the rest are in reach as well, not only the named
+  methods.
+  **`vector3` is a global set by `vector3/init.lua`, so the blast radius is
+  every other mod in the game that uses it**, not just this mod's next run.
+  **Probe-verified at the library level** under plain Lua 5.1, against the real
+  `lib/env.lua` and the real `vector3.lua`, on 2026-09-07:
+  `is __index reachable — want: nil, got: table`;
+  `next run w:unpack() — want: 4 5 6, got: poisoned`;
+  `other mods, module side — want: 7 8 9, got: poisoned`.
+  **Not run through a real drone**, which would have meant writing a file into a
+  world; the reachability is traced end to end and the mutation is observed.
+  **It is corruption, not escalation.** The class table holds vector3's own
+  functions; `getfenv` and `debug` are out of the environment, and a function a
+  player defines carries the sandbox fenv, so another mod calling a poisoned
+  method still cannot reach `core`. **Ranked above `S8` all the same** — a fresh
+  vector suffices, it replaces methods *and* metamethods rather than one field,
+  and it crosses out of this mod entirely.
+  **The forbidden-name list does not and must not help**: it deliberately
+  ignores a name after `.` (`S3`), and it is a diagnostics aid rather than the
+  boundary.
+  **The fix properly belongs to `vector3`** — `local mt = {__index = vector3,
+  __add = …}`, separating the metatable from the methods table, after which
+  `v.__index` reads nil. That is **a separate ContentDB package by the same
+  author**, so it means a release there and a submodule bump here, and it
+  reaches every other consumer. **Whether it lands before or after the v1.0.0
+  tag is the author's decision**, recorded as open in `ROADMAP.md`. Nothing in
+  this repository reads `v.__add` as a field, so the separation breaks nothing
+  here.
+  **Recommended against, and recorded so it is not proposed later as the obvious
+  shortcut:** reaching `getmetatable(vector3.one)` from this mod at load and
+  write-protecting it. That is **`C18`'s mistake** — this mod imposing on its
+  host, and here on another author's package. **Leave-and-document is not
+  defensible either**, because this one crosses to other mods and not only to
+  other players.
+  **What a spec can have:** not `env_spec`'s, this being vector3's shape rather
+  than the environment's. The assertion that holds is
+  `vector(1,1,1).__index == nil`, which belongs in `integration_spec`.
+  Placement is `test-agent`'s.
+- **S8 · medium · open, filed 2026-09-07** — a snapshot is **shallow**, so
+  `vector`'s fourteen constants are shared and mutable, and a program that
+  mutates one corrupts it for every player until the server restarts.
+  `lib/env.lua:31`'s `env.snapshot` copies one level and `env.snapshot_module`
+  wraps it, so `lib/sandbox.lua:237`'s `['vector'] = snapshot_module(vector3)`
+  hands every run the **same nested objects**. `vector3.lua:488–501` builds
+  fourteen `vector3` instances at load, once — `zero one x y z xy yz xz nx ny nz
+  nxy nyz nxz` — so `dir = vector.one; dir.x = -dir.x` writes into the module's
+  own constant.
+  **`lib/env.lua`'s header states the guarantee this breaks**: *"`snapshot`
+  gives each run its own copy of the tables the API exposes, so a program
+  assigning into `colors` or `vector` cannot corrupt them for every other player
+  until the server restarts."* It holds for **assigning into** the table —
+  verified, `snap.y = 'clobbered'` leaves `vector3.y` a table — and fails for
+  **mutating through** it. **That sentence is what hid this, and it needs the
+  shallow-versus-deep distinction when the fix lands.**
+  **The symptom alternates**, which is worth keeping: the constant does not stay
+  wrong. `run 1 start — want: 1 1 1, got: 1 1 1`;
+  `run 2 start — want: 1 1 1, got: -1 -1 -1`;
+  `run 3 start — want: 1 1 1, got: 1 1 1`. So a player debugging it sees it work
+  on every other attempt.
+  **`vector` is the only table this reaches**, checked across every
+  `snapshot`/`snapshot_module` call site: the palette views and every category's
+  `spelled` map hold strings only; `random.*`, `ramp.*` and `table.randomizer`
+  are closures over config tables never handed out; `api.build`'s nested tables
+  are built fresh per run; `_G` is sealed. Probe-verified under plain Lua 5.1
+  against the real `lib/env.lua` and the real `vector3.lua`; **not run through a
+  real drone.**
+  **Two fixes, and the choice is the author's because they are two different
+  player-visible contracts** — per-run copies, or a loud failure. Recorded as an
+  open decision in `ROADMAP.md`, not as settled.
+  **Deep-copy in `snapshot_module`, which `code-expert` recommends and
+  `project-manager` endorses:** measured at **6.6 µs and fourteen small tables
+  per program start** under plain 5.1 — `snapshot_module` runs once per
+  `get_safe_coroutine`, next to a disk read, so it is free. Copy each leaf with
+  `setmetatable(copy, getmetatable(v))` and the methods survive. **No observable
+  behaviour change for player code**, because `vector3.__eq` (line 407) is
+  component-wise and both operands share the metatable, so identity is not
+  observable through `==` at all. `snapshot_module` has one caller, so *one level
+  deep, leaves are vector3 instances* is a guarantee worth stating rather than a
+  generic deep-copier.
+  **Freeze the constants read-only** instead: costs nothing per run, but turns
+  `dir = vector.one; dir.x = -1` into a raise — which breaks the author's own
+  program as they just wrote it, and a player idiom that reads perfectly
+  reasonable. It does nothing for `S9` or for a fresh vector.
+  **Leave-and-document is not defensible**: it crosses to other players.
+  **Keep — the correction, before it is repeated.** It was put to `code-expert`
+  that copy-on-read would make `vector.x == vector.x` answer false. **That is
+  wrong** — `__eq` is component-wise and Lua 5.1 selects it when both operands
+  share a metatable, so identity is unobservable. Copy-on-read's real costs are
+  that **`pairs(vector)` stops seeing the constants** (they must be absent for
+  `__index` to fire, and 5.1 has no `__pairs`), a vector used as a table key
+  differs on every read, and `vector.one.x = -1` becomes a write that silently
+  vanishes.
+  **What a spec can have:** `S8` is cleanly pinnable in `tests/env_spec.lua`,
+  which stays standalone if the spec builds its **own two-level fixture** rather
+  than importing vector3, and it fails against today's code by construction.
+  Placement is `test-agent`'s.
+  **One shipped example aliased a constant and is fixed in the working tree,
+  uncommitted:** `lib/examples/game.lua` line 3, `dir = vector.one` →
+  `dir = vector(1, 1, 1)`. The constructor was chosen over `vector.one:clone()`
+  for three reasons recorded in `ROADMAP.md`; nothing else in the file changed.
+  **The aliasing itself never shipped** — that rewrite is the author's own, made
+  during the `F12-4` playtest and never committed — while **the underlying defect
+  did, for the project's whole life.** The fix is **compile-verified, not
+  run-verified**: `tests/preprocess_spec.lua:314–348` compiles every example and
+  **nothing ever runs one**, which is `B53`'s family one level up. Its check is
+  playtest `F-6`, unrun.
 - **C24 · medium · open, filed 2026-09-07** — CI boots no engine, so nothing CI
   runs reaches an in-engine-only check.
   `.github/workflows/ci.yml` has three jobs: luacheck, a *preprocessor spec* job
@@ -338,7 +482,8 @@ retuning's effect on the bundled examples off this list too.
   `ROADMAP.md`; it does not block the tag, because the check does run and the
   release is built from a tree a local run has covered.
 
-**Two more are open, `A17` and `A18`, both low and both pre-existing.** Their entries
+**Two more are open, `A17` and `A18`, both low and both pre-existing.** (So the
+open set is five: `S9` high, `S8` and `C24` medium, `A17` and `A18` low.) Their entries
 are in *A · Architecture and performance* below. Neither is a defect a player
 can reach: `A17` is three dead exports on `codeblock.utils` kept because the
 table is a published global and something downstream may read them — the author
@@ -346,8 +491,12 @@ decides whether v1.0.0 deletes them or the surface is declared public — and
 `A18` is one clear-code fix in `lib/formspecs.lua`, verified equivalent and the
 last `LUACHECK_STRICT=1` `W421` in it. **Neither blocks the tag.**
 
-**No bug or sandbox finding is open**, and `C24` above is the only compliance
-one. **`B54` is the last bug**, found running playtest `F12-4` on 2026-09-07 and
+**No bug finding is open. Two sandbox findings are, both filed 2026-09-07 and
+both above** — `S9` and `S8`, the first sandbox findings since `S7` on
+2026-08-28 and the first ones open since Phase 2. Neither is fixed and **neither
+is `test-agent`'s or `code-expert`'s to settle alone**: `S8` is a choice between
+two player-visible contracts and `S9`'s real fix is in another repository.
+`C24` above is the only compliance one. **`B54` is the last bug**, found running playtest `F12-4` on 2026-09-07 and
 fixed the same day at `24842d3` and **confirmed in a world by `W7`** later that
 day. Before it `B53`, also filed, fixed and confirmed inside 2026-09-07 —
 `de3bcbb`, then `E17`.
@@ -872,6 +1021,14 @@ change would re-break is still load-bearing.
   that probes membership with `if blocks[name] then` now gets one chat line per
   run. Once only, so it is cheap, but it is a visible behaviour change for that
   idiom and it was accepted knowingly.
+  **Suspected and deliberately given no id, 2026-09-07.** The absent key is
+  passed straight into the message, so `colors[("x"):rep(200000)]` would make
+  the mod send the player a very long chat line. **It is reasoned, not probed**,
+  and three things bound it: `strguard` and `max_string_mb` bound the string,
+  `warned` is a per-run upvalue so it happens once, and it needs a program to be
+  started. Filed here rather than as a finding because **an unprobed report is
+  not evidence**; what would settle it is running that one line in a world and
+  reading the chat, and if it is worth doing it belongs in `W4`.
   **What it drags, all done the same day:** `lib/api.lua`'s `blocks` entry
   documents the behaviour and `doc/api.md` was regenerated from it;
   `locale/template.txt` gained the key `Warning: no block named '@1', the default
@@ -1193,8 +1350,12 @@ change would re-break is still load-bearing.
 
 ## S · Sandbox and security
 
-7 findings, all resolved. `S2`'s residue is one of the things v1.0.0 ships
-broken.
+9 findings, 7 resolved. **`S8` and `S9` are open**, both filed 2026-09-07; their
+full entries are under *Open and won't fix* above and are not repeated here.
+`S9` is high — `v.__index` is vector3's own class table, writable, and shared
+with every other mod using the `vector3` global. `S8` is medium — `env.snapshot`
+is shallow, so `vector`'s fourteen load-time constants are mutable through and
+shared across runs. `S2`'s residue is one of the things v1.0.0 ships broken.
 
 - **S1 · high · resolved** — player programs got live references to shared module
   and config tables, and the damage was global until restart. Fixed in Phase 2:
@@ -1207,6 +1368,11 @@ broken.
   need the API in a separate table*, since `__newindex` fires only for keys
   absent from the target. Consequence for any new name: a program using it as its
   own global stops working.
+  **The guarantee is narrower than it was written, and `S8` and `S9` are
+  where.** The copies are **shallow**: they isolate *assigning into* a snapshot
+  and not *mutating through* it, so `vector`'s load-time constants are shared
+  (`S8`). And the shared metatable is safe from `getmetatable` but not from
+  `v.__index`, which vector3 exposes as an ordinary field (`S9`).
 - **S2 · high · resolved** — one builtin call could exhaust server memory,
   invisibly to the call counter. The earlier "cannot be fixed" call was too
   pessimistic: the premise was right (the string metatable belongs to the type,
@@ -1746,8 +1912,10 @@ document says so.
   `--check` gates. **CI never runs the nine in-engine specs**, which is why the
   editor findings rest on the local suite and the playtests. **CI has seen no
   part of `F11`, `F12`, `F13`, `F14`, `B53`'s fix, `C23`'s or `B54`'s** —
-  **sixteen commits**, `git rev-list --count origin/master..HEAD` reading 15 at
-  `24842d3`, all unpushed with `origin/master` still at `65b4c46`.
+  **eighteen commits**, `git rev-list --count origin/master..HEAD` reading 18 at
+  `6f2dfe0`, all unpushed with `origin/master` still at `65b4c46`. Take that
+  number from the command and never from counting hashes, which is how it was
+  recorded low four passes running.
 - **Verified locally** (engine 5.17.0, read from output rather than exit codes —
   `$?` does not survive this machine's WSL layer): nine in-engine specs, **474
   passed / 0 failed / 1 xfail / 0 xpass** at `1b991ae`, with all five gates
@@ -1794,6 +1962,22 @@ document says so.
   driven to failure and each named the offender rather than reporting a count.
   `preprocess_spec` reads 56 standalone against 57 in-engine, which is the
   guarded case counting once instead of twice and not a discrepancy.
+  **`6f2dfe0` is green on the same terms, read on 2026-09-07 while filing `S8`
+  and `S9`**: luacheck silent; `doc/api.md`, `locale/template.txt` and
+  `settingtypes.txt` each *up to date*; the six standalone specs at
+  **30 / 56 / 34 / 31 / 29 / 73** with 0 failed and 0 xpass; the nine in-engine
+  at **665 assertions** (30, 57, 34, 31, 29, 73, 66, 45, 300), 0 failed, 0
+  xpass, one known xfail, no errors. `codeblock_run_tests` confirmed gone from
+  `%APPDATA%\Minetest\minetest.conf`, no BOM. **Nothing in that run covers `S8`
+  or `S9`** — they were found by probe, not by the suite.
+- **Verified by probe, at the library level, and not through a drone.** `S8` and
+  `S9`, 2026-09-07: a script under plain Lua 5.1 loading the real `lib/env.lua`
+  and the real `tests/game/mods/vector3/vector3.lua`, with the outputs quoted in
+  each entry — the alternating constant for `S8`, the three poisoned reads for
+  `S9`. **Neither was run through a real drone**, which would have meant writing
+  a file into a world; the reachability is traced end to end from
+  `lib/sandbox.lua:237` and the mutation is observed. That is the strongest
+  evidence either has, and it is weaker than a playtest.
 - **Verified by making the check fail.** Both generators' completeness guards,
   by adding a fake per-codelevel limit to `config.lua` and watching each name it
   and exit 1 (`C20`). That is the only evidence that distinguishes a check which
@@ -1836,8 +2020,14 @@ document says so.
   committed as well (`4179877`, `b23a8bc`, `d8c32f7`). **`B50` and `B52` left it
   on 2026-09-04**, when all three of the checks written for them passed at
   `23f0227`.
-- **Gates green, playtest written and not yet run — empty again as of
-  2026-09-07, and the entry is kept for what it recorded.** `F11` and `F12` put
+- **Gates green, playtest written and not yet run — one, `F-6`.** It is the
+  check for the `lib/examples/game.lua` fix under `S8`, and the fix itself is
+  **not committed**, so it is not even gates-green yet: what the gates cover is
+  that every example **compiles**, `tests/preprocess_spec.lua:314–348`, and
+  **nothing ever runs one**. `F-6` runs `game.lua` twice and reads the second
+  start direction, which is the symptom the aliasing produced. This list was
+  empty earlier the same day, and what it recorded then is below.
+  `F11` and `F12` put
   sixteen checks on it: `F11-1` to `F11-11` written 2026-09-05 at `6126abe`,
   `F11-4` since superseded by `F12-1` and `F12-2`, leaving ten, and `F12-1` to
   `F12-6` written 2026-09-06 at `01f9641`. **All sixteen have now been run** —
@@ -1963,6 +2153,16 @@ document says so.
 
 ## Corrections kept rather than edited away
 
+- **A wrong reason given to `code-expert` while shaping `S8`'s fix, 2026-09-07,
+  recorded because it is the kind of claim that gets repeated.** It was put to
+  it that copy-on-read would make `vector.x == vector.x` answer false. **It
+  would not:** `vector3.__eq` is component-wise and Lua 5.1 selects it when both
+  operands share a metatable, so identity is not observable through `==` at all.
+  Copy-on-read's real costs are that **`pairs(vector)` stops seeing the
+  constants** — they must be absent for `__index` to fire, and 5.1 has no
+  `__pairs` — that a vector used as a table key differs on every read, and that
+  `vector.one.x = -1` becomes a write which silently vanishes. The same fact is
+  what makes the recommended deep copy invisible to player code.
 - **A correction that was itself wrong, checked and not made, 2026-09-07.** It
   was reported that the `F14` comment in `tests/integration_spec.lua` and four
   sites in this record misattribute the load-time `chat_send_player` binding to
@@ -2079,14 +2279,22 @@ reading 17 at `2feadb1`. **With the playtests done, the push is the largest
 thing outstanding in this project.**
 
 **Gates green, unproven in a world is two**, `B14` and `S7`'s log half; `B54`
-left the list on 2026-09-07 when `W7` passed. **No playtest check is unrun and
-none carries a fail**, for the first time: the six that were outstanding —
-`F11-10`, `F11-11`, `F12-6`, `E17`, `W7` and `F12-4` re-run — all passed on
-2026-09-07 at `2feadb1` over code `24842d3`, with no defect reported. `F11-4` is
-**retired**, both its successors having passed.
+left the list on 2026-09-07 when `W7` passed. **No playtest check carries a
+fail. One is unrun**, `F-6`, written later on 2026-09-07 for `S8`'s example fix;
+before it the six that had been outstanding — `F11-10`, `F11-11`, `F12-6`,
+`E17`, `W7` and `F12-4` re-run — all passed that day at `2feadb1` over code
+`24842d3`, with no defect reported. `F11-4` is **retired**, both its successors
+having passed.
+
+**Two findings are open with no fix chosen**, `S8` and `S9`, and that is the
+honest state: the reachability is traced, the mutation is probe-verified at the
+library level, **nothing is fixed** except one uncommitted line in a shipped
+example, and both fixes wait on the author — `S8` on which contract player code
+gets, `S9` on a release of another package.
 
 ---
 
-Last reviewed **2026-09-07**, describing commit **`2feadb1`** — record-only,
-over code `24842d3`, which is `B54`'s fix. It records the second playtest
-session of that day: six checks, six passes, no finding filed.
+Last reviewed **2026-09-07**, describing commit **`6f2dfe0`** — record-only,
+over code `24842d3`. It records `S8` and `S9`, filed the same day from one probe
+session and both **open with their options**, the `lib/examples/game.lua` fix
+that is in the working tree and uncommitted, and playtest `F-6` written for it.

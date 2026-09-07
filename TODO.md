@@ -448,6 +448,25 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
       nothing else could; F12-4's re-run observed the rotation for the first
       time, its earlier fail having been against print
       (audit B53, B54; playtest E17, W7, F12-4)
+- [ ] DECIDE: which contract player code gets for `vector`'s constants — a
+      **deep copy per run** in `snapshot_module`, recommended, 6.6 us and
+      fourteen small tables per program start with no observable change for
+      player code; or **freeze the constants read-only**, which costs nothing
+      per run but turns `dir = vector.one; dir.x = -1` into a raise, breaking
+      that idiom and your own program as you just wrote it. Nothing is fixed
+      yet. Leaving it as documented is not defensible: the mutation is shared by
+      every player until the server restarts (audit S8)
+- [ ] DECIDE: whether vector3's own fix lands before or after the v1.0.0 tag —
+      any instance hands back the class table as `v.__index`, so a player
+      program can replace vector3's methods and metamethods **for every other
+      mod on the server**. The fix is `local mt = {__index = vector3, ...}` in
+      vector3 itself, so it means a release of that package and a submodule bump
+      here. Write-protecting it from this mod is recommended against: that is
+      C18's mistake on another author's package (audit S9)
+- [ ] run F-6 — `game.lua` three times over, watching the start direction, plus
+      its case 3 reproducer, which is the only in-world reading S8 can have. The
+      one-line example fix is in your working tree and uncommitted
+      (audit S8; playtest F-6)
 - [ ] re-run R2 on the archive built from the release commit — R1 was
       re-checked at `7dbe18f` and still passes, but R2 last ran before F4 added
       lib/hud.lua and before .gitattributes changed at `60dc8dd`. Install it in
@@ -458,6 +477,12 @@ Elsewhere
 
 - [ ] drop the 5.5 ceiling in tests/game/mods/vector3/mod.conf — separate
       repository (audit C1)
+- [ ] separate vector3's metatable from its methods table — `local mt =
+      {__index = vector3, __add = ...}`, after which `v.__index` reads nil.
+      Separate repository, so a release there and a submodule bump here, and it
+      reaches every other consumer of the package. Nothing in codeblock reads
+      `v.__add` as a field. Could go out with the C1 line above in one vector3
+      release (audit S9)
 
 
 # After 1.0.0

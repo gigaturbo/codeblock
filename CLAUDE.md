@@ -248,7 +248,15 @@ The pipeline spans several files and is the thing worth understanding first.
    copy of the API's tables — copies, not read-only proxies, because Lua 5.1 has
    no `__pairs` or `__len` and a proxy would break `pairs(colors)` for player
    code. `new_env` makes API names unassignable, which is what stops a program
-   reaching the injected counter.
+   reaching the injected counter. **Those copies are one level deep, so they
+   isolate *assigning into* a table and not *mutating through* it** — and
+   `lib/env.lua`'s own header states the guarantee more widely than it holds.
+   So `vector`'s fourteen load-time constants are shared by every run (`S8`),
+   and any `vector3` instance hands back the shared class table as `v.__index`,
+   which lets a program replace its methods for every other mod on the server
+   (`S9`). **Both are open, with their options in `AUDIT.md`**, and neither is
+   escalation: `getfenv` and `debug` are out of the environment, so a poisoned
+   method still cannot reach `core`.
 3. **`lib/sandbox.lua`** pairs every name with an implementation, calls
    `api.build`, `setfenv`s the chunk, returns a coroutine.
 4. **`lib/stepper.lua`** resumes that coroutine repeatedly each server step until
