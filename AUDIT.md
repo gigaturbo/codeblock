@@ -38,12 +38,30 @@ module's own constant for every player until restart, and the symptom
 probe output, the fix options, and what a spec can have. **Neither is
 escalation** — `getfenv` and `debug` are out of the environment, so a poisoned
 method still cannot reach `core`; both are corruption that outlives the run.
-**One shipped example aliased a constant and is fixed uncommitted**
+**One shipped example aliased a constant and is fixed at `3548d58`**
 (`lib/examples/game.lua`, `dir = vector.one` → `dir = vector(1, 1, 1)`); the
 aliasing itself never shipped, the defect behind it did. That fix is
 **compile-verified only** — `tests/preprocess_spec.lua` compiles every example
-and nothing runs one — so it has a playtest, `F-6`, which is now the one unrun
-check in `PLAYTEST.md`.
+and nothing runs one — so it has a playtest, `F-6`, unrun. **It landed one
+commit before the `vector3` bump, and that is luck rather than process**: on
+v2.0.1 the aliasing would have raised `read only` on the example's first wall
+collision, killing a shipped example with all five gates green. `PLAYTEST.md`
+gained a second unrun check for it, `F-7`, standing after any dependency bump.
+
+**The `vector3` submodule was bumped later on 2026-09-07, and it moves `S8`
+without closing it.** `tests/game/mods/vector3` went from **v1.5 (`1662164`,
+2022-06-24)** to **v2.0.1 (`5077617`, 2026-09-07)**, two releases and a major
+version, the author's own upstream work. vector3 2.0 **froze the exported
+constants** — a write raises `read only` — which is the option filed here as the
+alternative rather than the recommendation, so **`S8`'s open decision is settled
+upstream and not by this repository**. `S8` is **not resolved**: it is a finding
+about `lib/env.lua:31`'s shallow `env.snapshot`, which is unchanged and still
+claims a guarantee it does not give. What the bump removes is the only
+*reachable* way to exploit it, so **`S8` goes from reachable to latent — and
+reachable again for any player running vector3 v1.5.** `S9` is **not fixed on
+either version**, probed at both revisions. The support matrix the bump creates
+is in `CLAUDE.md`; the bump itself is a **working-tree change to the test
+fixture only** and **changes nothing a player has**.
 
 **Two playtest sessions ran on 2026-09-07, engine 5.17.0, and between them they
 produced exactly one finding: `B54`.** The first, at `8e6350f`, gave sixteen
@@ -375,13 +393,23 @@ retuning's effect on the bundled examples off this list too.
   host, and here on another author's package. **Leave-and-document is not
   defensible either**, because this one crosses to other mods and not only to
   other players.
+  **The v2.0.1 bump does not fix it, and that sharpens the line above.**
+  `vector3.__index = vector3` is unchanged at `5077617`, and the freeze does not
+  help: a frozen constant's `__index` chains to a real vector whose metatable is
+  still the class table. **Probed at both revisions, `v.__index` reads `table`,
+  not `nil`.** So the repository the fix belongs to **had a release on
+  2026-09-07 and did not include it**, and `S9` stays **high and open** on every
+  version a player can install.
   **What a spec can have:** not `env_spec`'s, this being vector3's shape rather
-  than the environment's. The assertion that holds is
-  `vector(1,1,1).__index == nil`, which belongs in `integration_spec`.
-  Placement is `test-agent`'s.
-- **S8 · medium · open, filed 2026-09-07** — a snapshot is **shallow**, so
-  `vector`'s fourteen constants are shared and mutable, and a program that
-  mutates one corrupts it for every player until the server restarts.
+  than the environment's. The assertion is `vector(1,1,1).__index == nil` in
+  `integration_spec`, against the real global and on a **fresh** vector rather
+  than a constant. **It must be written as an `xfail` cited to `S9`** — it is a
+  table on both v1.5 and v2.0.1, so a case written as passing would be wrong.
+  Placement is `test-agent`'s; agreed with `test-agent` 2026-09-07.
+- **S8 · medium · open, latent against vector3 v2.0.1, filed 2026-09-07** — a
+  snapshot is **shallow**, so `vector`'s fourteen constants are shared and
+  mutable, and a program that mutates one corrupts it for every player until the
+  server restarts.
   `lib/env.lua:31`'s `env.snapshot` copies one level and `env.snapshot_module`
   wraps it, so `lib/sandbox.lua:237`'s `['vector'] = snapshot_module(vector3)`
   hands every run the **same nested objects**. `vector3.lua:488–501` builds
@@ -424,6 +452,30 @@ retuning's effect on the bundled examples off this list too.
   `dir = vector.one; dir.x = -1` into a raise — which breaks the author's own
   program as they just wrote it, and a player idiom that reads perfectly
   reasonable. It does nothing for `S9` or for a fresh vector.
+  **That is the option that happened, upstream and not here, on 2026-09-07.**
+  vector3 2.0's changelog: *"Writing to an exported constant raises `read only`.
+  The constants are one table per name shared by every mod in the process, so a
+  write used to change `vector3.zero` for everybody."* The submodule moved to
+  **v2.0.1 (`5077617`)** the same day, so the decision this entry was holding
+  open is made, by the author, in the other repository.
+  **Keep — why this is still open and still worth its spec.** Nothing in
+  `lib/env.lua` changed. The header still claims the guarantee, and `snapshot`
+  is still one level deep. What the freeze removes is the only **reachable**
+  exploit: with the constants frozen, the `vector` module table holds functions
+  and fourteen frozen tables, and no other value `snapshot` or `snapshot_module`
+  touches is a nested mutable — checked across every call site. So the defect is
+  **latent, not gone**, and it is **reachable again for any player running
+  vector3 v1.5**, which `mod.conf` cannot exclude: it reads
+  `depends = vector3` and Luanti has no version constraints. Do not mark this
+  resolved on the strength of the bump.
+  **A third v2.0 change nobody listed, and the one most likely to bite a
+  player:** `frozen()` (`vector3.lua:370`) builds an **empty** table with
+  `__index` onto a private backing vector, so `next`, `rawget`, `pairs`,
+  `table.copy` and `core.serialize` all see a constant as empty.
+  `for k, v in pairs(vector.one)` yields three keys on v1.5 and **nothing** on
+  v2.0.1, **silently rather than as a raise**. Nothing in this repository does
+  it; it is in `CHANGELOG.md` because codeblock is where a player meets
+  `vector`.
   **Leave-and-document is not defensible**: it crosses to other players.
   **Keep — the correction, before it is repeated.** It was put to `code-expert`
   that copy-on-read would make `vector.x == vector.x` answer false. **That is
@@ -433,17 +485,21 @@ retuning's effect on the bundled examples off this list too.
   `__index` to fire, and 5.1 has no `__pairs`), a vector used as a table key
   differs on every read, and `vector.one.x = -1` becomes a write that silently
   vanishes.
-  **What a spec can have:** `S8` is cleanly pinnable in `tests/env_spec.lua`,
-  which stays standalone if the spec builds its **own two-level fixture** rather
-  than importing vector3, and it fails against today's code by construction.
-  Placement is `test-agent`'s.
-  **One shipped example aliased a constant and is fixed in the working tree,
-  uncommitted:** `lib/examples/game.lua` line 3, `dir = vector.one` →
+  **What a spec can have, and the way it must not be written:** `S8` is cleanly
+  pinnable in `tests/env_spec.lua`, which stays standalone if the spec builds
+  its **own two-level fixture** — `{inner = {n = 1}}`, write through the copy,
+  assert the original — rather than importing vector3, and it fails against
+  today's code by construction. **An assertion phrased against `vector.one`
+  would now pass for a reason outside this repository** and would fail again on
+  v1.5, so it would be testing the dependency and not `env.snapshot`. Placement
+  is `test-agent`'s; agreed with `test-agent` 2026-09-07.
+  **One shipped example aliased a constant and is fixed at `3548d58`:**
+  `lib/examples/game.lua` line 3, `dir = vector.one` →
   `dir = vector(1, 1, 1)`. The constructor was chosen over `vector.one:clone()`
   for three reasons recorded in `ROADMAP.md`; nothing else in the file changed.
   **The aliasing itself never shipped** — that rewrite is the author's own, made
-  during the `F12-4` playtest and never committed — while **the underlying defect
-  did, for the project's whole life.** The fix is **compile-verified, not
+  during the `F12-4` playtest — while **the underlying defect did, for the
+  project's whole life.** The fix is **compile-verified, not
   run-verified**: `tests/preprocess_spec.lua:314–348` compiles every example and
   **nothing ever runs one**, which is `B53`'s family one level up. Its check is
   playtest `F-6`, unrun.
@@ -1469,8 +1525,10 @@ entry is under *Open and won't fix* above and is not repeated here.
   modern user. The engine does not enforce these keys, but **ContentDB filters on
   them**. Fixed in Phase 1: `max_minetest_version` removed and the floor raised
   5.3 → 5.4, which was simply a false claim (`formspec_version[4]`).
-  **Residue, not fixable from here:** `tests/game/mods/vector3/mod.conf` carries
-  a 5.5 ceiling — a separate repository and package.
+  **The residue is gone as of 2026-09-07**: `tests/game/mods/vector3/mod.conf`
+  carried a 5.5 ceiling, which was never fixable from here — a separate
+  repository and package — and the **v2.0.1 submodule bump** brought a file
+  reading `min_minetest_version = 5.3` with no `max_minetest_version`.
 - **C6 · low · resolved** — `minetest.*` → `core.*`, style rather than breakage.
   Finished in Phase 7 because it became cheap: `lua_api.md` says `minetest` "will
   keep existing as an alias" — no warning, no removal date.
@@ -1970,6 +2028,20 @@ document says so.
   xpass, one known xfail, no errors. `codeblock_run_tests` confirmed gone from
   `%APPDATA%\Minetest\minetest.conf`, no BOM. **Nothing in that run covers `S8`
   or `S9`** — they were found by probe, not by the suite.
+- **Verified green again under the bumped dependency, `3548d58` with the
+  `vector3` submodule at v2.0.1**, read from output on 2026-09-07: luacheck
+  silent; `doc/api.md`, `locale/template.txt` and `settingtypes.txt` each *up to
+  date*; the six standalone at **30 / 56 / 34 / 31 / 29 / 73 = 253**; the nine
+  in-engine at **665** (30, 57, 34, 31, 29, 73, 66, 45, 300), 0 failed, 0 xpass,
+  one known `B4` xfail, errors `none`; `codeblock_run_tests` gone from
+  `%APPDATA%\Minetest\minetest.conf`, no BOM. **No count moved in either
+  direction**, so nothing gained or lost a case under the new dependency.
+  **One caveat travels with that run:** `.luacheckrc:75` excludes
+  `tests/game/mods/vector3/**`, so **luacheck's silence carries no information
+  about the bumped library**. That exclusion is correct — vector3 is another
+  package with its own gates, and 2.0 added a suite of its own — but it must not
+  be read as coverage. And the suite proves codeblock works against **v2.0.1
+  only**: the fixture pins one version and a player may have either.
 - **Verified by probe, at the library level, and not through a drone.** `S8` and
   `S9`, 2026-09-07: a script under plain Lua 5.1 loading the real `lib/env.lua`
   and the real `tests/game/mods/vector3/vector3.lua`, with the outputs quoted in
@@ -2294,7 +2366,16 @@ gets, `S9` on a release of another package.
 
 ---
 
-Last reviewed **2026-09-07**, describing commit **`6f2dfe0`** — record-only,
-over code `24842d3`. It records `S8` and `S9`, filed the same day from one probe
-session and both **open with their options**, the `lib/examples/game.lua` fix
-that is in the working tree and uncommitted, and playtest `F-6` written for it.
+Last reviewed **2026-09-07**, describing commit **`3548d58`** with the
+`tests/game/mods/vector3` submodule bumped to **v2.0.1 (`5077617`)** in the
+working tree and nothing else changed. It records what the bump does to the two
+sandbox findings: **`S8`'s open decision is settled upstream** — vector3 2.0
+froze the exported constants, the option filed here as the alternative — while
+**`S8` itself stays open and becomes latent**, `lib/env.lua`'s `snapshot` being
+unchanged and v1.5 still installable; and **`S9` is unfixed on both revisions**,
+`v.__index` reading `table` at each, so the repository the fix belongs to had a
+release that day and did not include it. Gates read from output at `3548d58`:
+luacheck silent, three `--check` generators up to date, 253 standalone and
+**665** in-engine assertions, 0 failed, 0 xpass, one known `B4` xfail — no count
+moved under the new dependency, and `.luacheckrc:75` excludes the bumped library
+so luacheck's silence says nothing about it.

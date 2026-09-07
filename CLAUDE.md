@@ -119,6 +119,33 @@ aliases the engine validates at startup. **The mod registers its own 105 nodes**
 so a spec wanting a real node has one; if one is ever needed that the mod does
 not provide, register that one node in `cbfixture` and no more.
 
+**Two versions of `vector3` are in the wild and this mod must work with both.**
+`mod.conf` reads `depends = vector3` and **Luanti has no version constraints**,
+so a player may have either installed. The submodule was bumped from **v1.5
+(`1662164`, 2022-06-24)** to **v2.0.1 (`5077617`, 2026-09-07)** — two releases
+and a major version, the author's own upstream work — and **that bump changes
+the test fixture only; it changes nothing a player has.** So a green suite
+proves codeblock works against **v2.0.1** and says nothing about v1.5. Five
+differences, probed at both revisions:
+
+| | v1.5 | v2.0.1 |
+|---|---|---|
+| `vector.one.x = -1` | accepted, changes `one` server-wide | raises `read only` |
+| `vector.fromPolar('a', 1)` | returns nothing | raises `format error` |
+| `vector.srandom('a', 1)` | returns `(0,0,0)` silently | raises `format error` |
+| `pairs(vector.one)` | 3 keys | 0 keys |
+| `vector(1,2,3).__index` | table | table (`S9`, unfixed on both) |
+
+Three things follow. The **raises are an improvement for a player** — `srandom`
+answering `(0,0,0)` for a bad argument is silently wrong geometry, which is
+worse than nil. **`pairs` is the trap**: 2.0's `frozen()` (`vector3.lua:370`)
+builds an *empty* table with `__index` onto a private backing vector, so `next`,
+`rawget`, `pairs`, `table.copy` and `core.serialize` all read a constant as
+empty, **silently and not as a raise**. And **`.luacheckrc:75` excludes
+`tests/game/mods/vector3/**`** — so luacheck's silence says nothing about the
+bumped library — correct, it is another package with its own gates, but not
+coverage.
+
 **Nothing under `tests/game/mods/` may call `codeblock.register_blocks`.** That
 directory is all-enabled, so such a mod would change `api.names()` and the
 palette underneath every spec run, which is the one thing the specs need held

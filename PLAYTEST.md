@@ -40,12 +40,20 @@ A recipe also **names the shell it is for** — that has cost a session twice
 
 ## Where it stands
 
-**83 entries, of which `F11-4` is retired — so 82 live checks. One is unrun,
-`F-6`, and no check carries a fail.** 80 carry a pass as their most recent
-result and one, `H8`, carries a partial because two of its cases cannot be
-performed at all.
+**84 entries, of which `F11-4` is retired — so 83 live checks. Two are unrun,
+`F-6` and `F-7`, and no check carries a fail.** 80 carry a pass as their most
+recent result and one, `H8`, carries a partial because two of its cases cannot
+be performed at all.
 
-**`F-6` is what this document asks for now.** It was written later on 2026-09-07
+**`F-7` is the newer of the two and is a standing check**, written 2026-09-07
+after the `vector3` submodule was bumped to v2.0.1: the shipped examples are
+compiled by `tests/preprocess_spec.lua` and **run by nothing**, and that bump
+turned four constructors from answering quietly into raising. `S8`'s one-line
+fix to `lib/examples/game.lua` landed one commit before it; without that,
+`game.lua` would have died on its first wall collision with all five gates
+green. Run `F-7` after any dependency bump and before a release.
+
+**`F-6` is what this document asks for first.** It was written later on 2026-09-07
 for audit `S8` — `env.snapshot` is shallow, so `vector`'s fourteen load-time
 constants are shared between runs and players — and it does three things nothing
 else can: it watches the shipped `game.lua` **after its one-line fix**, which no
@@ -1071,11 +1079,14 @@ that is the change to make, and it needs no new finding.
 
 ## Filesystem and example generation
 
-F-1 – F-6. Four runs across 2026-08-27 and 2026-08-28, which produced `B40` — the
+F-1 – F-7. Four runs across 2026-08-27 and 2026-08-28, which produced `B40` — the
 worst defect this project has recorded against committed code — and `S7`.
-**`F-6` is newer and unrun**: written 2026-09-07 for `S8`, the shallow snapshot
-that shares `vector`'s constants between runs, and it is the only check here
-about what an example does the *second* time it runs.
+**`F-6` and `F-7` are newer and both unrun.** `F-6` was written 2026-09-07 for
+`S8`, the shallow snapshot that shares `vector`'s constants between runs, and it
+is the only check here about what an example does the *second* time it runs.
+**`F-7` was written the same day and is a standing check**: the shipped examples
+are compiled by `tests/preprocess_spec.lua` and **run by nothing**, so a
+dependency bump can change what one of them does with every gate green.
 
 ### F-1 · `/codegenerate` on your own files [B8, B15]
 
@@ -1236,8 +1247,14 @@ charged time for every example, `torus.lua` and `density.lua` included.
 **Written 2026-09-07 with the fix and not yet run. It is the only evidence that
 fix can have**, and its second case is the only in-world evidence `S8` itself
 can have. The fix is **one line** in `lib/examples/game.lua` —
-`dir = vector.one` became `dir = vector(1, 1, 1)` — and it is **uncommitted at
-the time of writing**.
+`dir = vector.one` became `dir = vector(1, 1, 1)` — **committed at `3548d58`**.
+
+**Case 3 below reads differently depending on which `vector3` you have.** The
+submodule was bumped to **v2.0.1** on 2026-09-07 and that release **froze the
+exported constants**, so `dir.x = -dir.x` now raises `read only` instead of
+corrupting `vector.one` for everybody. A player on **v1.5** still gets the
+corruption, and `mod.conf` cannot exclude that version. **Name the `vector3`
+version in the result line**; the differences are tabulated in `CLAUDE.md`.
 
 **Why no gate reaches it.** `tests/preprocess_spec.lua:314–348` **compiles**
 every shipped example and **nothing ever runs one**. So the fix is
@@ -1275,14 +1292,54 @@ print(dir.x, dir.y, dir.z)
 dir.x = -dir.x
 ```
 
-**Against today's code it is expected to print `1 1 1`, then `-1 1 1`, then
+**On vector3 v1.5 it is expected to print `1 1 1`, then `-1 1 1`, then
 `1 1 1`** — the module's own constant, written through a shallow snapshot and
-shared by every player until the server restarts. **Record what it actually
-prints**, because that reading is `S8`'s only possible in-world evidence, and
+shared by every player until the server restarts. **On v2.0.1 the third line
+raises `read only`** and nothing is corrupted, which is the freeze rather than a
+fix to `env.snapshot`: `S8` is latent there, not resolved. **Record what it
+actually prints and which version you ran**, because that reading is `S8`'s only possible in-world evidence, and
 **this case is not a defect in the example**: fixing `game.lua` does not fix
 `S8`, and once `S8` is fixed this case must print `1 1 1` three times. Nothing
 here needs a second player, but a second player running the same file is what
 makes the consequence plain.
+
+Result: not yet run.
+
+### F-7 · every shipped example still runs, after a dependency bump [C23, C24, S8]
+
+**Written 2026-09-07, unrun, and it is a standing check rather than a one-off:
+run it after any `vector3` submodule bump, and before any release.** It exists
+beside `F-6` because `F-6` watches one example for one defect, and what nearly
+went wrong that day was wider than that.
+
+**Why no gate reaches it, stated as plainly as it can be.**
+`tests/preprocess_spec.lua:314–348` **compiles** every shipped example and
+**nothing runs one**. `C23` closed the half that matters for a missing name —
+the list and the directory now check each other, both ways — and `C24` is why
+even that runs locally and not in CI. **What a compile cannot see is a call that
+raises.**
+
+**The near miss that argues for it, 2026-09-07.** The `vector3` bump to v2.0.1
+turned four constructors from *answer quietly* into *raise*, `vector.one` among
+them. Had `S8`'s one-line fix to `lib/examples/game.lua` not landed at `3548d58`
+one commit earlier, **that example would have died outright on its first wall
+collision with all five gates green** — v2.0.1 raising `read only` where v1.5
+silently corrupted a shared constant. `test-agent` ran each example's exact call
+chain by hand that once and all seven passed. **A thing done by hand once is not
+a check**, which is what this entry is for.
+
+**Do this.** In a world at codelevel 3 or 4, on open ground with room around and
+above the drone: run `/codeblock generate`, then open each generated example in
+the editor and run it with the poser, one at a time. Remove your own copy of a
+file first if `generate` left an older one alone (`F-1`). **Name the `vector3`
+version you have installed in the result line** — v1.5 and v2.0.1 are both
+installable and they differ; the matrix is in `CLAUDE.md`.
+
+**Pass:** every example builds something and ends with the run's normal outcome.
+`game.lua` never terminates and stops on *"Maximum running time"*, which is
+expected and is `F-5`'s note. **Fail:** any example stops with a Lua error on a
+line it did not choose to stop on — report the file, the line and the message,
+and let `AUDIT.md` allocate the id.
 
 Result: not yet run.
 

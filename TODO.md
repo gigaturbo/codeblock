@@ -448,25 +448,40 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
       nothing else could; F12-4's re-run observed the rotation for the first
       time, its earlier fail having been against print
       (audit B53, B54; playtest E17, W7, F12-4)
-- [ ] DECIDE: which contract player code gets for `vector`'s constants — a
-      **deep copy per run** in `snapshot_module`, recommended, 6.6 us and
-      fourteen small tables per program start with no observable change for
-      player code; or **freeze the constants read-only**, which costs nothing
-      per run but turns `dir = vector.one; dir.x = -1` into a raise, breaking
-      that idiom and your own program as you just wrote it. Nothing is fixed
-      yet. Leaving it as documented is not defensible: the mutation is shared by
-      every player until the server restarts (audit S8)
+- [x] DECIDE: which contract player code gets for `vector`'s constants — done
+      2026-09-07, **upstream and not here**: vector3 2.0 froze the exported
+      constants, so `dir = vector.one; dir.x = -1` raises `read only`. That was
+      the alternative rather than this project's recommended deep copy, and the
+      decision was yours to take. **S8 itself stays open and becomes latent** —
+      `env.snapshot` is still shallow and a player on vector3 v1.5 can still
+      reach it (audit S8)
 - [ ] DECIDE: whether vector3's own fix lands before or after the v1.0.0 tag —
       any instance hands back the class table as `v.__index`, so a player
       program can replace vector3's methods and metamethods **for every other
       mod on the server**. The fix is `local mt = {__index = vector3, ...}` in
       vector3 itself, so it means a release of that package and a submodule bump
-      here. Write-protecting it from this mod is recommended against: that is
-      C18's mistake on another author's package (audit S9)
+      here. **v2.0.1 shipped on 2026-09-07 without it** — probed at both
+      revisions, `v.__index` reads `table` and not `nil`, the freeze not
+      reaching it — so the question is still open. Write-protecting it from this
+      mod is recommended against: that is C18's mistake on another author's
+      package (audit S9)
+- [ ] DECIDE: what `tests/game/mods/vector3` should pin, now that the bump to
+      v2.0.1 leaves the v1.5 half proven by nothing. `mod.conf` reads
+      `depends = vector3` and Luanti has no version constraints, so a player may
+      have either and the fixture proves only the one it pins. Pin the newest,
+      pin the oldest supported, or document a floor — noting that
+      `min_minetest_version` is an engine floor, not a dependency one, so there
+      may be no mechanism at all (audit S8)
 - [ ] run F-6 — `game.lua` three times over, watching the start direction, plus
       its case 3 reproducer, which is the only in-world reading S8 can have. The
-      one-line example fix is in your working tree and uncommitted
-      (audit S8; playtest F-6)
+      one-line example fix is committed at `3548d58`. **Name which vector3 you
+      are running in the result**: case 3 alternates on v1.5 and raises
+      `read only` on v2.0.1 (audit S8; playtest F-6)
+- [ ] run F-7 — every shipped example, one at a time, after the vector3 bump.
+      Nothing runs an example: the specs compile all fourteen and run none, and
+      the bump turned four constructors from answering quietly into raising.
+      Standing check, after any dependency bump and before a release
+      (audit C23, C24, S8; playtest F-7)
 - [ ] re-run R2 on the archive built from the release commit — R1 was
       re-checked at `7dbe18f` and still passes, but R2 last ran before F4 added
       lib/hud.lua and before .gitattributes changed at `60dc8dd`. Install it in
@@ -475,14 +490,16 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
 
 Elsewhere
 
-- [ ] drop the 5.5 ceiling in tests/game/mods/vector3/mod.conf — separate
-      repository (audit C1)
+- [x] drop the 5.5 ceiling in tests/game/mods/vector3/mod.conf — done upstream,
+      arriving here with the v2.0.1 bump on 2026-09-07: that file now carries
+      `min_minetest_version = 5.3` and no `max_minetest_version` (audit C1)
 - [ ] separate vector3's metatable from its methods table — `local mt =
       {__index = vector3, __add = ...}`, after which `v.__index` reads nil.
       Separate repository, so a release there and a submodule bump here, and it
       reaches every other consumer of the package. Nothing in codeblock reads
-      `v.__add` as a field. Could go out with the C1 line above in one vector3
-      release (audit S9)
+      `v.__add` as a field. **The v2.0.1 release of 2026-09-07 did not include
+      it** — it froze the constants instead, which is S8's half — so this is
+      still outstanding in that repository (audit S9)
 
 
 # After 1.0.0

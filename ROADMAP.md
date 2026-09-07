@@ -21,35 +21,62 @@ thinking rather than a queue position.
 
 ## Now
 
-**Answer the two questions under `S8` and `S9`, then push.** Both findings were
-filed on 2026-09-07 from one probe session and **both are open with their
-options, nothing fixed** — they are the first sandbox findings open since Phase
-2, and each waits on a decision the code cannot make. **`S8` is a choice between
-two player-visible contracts**: a snapshot deep-copies `vector`'s fourteen
-constants per run, or the constants are frozen and
-`dir = vector.one; dir.x = -1` starts raising. The recommendation is the deep
-copy — 6.6 µs per program start, no observable change for player code — and the
-grounds for and against are under *other decisions* below and in `AUDIT.md`.
-**`S9` is a question about another repository**: the real fix separates
-vector3's metatable from its methods table, which means a `vector3` release and
-a submodule bump here, so whether it lands before or after the v1.0.0 tag is a
-scheduling decision. **`S9` is high and it crosses out of this mod** — a player
-program can replace vector3's methods for every other mod using the global — so
-**whether v1.0.0 ships with it open is the author's call and is not recorded as
-settled.** Neither finding is escalation; both are corruption that outlives the
-run.
+**Answer the `S9` question and the fixture question, then push.** `S8`'s
+decision is **made, upstream**, by the `vector3` bump described below; what is
+left of the pair is `S9`, which is a question about another repository, and one
+new question the bump created about what the test fixture pins.
 
-**One line of it is already fixed and uncommitted**: `lib/examples/game.lua`
-line 3, `dir = vector.one` → `dir = vector(1, 1, 1)`. The aliasing never
-shipped — that rewrite is the author's own, made during the `F12-4` playtest —
-while the defect behind it shipped in every release. Its check is playtest
-`F-6`, **unrun**, and it is now the only unrun check in the file.
+**`S9` stays high and open on every version a player can install.** The real fix
+separates vector3's metatable from its methods table — `vector3.__index =
+vector3` is unchanged at v2.0.1, and a frozen constant's `__index` still chains
+to a real vector whose metatable is the class table, so `v.__index` reads
+`table` and not `nil` on **both** revisions. **That repository had a release on
+2026-09-07 and did not include it.** A player program can therefore replace
+vector3's methods for every other mod using the global, so **whether v1.0.0
+ships with `S9` open is the author's call and is not recorded as settled.** It
+is corruption, not escalation.
+
+**The `vector3` submodule was bumped on 2026-09-07 — v1.5 (`1662164`,
+2022-06-24) → v2.0.1 (`5077617`), two releases and a major version, the
+author's own upstream work.** It is the only working-tree change. Three things
+follow and each is recorded where it belongs:
+
+- **`S8`'s open decision is closed, by the option filed as the alternative
+  rather than the recommendation.** vector3 2.0 froze the exported constants, so
+  `dir = vector.one; dir.x = -1` now raises `read only`. The decision was the
+  author's to make and they made it in the other repository; it is under *other
+  decisions* below so it is not proposed again here.
+- **`S8` is not resolved and must not be marked so.** It is a finding about
+  `lib/env.lua:31`'s shallow `env.snapshot`, which is unchanged and still claims
+  a guarantee it does not give. The freeze removes the only *reachable* way to
+  exploit it, so **`S8` goes from reachable to latent — and reachable again for
+  any player running vector3 v1.5.**
+- **The support matrix is now a permanent fact and lives in `CLAUDE.md`.**
+  `mod.conf` reads `depends = vector3`, Luanti has no version constraints, and
+  **the bump changes the test fixture only — nothing a player has.** So the
+  green suite proves codeblock works against v2.0.1 and says **nothing** about
+  v1.5. Five differences are tabulated there, including one nobody listed:
+  `pairs(vector.one)` yields three keys on v1.5 and **none** on v2.0.1,
+  silently. That one is in `CHANGELOG.md`, because codeblock is where a player
+  meets `vector`.
+
+**The `game.lua` fix is committed at `3548d58` and its check is still unrun**:
+`dir = vector.one` → `dir = vector(1, 1, 1)`, playtest `F-6`. **`PLAYTEST.md`
+gained a second unrun check the same day, `F-7`, and the near miss behind it is
+the best argument this project has for it.** Had that one line not landed one
+commit before the bump, v2.0.1 would have raised `read only` on `game.lua`'s
+first wall collision and **that shipped example would have died outright with
+all five gates green** — the examples are compiled by
+`tests/preprocess_spec.lua` and **run by nothing**. `test-agent` ran each
+example's call chain by hand that once and all seven passed; **a thing done by
+hand once is not a check**, so `F-7` is a standing one, after any dependency
+bump and before a release.
 
 **Push, and it is still the largest thing that can fail rather than merely take
 time.**
-`origin/master` is at `65b4c46` and **eighteen commits are unpushed** — take
-that number from `git rev-list --count origin/master..HEAD`, which reads **18**
-at `6f2dfe0`, and **never from counting the hashes**, which is how it was
+`origin/master` is at `65b4c46` and **nineteen commits are unpushed** — take
+that number from `git rev-list --count origin/master..HEAD`, which reads **19**
+at `3548d58`, and **never from counting the hashes**, which is how it was
 recorded low four passes running. So CI has seen no part of `F11`, `F12`, `F13`,
 `F14`, `B53`'s fix, `C23`'s or `B54`'s, and the two largest changes in the
 release are among them. The new `.luacheckrc` check in `gen_docs.lua --check` is
@@ -61,8 +88,9 @@ rather than a question.
 **The playtest checklist had nothing outstanding earlier the same day, for the
 first time.** Two sessions on 2026-09-07, engine 5.17.0, twenty-two results
 between them, and all 81 live checks carried a pass — bar `H8`'s partial, whose
-two missing cases cannot be performed at all. **`F-6` was written after them and
-is unrun**, so the file now has one outstanding check and still no fail.
+two missing cases cannot be performed at all. **`F-6` and `F-7` were written
+after them and both are unrun**, so the file now has two outstanding checks and
+still no fail.
 
 The first session, at `8e6350f`, played `F11`, `F12`, `F13` and `F14`: sixteen
 results, fifteen passes and **one fail, `F12-4`, its cause `B54`** — `print`
@@ -195,43 +223,58 @@ not restated here; what is below is what *this* version still needs, and
 `release-check` is the gate that says whether it got it.
 
 **The work — everything through step 4 is done, so are the two unnumbered steps
-ahead of them and `B51`; what is left is the `S8`/`S9` decision, pushing, then
-the README, the screenshots, `R2`, `F-6` and the tag.**
+ahead of them and `B51`; what is left is the `S9` decision, the fixture
+question, pushing, then the README, the screenshots, `R2`, `F-6`, `F-7` and the
+tag.**
 
 **Before step 5 — push.** Kept unnumbered so the steps below keep the numbers
 commit messages and the release skill cite. **The feature playtesting is
-complete and one check was added after it** — `F-6`, for `S8`, unrun: two
+complete and two checks were added after it** — `F-6` for `S8` and `F-7` for
+the shipped examples, both unrun: two
 sessions on 2026-09-07, engine 5.17.0 — `F11` to `F14` at `8e6350f`, fifteen
 passes and one fail, the fail being `F12-4` and its cause `B54`, fixed the same
 day at `24842d3`; then the six remaining checks at `2feadb1` over code
 `24842d3`, **all six passing with no defect reported**. `PLAYTEST.md` carries no
-fail and one unrun check, `F-6`. Their entries under *The features* hold the
-shapes and the decisions.
+fail and two unrun checks, `F-6` and `F-7`. Their entries under *The features*
+hold the shapes and the decisions.
 
-**So what is outstanding before the tag is one decision, the push, and two
+**So what is outstanding before the tag is two questions, the push, and two
 pieces of writing:**
 
-- **The `S8` and `S9` decisions**, filed 2026-09-07 and **the only thing here
-  that is a question rather than work.** `S8`: deep copy per run, or freeze the
-  constants and let `dir = vector.one; dir.x = -1` raise. `S9`: fix `vector3`
-  itself — a release of that package and a submodule bump — and **whether that
-  happens before or after this tag**, given that `S9` is high and reaches every
-  other mod using the `vector3` global. **Nothing about either is settled**, and
-  the fixes are not written. `AUDIT.md` holds both entries in full; the
-  recommendations and the two rejected shortcuts are under *other decisions*.
-- **The push.** Eighteen commits, nothing of `F11` to `F14`, `B53`, `C23` or
+- **The `S9` decision.** Fix `vector3` itself — a release of that package and a
+  submodule bump — and **whether that happens before or after this tag**, given
+  that `S9` is high and reaches every other mod using the `vector3` global.
+  **`S9` is unfixed on both v1.5 and v2.0.1**, probed at each: `v.__index` reads
+  `table`, not `nil`, and the freeze does not reach it. That repository had a
+  release on 2026-09-07 and did not include it. **`S8`'s decision is no longer
+  outstanding** — vector3 2.0 froze the constants, which is the option filed as
+  the alternative, so the choice was taken upstream; `S8` itself stays open and
+  latent, because `env.snapshot` is unchanged.
+- **What the test fixture should pin — open, and not settled by the bump.**
+  Running the suite against v2.0.1 leaves the v1.5 half proven by nothing, and
+  it cannot be proven without pinning the old submodule. Three candidates and no
+  decision: pin the newest `vector3`, pin the oldest supported one, or give
+  `mod.conf` a documented floor that ContentDB can carry — noting that
+  `min_minetest_version` is an **engine** floor and not a dependency one, so
+  there may be no mechanism at all.
+- **The push.** Nineteen commits, nothing of `F11` to `F14`, `B53`, `C23` or
   `B54` has been through CI. This is the largest item that can still fail rather
   than merely take time.
-- **Playtest `F-6`**, unrun — the `game.lua` fix, and `S8`'s only possible
-  in-world reading. It is small and it is the one check the file is now asking
-  for.
+- **Playtests `F-6` and `F-7`**, both unrun. `F-6` is the `game.lua` fix and
+  `S8`'s only possible in-world reading. `F-7` is the standing check that every
+  shipped example still runs, which nothing else does at all — the examples are
+  compiled and never run — and it is what the `vector3` bump's near miss
+  argues for.
 - **`README.md` and the screenshots**, which are writing.
 - **`R2` re-run.** Not an unrun check but a stale one: it last ran at
   `7c5bceb`, before `F4`, before `F11` gave the mod its own textures, and before
   `.gitattributes` changed. `R1` is stale the same way at `afbe504`.
 
-**On the push:** `git rev-list --count origin/master..HEAD` reads **18** at
-`6f2dfe0`, with `origin/master` at `65b4c46`. **`F12-2` did not hand its
+**On the push:** `git rev-list --count origin/master..HEAD` reads **19** at
+`3548d58`, with `origin/master` at `65b4c46`. **The submodule pointer is the
+only working-tree change**, and step 9 already requires confirming that
+`tests/game/mods/vector3`'s pinned commit is pushed — it is: `5077617` is
+`origin/master` there. **`F12-2` did not hand its
 decision back** — the
 flat solid tile stays, and that is under *other decisions*.
 `CHANGELOG.md` took `F11`'s **Changed** and **Removed** sections on 2026-09-05,
@@ -417,7 +460,7 @@ were fixed the same day at `1b991ae` and **confirmed in a world on 2026-09-04**,
 and `B51` was fixed at `8de3cea` on 2026-09-04 and confirmed by `D7` the same
 day. **So all fifteen fixes are played.**
 
-### 8 · Features for v1.0.0 — in progress (12 features, all twelve shipped; 32 findings, `C24`, `S8` and `S9` open; `F11` to `F14` played 2026-09-07 with `B54` the only defect found; `PLAYTEST.md` has one unrun check, `F-6`, and no fail)
+### 8 · Features for v1.0.0 — in progress (12 features, all twelve shipped; 32 findings, `C24`, `S8` and `S9` open — `S8` latent since the `vector3` bump, `S9` unfixed on both versions; `F11` to `F14` played 2026-09-07 with `B54` the only defect found; `PLAYTEST.md` has two unrun checks, `F-6` and `F-7`, and no fail)
 
 The last phase before v1.0.0 and the only one that adds rather than repairs.
 Started as seven features: `F6` moved out on 2026-08-28 (Blockly is `Phase 10`)
@@ -1743,13 +1786,28 @@ saved program and no existing world breaks.
 
 ## Other decisions worth not re-litigating
 
-- **`S8`'s fix is deliberately *not* in this section, because it is open.** The
-  choice — deep-copy `vector`'s constants per run, or freeze them read-only and
-  let `dir = vector.one; dir.x = -1` raise — is **the author's**, and it is in
-  *Now* above with the recommendation and in `AUDIT.md` with the measurements.
-  It is named here only so that nobody reads its absence as agreement: **whoever
-  implements first must not settle it by implementing.** The two options are
-  different contracts for player code, not two spellings of one fix.
+- **`S8`'s choice was settled by freezing the constants, upstream in `vector3`
+  and not here, on 2026-09-07.** The two options were deep-copying `vector`'s
+  constants per run — this project's recommendation, measured at 6.6 µs a run —
+  or **freezing them read-only**, so that `dir = vector.one; dir.x = -1` raises.
+  The author took the second, in the other repository: vector3 2.0's changelog
+  reads *"Writing to an exported constant raises `read only`. The constants are
+  one table per name shared by every mod in the process, so a write used to
+  change `vector3.zero` for everybody."* **Do not re-propose the deep copy** —
+  it would now be a second answer to a question that has one. Two consequences
+  are recorded rather than inferred. **`S8` is not thereby resolved**:
+  `lib/env.lua`'s `snapshot` is still shallow and still claims otherwise in its
+  header, so the finding is **latent against v2.0.1 and reachable again on
+  v1.5**. And **the raise is a real cost to player code** — the idiom that
+  breaks is the one the author's own `game.lua` used — which is why the example
+  was rewritten to the constructor, below.
+- **What the test fixture should pin is open, and the bump did not settle it.**
+  `tests/game/mods/vector3` now points at v2.0.1, so the suite proves codeblock
+  works against **that** version and nothing about v1.5, which a player may
+  equally have installed. It is in *Finalising v1.0.0* as a question, **not
+  here**, because nothing about it is agreed: pin the newest, pin the oldest
+  supported, or document a floor in `mod.conf` — and Luanti has no dependency
+  version mechanism, `min_minetest_version` being an engine floor.
 - **Write-protecting `vector3`'s metatable from inside this mod is recommended
   against, decided 2026-09-07 while filing `S9`.** Reaching
   `getmetatable(vector3.one)` at load and sealing it is the obvious shortcut and
@@ -2260,8 +2318,10 @@ saved program and no existing world breaks.
   dropped click is silent — `on_close` never runs — so the symptom is a button
   that needs pressing twice. **Accepted, not overlooked**, and the change that
   would close it is named under `B47`. (B47)
-- `tests/game/mods/vector3/mod.conf` still carries a 5.5 version ceiling —
-  separate repository, not fixable from here. (C1)
+- ~~`tests/game/mods/vector3/mod.conf` carries a 5.5 version ceiling.~~
+  **Gone with the v2.0.1 submodule bump, 2026-09-07**: that file now reads
+  `min_minetest_version = 5.3` and no `max_minetest_version`. It was never
+  fixable from here — a separate repository — and it was fixed there. (C1)
 - `scripts/gen_cdb_json.sh` is verified by nothing and escapes neither `"` nor a
   backslash. (B22)
 - `.gitattributes` decides what reaches a player and **no CI checks it**. (C10)
@@ -2373,11 +2433,15 @@ gone from the real config. Every gate was made to fail on purpose before it was
 read as green, and every changed or new assertion killed against a deliberate
 break.
 
-**`PLAYTEST.md` stands at 83 entries, `F11-4` retired, so 82 live — one unrun,
-`F-6`, and no fail.** 80 carry a pass as their most recent result; the one that
-does not is `H8`'s partial, two of its cases being unperformable. **`F-6` was
-written after the two sessions**, for `S8`: it watches the fixed `game.lua`
-across three runs, and its third case is `S8`'s only possible in-world reading. Three fails are recorded and each is superseded by a later pass
+**`PLAYTEST.md` stands at 84 entries, `F11-4` retired, so 83 live — two unrun,
+`F-6` and `F-7`, and no fail.** 80 carry a pass as their most recent result; the
+one that does not is `H8`'s partial, two of its cases being unperformable.
+**Both unrun checks were written after the two sessions.** `F-6` is for `S8`: it
+watches the fixed `game.lua` across three runs, and its third case is `S8`'s
+only possible in-world reading. **`F-7` is for the shipped examples as a set**,
+written after the `vector3` bump and standing rather than one-off — they are
+compiled by `tests/preprocess_spec.lua` and run by nothing, and the bump changed
+four constructors from answering quietly to raising. Three fails are recorded and each is superseded by a later pass
 on the same entry — `W1` twice and `F12-4` once. **The only thing the checklist
 still asks for is a re-check rather than a check**: `R1` and `R2` are stale,
 last run at `afbe504` and `7c5bceb`, and describe a release archive that `F4`,
@@ -2392,22 +2456,27 @@ on their first line for a reason that is not what they test.
 both pre-existing, both filed 2026-09-05 while recording `F11`; **`C24`**,
 medium, filed 2026-09-07, CI booting no engine so nothing CI runs reaches an
 in-engine-only check; and **`S9` high and `S8` medium**, both filed 2026-09-07
-from one probe session and both open with their options. **Those three low and
-medium ones do not block the tag; `S9` is a question that does** — it is high
-and it crosses to every other mod using the `vector3` global, and the decision
-is recorded as open rather than settled. No bug finding is open: **`B53` was
+from one probe session. **`S8`'s decision was taken upstream the same day** —
+vector3 2.0 froze the constants — so `S8` stays open but **latent**, its only
+reachable exploit gone on v2.0.1 and back on v1.5, and `env.snapshot` unchanged.
+**Those three low and medium ones do not block the tag; `S9` is a question that
+does** — it is high, it crosses to every other mod using the `vector3` global,
+it is **unfixed on both v1.5 and v2.0.1**, and the decision is recorded as open
+rather than settled. No bug finding is open: **`B53` was
 filed and fixed inside 2026-09-07**, and neither `F12` nor `F14` added one. **`C23` was filed and closed inside 2026-09-07 too**,
 `de3bcbb` then `63c3c33`; `C22` was filed and fixed on 2026-09-06, both inside
 `4450ce1`'s work.
 
-What is left before the tag: **the `S8` and `S9` decisions** — the one question
-rather than a piece of work, and `S9` is high and reaches other mods, so whether
-v1.0.0 ships with it open is part of the question — then **push**, eighteen
-commits unpushed with `git rev-list --count origin/master..HEAD` reading 18 at
-`6f2dfe0`, the largest item that can still fail rather than merely take time;
+What is left before the tag: **the `S9` decision and the fixture question** —
+the two things here that are questions rather than pieces of work. `S9` is high
+and reaches other mods, so whether v1.0.0 ships with it open is part of it; the
+fixture question is what `tests/game/mods/vector3` should pin now that a player
+may have either version. Then **push**, nineteen
+commits unpushed with `git rev-list --count origin/master..HEAD` reading 19 at
+`3548d58`, the largest item that can still fail rather than merely take time;
 then `README.md`'s three problems — line 10's now-false portability claim, the
 missing *For game authors* section, the pre-rename ContentDB URLs — the
-screenshots, **`F-6`**, `R2` on the release archive, then `release-check`, the
+screenshots, **`F-6` and `F-7`**, `R2` on the release archive, then `release-check`, the
 heading and the tag. **`F12-2` did not hand the flat-solid-tile decision back**,
 and the feature playtesting is finished: what the two sessions left is `B54`,
 filed and fixed inside the day.
@@ -2421,10 +2490,15 @@ a dependency worth adding for one case. Neither is a spec change, so neither is
 
 ---
 
-Last reviewed **2026-09-07**, describing commit **`6f2dfe0`** — record-only,
-over code `24842d3`. It records `S8` and `S9`, filed the same day and both
-**open with their options**: the shallow snapshot sharing `vector`'s constants,
-and vector3's class table reachable as `v.__index` from any instance. Nothing is
-fixed but one uncommitted line in `lib/examples/game.lua`, whose check `F-6` is
-unrun. Earlier the same day the second playtest session closed `F11-10`,
+Last reviewed **2026-09-07**, describing commit **`3548d58`** with the
+`tests/game/mods/vector3` submodule moved to **v2.0.1 (`5077617`)** in the
+working tree and nothing else changed. It records the bump: **`S8`'s open
+decision closed upstream** by freezing the constants, `S8` itself **open and
+latent** because `env.snapshot` is still shallow and v1.5 is still installable,
+**`S9` unfixed on both versions** and so still high and open, the support matrix
+in `CLAUDE.md`, the `pairs()` difference in `CHANGELOG.md`, and a new standing
+playtest `F-7` for the shipped examples. Gates read from output at `3548d58`:
+luacheck silent, three `--check` generators up to date, 253 standalone and
+**665** in-engine assertions, 0 failed, 0 xpass — no count moved under the new
+dependency. Earlier the same day the second playtest session closed `F11-10`,
 `F11-11`, `F12-6`, `E17`, `W7` and `F12-4` re-run, all six passing.
