@@ -937,6 +937,73 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- print, through the real environment
+--
+-- print became variadic because F12-4's is_block returns a boolean and the
+-- one-argument version dropped it: print("is: ", is_block(colors.red)) sent
+-- "is: " and nothing more.
+--
+-- **What print sends is not observable from a spec, and no case below claims to
+-- check it.** lib/commands.lua binds chat_send_player as a load-time local, so
+-- replacing core.chat_send_player around a run intercepts nothing, and
+-- lib/sandbox.lua binds drone_send_message the same way, so the other end is
+-- shut too; the line goes to a player name nobody is logged in under. That was
+-- driven to failure rather than assumed - a case capturing
+-- core.chat_send_player around print('a', 'b') reads nil, not '> a b'. Whether
+-- the joined line reads correctly in chat is a PLAYTEST matter, with
+-- get_block's answers.
+--
+-- So what is pinned here is the one part of print a spec can see, and the part
+-- a refactor could break in silence: **the charge**. One call is one command
+-- however many arguments it carries, because the join happens in the sandbox
+-- and drone_send_message is reached once. An implementation looping
+-- send_message per argument passes every other case in this spec and fails
+-- these.
+--
+-- Said plainly, because a case that cannot fail is indistinguishable from one
+-- that passes (C20): **these would have been green before the fix as well.**
+-- The old print took one parameter and ignored the rest without raising, so it
+-- charged once too. They guard the new implementation; they do not witness the
+-- defect.
+--------------------------------------------------------------------------------
+
+do
+    local one, one_err = sandboxed('print("a")\n')
+    it('a one-argument print runs', one_err, nil)
+    it('and costs one command', one.commands, 1)
+
+    local three, three_err = sandboxed('print("is: ", true, 42)\n')
+    it('a three-argument print runs', three_err, nil)
+    it('and still costs one command', three.commands, 1)
+
+    -- The case select('#', ...) exists for, rather than `{...}` and `#`: a nil
+    -- among the arguments is ordinary here, get_block answering nil for map
+    -- that was never generated. It must neither stop the call nor change what
+    -- it costs.
+    local mid, mid_err = sandboxed('print("a", nil, "b")\n')
+    it('a nil in the middle does not stop the call', mid_err, nil)
+    it('and costs one command', mid.commands, 1)
+
+    local tail, tail_err = sandboxed('print("a", nil)\n')
+    it('a trailing nil does not stop the call', tail_err, nil)
+    it('and it costs one command', tail.commands, 1)
+
+    -- Zero arguments is a bare `> `, deliberately, and still a command.
+    local none, none_err = sandboxed('print()\n')
+    it('print with no argument at all runs', none_err, nil)
+    it('and costs one command too', none.commands, 1)
+
+    -- Ten calls of two arguments. A per-argument charge is caught by the cases
+    -- above; a print that charged nothing at all is caught by this one.
+    local many, many_err = sandboxed('for i = 1, 10 do print("n", i) end\n')
+    it('ten two-argument prints run', many_err, nil)
+    it('and cost ten commands', many.commands, 10)
+
+    codeblock.filesystem.remove_file('test_player', program_file)
+    codeblock.filesystem.remove_user_data('test_player')
+end
+
+--------------------------------------------------------------------------------
 -- the ramps, through the real environment (F12)
 --
 -- ramp_over is one closure in lib/sandbox.lua, built once per ramp per run, and

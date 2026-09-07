@@ -310,7 +310,7 @@ e                  -- 2.71828...
 ## Misc
 
 ```lua
-print(message)      -- Print a message in the chat.
+print(message, ...) -- Print every argument in the chat, joined by a space.
 error(message)      -- Stop the program and print a message.
 ipairs(table)       -- Standard ipairs.
 pairs(table)        -- Standard pairs.

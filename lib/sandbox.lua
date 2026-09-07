@@ -263,7 +263,21 @@ local function getScriptEnv(drone)
         ['pi'] = math.pi,
         ['e'] = math.exp(1),
         -- misc
-        ['print'] = function(str) return send_message(drone, str) end,
+        -- Variadic like real Lua's print, and one call still costs one command
+        -- however many arguments it takes: the join happens here, so
+        -- drone_send_message keeps taking one value and charging once. The list
+        -- is read with select rather than `{...}` and `#`, which cannot see a
+        -- nil in the middle or at the end of it - and a nil is ordinary here,
+        -- get_block() answering nil for map that was never generated. Joined
+        -- with a space, not real Lua's tab: the chat console has no tab stops
+        -- and wraps on spaces.
+        ['print'] = function(...)
+            local parts = {}
+            for i = 1, select('#', ...) do
+                parts[i] = tostring((select(i, ...)))
+            end
+            return send_message(drone, table.concat(parts, ' '))
+        end,
         ['error'] = error,
         ['ipairs'] = ipairs,
         ['pairs'] = pairs,

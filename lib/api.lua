@@ -381,8 +381,8 @@ api.groups = {
         entries = {
             {
                 name = 'print',
-                params = {'message'},
-                doc = 'Print a message in the chat.'
+                params = {'message', '...'},
+                doc = 'Print every argument in the chat, joined by a space.'
             }, {
                 name = 'error',
                 params = {'message'},

@@ -186,6 +186,12 @@ differing from the engine's LuaJIT.
 **Read the output, not the exit code** — `$?` does not survive this machine's WSL
 layer. A gate is green when it says so.
 
+**A shell variable does not survive it either.** `wsl bash -lc '... for s in api
+preprocess; do lua5.1 tests/$s_spec.lua; done'` reaches `bash` with `$s` already
+stripped, whatever the quoting, and runs `tests/_spec.lua` six times — six
+*cannot open* lines, no spec output, and nothing that reads as a gate failing.
+Name each spec explicitly, or put the loop in a file and run that.
+
 Then say plainly, in the reply: which gates ran and what they printed, what a
 spec cannot reach and therefore needs a `PLAYTEST.md` entry, and any defect found
 in code you did not write, so it can get a finding id.
