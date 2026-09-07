@@ -49,6 +49,9 @@ local forbidden = preprocess.find_forbidden
 
 local pass, fail, xfailed, xpassed = 0, 0, 0, 0
 local failures = {}
+-- Printed with the summary. A check that cannot run in this environment says
+-- so here, rather than passing silently and reading as coverage it is not.
+local notes = {}
 
 local function report(ok, name, detail, expected_fail)
     if ok and not expected_fail then
@@ -317,17 +320,14 @@ do
     end
 
     -- No lfs in either environment, and core.get_dir_list does not exist under
-    -- a bare interpreter, so the list is explicit.
-    --
-    -- It is checked in one direction only: a name here with no file behind it
-    -- fails by name below, but an example added to the directory and not to
-    -- this list is compiled by nothing. `tests` was here for the other reason -
-    -- the example was deleted by b752ea3 and the name stayed, and because a
-    -- missing file was silently skipped, fourteen names came to a count of
-    -- thirteen and the count read as correct.
+    -- a bare interpreter, so the list is explicit. `tests` was once here with
+    -- no file behind it - the example was deleted by b752ea3 and the name
+    -- stayed, and because a missing file was silently skipped, fourteen names
+    -- came to a count of thirteen and the count read as correct.
     local names = {
-        'death_star', 'density', 'donuts', 'forest', 'menger', 'mosely',
-        'planet', 'plot2D', 'plot3D', 'recursion', 'spirals', 'stairs', 'torus'
+        'death_star', 'density', 'donuts', 'forest', 'game', 'menger',
+        'mosely', 'planet', 'plot2D', 'plot3D', 'recursion', 'spirals',
+        'stairs', 'torus'
     }
 
     local checked, broken, missing = 0, {}, {}
@@ -355,6 +355,44 @@ do
     it('every shipped example still compiles once instrumented',
        table.concat(broken, ','), '')
     it('checked every name on the list', checked, #names)
+
+    -- The other direction (C23). `codeblock.examples.examples` is built at load
+    -- by lib/examples.lua from core.get_dir_list and keyed by name without the
+    -- extension, and it is the set copied to a player on join - so it is the
+    -- set that ought to be compiled here, and an example the list omits is one
+    -- shipped that nothing instruments. core.get_dir_list exists in-engine
+    -- only, so under a bare interpreter the case says it did not run rather
+    -- than disappearing: a check absent from one of its two environments and
+    -- silent about it is C20's failure mode.
+    local shipped = rawget(_G, 'codeblock') and codeblock.examples and
+                        codeblock.examples.examples
+
+    if not shipped then
+        local why = 'not checked here: needs core.get_dir_list, in-engine only'
+        -- Worded to survive run_tests.ps1's report filter, which keeps only
+        -- lines matching passed|failed|FAIL|want|got|skipped|xfail.
+        notes[#notes + 1] =
+            'skipped: the shipped examples match the list, both ways - ' .. why
+        it('the shipped examples match the list, both ways', why, why)
+    else
+        local listed = {}
+        for _, name in ipairs(names) do listed[name] = true end
+
+        local unlisted, unshipped = {}, {}
+        for name in pairs(shipped) do
+            if not listed[name] then unlisted[#unlisted + 1] = name end
+        end
+        for _, name in ipairs(names) do
+            if shipped[name] == nil then unshipped[#unshipped + 1] = name end
+        end
+        table.sort(unlisted)
+        table.sort(unshipped)
+
+        it('every example shipped is on the list',
+           table.concat(unlisted, ','), '')
+        it('every name on the list is an example that ships',
+           table.concat(unshipped, ','), '')
+    end
 end
 
 ------------------------------------------------------------------------------
@@ -366,6 +404,7 @@ out[#out + 1] = ''
 out[#out + 1] = '  preprocess_spec'
 out[#out + 1] = '  ' .. string.rep('-', 52)
 for _, f in ipairs(failures) do out[#out + 1] = '  ' .. f end
+for _, n in ipairs(notes) do out[#out + 1] = '  ' .. n end
 out[#out + 1] = ('  %d passed   %d failed   %d xfail (known defects)   %d xpass')
                     :format(pass, fail, xfailed, xpassed)
 out[#out + 1] = ''
