@@ -119,6 +119,15 @@ aliases the engine validates at startup. **The mod registers its own 105 nodes**
 so a spec wanting a real node has one; if one is ever needed that the mod does
 not provide, register that one node in `cbfixture` and no more.
 
+**Nothing under `tests/game/mods/` may call `codeblock.register_blocks`.** That
+directory is all-enabled, so such a mod would change `api.names()` and the
+palette underneath every spec run, which is the one thing the specs need held
+still. The mod that exercises the game-author path for `PLAYTEST.md`'s `F11-10`,
+`F11-11` and `F12-6` therefore lives **outside this repository and unversioned**,
+at `../codeblock-test-mod`, by the author's decision on 2026-09-07 — copied into
+a game by hand. `F11-10` describes what it registers in enough detail to rebuild
+it, which is the record standing in for version control.
+
 Six specs also run standalone under a Lua 5.1 interpreter, which is how CI runs
 them and the only way to catch behaviour differing between plain 5.1 and the
 LuaJIT the engine uses:

@@ -426,11 +426,13 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
       item, so no editor conversion), F12-2 (the flat solid tile stays) and
       F14-2 (silence past the end of a view, observed at last)
       (audit B54; playtest F11-*, F12-*, F14-*)
-- [ ] write a small mod that calls codeblock.register_blocks and run F11-10,
-      F11-11 and F12-6 — all three want it, so they are cheapest in one
-      session, and **it is the only part of F11, F12 and F14 with no in-world
-      evidence at all** after 2026-09-07. F11-11 is the rev_blocks fix's only
-      possible evidence (audit F11, F12; playtest F11-10, F11-11, F12-6)
+- [ ] run F11-10, F11-11 and F12-6 — **the mod that calls
+      codeblock.register_blocks is written**, at ../codeblock-test-mod,
+      outside this repository so it cannot change api.names() under the specs,
+      so all three are unblocked and cheapest in one session off its `wool`
+      category. **It is the only part of F11, F12 and F14 with no in-world
+      evidence at all** after 2026-09-07, and F11-11 is the rev_blocks fix's
+      only possible evidence (audit F11, F12; playtest F11-10, F11-11, F12-6)
 - [ ] run E17 and W7, and re-run F12-4 on 24842d3 or later — E17 is B53's only
       check, W7 is B54's and is the only thing that can see what print puts in
       the chat, and F12-4's fail was against print rather than against the

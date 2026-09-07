@@ -23,7 +23,7 @@ thinking rather than a queue position.
 
 **Push.** `origin/master` is at `65b4c46` and **sixteen commits are unpushed** —
 take that number from `git rev-list --count origin/master..HEAD`, which reads
-**15** at `24842d3`, and **never from counting the hashes**, which is how it was
+**16** at `1aa2f29`, and **never from counting the hashes**, which is how it was
 recorded low four passes running. So CI has seen no part of `F11`, `F12`, `F13`,
 `F14`, `B53`'s fix, `C23`'s or `B54`'s, and the two largest changes in the
 release are among them. The new `.luacheckrc` check in `gen_docs.lua --check` is
@@ -50,9 +50,13 @@ the record was carrying:**
   can ever have.
 
 **What is left to check is five entries and one re-run, and three of the five are
-one thing.** `F11-10`, `F11-11` and `F12-6` all need **a second mod calling
-`codeblock.register_blocks`**, so **the entire game-author path has no in-world
-evidence at all** while everything else in `F11`, `F12` and `F14` now has. The
+one thing.** `F11-10`, `F11-11` and `F12-6` all need a second mod calling
+`codeblock.register_blocks`, and **that mod now exists at
+`../codeblock-test-mod`** — written 2026-09-07, deliberately outside this
+repository, described in `F11-10` in enough detail to rebuild — so the three are
+**unblocked and simply unrun**. Until they run, **the entire game-author path has
+no in-world evidence at all** while everything else in `F11`, `F12` and `F14`
+now has. The
 contract in `lib/blocks.lua`, its three refusals, the late-call seal, a
 registered category reaching `place()`, `get_block()` and player meta, and a
 registered category's own ramp are committed, gated and unseen — and `F11-11` is
@@ -155,10 +159,12 @@ under *The features* hold the shapes and the decisions.
 **What checking is still outstanding is five entries and one re-run, and none of
 it blocks the tag:**
 
-- **`F11-10`, `F11-11` and `F12-6`** — all three want **a second mod calling
-  `codeblock.register_blocks`**, so **the game-author path has no in-world
-  evidence at all** while the rest of `F11`, `F12` and `F14` now does. `F11-11`
-  is the `rev_blocks` fix's only possible evidence. Cheapest run in one session.
+- **`F11-10`, `F11-11` and `F12-6`** — all three want a second mod calling
+  `codeblock.register_blocks`, and **it is written, at `../codeblock-test-mod`**,
+  so they are unblocked and simply unrun. Until they run **the game-author path
+  has no in-world evidence at all** while the rest of `F11`, `F12` and `F14` now
+  does. `F11-11` is the `rev_blocks` fix's only possible evidence. Cheapest run
+  in one session — the mod's `wool` category serves all three.
 - **`E17`** for `B53`, and **`W7`** for `B54` — the latter written 2026-09-07,
   the only thing that can ever see what `print` puts in the chat.
 - **`F12-4` re-run** on `24842d3` or later. Its fail was against `print` and the
@@ -373,8 +379,8 @@ untagged.
 nothing, so its phase is a matter of when it was asked for rather than of the
 tag. The same commit closed `C22`. **`F11` to `F14` were played on 2026-09-07 at
 `8e6350f`** — fifteen passes, one fail, `B54` the only finding — and what is
-left of their checking is `F11-10`, `F11-11` and `F12-6`, all three needing a
-second mod that registers a category, plus `F12-4` re-run. `F13`'s checking is
+left of their checking is `F11-10`, `F11-11` and `F12-6`, whose second mod now
+exists at `../codeblock-test-mod`, plus `F12-4` re-run. `F13`'s checking is
 folded into `F12-3` and `F12-4`. **No CI over any of the sixteen unpushed
 commits.**
 
@@ -1084,8 +1090,8 @@ observed in a third-party game that ships neither `default` nor `wool`, and
 nothing local could show it.
 
 **What is outstanding, and neither part is unfinished work:** CI has seen no part
-of it, both commits being unpushed; and **`F11-10` and `F11-11` are unrun**, both
-needing a second mod that calls `codeblock.register_blocks`. Together with
+of it, both commits being unpushed; and **`F11-10` and `F11-11` are unrun**,
+their second mod written 2026-09-07 at `../codeblock-test-mod`. Together with
 `F12-6` that is **the whole game-author path with no in-world evidence at all**,
 which matters because `register_blocks` is half of why `6126abe` exists, and
 `F11-11` is the `rev_blocks` fix's only possible evidence.
@@ -1327,8 +1333,8 @@ files. **Played 2026-09-07 at `8e6350f`, engine 5.17.0**: `F12-1`, `F12-2`,
 `F12-3` and `F12-5` passed, **`F12-4` failed on `B54`** — `print` printing only
 its first argument, so the check could not get past its own first line, and the
 rotation it exists for is still unobserved and owed a re-run — and **`F12-6` is
-unrun**, needing a second mod that registers a category. CI has seen neither
-commit.
+unrun**, its second mod now written at `../codeblock-test-mod`. CI has seen
+neither commit.
 
 **It went into `Phase 8` for `F11`'s reason.** Every `F11` colour name is gone
 and `color` is gone with no alias — two breaks to names a saved program writes,
@@ -1659,6 +1665,26 @@ saved program and no existing world breaks.
 
 ## Other decisions worth not re-litigating
 
+- **The `register_blocks` test mod lives outside this repository and is not
+  versioned**, asked for by the author on 2026-09-07 and written to
+  `../codeblock-test-mod` so it can be copied into any game. `F11-10`, `F11-11`
+  and `F12-6` all need a second mod calling `codeblock.register_blocks`, and the
+  obvious home — `tests/game/mods/` — is **wrong**, because that directory is
+  all-enabled: a mod registering a category there would change `api.names()` and
+  the palette underneath every spec run, which is the one thing the specs must
+  hold still. So it is deliberately untracked, and the cost of that is accepted:
+  **what it registers is written into `F11-10` in enough detail to rebuild it**,
+  which is the record standing in for version control. **Do not move it into
+  `tests/game/mods/`.**
+- **`mod ?` in the late-call refusal gets no finding id**, decided 2026-09-07.
+  `lib/blocks.lua:195` reads `core.get_current_modname() or '?'`, and
+  `lua_api.md` 5.17.0 documents that function as answering the loading mod's
+  name *when loading a mod* — so a call from a `core.after` falls to `'?'` and
+  the refusal names no mod. It is cosmetic and **not fixable from inside
+  `register_blocks`**: after load the engine does not know who the caller is.
+  What it would cost is a playtester carrying `F11-10` case 2's *name the calling
+  mod* criterion into case 3 and reading a correct refusal as a fail, so the
+  answer is in case 3's recipe rather than in `AUDIT.md`.
 - **The new-file template names no individual colour**, decided 2026-09-07 while
   fixing `B53`. `code-expert` proposed `colors.orange`, a one-word change from
   the broken `blocks.obsidian`. It was **rejected**: naming a current colour
@@ -2184,13 +2210,14 @@ saved program and no existing world breaks.
 record change; the playtest session it records was run at `8e6350f`, the commit
 before it. `origin/master` is at `65b4c46` and **has seen no part of `F11`,
 `F12`, `F13`, `F14`, `B53`, `C23` or `B54`** — **sixteen unpushed commits**,
-from `git rev-list --count origin/master..HEAD`, which reads 15 at `24842d3`.
+from `git rev-list --count origin/master..HEAD`, which reads 16 at `1aa2f29`.
 
 **`F11`, `F12`, `F13` and `F14` are all shipped, and all four were played on
 2026-09-07 at `8e6350f`: fifteen passes, one fail (`F12-4`, cause `B54`), and
 five entries still unrun — `F11-10`, `F11-11`, `F12-6`, `E17` and `W7`.** The
-three `F11`/`F12` ones are one thing: **a second mod calling
-`register_blocks`**, so the game-author path has no in-world evidence. `F11` in two passes:
+three `F11`/`F12` ones are one thing: a second mod calling `register_blocks`,
+now written at `../codeblock-test-mod`, so the game-author path has no in-world
+evidence yet. `F11` in two passes:
 `d075742` — the mod registers nodes of its own, `mod.conf` drops to
 `depends = vector3`, `blocks`/`plants`/`wools`/`iwools` become
 `colors`/`glass`/`lamps`/`hues` plus a top-level `air`, the `default` and `wool`
@@ -2262,5 +2289,6 @@ a dependency worth adding for one case. Neither is a spec change, so neither is
 
 ---
 
-Last reviewed **2026-09-07**, describing commit **`24842d3`** — `B54`'s fix, the
-`F11`–`F14` playtest session at `8e6350f`, and this record change together.
+Last reviewed **2026-09-07**, describing commit **`1aa2f29`** — `B54`'s fix, the
+`F11`–`F14` playtest session at `8e6350f`, and the `register_blocks` test mod at
+`../codeblock-test-mod`, which unblocks `F11-10`, `F11-11` and `F12-6`.

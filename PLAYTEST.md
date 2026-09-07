@@ -44,14 +44,17 @@ landed afterwards at `24842d3`.
 
 **What is outstanding, and it is five entries and one re-run:**
 
-- **`F11-10`, `F11-11` and `F12-6` — all three need a second mod calling
-  `codeblock.register_blocks`.** That is the **entire game-author path**, and it
-  now has **no in-world evidence at all** while every other part of `F11`, `F12`
-  and `F14` has. The contract, the refusals, the late-call seal, a registered
-  category reaching `place()`, `get_block()` and player meta, and a registered
-  category's own ramp are all committed, gated and unseen. They are cheapest run
-  in one session, since `F11-11` and `F12-6` both want `F11-10`'s mod. **`F11-11`
-  is also the `rev_blocks` fix's only possible evidence.**
+- **`F11-10`, `F11-11` and `F12-6` — the whole game-author path, and it is now
+  unblocked rather than waiting on a mod.** **The mod exists, at
+  `../codeblock-test-mod`** — outside this repository and unversioned, which is
+  deliberate and is described in `F11-10` — so all three are runnable as
+  written, and cheapest run in one session since `F11-11` and `F12-6` both use
+  its `wool` category. Until then the path has **no in-world evidence at all**
+  while every other part of `F11`, `F12` and `F14` has: the contract, the
+  refusals, the late-call seal, a registered category reaching `place()`,
+  `get_block()` and player meta, and a registered category's own ramp are all
+  committed, gated and unseen. **`F11-11` is also the `rev_blocks` fix's only
+  possible evidence.**
 - **`E17`**, written 2026-09-07 at `de3bcbb` for `B53` — a brand new file
   running as it is. Nothing in the *Editor* group would have caught `B53`, because
   every other check there opens a file that already exists.
@@ -94,6 +97,9 @@ with 35 and removed the grain from the solids, so both halves moved — the hexe
 to `F12-1`, the wall to `F12-2`. **Both passed on 2026-09-07**, so everything it
 was for has been looked at in its current form. The entry stays in place as a
 pointer, because `F11`'s checks are numbered in commit messages and the record.
+**The author ran it anyway on 2026-09-07 at `1aa2f29` and it passed**, which is
+noted in the entry and changes nothing: the retirement is not hiding a fail, and
+the live evidence is still `F12-1` and `F12-2`, whose criteria replaced its own.
 
 **Two passes are worth more than a tick.** **`F14-2`** is the check `test-agent`
 could not turn into a spec — reading past the end of a palette view stays silent
@@ -2127,12 +2133,19 @@ have shown it.
 solids reading as their hexes and a wall showing the tile's grain. `F12` replaced
 the palette with 35 colours and made the solid tile a flat pure white, so both
 halves moved: the hexes and the palette order are **`F12-1`**, the wall is
-**`F12-2`**. The id is kept so nothing that cites it dangles. Never run, so no
-result was lost.
+**`F12-2`**. The id is kept so nothing that cites it dangles.
 
 **Both successors passed on 2026-09-07 at `8e6350f`**, which is what retires it
 rather than leaving it superseded-but-outstanding: everything this check was for
 has now been looked at, in its current form.
+
+**The author ran it anyway after the retirement and reported a pass — `1aa2f29`,
+engine 5.17.0, 2026-09-07.** It is recorded here and it does not revive the
+entry, because it is evidence about criteria that have been replaced: the row of
+33 and the tile's grain are not what the palette or the solid tile look like
+now. What it does settle is that the retirement is not hiding a fail. It is not
+written as a `Result:` line, so the counts above still read this entry as
+retired rather than as a live check with a pass.
 
 ### F11-5 · Coloured glass and coloured lamps [F11]
 
@@ -2210,27 +2223,68 @@ mapgen could have shown it.
 
 ### F11-10 · A real game mod calls `register_blocks` [F11]
 
-Write a small mod that names `codeblock` in its `depends` and calls
-`codeblock.register_blocks` at load time — the contract is in `lib/blocks.lua`'s
-header.
+**The mod is written, at `../codeblock-test-mod`.** Copy the whole folder into a
+world's `worldmods/`, a game's `mods/` or `%APPDATA%\Minetest\mods\` and enable
+it beside `codeblock`; its own `README.md` says the same and carries the pass
+lines. Its folder name does not matter — `mod.conf` declares
+`name = codeblock_test`.
 
-1. **A good call.** Two or three names pointing at nodes the game registers.
-   **Pass:** the category appears in the sandbox, in the editor's block picker
-   and in the help panel's selector, showing its **raw** name.
-2. **A bad call.** A name that is not a valid identifier, a name colliding with
-   one of the mod's own, and an itemstring naming no node. **Pass:** each is
-   refused with a line in `debug.txt` **naming your mod, the name and the rule**,
-   and the server keeps running.
-3. **A late call.** Call `register_blocks` from inside a `core.after` or a
-   globalstep, after loading is done. **Pass:** it is **refused** and logged —
-   not accepted, and not merely warned about. It cannot be validated after the
-   seal, so accepting it would be accepting an unchecked name.
+**It is outside this repository on purpose and is not versioned by anything.**
+`tests/game/mods/` is all-enabled, so a mod registering a category there would
+change `api.names()` and the palette underneath every spec run. That is the
+author's decision, recorded in `ROADMAP.md` under *other decisions*, and it is
+why the paragraph below exists: **if the directory is lost, rebuild it from
+this.**
+
+Three files. `mod.conf` — `name = codeblock_test`, `depends = codeblock`, that
+dependency being what puts `register_blocks` in place before it runs. `init.lua`
+registers three nodes of its own — `codeblock_test:red`, `:green`, `:blue`,
+each `codeblock_block.png^[multiply:<hex>`, so it drops into any game and needs
+no `wool` from anywhere — and then makes the five calls the three cases below
+want. `README.md` is the install and pass note. All the bad and late calls sit
+behind `codeblock_test_bad_calls`, default true, so they can be silenced once
+this check has been run.
+
+1. **A good call.** `register_blocks('wool', {red = …, green = …, blue = …})`,
+   three entries so `ramp.wool(v, 1, 3)` in `F12-6` walks all of them.
+   **Pass:** `debug.txt` says `[codeblock] the game added 1 block category`,
+   and the category appears in the sandbox, in the editor's block picker and in
+   the help panel's selector, showing its **raw** name.
+2. **A bad call.** Three of them: `'bad name'`, which is not an identifier;
+   `'colors'`, which is already taken; and `'ghost'` with
+   `{missing = 'codeblock_test:no_such_node'}`. **Pass:** each is refused with a
+   line in `debug.txt` **naming your mod, the name and the rule**, and the
+   server keeps running.
+
+   **Count four lines, not three.** `'ghost'` produces **two** — the entry
+   refused for naming a node no mod registered, then the category refused for
+   holding nothing that can be placed. That is `install_one`'s design: a bad
+   entry is dropped by name and the rest of the category still installs, so a
+   category whose every entry was dropped has to be refused separately.
+3. **A late call.** From inside a `core.after`, after loading is done.
+   **Pass:** it is **refused** and logged, and `register_blocks` returns
+   `false` — not accepted, not queued, and not merely warned about. It cannot be
+   validated after the seal, so accepting it would be accepting an unchecked
+   name.
+
+   **Do not carry case 2's criterion into this one: the line reads `mod ?`, and
+   that is correct.** `lib/blocks.lua:195` is
+   `local who = core.get_current_modname() or '?'`, and `lua_api.md` 5.17.0
+   documents `core.get_current_modname()` as returning the loading mod's name
+   *when loading a mod* — a `core.after` callback is not that, so it answers nil
+   and the fallback shows. The engine does not know who the caller is after
+   load, so this is not fixable from inside `register_blocks` and has no finding
+   id. The test mod works around it by logging its own line either side of the
+   call, which is why **the pass here is `the late call returned false`** rather
+   than a mod name in codeblock's own line.
 
 Result: not yet run.
 
 ### F11-11 · A registered category reaches `place()`, `get_block()` and player meta [F11]
 
-With the mod from `F11-10` installed. **This is the `rev_blocks` fix's only
+With the mod from `F11-10` — `../codeblock-test-mod` — installed, which offers
+`wool` with `red`, `green` and `blue`, so the programs below run verbatim.
+**This is the `rev_blocks` fix's only
 possible evidence.** A spec *can* call `get_block` —
 `codeblock.commands.drone_get_block` is exported and `integration_spec` asserts
 its out-of-world branch — but **no spec can make a read land inside the world**:
@@ -2426,13 +2480,15 @@ first and last hue rather than wrapping.
 
 ### F12-6 · A game-registered category gets a ramp of its own [F12, F11]
 
-Written 2026-09-06 at `01f9641`. With the mod from `F11-10` installed, so it is
-cheapest run in the same session.
+Written 2026-09-06 at `01f9641`. With the mod from `F11-10` —
+`../codeblock-test-mod` — installed, so it is cheapest run in the same session.
+Its category is `wool` with three entries, which is exactly the range case 1
+was written for.
 
-1. `print(ramp.wool(1, 1, 3))` — substituting your category's name and a range
-   matching how many entries it has.
-   **Pass:** a name from that category, and walking the range gives each of them
-   in turn.
+1. `print(ramp.wool(1, 1, 3))`, then `2` and `3`.
+   **Pass:** `wool.blue`, `wool.green`, `wool.red` in that order — the flat keys
+   `place()` takes, in alphabetical order, because that is the only order a
+   registered category has.
 2. **Open the help panel's *Choosing blocks* group.**
    **Pass:** `ramp.<name>` is listed there beside `ramp.hues`, `ramp.colors`,
    `ramp.glass` and `ramp.lamps`, and its text says the order is alphabetical
