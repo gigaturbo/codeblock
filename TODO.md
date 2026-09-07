@@ -166,6 +166,41 @@ Features
       when `is_block` asked it; rewording the key would orphan the French
       translation and it is right for `place()`, so it was left. Gates green.
       Its playtest folds into F12-3 and F12-4, neither run (audit F13)
+- [ ] FEAT: palette views and a generic ramp — `light_hues`, `dark_hues`,
+      `neutrals` and `ramp.of(list, v, min, max)`, settled with you on
+      2026-09-07 as `F14` and **shipped the same day with every gate green**.
+      The point that decided its shape: a palette view is one axis and a block
+      category is the other, and every category is indexed by the same short
+      name — so `glass[h]` and `lamps[h]` turn any of the four arrays into a
+      glass or lamp gradient, and four arrays give twelve gradients with no
+      extra names. Your first reading, twelve arrays of blocks, is eleven names
+      for what indexing already does; nested `colors.dark.red` tables were
+      dropped as well, mostly because a game-registered category has no shade
+      tiers and the shape would break the equal footing `F11` and `F12` gave it.
+      `ramp.of` does not validate — ramp a list of your own if you like, and a
+      non-table answers `nil` rather than stopping the program. The palette
+      itself does not change. **One thing you did not ask for and now have:**
+      `light_hues`, `dark_hues` and `neutrals` are three more names a game
+      cannot use for a registered category. **Three in-world checks are owed and
+      none is run** — `F14-1` the help panel, `F14-2` that reading past the end
+      of a view stays silent, `F14-3` that a gradient through a view lands; the
+      shape, the four decisions and the gate figures are in ROADMAP.md under
+      `F14` (audit F14)
+- [ ] FEAT: `place(colorhex("#F7A8E7"))` — your question of 2026-09-07,
+      **shaped as `F15` and deliberately not scheduled**. It is feasible but
+      **not as an arbitrary colour**: nodes can only be registered at mod load,
+      so what the engine offers is `paramtype2 = "color"` with a 256-pixel
+      palette texture — one node carrying 256 colours indexed by `param2`.
+      `colorhex` would therefore snap to the **nearest of 256**, and would have
+      to say so. It is additive — three nodes and one PNG, the 105 stay — and
+      the mod's flat white solid tile is exactly what a palette tints. The cost
+      is `lib/shapes.lua`: a second full-size `set_param2_data` array per slab
+      in the one path that has to stay fast, plus `get_block`/`is_block`
+      learning to read `param2` and a picker that cannot list 256 × 3. Two
+      questions are open on purpose — which 256 colours, and how the value
+      reaches `place()`, whose one-string contract is load-bearing. The whole
+      investigation is in ROADMAP.md under `F15`, written so nobody repeats it
+      (audit F15)
 - [ ] DECIDE: three exported functions in `lib/utils.lua` have no caller left —
       `table_reverse`, `table_convert_ik`, `table_convert_iv`. Found 2026-09-05
       while recording `F11`, which took the last caller of two of them. They are
@@ -257,6 +292,16 @@ Features
 
 Decisions wanted from the author
 
+- [x] expand the neutrals from five to ten shades black-to-white, with a naming
+      convention or aliases — asked 2026-09-07 and **answered no the same day**,
+      after seeing the `F15` feasibility: a 256-colour palette node gives a
+      smooth greyscale and every other colour with it, so ten hand-named greys
+      would be redundant. Both schemes are written into ROADMAP.md's decisions
+      log so neither is proposed again — `grey_1`…`grey_10` with the five
+      existing names kept as aliases onto the same flat keys, and ten
+      hand-picked English names, argued against for having no guessable order.
+      Either way, ten *even* steps moves the existing five hexes, so
+      `colors.grey` would change shade in worlds already built (audit F15)
 - [x] is `max_runtime_s` to come down? Yes, answered by doing it, 2026-09-02:
       `30 / 60 / 120 / 300`, with level 4's `max_nodes_written` `1e7` → `5e7`
       going the other way. A 387 s program spent about 18 s of server time, so

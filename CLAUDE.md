@@ -172,6 +172,15 @@ each with a result line, the commit it was checked at and the date. Do a run
 before calling anything verified in a running world, and record the outcome
 there.
 
+**One thing the suite cannot see even in principle, found while covering `F14`:
+a chat line the mod sends a player.** `lib/sandbox.lua` binds
+`chat_send_player` as a **load-time local**, so replacing `core.chat_send_player`
+around a run does not intercept it, and there is no logged-in player to receive
+it either. A spec can therefore assert that a run did not raise, which passes
+against a version that reports as well as one that does not — a vacuous
+assertion. *Nothing is reported* is a `PLAYTEST.md` check (`F14-2`), never a
+spec.
+
 ## Architecture
 
 ### Running a player's program
@@ -345,12 +354,23 @@ throw the glass and lamp tiles away and opaque the glass. `mod.conf` is
 `depends = vector3`.
 
 **`lib/config.lua` holds two literals — `neutrals` and `families` — and derives
-`palette` and `hues` from them** (`F12`). Five neutrals light to dark, then ten
-hue families in colour-wheel order, each `light_x` / `x` / `dark_x`. `hues` is
-the plain shade of each family, and it is the only view that reads as a rainbow.
-Do not flatten this back into one list: F11's flat list with an index range for
-the neutrals could not express *the plain shade of each family*, which is what
-`hues` now means. `fallback` is still `grey`.
+`palette` and the four palette views from them** (`F12`, `F14`). Five neutrals
+light to dark, then ten hue families in colour-wheel order, each
+`light_x` / `x` / `dark_x`. The views are ordered arrays of **short colour
+names**: `hues` the plain shade of each family, `light_hues` and `dark_hues` the
+other two tiers in the same wheel order, `neutrals` the five greys light to
+dark. Do not flatten this back into one list: F11's flat list with an index
+range for the neutrals could not express *the plain shade of each family*.
+`fallback` is still `grey`.
+
+**A view is one axis of the palette and a category is the other** (`F14`). Every
+category is indexed by the same short name, so `glass[h]` and `lamps[h]` turn
+any view into a glass or a lamp gradient and **four arrays give twelve
+gradients** — which is why there is no `dark_glass` array and must not be one.
+For `colors` the short name **is** the flat key, so `place(dark_hues[i])` needs
+nothing around it. The views are published to the sandbox through `snapshot`
+like every other table, and none of them gets an unknown-name report: reading
+past the end of an array is a legitimate thing for a program to do.
 
 **The solid tile is flat pure white**, so `^[multiply` reproduces the palette hex
 exactly and a solid block is a flat fill. The glass tile keeps its frame and
@@ -378,6 +398,14 @@ refuse a node belonging to a mod that loads later. A refusal is
 game's typo must not abort the server — and a call arriving after the seal is
 refused rather than warned about.
 
+**Its taken-set is seeded from `api.names()`, so every top-level API name is a
+category name a game cannot have.** That is correct — a category shadowing one
+would break the environment — but it means **adding a top-level name takes a
+name out of every game's namespace**, which is not visible anywhere in
+`lib/blocks.lua`. `F14` took three at once: `light_hues`, `dark_hues` and
+`neutrals`. Weigh that when adding a name, and say so in `CHANGELOG.md`, where
+a game author will read it.
+
 **Derive every view of the palette in `config.add_category` and nowhere else.** A
 list built at load time in a reader is a snapshot taken before any game has
 registered anything. Three such snapshots existed and all three were invisible to
@@ -388,14 +416,21 @@ replaced, so a local reference still sees a late arrival.
 **None of the 105 nodes has a `sounds` field, deliberately** — every
 `node_sound_*_defaults()` belongs to a game.
 
-**One ramp per category, and `ramp.hues`** (`F12`). `ramp_over(list)` in
-`lib/sandbox.lua` is the whole of it, built once per category per run from
-`add_category`'s `keys` view, so a game's category gets a ramp on the same
-terms as the mod's own — appended to `lib/api.lua`'s *Choosing blocks* group by
-`lib/blocks.lua`, which is why that group carries an `id`. `color(v, min, max)`
-is **gone with no alias**. Only `ramp.hues` is a gradient; `ramp.colors`,
-`ramp.glass` and `ramp.lamps` walk light/plain/dark inside each family and
-strobe, which is a consequence of one ramp per category and is not a defect.
+**One ramp per category, `ramp.hues`, and `ramp.of` over any array** (`F12`,
+`F14`). `ramp_pick(list, v, m, M)` in `lib/sandbox.lua` is the whole of the
+mapping: `ramp_over(list)` binds it to one list, and **`ramp.of` is
+`ramp_pick` itself**, so the generic ramp and the per-category ones cannot drift
+apart — do not reimplement either against the other. A per-category ramp is
+built once per category per run from `add_category`'s `keys` view, so a game's
+category gets one on the same terms as the mod's own — appended to
+`lib/api.lua`'s *Choosing blocks* group by `lib/blocks.lua`, which is why that
+group carries an `id`. `color(v, min, max)` is **gone with no alias**. Out of
+range clamps, never wraps; a non-number `v` or a zero-width range gives the
+first entry, and a non-table or empty list answers `nil` — an arithmetic
+accident must not stop a program. Only `ramp.hues` and `ramp.of` over a palette
+view are gradients; `ramp.colors`, `ramp.glass` and `ramp.lamps` walk
+light/plain/dark inside each family and strobe, which is a consequence of one
+ramp per category and is not a defect.
 
 **`get_block(n_right, n_up, n_forward)` reads without moving the drone**, the
 offsets rotated by its facing like `place_relative`. It calls

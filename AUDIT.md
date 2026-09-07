@@ -33,6 +33,14 @@ game may be reading them; what it wants is the author's decision. `A18` is
 `lib/formspecs.lua`, verified equivalent, and the last `LUACHECK_STRICT=1`
 `W421` in that file.
 
+**`F14` is committed at `e3e2178` and `test-agent` filed no finding against
+it** — `light_hues`, `dark_hues`, `neutrals` and `ramp.of(list, v, min, max)`,
+adding names and renaming none. **There is no new id here.** What it left this
+document is one correction, marked below: the `F12` ramp coverage entry now
+records that those 57 assertions **caught the `ramp_pick` extraction** when it
+was deliberately made to wrap, which is the only evidence that pulling the index
+arithmetic out of `ramp_over` did not orphan them.
+
 **`F13` is committed at `4450ce1` and closed `C22` with it.** `is_block(block,
 n_right, n_up, n_forward)` is the predicate form of `F12`'s `get_block`, and the
 same commit gave `.luacheckrc`'s sandbox std the both-directions check that
@@ -67,8 +75,9 @@ in its `ROADMAP.md` entry, not given an id. The reasoning is under `F11` there.
 part of it**, both commits being unpushed, **and none of its `PLAYTEST.md` checks
 has been run**, which is outstanding *checking*. **The same is true of `F12`,
 and worse.** `origin/master` is at `65b4c46`; `d075742`, `6126abe`, `7514f39`,
-`b752ea3`, `01f9641`, `6aadd16` and `4450ce1` — **seven commits** — are all
-unpushed, so **CI has looked at nothing since `B51`**, and it has never run the
+`b752ea3`, `01f9641`, `6aadd16`, `4450ce1`, `84da24e`, `e3e2178` and this
+record change — **ten commits** — are all unpushed, so **CI has looked at
+nothing since `B51`**, and it has never run the
 new `.luacheckrc` check. Anything below claiming a CI state describes `65b4c46` and no later
 commit.
 
@@ -107,9 +116,10 @@ both are corrected, and the correction is under the entry below.
 | A architecture and performance | 14 | `A17`, `A18` — both low, both pre-existing, both filed 2026-09-05 while recording `F11` |
 
 **CI is green on all three jobs at `65b4c46`, which is `origin/master` and is
-seven commits behind `HEAD`** — run 47, checked against the Actions API on
-2026-09-04. `d075742`, `6126abe`, `7514f39`, `b752ea3`, `01f9641`, `6aadd16` and
-`4450ce1` are unpushed, so **CI has seen no part of `F11`, `F12` or `F13`**. So nothing here carries
+ten commits behind `HEAD`** — run 47, checked against the Actions API on
+2026-09-04. `d075742`, `6126abe`, `7514f39`, `b752ea3`, `01f9641`, `6aadd16`,
+`4450ce1`, `84da24e` and `e3e2178` are unpushed, so **CI has seen no part of
+`F11`, `F12`, `F13` or `F14`**. So nothing here carries
 local gates only any more, `B47`'s fix and `settingtypes.txt`'s generator
 included, and run 46 over `7dbe18f` was the first to prove the fourth CI step
 `d8d44cd` added. Everything committed since is the record, the images and
@@ -131,14 +141,16 @@ which went from six cases to nine. Nothing was added for `B47`, because **no
 spec can reach it** — the gates call the handler directly and the defect is in
 the client's menu. **CI has since seen all of this**: run 47 is green on all
 three jobs at `65b4c46`. The record claimed the opposite until 2026-09-04.
-**`F11`, `F12` and `F13` are past that line**: the gates at `01f9641` were local
-only and so are those at `4450ce1`. At `4450ce1` they read luacheck silent, all
-three `--check` generators up to date — `gen_docs.lua --check` now also
-comparing `.luacheckrc`'s sandbox std with `api.names()` both ways —
+**`F11`, `F12`, `F13` and `F14` are past that line**: the gates at `01f9641`,
+`4450ce1` and `e3e2178` were all local only. At `e3e2178` they read luacheck
+silent, all three `--check` generators up to date — `gen_docs.lua --check` now
+also comparing `.luacheckrc`'s sandbox std with `api.names()` both ways —
 `locale/*.tr` covering every message and nothing else, six standalone specs
-under Lua 5.1, and **nine in-engine specs 610 passed / 0 failed / 1 xfail /
-0 xpass**, `integration_spec` alone at 248. At `01f9641` the same figures were
-544 and 182; the 66 new assertions are `is_block` and `ramp_over`.
+under Lua 5.1 at 251, and **nine in-engine specs 646 passed / 0 failed /
+1 xfail / 0 xpass**, `integration_spec` alone at 284. At `4450ce1` the figures
+were 610 and 248, at `01f9641` 544 and 182; the 66 assertions before those were
+`is_block` and `ramp_over`, and the 36 after them are `F14`'s palette views and
+`ramp.of`.
 
 **Every defect the playtests found is fixed, and no finding is open.** `W1`'s
 re-run at codelevel 1 on 2026-09-03 was `B50`, and diagnosing it produced `B51`
@@ -1413,8 +1425,9 @@ document says so.
   each: luacheck, the six standalone specs under plain Lua 5.1, and the three
   `--check` gates. **CI never runs the nine in-engine specs**, which is why the
   editor findings rest on the local suite and the playtests. **CI has seen no
-  part of `F11` or `F12`**: `d075742`, `6126abe`, `7514f39`, `b752ea3` and
-  `01f9641` are all unpushed and `origin/master` is still at `65b4c46`.
+  part of `F11`, `F12`, `F13` or `F14`**: `d075742`, `6126abe`, `7514f39`,
+  `b752ea3`, `01f9641`, `6aadd16`, `4450ce1`, `84da24e` and `e3e2178` are all
+  unpushed and `origin/master` is still at `65b4c46`.
 - **Verified locally** (engine 5.17.0, read from output rather than exit codes —
   `$?` does not survive this machine's WSL layer): nine in-engine specs, **474
   passed / 0 failed / 1 xfail / 0 xpass** at `1b991ae`, with all five gates
@@ -1432,7 +1445,17 @@ document says so.
   xfail, three `--check` generators up to date, `locale/*.tr` complete, six
   standalone specs green — and every changed or new assertion made to fail once
   against **ten separate deliberate breaks**, with `md5sum` confirming `lib/`
-  was restored byte-identical afterwards. `codeblock_run_tests` was confirmed
+  was restored byte-identical afterwards. **`F14` the same, at `e3e2178`**: 646
+  in-engine assertions across the nine, `integration_spec` at **284**, 0 failed,
+  0 xpass, 1 known `preprocess_spec` xfail, none skipped and no errors; the six
+  standalone specs unchanged at 251; luacheck silent and all three `--check`
+  generators up to date — and `test-agent` ran them itself rather than taking
+  `code-expert`'s word. Its 36 new assertions were driven to failure **three
+  ways**, each reverted with `lib/sandbox.lua` confirmed byte-identical by
+  SHA-256: the views bound to the wrong lists with one published unsnapshotted
+  (11 failed, the config leak visible), `ramp.of` given a shifted argument list
+  (9 failed), and `ramp_pick` wrapping instead of clamping (11 failed).
+  `codeblock_run_tests` was confirmed
   gone from `%APPDATA%\Minetest\minetest.conf` after the run.
 - **Verified by making the check fail.** Both generators' completeness guards,
   by adding a fake per-codelevel limit to `config.lua` and watching each name it
@@ -1503,6 +1526,17 @@ document says so.
   are not cached yet. **There is no position anywhere at which an in-world read
   can be asked for from the suite** — measured, not assumed, so nobody spends
   the afternoon again.
+- **Unprovable by running, and permanently so: a chat line the mod sends a
+  player.** Found while covering `F14`. `lib/sandbox.lua` binds
+  `chat_send_player` as a **load-time local**, so replacing
+  `core.chat_send_player` around a run intercepts nothing, and there is no
+  logged-in player to receive it in any case. A spec can only assert that the
+  run did not raise — which passes against a **reporting** version as well, and
+  is therefore vacuous, the same failure mode as the two checks in `C20`. So
+  *the unknown-block warning does not fire for a legitimate read past the end of
+  a palette view* is playtest `F14-2` and can never be a spec. It is checked
+  against a genuine misspelling in the same session, because one must report and
+  the other must not.
 - **Explained by reading, confirmed by playing it, fixed, then confirmed again:**
   `B50`. The cause is a reading of the 5.17.0 engine source —
   `serveractiveobject.h:123-129` and `serverenvironment.cpp:1685-1690` for the
@@ -1611,7 +1645,12 @@ document says so.
   is pinning to the implementation. What reaches it instead is the only real
   door: the spec **writes a program into the throwaway world** and runs it
   through `get_safe_coroutine`. What remains unprovable is the *visual* half —
-  a gradient reading as a gradient — which is `F12-5`.
+  a gradient reading as a gradient — which is `F12-5`. **`F14` then made those
+  57 assertions earn their keep**: extracting `ramp_over`'s index arithmetic
+  into `ramp_pick`, which `ramp.of` now *is*, risked orphaning them, and
+  `ramp_pick` deliberately made to wrap instead of clamp failed **eleven
+  assertions, all of them in this pre-existing section**. The refactor is
+  covered by the coverage it might have broken.
 
 ---
 
@@ -1640,8 +1679,8 @@ xfail is `preprocess_spec`'s and pre-existing. At `01f9641` the same run was
 
 **CI has looked at none of it.** `origin/master` is at `65b4c46` — run 47, green
 on all three jobs, checked against the Actions API on 2026-09-04 — and
-`d075742`, `6126abe`, `7514f39`, `b752ea3`, `01f9641`, `6aadd16` and `4450ce1`
-are all unpushed.
+`d075742`, `6126abe`, `7514f39`, `b752ea3`, `01f9641`, `6aadd16`, `4450ce1`,
+`84da24e` and `e3e2178` are all unpushed.
 
 **Gates green, unproven in a world is two**, `B14` and `S7`'s log half; and
 **sixteen playtest checks are unrun** — `F11`'s ten live ones, `F11-4` having

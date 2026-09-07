@@ -66,6 +66,13 @@ Experiment and discover with the other examples, or write your own!
   so a shape can be coloured by height or distance. There is one ramp per block
   category — `ramp.colors`, `ramp.glass`, `ramp.lamps` and one for a category a
   game has registered. It replaces `color(v, min, max)`, which is gone.
+- **Four ways of walking the palette** `hues`, `light_hues`, `dark_hues` and
+  `neutrals` are ordered arrays of colour names — which colours, in what order.
+  Every block table is indexed by those same names, so one array becomes a
+  gradient in whatever material you index with it: `place(dark_hues[i])` builds
+  a solid, `glass[dark_hues[i]]` its glass, `lamps[dark_hues[i]]` its lamp.
+  `ramp.of(list, v, min, max)` maps a number onto any array — one of these, or
+  a list you built yourself.
 - **`get_block(right, up, forward)`** Read the block at an offset from the drone
   without moving it. The offsets turn with the drone, the same way
   `place_relative` does. **`is_block(block, right, up, forward)`** asks the same

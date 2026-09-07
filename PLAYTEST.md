@@ -10,7 +10,7 @@ This file has its own `export-ignore` line, so it never ships to a player.
 ## How to record a result
 
 ```
-Result: pass — <commit> · engine <version> · <YYYY-MM-DD> — <one line of detail>
+Result: pass — e3e2178 · engine <version> · <YYYY-MM-DD> — <one line of detail>
 ```
 
 `fail` and `partial` take the same shape. **Always keep the commit and the
@@ -30,16 +30,19 @@ A recipe also **names the shell it is for** — that has cost a session twice
 
 ## Where it stands
 
-**77 entries, of which `F11-4` is superseded — so 76 live checks, sixteen of
-them unrun.** The unrun sixteen are `F11-1` to `F11-11` less `F11-4`, written
-2026-09-05 at `6126abe` when `F11` landed, and `F12-1` to `F12-6`, written
-2026-09-06 at `01f9641`. Before them every one of the 60 older checks carried a
+**80 entries, of which `F11-4` is superseded — so 79 live checks, nineteen of
+them unrun.** The unrun nineteen are `F11-1` to `F11-11` less `F11-4`, written
+2026-09-05 at `6126abe` when `F11` landed, `F12-1` to `F12-6`, written
+2026-09-06 at `01f9641`, and `F14-1` to `F14-3`, written 2026-09-07: the first
+while `F14` was still being built, the other two out of its coverage work, once
+it had shipped. Before them every one of the 60 older checks carried a
 result, which had not been true before 2026-09-04. **This is outstanding
-*checking*, not unfinished work:** all three features are committed with their
-gates green and no finding against any, and what these sixteen cover is the part
-no spec can reach — a registered node, a texture, the creative inventory, the
-picker, the help row, a game's own `register_blocks` call, a colour ramp read as
-a gradient, and a read that lands inside the world.
+*checking*, not unfinished work:** `F11` to `F14` are committed with
+their gates green and no finding against any, and what these entries cover is
+the part no spec can reach — a registered node, a texture, the creative
+inventory, the picker, the help row, a game's own `register_blocks` call, a
+colour ramp read as a gradient, a read that lands inside the world, the API
+help panel rendering, and **a chat line that must not appear**.
 
 **`F13` added no entry, and that is deliberate.** `is_block` is `get_block`'s
 read path, so `F12-3` and `F12-4` were **extended** at `4450ce1` rather than
@@ -50,7 +53,7 @@ positions twice. Read those two before running them — both changed on
 visual half.
 
 **Run `F11-1` first**, the category selector on a French client. It is the only
-one of the sixteen whose failure would be expensive: a legacy dropdown returning
+one of the nineteen whose failure would be expensive: a legacy dropdown returning
 displayed text rather than the stored item would mean converting the editor out
 of legacy coordinates. Everything else in both groups is appearance, digging,
 inventory, a game's registration or a read, and a fail there is a small fix.
@@ -2232,6 +2235,85 @@ cheapest run in the same session.
 **A registered category is sorted alphabetically**, so its ramp is not a
 gradient and the generated documentation says so. That is deliberate: the mod
 cannot know a game's colour order, or whether its category is colours at all.
+
+Result: not yet run.
+
+### F14-1 · The API help panel lists the new views and `ramp.of` [F14]
+
+Written 2026-09-07 while `F14` was still being built; `F14` shipped the same day
+at `e3e2178` with its gates green, so it is ready to run. `api.to_hypertext`
+runs **only** in a running world, so what the panel renders is observable
+nowhere else.
+
+1. **Open the editor's API help panel and find the *Choosing blocks* group.**
+   **Pass:** `light_hues`, `dark_hues` and `neutrals` are listed there beside
+   `hues`, each with its text, and `ramp.of` is listed beside `ramp.hues`,
+   `ramp.colors`, `ramp.glass` and `ramp.lamps`. Nothing is truncated, and the
+   group scrolls to the bottom with the new rows in it.
+2. **Read `ramp.of`'s description.** **Pass:** it says it takes a list, so a
+   player can see it accepts one of their own and not only a built-in view.
+3. **Then run `F14-3`**, which is that same program with the pass criteria the
+   panel cannot give you. It was a step here and became an entry of its own on
+   2026-09-07, so that the program and the colours it must produce are described
+   in one place.
+
+Result: not yet run.
+
+### F14-2 · Reading past the end of a palette view is silent [F14]
+
+Written 2026-09-07 at `e3e2178`, out of `F14`'s coverage work. **No spec can
+ever replace this one, so do not delete it as redundant.** `lib/sandbox.lua`
+binds `chat_send_player` as a load-time local, so a spec cannot intercept the
+misspelling report by replacing `core.chat_send_player` around a run, and there
+is no logged-in player to receive it either. A spec asserting *nothing was
+raised* would pass against a **reporting** version too, which makes it vacuous.
+
+The four views are arrays, and reading past the end of one is a legitimate thing
+for a program to do: it answers `nil`, which `place()` reads as *no block named*
+and therefore as *use the default*. So the unknown-block warning must **not**
+fire for it, while still firing for a genuine misspelling.
+
+1. Run this program:
+
+   ```lua
+   local x = dark_hues[99]
+   place(x)
+   ```
+
+   **Pass:** the block is built with your default block, and **no chat line
+   appears**.
+2. In the **same session**, run a second program:
+
+   ```lua
+   place(colors.gray)
+   ```
+
+   **Pass:** the misspelling is reported once, naming the wrong name. That is
+   what tells a pass apart from a mere non-crash — one of the two must report and
+   the other must not.
+
+Result: not yet run.
+
+### F14-3 · A gradient built through a view actually lands [F14]
+
+Written 2026-09-07 at `e3e2178`, out of `F14`'s coverage work. The specs prove
+`ramp.of`'s mapping and prove each view holds the names it should; what they
+cannot see is a real build in a world, in a material the view was not written
+for. That indexing — one axis the view, the other the category — is what `F14`
+exists for.
+
+1. Run this program:
+
+   ```lua
+   for i = 1, 10 do place(glass[ramp.of(dark_hues, i, 1, 10)]) up() end
+   ```
+
+   **Pass:** ten glass blocks in a column, `dark_pink` at the bottom through to
+   `dark_violet` at the top, **all see-through**.
+2. **Look at the colours, not the count.** **Pass:** the ten differ from each
+   other, and they differ from the same loop over `hues`, which gives the plain
+   shades. Ten identical blocks, or ten plain ones, is a fail even though
+   nothing crashed.
 
 Result: not yet run.
 
