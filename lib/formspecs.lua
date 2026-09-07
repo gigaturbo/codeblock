@@ -502,10 +502,16 @@ local file_editor = {
                 if #filename == 0 then return end
                 filename = filename .. '.lua'
                 if not get_user_data(name).byname[filename] then
+                    -- The program a new file starts with. It is player code
+                    -- inside a string, so nothing lints it, compiles it or
+                    -- generates it from lib/api.lua. So it names no single
+                    -- colour, the part of the API that moves. `place`, `up`
+                    -- and `hues` change only in a major version, and `#hues`
+                    -- fits the loop to whatever the palette holds.
                     write_file(name, filename,
                                '-- ' .. filename .. '\n\n' ..
-                                   "for i = 1, 10 do\n" ..
-                                   "  place(blocks.obsidian)\n" .. "  up(1)\n" ..
+                                   "for i = 1, #hues do\n" ..
+                                   "  place(hues[i])\n" .. "  up(1)\n" ..
                                    "end\n")
 
                     meta.newfile = ''

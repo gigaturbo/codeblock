@@ -858,11 +858,12 @@ local program_file = 'sandbox_spec_program.lua'
 -- The drone stands outside the world on x, which is what makes every map read
 -- answer nil with no map loaded. is_block needs that; the ramps read no map and
 -- do not care either way.
-local function sandboxed(src)
+local function sandboxed(src, at)
 
     local half_pi = math.pi / 2
     local drone = stub_drone(4)
     drone.x, drone.y, drone.z, drone.dir = sandbox_edge + 5, 0, 0, 0
+    if at then drone.x, drone.y, drone.z = at.x, at.y, at.z end
     drone.update_entity = function() end
     drone.angle = function(self)
         return math.floor(self.dir / half_pi + .5) % 4
@@ -1820,6 +1821,106 @@ do
         seen[item] = true
     end
     it('no two categories are drawn under the same label', duplicate, nil)
+end
+
+--------------------------------------------------------------------------------
+-- the program a new file starts with, run as a real player program
+--
+-- `+` and Enter in the editor write a starter program into the file they
+-- create. It is player code inside a Lua string in lib/formspecs.lua, so
+-- nothing lints it, compiles it or generates it from lib/api.lua. It still read
+-- `place(blocks.obsidian)` for three days after F11 renamed the categories, so
+-- every file a player made raised on its first statement, and all five gates
+-- stayed green over it.
+--
+-- The template is read out of lib/formspecs.lua rather than copied here. It is
+-- built inside a local closure and there is no runtime door to it, and a copy
+-- in the spec would be one more unchecked mirror of the source - which is the
+-- family of defect this one belongs to. The expression handed to write_file is
+-- extracted by matching parentheses from the call, then evaluated, so what runs
+-- below is the string that ships; a change to the shape of that call fails the
+-- first case here by name rather than quietly switching the check off.
+--
+-- It runs at the origin and not outside the world like every other program in
+-- this file, because it is the only one that moves and places, and `up` refuses
+-- to leave the world. The nodes land in the throwaway world the suite boots.
+-- Same allowance as the ramp sections above and for the same reason - there is
+-- no other door - and the run is the whole point: the old template compiled
+-- perfectly well, and only failed when the name was read.
+--------------------------------------------------------------------------------
+
+do
+    --- The program lib/formspecs.lua writes into a newly created file, or nil
+    -- if that call is no longer shaped the way this reads it.
+    local function template_source()
+
+        local f = io.open(codeblock.modpath .. '/lib/formspecs.lua', 'r')
+        if not f then return nil end
+        local text = f:read('*a')
+        f:close()
+
+        local anchor = 'write_file(name, filename,'
+        local at = text:find(anchor, 1, true)
+        if not at then return nil end
+
+        -- Scan to the parenthesis closing that call, stepping over quoted text
+        -- so a bracket inside the program itself cannot end it early. The
+        -- escape character is spelled string.char(92): a backslash literal in
+        -- the middle of this reads as a typo.
+        local i = at + #anchor - 1
+        local depth, quote, j = 1, nil, i
+        while depth > 0 do
+            j = j + 1
+            local c = text:sub(j, j)
+            if c == '' then return nil end
+            if quote then
+                if c == string.char(92) then
+                    j = j + 1
+                elseif c == quote then
+                    quote = nil
+                end
+            elseif c == "'" or c == '"' then
+                quote = c
+            elseif c == '(' then
+                depth = depth + 1
+            elseif c == ')' then
+                depth = depth - 1
+            end
+        end
+
+        -- name and filename are the two locals in scope at the call site.
+        local chunk = loadstring('local name, filename = ... return ' ..
+                                     text:sub(i + 1, j - 1))
+        if not chunk then return nil end
+
+        local ok, template = pcall(chunk, 'test_player', 'newfile.lua')
+        if not ok or type(template) ~= 'string' then return nil end
+        return template
+    end
+
+    local template = template_source()
+    it('the new-file template was found in lib/formspecs.lua', type(template),
+       'string')
+
+    local origin = {x = 0, y = 0, z = 0}
+    local drone, err = sandboxed(template or '', origin)
+
+    it('it runs to completion in the real sandbox environment', err, nil)
+    -- Not merely that it ran. A template of nothing but comments resolves every
+    -- name it has and would pass the case above, and so would no template at
+    -- all: what is asserted is that it reached commands that charge.
+    it('and it is a program that does something', (drone.commands > 0), true)
+
+    -- This check can fail, and here is it failing. The line below is the
+    -- template as it stood before F11, and what it does is index a global that
+    -- is not in the environment - which is exactly what the run above would
+    -- have reported for those three days.
+    local _, dead = sandboxed('place(blocks.obsidian)\nup(1)\n', origin)
+    it('a template naming a category that no longer exists does not run',
+       (dead ~= nil), true)
+
+    codeblock.filesystem.remove_file('test_player', program_file)
+    codeblock.filesystem.remove_user_data('test_player')
 end
 
 --------------------------------------------------------------------------------

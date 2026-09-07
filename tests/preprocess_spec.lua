@@ -316,17 +316,26 @@ do
         dir = (here and (here .. '/../lib/examples')) or 'mods/codeblock/lib/examples'
     end
 
-    -- No lfs in either environment, so the list is explicit.
+    -- No lfs in either environment, and core.get_dir_list does not exist under
+    -- a bare interpreter, so the list is explicit.
+    --
+    -- It is checked in one direction only: a name here with no file behind it
+    -- fails by name below, but an example added to the directory and not to
+    -- this list is compiled by nothing. `tests` was here for the other reason -
+    -- the example was deleted by b752ea3 and the name stayed, and because a
+    -- missing file was silently skipped, fourteen names came to a count of
+    -- thirteen and the count read as correct.
     local names = {
         'death_star', 'density', 'donuts', 'forest', 'menger', 'mosely',
-        'planet', 'plot2D', 'plot3D', 'recursion', 'spirals', 'stairs',
-        'tests', 'torus'
+        'planet', 'plot2D', 'plot3D', 'recursion', 'spirals', 'stairs', 'torus'
     }
 
-    local checked, broken = 0, {}
+    local checked, broken, missing = 0, {}, {}
     for _, name in ipairs(names) do
         local f = io.open(dir .. '/' .. name .. '.lua', 'r')
-        if f then
+        if not f then
+            missing[#missing + 1] = name
+        else
             local src = f:read('*a')
             f:close()
             checked = checked + 1
@@ -338,10 +347,14 @@ do
         end
     end
 
-    it('found the shipped examples to check', (checked > 0), true)
+    it('the list of shipped examples is not empty', (#names > 0), true)
+    -- The case the dead `tests` entry needed and did not have: a name that
+    -- resolves to no file is reported as itself, not absorbed into a count.
+    it('every listed example is a file that exists', table.concat(missing, ','),
+       '')
     it('every shipped example still compiles once instrumented',
        table.concat(broken, ','), '')
-    it('checked all 13 shipped examples', checked, 13)
+    it('checked every name on the list', checked, #names)
 end
 
 ------------------------------------------------------------------------------
