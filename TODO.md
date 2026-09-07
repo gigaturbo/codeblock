@@ -131,15 +131,15 @@ Features
       same rot cannot recur. Covered by four cases that read the template out of
       lib/formspecs.lua rather than copying it. Playtest E17 is written and
       unrun (audit B53; playtest E17)
-- [ ] DECIDE: what to do with the untracked `lib/examples/game.lua` in your
-      working tree. Two consequences you may not intend. **It is shipped to
-      players in every dev world**: `generate_examples` enumerates the directory,
-      so `/codeblock generate` writes it into each player's directory alongside
-      the thirteen tracked examples. **And it blocks half of C23**: the spec that
-      compiles the examples should check the directory rather than a hand-kept
-      list of names, but that check would go red locally and green in CI while
-      this file is untracked. Track it, move it out of `lib/examples/`, or say
-      that both are fine (audit C23)
+- [x] DECIDE: what to do with the untracked `lib/examples/game.lua` in your
+      working tree — **answered 2026-09-07: track it**, committed at 63c3c33. It
+      is a shipped example now, written into every player's directory by
+      `/codeblock generate` alongside the other thirteen, and tracking it
+      unblocked the second half of C23, which is closed. The file is the only
+      shipped example that never terminates: it ends in `while 1 == 1 do` with no
+      exit and runs until `max_runtime_s` stops it, and its `sleep(0.03)` is in
+      the moving branch only, so a bounce runs at full speed. Both were flagged,
+      neither is a defect, neither was changed (audit C23)
 - [ ] FEAT: Make possible to change codelevel while running a program (audit F5)
 - [x] FEAT: the mod brings its own blocks and drops the `default` and `wool`
       dependencies — settled 2026-09-04 as `F11` and **shipped in two passes**,
@@ -407,6 +407,7 @@ Elsewhere
 - [ ] FEAT : protect areas (minetest.is_protected(pos, name))
 - [ ] FEAT : allow save and place schematic files
 - [ ] FEAT : put a limit on drone distance to start pos
+- [ ] FEAT : allow to rename programs
 
 
 # Other ideas

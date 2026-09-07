@@ -72,6 +72,7 @@ writes**.
 - Documented `color()`, and corrected block lists that had drifted from the config
 - **The editor's help row is one `Blocks` button and a category selector**, in every game, instead of the three fixed Blocks / Plants / Wools buttons. It is drawn the same whether a game has registered a category or not, deliberately: a layout that only appears in the rare case is where a defect goes unnoticed. The mod's own categories show a translated name; a game's shows the raw name, because the raw name is what a program types
 - **The bundled examples were ported to the new palette.** All eleven of them build the same shapes in the nearest colours
+- **A fourteenth bundled example, `game.lua`** — a lamp that bounces around a walled arena it builds for itself, using `get_block` to find the walls and reverse. It is the **only example that never ends**: it loops until the runtime ceiling for your codelevel stops it, which is the intended behaviour and not a failure. Written out with the others by `/codeblock generate`
 
 ## Removed
 

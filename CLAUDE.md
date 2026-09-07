@@ -134,6 +134,19 @@ would mean testing the fake. Running a single spec in-engine means editing the
 — `tests` is `export-ignore`d, so a release build has no specs to load and says
 so rather than failing to load (C16).
 
+**CI boots no engine, so those three specs and every engine-guarded case inside
+the other six are unproven by CI** (`C24`). The `test` job installs plain Lua 5.1
+and runs the six standalone; nothing starts Luanti. A case guarded on an engine
+global — `preprocess_spec`'s enumeration of `lib/examples/`, which needs
+`core.get_dir_list` — therefore runs in a local `run_tests.ps1` and not in a pull
+request, which sees the standalone line and goes green.
+
+**A spec case that cannot run in an environment must say so in a line beginning
+`passed`, `failed`, `FAIL`, `want`, `got`, `skipped` or `xfail`.**
+`run_tests.ps1`'s report filter keeps only those, so a note worded any other way
+is dropped from the report — which is the silence the note exists to break. The
+convention here is to start it with `skipped:`.
+
 The rest, all run by this repository's CI:
 
 ```bash

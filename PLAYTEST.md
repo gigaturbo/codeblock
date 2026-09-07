@@ -1116,10 +1116,17 @@ own**.
 level a server hands out. That claim was arithmetic until it was run.
 
 `/codeblock generate`, set yourself to **codelevel 2**, run every example the
-command wrote — **thirteen** since `b752ea3` deleted `tests.lua`, and the 2026-09-02
-result below is over fourteen. Run whatever is in your directory rather than a
-count: `generate` enumerates `lib/examples/`, so an untracked file of your own
-there is written out with them (`C23`).
+command wrote — **fourteen** since `63c3c33` tracked `game.lua`; it was thirteen
+after `b752ea3` deleted `tests.lua`, and the 2026-09-02 result below is over a
+different fourteen. Run whatever is in your directory rather than a count:
+`generate` enumerates `lib/examples/`, so an untracked file of your own there is
+written out with them.
+
+**`game.lua` is the exception to this check and must not be read as a failure.**
+It ends in `while 1 == 1 do` with no exit, so it is the one shipped example that
+never terminates: at codelevel 2 it stops with *"Maximum running time"*, and that
+is the intended behaviour, not a limit that needs retuning. Judge the other
+thirteen.
 
 **Pass:** every one completes. None stops with *"Maximum number of nodes
 written"*, *"Maximum running time"* or *"Memory limit exceeded"*.
@@ -1645,9 +1652,11 @@ is also what it cannot tell you** — whether the archive *loads* is `R2`.
 **Both results are stale on the texture count.** `F11` added
 `codeblock_block.png` and `codeblock_glass.png` and `F12` added
 `codeblock_lamp.png`, so `textures/` now holds **seven PNGs and two `.svg`
-sources**, and `lib/examples/tests.lua` is gone. Nothing in CI checks
-`.gitattributes`, so the next run is what says whether the new PNGs ship and the
-`.svg` pair still does not.
+sources**, and `lib/examples/tests.lua` is gone while `lib/examples/game.lua` is
+now tracked at `63c3c33`, so `lib/examples/` holds **fourteen**. Nothing in CI
+checks `.gitattributes`, so the next run is what says whether the new PNGs ship,
+whether `game.lua` ships with the other examples, and whether the `.svg` pair
+still does not.
 
 ### R2 · A real install with the test flag set [C16]
 

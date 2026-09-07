@@ -20,7 +20,7 @@ it.
 
 ## Where it stands
 
-**88 findings. 84 resolved, 3 open (`A17`, `A18`, `C23`), 1 won't fix (`B34`).**
+**89 findings. 85 resolved, 3 open (`A17`, `A18`, `C24`), 1 won't fix (`B34`).**
 
 **`B53` was found by the author, filed and fixed on 2026-09-07 at `de3bcbb`**,
 and it is the worst kind of defect this project has shipped into a working tree:
@@ -32,18 +32,27 @@ it worth reading is why five gates stayed green over it, which is that the
 template is **player code inside a Lua string literal** and nothing lints,
 compiles or generates it.
 
-**`C23` came out of covering `B53` and is open.** `tests/preprocess_spec.lua`
-checks the bundled examples against an **explicit list of names** rather than
-against the directory, so an example added to `lib/examples/` and not to the list
-is compiled by nothing. Half fixed at `de3bcbb` — a listed name with no file now
-fails by name — and the other direction was deliberately not forced. The reason
-is in the entry under *Open and won't fix*.
+**`C23` came out of covering `B53` and is resolved at `63c3c33`, 2026-09-07 —
+with one caveat that is now `C24`.** `tests/preprocess_spec.lua` checked the
+bundled examples against an **explicit list of names** rather than against the
+directory, so an example added to `lib/examples/` and not to the list was
+compiled by nothing. Both directions are now checked, against
+`codeblock.examples.examples` — the set `lib/examples.lua` builds at load from
+`core.get_dir_list` and ships to every player on join — and each fails **by
+name** rather than by count. What unblocked the second direction was the author
+deciding on 2026-09-07 to **track `lib/examples/game.lua`**; the decision and its
+consequences are in `ROADMAP.md`. **The caveat: `core.get_dir_list` is in-engine
+only, and CI boots no engine**, so both enumeration cases run locally and not in
+CI. That is `C24`, filed the same day, and it is not `C23` left half open — the
+check exists, is complete in both directions, and says `skipped:` in the one
+environment that cannot run it.
 
 **`A17` and `A18` are pre-existing and low, and neither blocks the tag.**
 They were filed on 2026-09-05 while recording `F11`, and neither is a
 defect `F11` introduced. **`C22` was filed on 2026-09-06 and fixed the same day
-at `4450ce1`**; `C23`, filed 2026-09-07, is the only compliance finding open, and
-no bug or sandbox finding is.
+at `4450ce1`**; `C23` was filed and resolved inside 2026-09-07, and `C24`, filed
+the same day out of closing it, is the only compliance finding open. No bug or
+sandbox finding is.
 `A17` is three exported functions in `lib/utils.lua` with no caller left,
 kept rather than deleted because `codeblock.utils` is a published global and a
 game may be reading them; what it wants is the author's decision. `A18` is
@@ -94,9 +103,9 @@ part of it**, both commits being unpushed, **and none of its `PLAYTEST.md` check
 has been run**, which is outstanding *checking*. **The same is true of `F12`,
 and worse.** `origin/master` is at `65b4c46`; `d075742`, `6126abe`, `7514f39`,
 `b752ea3`, `01f9641`, `6aadd16`, `4450ce1`, `84da24e`, `e3e2178`, `35f2aff`,
-`de3bcbb` and this record change — **twelve commits**, counted with
-`git rev-list --count origin/master..HEAD` rather than by hand — are all
-unpushed, so **CI has looked at
+`de3bcbb`, `1865310`, `63c3c33` and this record change — **fourteen commits**,
+counted with `git rev-list --count origin/master..HEAD` rather than by hand — are
+all unpushed, so **CI has looked at
 nothing since `B51`**, and it has never run the
 new `.luacheckrc` check. Anything below claiming a CI state describes `65b4c46` and no later
 commit.
@@ -132,14 +141,17 @@ both are corrected, and the correction is under the entry below.
 |---|---|---|
 | B bugs | 50 | — (`B53` filed and fixed 2026-09-07 at `de3bcbb`; `B51` fixed at `8de3cea` and confirmed in a world by `D7`) — and `B34` won't fix, `B47` resolved with a residue, `B48` fixed at `4179877` and confirmed by `E16`, `B49` fixed at `d8c32f7` and confirmed by `W4`, `B50` and `B52` fixed at `1b991ae` and confirmed in a world by `W1`, `W5` and `W6` on 2026-09-04 |
 | S sandbox and security | 7 | — |
-| C compliance and packaging | 17 | `C23` — filed 2026-09-07, half fixed at `de3bcbb`, the other direction deliberately deferred. (`C21` fixed by `F10` at `b23a8bc`, confirmed in a world by `F10-1`; `C22` filed and fixed 2026-09-06 at `4450ce1`) |
+| C compliance and packaging | 18 | `C24` — filed 2026-09-07: CI boots no engine, so nothing CI runs reaches an in-engine-only check. (`C23` filed and resolved inside 2026-09-07, `de3bcbb` then `63c3c33`; `C21` fixed by `F10` at `b23a8bc`, confirmed in a world by `F10-1`; `C22` filed and fixed 2026-09-06 at `4450ce1`) |
 | A architecture and performance | 14 | `A17`, `A18` — both low, both pre-existing, both filed 2026-09-05 while recording `F11` |
 
 **CI is green on all three jobs at `65b4c46`, which is `origin/master` and is
-twelve commits behind `HEAD`** — run 47, checked against the Actions API on
-2026-09-04. `d075742`, `6126abe`, `7514f39`, `b752ea3`, `01f9641`, `6aadd16`,
-`4450ce1`, `84da24e`, `e3e2178`, `35f2aff`, `de3bcbb` and this record change are unpushed, so **CI
-has seen no part of `F11`, `F12`, `F13`, `F14` or `B53`'s fix**. So nothing here carries
+fourteen commits behind `HEAD`** — run 47, checked against the Actions API on
+2026-09-04. The count is `git rev-list --count origin/master..HEAD`, which reads
+**13** at `63c3c33` and is **14** with this record change; the hashes are
+`d075742`, `6126abe`, `7514f39`, `b752ea3`, `01f9641`, `6aadd16`, `4450ce1`,
+`84da24e`, `e3e2178`, `35f2aff`, `de3bcbb`, `1865310`, `63c3c33` and this record
+change. So **CI has seen no part of `F11`, `F12`, `F13`, `F14`, `B53`'s fix or
+`C23`'s**. So nothing here carries
 local gates only any more, `B47`'s fix and `settingtypes.txt`'s generator
 included, and run 46 over `7dbe18f` was the first to prove the fourth CI step
 `d8d44cd` added. Everything committed since is the record, the images and
@@ -178,6 +190,15 @@ skipped and no errors — `integration_spec` at **288** and `preprocess_spec` at
 `preprocess_spec`'s and was **confirmed still genuinely failing rather than
 passing vacuously**, which is the check `CLAUDE.md` asks for and which has
 mattered here before.
+**`63c3c33` the same again**, read from output: luacheck silent — and
+`lib/examples/game.lua` produces nothing even under `LUACHECK_STRICT=1`, so
+tracking it needed no `.luacheckrc` change — all three `--check` generators up to
+date, six standalone specs under Lua 5.1 with 0 failed, and nine in-engine at
+**653 passed / 0 failed / 1 xfail / 0 xpass**, none skipped and no errors,
+`integration_spec` at **288** and `preprocess_spec` at **57**. **`preprocess_spec`
+reports 56 standalone against 57 in-engine, and that is not a discrepancy**: the
+difference is exactly `C23`'s guarded enumeration case, which counts as one
+placeholder assertion standalone and as two real ones in-engine.
 
 **Every defect the playtests found is fixed.** `B53` was not one of them — the
 author hit it in ordinary use on 2026-09-07, before the `F11`–`F14` session had
@@ -210,36 +231,40 @@ retuning's effect on the bundled examples off this list too.
 
 ## Open and won't fix
 
-- **C23 · medium · open, half fixed at `de3bcbb` 2026-09-07** — an example added
-  to `lib/examples/` is compiled by nothing.
-  `tests/preprocess_spec.lua` is the only thing that compiles the shipped
-  examples, and it checks them against an **explicit list of names**, not against
-  the directory. The list held fourteen names, one of which was `tests` — an
-  example deleted at `b752ea3` — and **that dead entry was the only reason
-  fourteen names asserted thirteen files.** So the count agreed by coincidence,
-  and an example added to the directory and not to the list is compiled,
-  instrumented and lint-checked by nothing at all.
-  **It is a `C` deliberately.** `C17`, `C19`, `C20` and `C22` are each *a mirror
-  of the source that drifts in silence*, and a hand-kept list of what is in a
-  directory is one of those: the directory is the source, the list is the
-  restatement, and nothing fails when they disagree.
-  **What was fixed**: the dead `tests` entry is gone, the expected count is
-  `#names` rather than a literal, and a listed name with no file now fails **by
-  name**. Driven to failure by putting `tests` back.
-  **What is open, and why it was left.** The other direction — a file in the
-  directory that no name lists — is the half that matters, and the honest fix
-  already exists: `codeblock.examples.examples`, which `lib/examples.lua` builds
-  at load from `core.get_dir_list`, is the real set shipped to every player on
-  join. It was **not** forced, because the author's untracked
-  `lib/examples/game.lua` sits in that directory: a two-way check would go **red
-  locally and green in CI**, which is backwards, and it would have put noise into
-  a bugfix commit the author was about to playtest. That is a scheduling reason,
-  not a disagreement about the fix.
-  **A second thing that untracked file means, and it may not be intended.**
-  `generate_examples` enumerates the directory, so **`game.lua` is written into
-  every dev world's player directory** on `/codeblock generate`. It is not in the
-  spec's list, so nothing compiles it either. Recorded in `TODO.md` for the
-  author to decide: track it, move it out, or accept both consequences.
+- **C24 · medium · open, filed 2026-09-07** — CI boots no engine, so nothing CI
+  runs reaches an in-engine-only check.
+  `.github/workflows/ci.yml` has three jobs: luacheck, a *preprocessor spec* job
+  that installs plain Lua 5.1 and runs the **six** standalone specs, and a
+  *docs are generated from the code* job running the three `--check` generators.
+  **No job boots Luanti.** So `forms_spec`, `stepper_spec` and `integration_spec`
+  are never run by CI at all, and neither is any case guarded on an engine
+  global inside the six that CI does run.
+  **What made it worth an id of its own** is `C23`'s close-out. The enumeration
+  cases that finally check the shipped examples against the directory need
+  `core.get_dir_list`, which exists in-engine only, so **an example added to
+  `lib/examples/` and left off the spec's list is caught by a local
+  `run_tests.ps1` run and is not caught by CI** — CI sees the standalone
+  `skipped:` line and goes green. `C23`'s hole is closed; what is left is that
+  the thing closing it is not in the gate the pull request sees.
+  **Keep — this is not `C20`'s failure mode, and the difference is the point.**
+  `C20` was a check that *could not fail* and said nothing about it. This one
+  fails correctly wherever it runs and **announces its own absence in the output
+  of the run that lacks it**: the standalone path prints
+  `skipped: the shipped examples match the list, both ways - not checked here:
+  needs core.get_dir_list, in-engine only`. The wording is load-bearing and not
+  stylistic — `run_tests.ps1`'s report filter keeps only lines matching
+  `passed|failed|FAIL|want|got|skipped|xfail`, so a note phrased any other way is
+  dropped from the report, which is the exact silence the note exists to break.
+  **Anyone writing a spec note here must start it with one of those words.**
+  **Closing it needs either a CI job that boots the engine, or a standalone way
+  to enumerate a directory — and neither is a spec change.** The first is the
+  real fix and is the larger piece of work: it would also put `forms_spec`,
+  `stepper_spec` and `integration_spec` under CI for the first time, which is
+  288 assertions in `integration_spec` alone. The second is narrower and worse:
+  Lua 5.1 has no directory primitive without `lfs`, and adding a dependency to
+  the standalone path to cover one case is not a trade worth making. Queued in
+  `ROADMAP.md`; it does not block the tag, because the check does run and the
+  release is built from a tree a local run has covered.
 
 **Two more are open, `A17` and `A18`, both low and both pre-existing.** Their entries
 are in *A · Architecture and performance* below. Neither is a defect a player
@@ -249,9 +274,11 @@ decides whether v1.0.0 deletes them or the surface is declared public — and
 `A18` is one clear-code fix in `lib/formspecs.lua`, verified equivalent and the
 last `LUACHECK_STRICT=1` `W421` in it. **Neither blocks the tag.**
 
-**No bug or sandbox finding is open**, and `C23` above is the only compliance
+**No bug or sandbox finding is open**, and `C24` above is the only compliance
 one. `B53` was the last bug, filed and fixed inside 2026-09-07 at `de3bcbb`.
-`C22` was the last compliance finding to close, open for
+`C23` was the last compliance finding to close, filed and resolved inside
+2026-09-07 as well — `de3bcbb` for one direction, `63c3c33` for the other.
+Before it, `C22`, open for
 part of 2026-09-06 and fixed at `4450ce1` the same day; it needs no world, being
 a lint configuration, and what proves it is the check having been made to fail
 eight times. Before it, `B51` was the last, and it is
@@ -1116,9 +1143,9 @@ broken.
 
 ## C · Compliance and packaging
 
-17 findings, 16 resolved — `C21` by `F10`, committed at `b23a8bc`, and `C22`
-at `4450ce1`. **`C23` is open**, half fixed at `de3bcbb`; its full entry is
-under *Open and won't fix* above and is not repeated here.
+18 findings, 17 resolved — `C21` by `F10`, committed at `b23a8bc`, `C22`
+at `4450ce1`, and `C23` at `de3bcbb` and `63c3c33`. **`C24` is open**; its full
+entry is under *Open and won't fix* above and is not repeated here.
 `C2`–`C5` and `C15` are the game's; `C9` never used.
 
 - **C1 · high · resolved** — the version ceiling hid the package from every
@@ -1380,6 +1407,39 @@ under *Open and won't fix* above and is not repeated here.
   `code-expert` broke it four ways; `test-agent` then broke it four ways of its
   own rather than taking the report, at both nesting levels and in both
   directions.
+- **C23 · medium · resolved, `de3bcbb` then `63c3c33` 2026-09-07** — the shipped
+  examples were checked against a hand-kept list of names, not against the
+  directory, so an example added to `lib/examples/` was compiled by nothing.
+  `tests/preprocess_spec.lua` is the only thing that compiles them. The list held
+  fourteen names, one of which was `tests` — an example deleted at `b752ea3` —
+  and **that dead entry was the only reason fourteen names asserted thirteen
+  files.** The count agreed by coincidence.
+  **It is a `C` deliberately.** `C17`, `C19`, `C20` and `C22` are each *a mirror
+  of the source that drifts in silence*, and a hand-kept list of what is in a
+  directory is one of those: the directory is the source, the list is the
+  restatement, and nothing fails when they disagree.
+  **Fixed in two commits.** `de3bcbb` removed the dead `tests` entry, made the
+  expected count `#names` rather than a literal, and made a listed name with no
+  file fail **by name**. `63c3c33` added the other direction, comparing the list
+  with `codeblock.examples.examples` — which `lib/examples.lua` builds at load
+  from `core.get_dir_list`, keyed by bare name with `%.lua$` stripped, and which
+  is the set copied into every player's directory on join. Fourteen names, `game`
+  among them.
+  **Both directions were driven to failure and each names the offender.** A
+  listed name with no file gives
+  `every listed example is a file that exists — want: "" got: "nosuchexample"`;
+  a file the list omits gives
+  `every example shipped is on the list — want: "" got: "torus"`.
+  **What unblocked it was a decision, not code.** The second direction was
+  deferred at `de3bcbb` because the author's `lib/examples/game.lua` was
+  untracked and sitting in that directory, so a two-way check would have gone
+  **red locally and green in CI**, which is backwards. On 2026-09-07 the author
+  chose to **track the file**; the decision and its two consequences are in
+  `ROADMAP.md`.
+  **Keep — the residual is `C24`, and it is not this finding left half open.**
+  `core.get_dir_list` is in-engine only and CI boots no engine, so both
+  enumeration cases run in a local `run_tests.ps1` run and not in CI. The check
+  is complete; the gate that sees it is not.
 
 ---
 
@@ -1534,10 +1594,10 @@ document says so.
   each: luacheck, the six standalone specs under plain Lua 5.1, and the three
   `--check` gates. **CI never runs the nine in-engine specs**, which is why the
   editor findings rest on the local suite and the playtests. **CI has seen no
-  part of `F11`, `F12`, `F13`, `F14` or `B53`'s fix**: `d075742`, `6126abe`,
-  `7514f39`, `b752ea3`, `01f9641`, `6aadd16`, `4450ce1`, `84da24e`, `e3e2178`,
-  `35f2aff`, `de3bcbb` and this record change — **twelve commits** — are
-  all unpushed and `origin/master` is still at `65b4c46`.
+  part of `F11`, `F12`, `F13`, `F14`, `B53`'s fix or `C23`'s**: `d075742`,
+  `6126abe`, `7514f39`, `b752ea3`, `01f9641`, `6aadd16`, `4450ce1`, `84da24e`,
+  `e3e2178`, `35f2aff`, `de3bcbb`, `1865310`, `63c3c33` and this record change —
+  **fourteen commits** — are all unpushed and `origin/master` is still at `65b4c46`.
 - **Verified locally** (engine 5.17.0, read from output rather than exit codes —
   `$?` does not survive this machine's WSL layer): nine in-engine specs, **474
   passed / 0 failed / 1 xfail / 0 xpass** at `1b991ae`, with all five gates
@@ -1575,6 +1635,15 @@ document says so.
   the distinction this project has been caught by before. `B53`'s four new cases
   were driven to failure by breaking the anchor the spec reads the template
   through, and `C23`'s by putting the deleted `tests` name back in the list.
+  **`63c3c33` closes `C23` and is green on the same terms**: luacheck silent,
+  including under `LUACHECK_STRICT=1` over the newly tracked
+  `lib/examples/game.lua`; all three `--check` generators up to date; six
+  standalone specs under Lua 5.1 at 0 failed; nine in-engine at **653 passed /
+  0 failed / 1 xfail / 0 xpass**, none skipped and no errors, `integration_spec`
+  at **288** and `preprocess_spec` at **57**. Both new enumeration cases were
+  driven to failure and each named the offender rather than reporting a count.
+  `preprocess_spec` reads 56 standalone against 57 in-engine, which is the
+  guarded case counting once instead of twice and not a discrepancy.
 - **Verified by making the check fail.** Both generators' completeness guards,
   by adding a fake per-codelevel limit to `config.lua` and watching each name it
   and exit 1 (`C20`). That is the only evidence that distinguishes a check which
@@ -1763,13 +1832,16 @@ document says so.
   record**, always low and always by the same mistake: the list of hashes was
   copied forward and counted by hand, and the record change that was uncommitted
   when it was written became a commit nobody added. It is now taken from
-  `git rev-list --count origin/master..HEAD` — twelve with this record change — and the
-  hash list carries `35f2aff`, which had been missing from it entirely.
+  `git rev-list --count origin/master..HEAD` — **13 at `63c3c33`, so 14 with this
+  record change** — and the hash list carries `35f2aff`, which had been missing
+  from it entirely. **Take the number from that command every time**; counting
+  the hashes by hand is precisely how it was wrong three cycles running.
 - **`B53` is the fifth member of the drifting-mirror family, and the first a
   player runs.** `C17`, `C19`, `C20` and `C22` are all a restatement of the
   source that nothing reads back; the new-file template was another, and it
   broke every file a player created for three days with five gates green over
-  it. `C23`, filed the same day, is a sixth.
+  it. `C23`, filed the same day, is a sixth — and unlike the other five it is
+  **fully closed rather than checked in one direction**, both at `63c3c33`.
 - **One thing `F13` found the record had wrong, and it was this document's own
   and `ROADMAP.md`'s.** Both said `ramp_over`'s clamping *has no spec coverage
   at all* and that covering it would mean exporting a private closure factory.
@@ -1790,12 +1862,14 @@ document says so.
 
 ---
 
-2026-09-07 · describes codeblock at `de3bcbb`, plus this record change,
+2026-09-07 · describes codeblock at `63c3c33`, plus this record change,
 uncommitted at the time of writing.
 
-**88 findings, three open — `A17`, `A18` and `C23`.** `A17` and `A18` are low
-and pre-existing and neither blocks the tag; `C23` is medium, half fixed at
-`de3bcbb`, and what is left of it is deferred rather than disputed. **`B53` was
+**89 findings, three open — `A17`, `A18` and `C24`.** `A17` and `A18` are low
+and pre-existing and neither blocks the tag; `C24` is medium, filed 2026-09-07
+out of closing `C23`, and says that CI boots no engine so nothing CI runs
+reaches an in-engine-only check. **`C23` is resolved**, both directions, at
+`de3bcbb` and `63c3c33`. **`B53` was
 filed and fixed on 2026-09-07 at `de3bcbb`** — the new-file template naming a
 category `F11` deleted, so every file a player created since 2026-09-04 raised
 on its first statement.

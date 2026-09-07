@@ -28,10 +28,12 @@ with named `blocks.obsidian` — a category `F11` deleted on 2026-09-04 — so
 first statement**, with all five gates green over it. The template is player code
 in a string literal and nothing lints, compiles or generates it. The fix names no
 individual colour, deliberately; the grounds are under *other decisions*. It
-leaves one new check, `E17`, and one open finding, **`C23`** — the shipped
-examples are checked against a hand-kept list of names rather than the directory,
-so an example added and not listed is compiled by nothing. Half of `C23` is
-fixed and the other half is deferred, for a reason recorded in `AUDIT.md`.
+leaves one new check, `E17`, unrun. **`C23`, the finding it produced, is closed
+at `63c3c33`**: the shipped examples are now checked against the directory in
+both directions, each failing by name, which the author unblocked by deciding to
+**track `lib/examples/game.lua`**. What that left is a new finding, **`C24`** —
+the enumeration needs `core.get_dir_list`, CI boots no engine, so the check runs
+locally and not in CI. It does not block the tag.
 
 **`F14` shipped on 2026-09-07 — palette views and a generic ramp — with every
 gate green, run by `test-agent` itself.** Three ordered arrays of colour names
@@ -316,7 +318,7 @@ were fixed the same day at `1b991ae` and **confirmed in a world on 2026-09-04**,
 and `B51` was fixed at `8de3cea` on 2026-09-04 and confirmed by `D7` the same
 day. **So all fifteen fixes are played.**
 
-### 8 · Features for v1.0.0 — in progress (12 features, all twelve shipped; 28 findings, `C23` open; `F11` to `F14` unplayed, `B53` fixed and `E17` unrun)
+### 8 · Features for v1.0.0 — in progress (12 features, all twelve shipped; 29 findings, `C24` open; `F11` to `F14` unplayed, `B53` and `C23` fixed and `E17` unrun)
 
 The last phase before v1.0.0 and the only one that adds rather than repairs.
 Started as seven features: `F6` moved out on 2026-08-28 (Blockly is `Phase 10`)
@@ -398,6 +400,12 @@ what comes back from players is worth more empty than filled in advance.
 The one thing already in it: **the first release under real use is where a finding
 series meets people who did not write it.** Everything in `AUDIT.md` was found by
 the author, one reviewer or one spec. That is a narrow sample.
+
+One finding is queued here rather than before the tag:
+
+- Give CI a job that boots the engine, so the three in-engine-only specs and
+  every engine-guarded case are run by something other than a local
+  `run_tests.ps1` (audit `C24`).
 
 ### 10 · v2.0.0 — the Blockly editor
 
@@ -1600,14 +1608,26 @@ saved program and no existing world breaks.
   to whatever the palette holds, so a shorter palette makes a shorter tower rather
   than an error. It also makes a better first program — a rainbow column instead
   of ten identical blocks. **Do not shorten it back to a named colour.**
-- **`C23`'s second direction is deferred, not disputed**, decided 2026-09-07. The
-  shipped examples should be checked against the directory rather than against a
-  hand-kept list of names, and `codeblock.examples.examples` — built at load from
-  `core.get_dir_list` — is the right set to compare with. It was not forced,
-  because the author's **untracked `lib/examples/game.lua`** sits in that
-  directory: the check would go **red locally and green in CI**, which is
-  backwards, and it would have put noise into a bugfix commit about to be
-  playtested. The half that was safe — a listed name with no file — is in.
+- **`lib/examples/game.lua` is tracked, and is a shipped example**, decided by
+  the author on 2026-09-07 and committed at `63c3c33`. It had been sitting
+  untracked in `lib/examples/`. The decision settles **two consequences**, both
+  now intended rather than accidental: **it ships to players in a release** —
+  `generate_examples` enumerates the directory, so `/codeblock generate` writes
+  it into each player's directory alongside the other thirteen — and **it
+  unblocked `C23`**, whose second direction had been deferred only because a
+  two-way check against the directory would have gone red locally and green in
+  CI while the file was untracked. Both directions are in at `63c3c33`.
+  **Two things about the file itself, both flagged to the author and both left
+  as they are.** It is a bouncing-lamp demo that ends in `while 1 == 1 do` with
+  no exit, so it runs until `max_runtime_s` stops it — **the only shipped example
+  that never terminates**. And its `sleep(0.03)` is in the moving branch only, so
+  a bounce runs at full speed. Neither is a defect and neither was changed; they
+  are recorded so nobody reads either as an oversight and quietly fixes it.
+- **`C23`'s second direction was deferred for a few hours, not disputed**,
+  decided 2026-09-07 and superseded the same day by the decision above. Kept
+  because the shape of the reasoning recurs: a check that would be
+  **red locally and green in CI** is backwards, and the fix is to settle the
+  local anomaly rather than to weaken the check.
 - **The neutrals stay five, and are not expanded to ten greys**, decided
   2026-09-07. The author asked for ten shades black-to-white and for a naming
   convention or aliases, then **chose against it after seeing the `F15`
@@ -2081,11 +2101,13 @@ saved program and no existing world breaks.
 
 ---
 
-2026-09-07 · codeblock master at `de3bcbb`, which is `B53`'s fix, plus this
+2026-09-07 · codeblock master at `63c3c33`, which is `C23`'s fix, plus this
 record change. `origin/master` is at `65b4c46` and **has seen no part of `F11`,
-`F12`, `F13`, `F14` or `B53`** — **twelve unpushed commits**, `d075742`,
-`6126abe`, `7514f39`, `b752ea3`, `01f9641`, `6aadd16`, `4450ce1`, `84da24e`,
-`e3e2178`, `35f2aff`, `de3bcbb` and this record change.
+`F12`, `F13`, `F14`, `B53` or `C23`** — **fourteen unpushed commits**,
+`git rev-list --count origin/master..HEAD` reading 13 at `63c3c33` and 14 with
+this record change: `d075742`, `6126abe`, `7514f39`, `b752ea3`, `01f9641`,
+`6aadd16`, `4450ce1`, `84da24e`, `e3e2178`, `35f2aff`, `de3bcbb`, `1865310`,
+`63c3c33` and this record change.
 
 **`F11`, `F12`, `F13` and `F14` are all shipped and all unplayed.** `F11` in two passes:
 `d075742` — the mod registers nodes of its own, `mod.conf` drops to
@@ -2132,20 +2154,30 @@ Three check recipes were repaired the same day: `F-3`, `W4` and `W5` still told
 the runner to `place(blocks.…)`, which `F11` retired, so they would have failed
 on their first line for a reason that is not what they test.
 
-**`AUDIT.md` stands at 88 findings, three open** — `A17` and `A18`, both low,
-both pre-existing, both filed 2026-09-05 while recording `F11`, and **`C23`**,
-medium, filed 2026-09-07 and half fixed at `de3bcbb`. None of the three blocks
-the tag. No bug or sandbox finding is open: **`B53` was filed and fixed inside
-2026-09-07**, and neither `F12` nor `F14` added one. `C22` was filed and fixed
-on 2026-09-06, both inside `4450ce1`'s work.
+**`AUDIT.md` stands at 89 findings, three open** — `A17` and `A18`, both low,
+both pre-existing, both filed 2026-09-05 while recording `F11`, and **`C24`**,
+medium, filed 2026-09-07: CI boots no engine, so nothing CI runs reaches an
+in-engine-only check. None of the three blocks the tag. No bug or sandbox
+finding is open: **`B53` was filed and fixed inside 2026-09-07**, and neither
+`F12` nor `F14` added one. **`C23` was filed and closed inside 2026-09-07 too**,
+`de3bcbb` then `63c3c33`; `C22` was filed and fixed on 2026-09-06, both inside
+`4450ce1`'s work.
 
-What is left before the tag: **play `F11` to `F14`, and push**, then
+What is left before the tag: **play `F11` to `F14`, and push** — fourteen
+commits are unpushed, `git rev-list --count origin/master..HEAD` — then
 `README.md`'s three problems — line 10's now-false portability claim, the
 missing *For game authors* section, the pre-rename ContentDB URLs — the
 screenshots, `R2` on the release archive, then `release-check`, the heading and
 the tag. **Expect `F12-2` to hand back the flat-solid-tile decision.**
 
+**`C24` is queued after the tag, not before it.** Closing it means either a CI
+job that boots Luanti — the real fix, which would also put `forms_spec`,
+`stepper_spec` and `integration_spec` under CI for the first time — or a
+standalone way to enumerate a directory, which in Lua 5.1 means `lfs` and is not
+a dependency worth adding for one case. Neither is a spec change, so neither is
+`test-agent`'s alone.
+
 ---
 
-Last reviewed **2026-09-07**, describing commit **`de3bcbb`** — `B53`'s fix and
+Last reviewed **2026-09-07**, describing commit **`63c3c33`** — `C23`'s fix and
 this record change together.

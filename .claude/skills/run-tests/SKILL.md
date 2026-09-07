@@ -105,7 +105,9 @@ checksum: they rise whenever a spec gains a case, and they were 357 before `F1`.
 The block above is the shape at `6126abe`; at `01f9641` the run reports 544
 across the nine with `integration_spec` at 182, and at `4450ce1` **610 across
 the nine**, `integration_spec` alone at **248**, with 0 failed, 0 xpass and 1
-known xfail.
+known xfail. At `e3e2178` it is 646, at `de3bcbb` 651, and at `63c3c33`
+**653 across the nine** — `integration_spec` **288**, `preprocess_spec` **57** —
+still 0 failed, 0 xpass, 1 known xfail, none skipped.
 
 **The script's report filter drops the spec-name lines**, keeping only the lines
 matching `passed|failed|FAIL|want|got|skipped|xfail`, so
@@ -125,9 +127,20 @@ What each column means:
   also mean the test is passing vacuously because the thing it exercises stopped
   running at all. That second case has happened here: instrumentation was
   silently disabled and the `xfail` cases passed trivially. Always check which.
-- **skipped** — a spec that needs the mod and did not find it. With the fixture in
-  place this should never appear: it means the mod failed to load, so investigate
-  rather than accept it.
+- **skipped** — a spec that needs the mod and did not find it. In the in-engine
+  run, with the fixture in place, this should never appear: it means the mod
+  failed to load, so investigate rather than accept it. **In a standalone run it
+  can be legitimate**, and one case is: `preprocess_spec` prints
+  `skipped: the shipped examples match the list, both ways - not checked here:
+  needs core.get_dir_list, in-engine only`, because the directory enumeration
+  that closes `C23` exists only in-engine. That is also why the spec reads **56
+  standalone against 57 in-engine** — the guarded case counts once instead of
+  twice, and it is not a discrepancy.
+
+**Write a spec's can't-run note to survive the filter.** It keeps only lines
+matching `passed|failed|FAIL|want|got|skipped|xfail`, so a note worded any other
+way vanishes from the report — the exact silence a can't-run note exists to
+break. Start it with `skipped:`.
 
 If nothing prints at all, the mod did not load. Look in the error output for
 `ModError` and read the traceback — a syntax error in any `lib/*.lua` stops the
