@@ -36,12 +36,13 @@ Features
 
 Decisions wanted from the author
 
-- [ ] DECIDE: whether vector3's own fix lands before or after the v1.0.0 tag.
-      `S9` is unfixed on both v1.5 and v2.0.1 and reaches every other mod using
-      the `vector3` global. Write-protecting it from this mod is recommended
-      against (audit S9)
-- [ ] DECIDE: what `tests/game/mods/vector3` should pin, now that the bump to
-      v2.0.1 leaves the v1.5 half proven by nothing. Pin the newest, the oldest
+- [ ] DECIDE: whether to adopt the per-constant copy for `S8` — `vector3(c)` in
+      `snapshot_module`, fourteen constructions per program start. It is the only
+      thing that closes `S8` on v1.5, and it makes `vector.one` writable inside
+      codeblock and frozen everywhere else. Case both ways in the roadmap
+      (audit S8)
+- [ ] DECIDE: what `tests/game/mods/vector3` should pin, now that three releases
+      are in the wild and the submodule is at v2.0.2. Pin the newest, the oldest
       supported, or document a floor (audit S8)
 
 Checks left in a running world — the checklist is `PLAYTEST.md`
@@ -50,15 +51,10 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
       only in-world reading `S8` can have. **Name which vector3 you are running**
       (audit S8; playtest F-6)
 - [ ] run F-7 — every shipped example, one at a time. Standing check, after any
-      dependency bump and before a release (audit C23, C24, S8; playtest F-7)
+      dependency bump and before a release; owed again by the vector3 v2.0.2
+      bump (audit C23, C24, S8; playtest F-7)
 - [ ] re-run R2 on the archive built from the release commit. Install it in a
       game that is not codecube (audit C16, C10)
-
-Elsewhere
-
-- [ ] separate vector3's metatable from its methods table — `local mt = {__index
-      = vector3, __add = ...}`. Separate repository, so a release there and a
-      submodule bump here. v2.0.1 did not include it (audit S9)
 
 
 # After 1.0.0

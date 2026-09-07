@@ -64,7 +64,7 @@ Checks needing action:
 | Check | State | Reason |
 |---|---|---|
 | [`F-6`](#f-6--gamelua-starts-in-the-same-direction-every-time-s8) | unrun | `S8`'s only possible in-world evidence. |
-| [`F-7`](#f-7--every-shipped-example-still-runs-after-a-dependency-bump-c23-c24-s8) | unrun | Standing check: after any `vector3` bump, and before a release. |
+| [`F-7`](#f-7--every-shipped-example-still-runs-after-a-dependency-bump-c23-c24-s8) | unrun | Standing check: after any `vector3` bump, and before a release. Owed again by v2.0.2. |
 | [`R1`](#r1--the-archive-contains-no-tests-c16-c10) | stale | Texture and example counts have changed since the last run. |
 | [`R2`](#r2--a-real-install-with-the-test-flag-set-c16) | stale | Last run at `7c5bceb`, before `F4` and two `.gitattributes` changes. |
 | [`H8`](#h8--the-panel-over-the-editor-and-a-run-that-ends-under-it-f4-f8-b33-b29) | partial | Cases 1 and 3 cannot be performed by hand. |
@@ -782,9 +782,10 @@ the editor first, then run `/codeblock generate` for the fixed copy. Place a
 drone with the **poser** on open ground with room above it. Codelevel 2 or above;
 the program never terminates, so cut it short with the panel's **Stop**.
 
-**Name the `vector3` version in the result line.** v1.5 and v2.0.1 are both
-installable and case 3 reads differently on each; the matrix is in the
-`run-tests` skill.
+**Name the `vector3` version in the result line.** v1.5, v2.0.1 and v2.0.2 are
+all installable and case 3 reads differently on v1.5; the matrix is in the
+`run-tests` skill. The submodule pins **v2.0.2**, so that is what a local world
+runs unless you swap the library by hand.
 
 **Case 1 — the example itself. Pass:** the drone builds a 40-cube of cyan glass,
 then **bounces around inside it**, leaving a trail of yellow lamps, and does not
@@ -807,10 +808,12 @@ dir.x = -dir.x
 
 **On vector3 v1.5, expect `1 1 1`, then `-1 1 1`, then `1 1 1`** — the module's
 own constant, written through a shallow snapshot and shared by every player until
-the server restarts. **On v2.0.1 the third line raises `read only`**, which is
-the freeze rather than a fix to `env.snapshot`: `S8` is latent there, not
-resolved. **Record what it prints and which version you ran.** Once `S8` is fixed
-this case must print `1 1 1` three times.
+the server restarts. **On v2.0.1 and v2.0.2 the third line raises `read only`**,
+which is the freeze rather than a fix to `env.snapshot`: `S8` is latent there,
+not resolved. **v2.0.2 changes nothing in this case** — it fixed `S9`, which no
+program can observe. **Record what it prints and which version you ran.** Once
+`S8`'s per-constant copy is adopted this case must print `1 1 1` three times on
+every version, and raise on none.
 
 Result: not yet run.
 
@@ -819,6 +822,8 @@ Result: not yet run.
 **A standing check: run it after any `vector3` submodule bump, and before any
 release.** `tests/preprocess_spec.lua` **compiles** every shipped example and
 **nothing runs one**, so a compile cannot see a call that raises.
+
+**Owed again by the bump to v2.0.2 (`fc8a5b8`).**
 
 In a world at codelevel 3 or 4, on open ground with room around and above the
 drone: run `/codeblock generate`, then open each generated example in the editor

@@ -137,7 +137,7 @@ layer, so a gate is green when it *says* so — `doc/api.md is up to date`,
 both 0 in the spec run.
 
 **The `run-tests` skill owns everything else about the suite**: the fixture
-game, the two `vector3` versions and what a green run does not prove, which
+game, the three `vector3` versions and what a green run does not prove, which
 specs are in-engine only, what CI does not boot, how to read a result, and the
 `codeblock_run_tests` setting that must be stripped from the player's real config
 afterwards.

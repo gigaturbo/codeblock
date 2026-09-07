@@ -42,29 +42,34 @@ If a submodule was never initialised, the boot fails on `vector3`:
 git submodule update --init --recursive
 ```
 
-## Two versions of `vector3`, and only one of them tested
+## Three versions of `vector3`, and only one of them tested
 
 `mod.conf` reads `depends = vector3` and **Luanti has no version constraints**,
-so a player may have either release installed. The submodule was bumped from
-**v1.5 (`1662164`)** to **v2.0.1 (`5077617`)**, and **that bump changes the test
-fixture only; it changes nothing a player has.** So a green suite proves
-codeblock works against v2.0.1 and says nothing about v1.5.
+so a player may have any release installed. The submodule is at **v2.0.2
+(`fc8a5b8`)**, having been **v1.5 (`1662164`)** and then **v2.0.1
+(`5077617`)**. **A submodule bump changes the test fixture only; it changes
+nothing a player has.** So a green suite proves codeblock works against v2.0.2
+and says nothing about the other two.
 
-| | v1.5 | v2.0.1 |
-|---|---|---|
-| `vector.one.x = -1` | accepted, changes `one` server-wide | raises `read only` |
-| `vector.fromPolar('a', 1)` | returns nothing | raises `format error` |
-| `vector.srandom('a', 1)` | returns `(0,0,0)` silently | raises `format error` |
-| `pairs(vector.one)` | 3 keys | 0 keys |
-| `vector(1,2,3).__index` | table | table (`S9`, unfixed on both) |
+| | v1.5 | v2.0.1 | v2.0.2 |
+|---|---|---|---|
+| `vector.one.x = -1` | accepted, changes `one` server-wide | raises `read only` | raises `read only` |
+| `vector.fromPolar('a', 1)` | returns nothing | raises `format error` | raises `format error` |
+| `vector.srandom('a', 1)` | returns `(0,0,0)` silently | raises `format error` | raises `format error` |
+| `pairs(vector.one)` | 3 keys | 0 keys | 0 keys |
+| `vector(1,2,3).__index` | table | table | nil (`S9` fixed) |
 
 **The raises are an improvement for a player.** `srandom` answering `(0,0,0)` for
 a bad argument is silently wrong geometry, which is worse than nil.
 
-**`pairs` is the trap.** 2.0's `frozen()` (`vector3.lua:370`) builds an *empty*
-table with `__index` onto a private backing vector, so `next`, `rawget`, `pairs`,
-`table.copy` and `core.serialize` all read a constant as empty — silently, and
-not as a raise.
+**`pairs` is the trap, on both 2.0.x.** `frozen()` (`vector3.lua:370`) builds an
+*empty* table with `__index` onto a private backing vector, so `next`, `rawget`,
+`pairs`, `table.copy` and `core.serialize` all read a constant as empty —
+silently, and not as a raise.
+
+**`v.__index` is nil only from v2.0.2.** It carries `__index` and every
+metamethod on a separate `meta` table, which is `S9`'s fix. On v1.5 and v2.0.1
+a player program can still reach the class table through any vector.
 
 **`.luacheckrc:75` excludes `tests/game/mods/vector3/**`**, so luacheck's silence
 says nothing about the bumped library. That is correct — it is another package
@@ -144,7 +149,11 @@ across the nine with `integration_spec` at 182, and at `4450ce1` **610 across
 the nine**, `integration_spec` alone at **248**, with 0 failed, 0 xpass and 1
 known xfail. At `e3e2178` it is 646, at `de3bcbb` 651, and at `63c3c33`
 **653 across the nine** — `integration_spec` **288**, `preprocess_spec` **57** —
-still 0 failed, 0 xpass, 1 known xfail, none skipped.
+still 0 failed, 0 xpass, 1 known xfail, none skipped. At `dc73e1e` with the
+`vector3` submodule at v2.0.2 it is **665 across the nine** — 30, 57, 34, 31,
+29, 73, 66, 45, 300 — 0 failed, 0 xpass, 1 known `B4` xfail, errors `none`, and
+the standalone six total **253** (`preprocess_spec` 56, one case engine-guarded).
+**The v2.0.2 bump moved no count in either direction.**
 
 **The script's report filter drops the spec-name lines**, keeping only the lines
 matching `passed|failed|FAIL|want|got|skipped|xfail`, so

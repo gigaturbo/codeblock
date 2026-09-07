@@ -12,15 +12,20 @@ is v2.0.0 and holds `F6` alone**.
 
 ## Now
 
-**Answer `S9`, answer the fixture question, then push.** `S9` is high, unfixed
-on both `vector3` v1.5 and v2.0.1, and reaches every other mod using the
-`vector3` global — whether v1.0.0 ships with it open is the author's call. The
-fixture question is what `tests/game/mods/vector3` should pin now that a player
-may have either version.
+**Answer the `S8` copy question, answer the fixture question, then push.**
+`S8` is medium and latent on `vector3` v2.0.x, reachable on v1.5. Whether to
+adopt the per-constant `vector3(c)` copy is an open decision, set out under
+*Finalising v1.0.0*. The fixture question is what `tests/game/mods/vector3`
+should pin now that a player may have three versions.
 
-**Twenty commits are unpushed.** `origin/master` is `65b4c46`; CI has seen no
-part of `F11`, `F12`, `F13`, `F14`, `B53`, `C23`, `B54` or the `vector3` bump.
-Take the count from `git rev-list --count origin/master..HEAD`, never from
+**`S9` is closed.** `vector3` v2.0.2 separates the metatable from the methods
+table, and the submodule is bumped to `fc8a5b8`. It is still live for a player
+on v1.5 or v2.0.1, which is what the support matrix in the `run-tests` skill is
+for.
+
+**Twenty-two commits are unpushed.** `origin/master` is `65b4c46`; CI has seen
+no part of `F11`, `F12`, `F13`, `F14`, `B53`, `C23`, `B54` or either `vector3`
+bump. Take the count from `git rev-list --count origin/master..HEAD`, never from
 counting hashes.
 
 **Every feature in `Phase 8` has shipped and been played.** `PLAYTEST.md`
@@ -30,10 +35,21 @@ carries no fail and two unrun checks, `F-6` and `F-7`.
 
 Steps 7–11 are the `release-codeblock` skill's procedure and are not restated.
 
-1. **Decide `S9`** — before or after the tag. Needs a `vector3` release and a
-   submodule bump. (`S9`)
+1. **Decide whether to adopt the per-constant copy for `S8`** — replace
+   `snapshot_module`'s shallow leaf with `vector3(c)`, fourteen constructions
+   per program start. Probe-verified on v1.5 and v2.0.2. **Open, not settled.**
+   (`S8`)
+   - **For:** it is the only thing that closes `S8` for a player on **v1.5**,
+     where the finding is reachable rather than latent and the freeze does
+     nothing. It also restores `dir = vector.one; dir.x = -1`, the idiom v2.0's
+     freeze broke and the author's own `game.lua` used. The cost is fourteen
+     constructions beside a disk read.
+   - **Against:** `vector.one` would then be writable inside codeblock and
+     frozen everywhere else, so a player reading `vector3`'s own documentation
+     gets a different answer from the one codeblock gives.
 2. **Decide what the test fixture pins** — newest, oldest supported, or a
-   documented floor. Luanti has no dependency version mechanism. (`S8`)
+   documented floor. Luanti has no dependency version mechanism, and there are
+   now three releases in the wild. (`S8`)
 3. **Push.** The one item that can fail rather than merely take time.
 4. **Fix `README.md`.** Line 10's *"works in any game that provides the blocks
    it places"* is false and backwards since `d075742`; add a short **For game
@@ -75,7 +91,7 @@ answered in writing before any code.
 | 5 | Limits that track real load | done | 4/4 |
 | 6 | Limits for what the server spends | done | 3/3 |
 | 7 | Clear the way for features | done | 26/26 |
-| 8 | Features for v1.0.0 | in progress | 12/12 features; `S8`, `S9`, `C24`, `A17`, `A18` open |
+| 8 | Features for v1.0.0 | in progress | 12/12 features; `S8`, `C24`, `A17`, `A18` open |
 | 9 | v1.x.y — after the release | not started | 0/1 |
 | 10 | v2.0.0 — the Blockly editor | not started | 0/1 |
 
@@ -91,10 +107,10 @@ Phase 8's playtests have since found fifteen defects in code those phases called
 done — `B36`–`B44`, `C17`, `C18`, `S7`, `B50`–`B52` — and all fifteen are fixed
 and played.
 
-**Phase 8 open findings: `C24`, `S8`, `S9`.** `S8` is latent since the `vector3`
-bump and reachable again on v1.5; `S9` is unfixed on both versions; `C24` is
-queued for `Phase 9`. `A17` and `A18` are low and pre-existing; `A17` wants the
-author's decision, not a cleanup. `B10`'s refusal is out of the phase rather
+**Phase 8 open findings: `C24` and `S8`.** `S8` is latent on `vector3` v2.0.x
+and reachable on v1.5, and its remaining question is the author's; `C24` is
+queued for `Phase 9`. `S9` closed with the v2.0.2 bump. `A17` and `A18` are low
+and pre-existing; `A17` wants the author's decision, not a cleanup. `B10`'s refusal is out of the phase rather
 than done — its check was removed as untestable and reaching it needs a way to
 observe the server releasing a mapblock.
 
@@ -183,19 +199,24 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 
 ### Dependencies and the sandbox
 
-- **`S8` was settled by freezing `vector3`'s constants, upstream.** Writing to
-  an exported constant now raises `read only`. **Do not re-propose the per-run
-  deep copy** — measured at 6.6 µs, and now a second answer to a settled
-  question. `S8` itself stays open: `env.snapshot` is still shallow.
-- **Write-protecting `vector3`'s metatable from inside this mod is refused.**
+- **`S8`'s reachable half was closed by freezing `vector3`'s constants,
+  upstream.** Writing to an exported constant raises `read only` from v2.0. `S8`
+  itself stays open: `env.snapshot` is still shallow, and the freeze does
+  nothing on v1.5.
+- **Do not re-propose deep-copying a constant with
+  `setmetatable(copy, getmetatable(v))`.** Against a frozen constant it produces
+  an empty table aliased to the original, so it changes nothing while looking
+  fixed. `AUDIT.md`'s `S8` entry carries the three probe readings.
+- **`S9` was fixed upstream, not here.** `vector3` v2.0.2 puts `__index` and
+  every metamethod on a separate `meta` table, so `v.__index` reads nil. The
+  submodule is at `fc8a5b8`.
+- **Write-protecting `vector3`'s metatable from inside this mod was refused.**
   Sealing `getmetatable(vector3.one)` at load is `C18`'s mistake on another
   author's package, and every other mod using the global would be subject to it.
-  The fix belongs in `vector3`: `local mt = {__index = vector3, __add = …}`,
-  after which `v.__index` reads nil. Nothing here reads `v.__add` as a field.
 - **Leave-and-document was rejected for both `S8` and `S9`.** `S8` crosses to
   other players and `S9` to other mods, so neither is a limitation a player
   could work around.
-- **What the test fixture pins is open**, not settled by the bump. It is a
+- **What the test fixture pins is open**, not settled by either bump. It is a
   question under *Finalising v1.0.0*, not a decision.
 - **An example copies with the constructor, not `clone()`.**
   `lib/examples/game.lua` reads `dir = vector(1, 1, 1)`. The constructor is what
@@ -806,7 +827,8 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 
 ---
 
-Last reviewed **2026-09-07**, describing commit **`a45cb3f`**. `origin/master`
-is **`65b4c46`**, **20 commits behind**. `PLAYTEST.md`: 84 entries, `F11-4`
-retired, two unrun (`F-6`, `F-7`), no fail. `AUDIT.md`: 92 findings, five open —
-`S9` high, `S8` and `C24` medium, `A17` and `A18` low.
+Last reviewed **2026-09-07**, describing the `vector3` submodule bump to
+**`fc8a5b8`** (v2.0.2). `origin/master` is **`65b4c46`**, **22 commits
+behind**. `PLAYTEST.md`: 84 entries, `F11-4`
+retired, two unrun (`F-6`, `F-7`), no fail. `AUDIT.md`: 92 findings, four open —
+`S8` and `C24` medium, `A17` and `A18` low.
