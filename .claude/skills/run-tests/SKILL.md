@@ -42,6 +42,43 @@ If a submodule was never initialised, the boot fails on `vector3`:
 git submodule update --init --recursive
 ```
 
+## Two versions of `vector3`, and only one of them tested
+
+`mod.conf` reads `depends = vector3` and **Luanti has no version constraints**,
+so a player may have either release installed. The submodule was bumped from
+**v1.5 (`1662164`)** to **v2.0.1 (`5077617`)**, and **that bump changes the test
+fixture only; it changes nothing a player has.** So a green suite proves
+codeblock works against v2.0.1 and says nothing about v1.5.
+
+| | v1.5 | v2.0.1 |
+|---|---|---|
+| `vector.one.x = -1` | accepted, changes `one` server-wide | raises `read only` |
+| `vector.fromPolar('a', 1)` | returns nothing | raises `format error` |
+| `vector.srandom('a', 1)` | returns `(0,0,0)` silently | raises `format error` |
+| `pairs(vector.one)` | 3 keys | 0 keys |
+| `vector(1,2,3).__index` | table | table (`S9`, unfixed on both) |
+
+**The raises are an improvement for a player.** `srandom` answering `(0,0,0)` for
+a bad argument is silently wrong geometry, which is worse than nil.
+
+**`pairs` is the trap.** 2.0's `frozen()` (`vector3.lua:370`) builds an *empty*
+table with `__index` onto a private backing vector, so `next`, `rawget`, `pairs`,
+`table.copy` and `core.serialize` all read a constant as empty — silently, and
+not as a raise.
+
+**`.luacheckrc:75` excludes `tests/game/mods/vector3/**`**, so luacheck's silence
+says nothing about the bumped library. That is correct — it is another package
+with its own gates — but it is not coverage.
+
+## What CI does not prove
+
+**CI boots no engine** (`C24`). The `test` job installs plain Lua 5.1 and runs
+the six standalone specs; nothing starts Luanti. So `forms_spec`, `stepper_spec`
+and `integration_spec` never run in a pull request, and neither does any
+engine-guarded case inside the other six — `preprocess_spec`'s enumeration of
+`lib/examples/` needs `core.get_dir_list` and runs only in a local
+`run_tests.ps1`. A pull request sees the standalone line and goes green.
+
 ## The one thing that must not be skipped
 
 Enabling the suite means writing `codeblock_run_tests = true` into the **real
@@ -188,6 +225,13 @@ Concretely, in this suite:
   is the only real door to the behaviour and the spec has been made to fail —
   and the reason is commented in the spec, so do not delete the write on the
   strength of the sentence above it.
+- **A chat line the mod sends a player is unobservable from a spec.**
+  `lib/sandbox.lua` and `lib/commands.lua` each bind their sender as a load-time
+  local, so replacing `core.chat_send_player` around a run intercepts nothing,
+  and there is no logged-in player to receive it. A spec asserting that `print`
+  merely does not raise would have been green throughout `B54`. Pin the charge —
+  one `print` call is one command — and put the line itself in `PLAYTEST.md`
+  (`W7`, `F14-2`).
 - **Keep a spec standalone if it can be.** Six of the nine run under bare Lua 5.1
   in CI, and that is the only thing that catches plain 5.1 differing from the
   engine's LuaJIT. A new spec that pulls in `core` loses that for no gain unless

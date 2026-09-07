@@ -1,2504 +1,812 @@
 # Roadmap — CodeBlock
 
-What to do next, and **what has been agreed** — a feature's shape as settled, a
-part argued out, a default chosen. Those decisions are recorded nowhere else: git
-holds the code and `CHANGELOG.md` holds what shipped, but neither says why a
-question is settled. Compressed as it grows; only the minimum past information
-stays.
+What to do next, and **what has been agreed**. The decisions below are recorded
+nowhere else. Findings are in `AUDIT.md`, manual checks in `PLAYTEST.md`,
+unscheduled intentions in `TODO.md`.
 
-Findings and their reasoning are in `AUDIT.md`. Manual checks are in
-`PLAYTEST.md`. Intentions not yet planned are in `TODO.md`.
-
-Phases are `Phase 0`–`Phase 10`, features `F1`–`F15`, findings `B`/`S`/`C`/`A`.
+Ids: phases `Phase 0`–`Phase 10`, features `F1`–`F15`, findings `B`/`S`/`C`/`A`.
 **Nothing is ever renumbered.**
 
-Three releases, settled 2026-08-28. **`Phase 8` is v1.0.0** — a correct sandbox,
-no unmaintained dependencies, documentation generated from the code, tests enough
-that changes are safe; major, because several changes break saved player
-programs. **`Phase 9` is v1.x.y**, features and defect work after the release.
-**`Phase 10` is v2.0.0**, the Blockly editor and nothing else, because it needs
-thinking rather than a queue position.
+Three releases: **`Phase 8` is v1.0.0**, **`Phase 9` is v1.x.y**, **`Phase 10`
+is v2.0.0 and holds `F6` alone**.
 
 ## Now
 
-**Answer the `S9` question and the fixture question, then push.** `S8`'s
-decision is **made, upstream**, by the `vector3` bump described below; what is
-left of the pair is `S9`, which is a question about another repository, and one
-new question the bump created about what the test fixture pins.
+**Answer `S9`, answer the fixture question, then push.** `S9` is high, unfixed
+on both `vector3` v1.5 and v2.0.1, and reaches every other mod using the
+`vector3` global — whether v1.0.0 ships with it open is the author's call. The
+fixture question is what `tests/game/mods/vector3` should pin now that a player
+may have either version.
 
-**`S9` stays high and open on every version a player can install.** The real fix
-separates vector3's metatable from its methods table — `vector3.__index =
-vector3` is unchanged at v2.0.1, and a frozen constant's `__index` still chains
-to a real vector whose metatable is the class table, so `v.__index` reads
-`table` and not `nil` on **both** revisions. **That repository had a release on
-2026-09-07 and did not include it.** A player program can therefore replace
-vector3's methods for every other mod using the global, so **whether v1.0.0
-ships with `S9` open is the author's call and is not recorded as settled.** It
-is corruption, not escalation.
+**Twenty commits are unpushed.** `origin/master` is `65b4c46`; CI has seen no
+part of `F11`, `F12`, `F13`, `F14`, `B53`, `C23`, `B54` or the `vector3` bump.
+Take the count from `git rev-list --count origin/master..HEAD`, never from
+counting hashes.
 
-**The `vector3` submodule was bumped on 2026-09-07 — v1.5 (`1662164`,
-2022-06-24) → v2.0.1 (`5077617`), two releases and a major version, the
-author's own upstream work.** It is the only working-tree change. Three things
-follow and each is recorded where it belongs:
-
-- **`S8`'s open decision is closed, by the option filed as the alternative
-  rather than the recommendation.** vector3 2.0 froze the exported constants, so
-  `dir = vector.one; dir.x = -1` now raises `read only`. The decision was the
-  author's to make and they made it in the other repository; it is under *other
-  decisions* below so it is not proposed again here.
-- **`S8` is not resolved and must not be marked so.** It is a finding about
-  `lib/env.lua:31`'s shallow `env.snapshot`, which is unchanged and still claims
-  a guarantee it does not give. The freeze removes the only *reachable* way to
-  exploit it, so **`S8` goes from reachable to latent — and reachable again for
-  any player running vector3 v1.5.**
-- **The support matrix is now a permanent fact and lives in `CLAUDE.md`.**
-  `mod.conf` reads `depends = vector3`, Luanti has no version constraints, and
-  **the bump changes the test fixture only — nothing a player has.** So the
-  green suite proves codeblock works against v2.0.1 and says **nothing** about
-  v1.5. Five differences are tabulated there, including one nobody listed:
-  `pairs(vector.one)` yields three keys on v1.5 and **none** on v2.0.1,
-  silently. That one is in `CHANGELOG.md`, because codeblock is where a player
-  meets `vector`.
-
-**The `game.lua` fix is committed at `3548d58` and its check is still unrun**:
-`dir = vector.one` → `dir = vector(1, 1, 1)`, playtest `F-6`. **`PLAYTEST.md`
-gained a second unrun check the same day, `F-7`, and the near miss behind it is
-the best argument this project has for it.** Had that one line not landed one
-commit before the bump, v2.0.1 would have raised `read only` on `game.lua`'s
-first wall collision and **that shipped example would have died outright with
-all five gates green** — the examples are compiled by
-`tests/preprocess_spec.lua` and **run by nothing**. `test-agent` ran each
-example's call chain by hand that once and all seven passed; **a thing done by
-hand once is not a check**, so `F-7` is a standing one, after any dependency
-bump and before a release.
-
-**Push, and it is still the largest thing that can fail rather than merely take
-time.**
-`origin/master` is at `65b4c46` and **nineteen commits are unpushed** — take
-that number from `git rev-list --count origin/master..HEAD`, which reads **19**
-at `3548d58`, and **never from counting the hashes**, which is how it was
-recorded low four passes running. So CI has seen no part of `F11`, `F12`, `F13`,
-`F14`, `B53`'s fix, `C23`'s or `B54`'s, and the two largest changes in the
-release are among them. The new `.luacheckrc` check in `gen_docs.lua --check` is
-unseen by CI as well. **With the playtests done, what stands before the tag is
-the push, `README.md`, the screenshots and `R2` re-run** — and the push is the
-only one of those that hides a possible failure, every other item being work
-rather than a question.
-
-**The playtest checklist had nothing outstanding earlier the same day, for the
-first time.** Two sessions on 2026-09-07, engine 5.17.0, twenty-two results
-between them, and all 81 live checks carried a pass — bar `H8`'s partial, whose
-two missing cases cannot be performed at all. **`F-6` and `F-7` were written
-after them and both are unrun**, so the file now has two outstanding checks and
-still no fail.
-
-The first session, at `8e6350f`, played `F11`, `F12`, `F13` and `F14`: sixteen
-results, fifteen passes and **one fail, `F12-4`, its cause `B54`** — `print`
-printing only its first argument — fixed the same day at `24842d3`. The second
-cleared the remainder at `2feadb1` over code `24842d3`: **`F11-10`, `F11-11`,
-`F12-6`, `E17`, `W7` and `F12-4` re-run, all six passing, with no defect
-reported and so no finding id.** Each of the six was the only evidence something
-could have:
-
-- **`F11-10` is `lib/blocks.lua`'s only in-world evidence** — the good call, the
-  three refusals with four log lines, the late call refused. The `mod ?` line
-  read as intelligible rather than as a trap, which is what its caveat was
-  written to buy.
-- **`F11-11` is the `rev_blocks` fix's only possible evidence**, and it passed.
-  **Stop writing that fix up as an outstanding risk.** It also checked the
-  package page's claim that a registered category shows up in the editor beside
-  the built-in ones — the one claim on that page nothing in a world had seen.
-- **`F12-6`** — a registered category's own ramp.
-- **`E17`** is `B53`'s only check; **`W7`** is `B54`'s, and the only thing that
-  can ever see what `print` puts in the chat. `W7` also settled the space
-  separator and the wrapping, which `CLAUDE.md` had carried as unverified.
-- **`F12-4`'s re-run observed the rotation for the first time.** Its earlier
-  fail never reached the reads, so it is retired as a `B54` sighting.
-
-**Three earlier passes settle things the record was carrying:**
-
-- **`F11-1` passed in French and in English**, so a legacy dropdown returns the
-  stored item and not the displayed text. That was the one failure that would
-  have been expensive — it would have meant converting the editor out of legacy
-  coordinates — and it is ruled out.
-- **`F12-2` passed and did not hand its decision back.** The flat pure white
-  solid tile reads acceptably in a wall, so **`F11`'s grain is not coming back to
-  the solids**, the exact hex is kept, and the question is closed rather than
-  open. It is under *other decisions* below so it is not proposed again.
-- **`F14-2` passed**, which is the check `test-agent` could not turn into a spec:
-  reading past the end of a palette view stays silent while a genuine misspelling
-  still reports. Observed rather than reasoned, and that is the only evidence it
-  can ever have.
-
-**The game-author path now has in-world evidence, and it took a second mod to
-get it.** `F11-10`, `F11-11` and `F12-6` all needed one calling
-`codeblock.register_blocks`, and **it lives at `../codeblock-test-mod`** —
-written 2026-09-07, deliberately outside this repository, and described in
-`F11-10` in enough detail to rebuild if the directory is lost. All three passed
-in one session, so the contract in `lib/blocks.lua`, its refusals, the
-late-call seal, a registered category reaching `place()`, `get_block()` and
-player meta, and its own ramp have each been seen rather than reasoned about.
-
-**`B54` is the one finding the session produced, and what is interesting about it
-is the shape of its evidence.** `print` took exactly one parameter, so
-`print("is: ", is_block(colors.red))` sent `> is: ` and stopped with no error,
-while `print("is: " .. is_block(...))` raised *attempt to concatenate a boolean
-value* — correct Lua, and not something to work around. The player was walled
-both ways. It is fixed variadic, with four decisions recorded in `AUDIT.md` and
-under *other decisions* below. **Its twelve new spec cases pin the charge and not
-the text, and all twelve would have been green before the fix**: what `print`
-sends is observable from no spec, which `test-agent` established by probe rather
-than by argument. So `W7` was not optional, and **`W7` passed on 2026-09-07** —
-all three programs, and no exception against the space separator wrapping on a
-narrow console, which the recipe asked for on that basis and was the last part
-of the reasoning nothing had confirmed.
-
-**`B53` was found and fixed on 2026-09-07 at `de3bcbb`**, before the session. The
-program a new file starts with named `blocks.obsidian` — a category `F11` deleted
-on 2026-09-04 — so **every file a player created with `+` or Enter for three days
-raised on its first statement**, with all five gates green over it. The template
-is player code in a string literal and nothing lints, compiles or generates it.
-The fix names no individual colour, deliberately; the grounds are under *other
-decisions*. **Its check, `E17`, passed on 2026-09-07** with the colours counted,
-which is `B53`'s only possible evidence. **`C23`, the finding it produced,
-is closed at `63c3c33`** — the shipped examples are checked against the directory
-in both directions, each failing by name, which the author unblocked by deciding
-to **track `lib/examples/game.lua`**. That left **`C24`**: the enumeration needs
-`core.get_dir_list`, CI boots no engine, so the check runs locally and not in CI.
-It does not block the tag.
-
-**`F15` was shaped on 2026-09-07 and deliberately not scheduled**: `colorhex` is
-feasible only as *nearest of 256*, through a `paramtype2 = "color"` palette node,
-and the investigation is written up under `F15` so nobody repeats it. The
-neutrals were **not** expanded to ten greys, for the same reason — see *other
-decisions*.
-
-**Two low findings were filed on 2026-09-05**, both pre-existing and neither
-blocking: `A17`, three dead exports on `codeblock.utils` kept rather than deleted
-because the table is a published global, and `A18`, `meta.active = #meta.tabs`
-written as a loop twice in `lib/formspecs.lua`. `A17` wants the author's
-decision, not a cleanup.
-
-**Everything else in `Phase 8` is closed and played.** `B50` and `B52` were fixed
-at `1b991ae` and confirmed in a world on 2026-09-04 by `W1` at every codelevel,
-`W5` and `W6`; `B51` was fixed at `8de3cea` the same day and confirmed by `D7`;
-`B48`, `F10`/`C21` and `B49` were all committed and played on 2026-09-03; `B47`
-and `settingtypes.txt`'s generator closed on 2026-09-02, and writing the second
-found `C20`. `AUDIT.md` holds the reasoning for each. **CI run 47 is green on all
-three jobs at `65b4c46`**, which is `origin/master`.
-
-**Two things `1b991ae` changed about older findings, recorded so they are not
-re-broken.** `B29`'s serial now guards the **replacement's object** rather than
-its record or its budget — `on_lost` removes nothing, so what the guard prevents
-is a dying object's deferred `on_deactivate` blanking the new drone's `obj` and
-leaving it invisible until the next re-spawn. And `B30`'s **behaviour** changed
-while its rule did not: a parked drone with no coroutine used to be removed when
-its mapblock unloaded, and now it persists and gets its view back — bounded, one
-drone per player and `register_on_leaveplayer` removes it — while a program that
-never started is still never reported as having ended.
-
-**Two loose ends, neither blocking.** `S7`'s log line is unlooked-at — one grep of
-`debug.txt`, next time an unreadable file is to hand. And `P3` left a 23% gap
-unexplained, 78 s against 95 s across two of four facings; the emerge multipliers
-can only be 1, 2 or 4, so it is not `B43` returning.
-
-**What group `H` and `F9` taught, kept because the next release will be tempted
-to skip it.** `F4` shipped with four green gates and the first ten minutes in a
-world found two defects — `B45` and `B46`, both about what the display *said*
-rather than what it computed, neither reachable by any spec. `F8` rewrote enough
-of `F4` that its first pass meant *it did what was asked*, not *it is settled*,
-and the re-run did the same thing again at a smaller scale: the behaviour passed
-everywhere and the **words** were wrong in three more places (`F9`), plus one
-thing no spec could ever see (`B47`). **Displays are the part of this mod that
-only playing can check**, and a second playtest of a rewritten display is not a
-formality. **The 2026-09-07 session is the same lesson once more, in a new
-place**: four features passed almost everywhere, and what actually playing them
-found was that `print`, the tool a player debugs with, had been discarding its
-arguments. The other four rules the phase paid for are at the bottom of this file.
+**Every feature in `Phase 8` has shipped and been played.** `PLAYTEST.md`
+carries no fail and two unrun checks, `F-6` and `F-7`.
 
 ## Finalising v1.0.0
 
-In order. **Steps 7 to 11 are the `release-codeblock` skill's procedure** and are
-not restated here; what is below is what *this* version still needs, and
-`release-check` is the gate that says whether it got it.
+Steps 7–11 are the `release-codeblock` skill's procedure and are not restated.
 
-**The work — everything through step 4 is done, so are the two unnumbered steps
-ahead of them and `B51`; what is left is the `S9` decision, the fixture
-question, pushing, then the README, the screenshots, `R2`, `F-6`, `F-7` and the
-tag.**
-
-**Before step 5 — push.** Kept unnumbered so the steps below keep the numbers
-commit messages and the release skill cite. **The feature playtesting is
-complete and two checks were added after it** — `F-6` for `S8` and `F-7` for
-the shipped examples, both unrun: two
-sessions on 2026-09-07, engine 5.17.0 — `F11` to `F14` at `8e6350f`, fifteen
-passes and one fail, the fail being `F12-4` and its cause `B54`, fixed the same
-day at `24842d3`; then the six remaining checks at `2feadb1` over code
-`24842d3`, **all six passing with no defect reported**. `PLAYTEST.md` carries no
-fail and two unrun checks, `F-6` and `F-7`. Their entries under *The features*
-hold the shapes and the decisions.
-
-**So what is outstanding before the tag is two questions, the push, and two
-pieces of writing:**
-
-- **The `S9` decision.** Fix `vector3` itself — a release of that package and a
-  submodule bump — and **whether that happens before or after this tag**, given
-  that `S9` is high and reaches every other mod using the `vector3` global.
-  **`S9` is unfixed on both v1.5 and v2.0.1**, probed at each: `v.__index` reads
-  `table`, not `nil`, and the freeze does not reach it. That repository had a
-  release on 2026-09-07 and did not include it. **`S8`'s decision is no longer
-  outstanding** — vector3 2.0 froze the constants, which is the option filed as
-  the alternative, so the choice was taken upstream; `S8` itself stays open and
-  latent, because `env.snapshot` is unchanged.
-- **What the test fixture should pin — open, and not settled by the bump.**
-  Running the suite against v2.0.1 leaves the v1.5 half proven by nothing, and
-  it cannot be proven without pinning the old submodule. Three candidates and no
-  decision: pin the newest `vector3`, pin the oldest supported one, or give
-  `mod.conf` a documented floor that ContentDB can carry — noting that
-  `min_minetest_version` is an **engine** floor and not a dependency one, so
-  there may be no mechanism at all.
-- **The push.** Nineteen commits, nothing of `F11` to `F14`, `B53`, `C23` or
-  `B54` has been through CI. This is the largest item that can still fail rather
-  than merely take time.
-- **Playtests `F-6` and `F-7`**, both unrun. `F-6` is the `game.lua` fix and
-  `S8`'s only possible in-world reading. `F-7` is the standing check that every
-  shipped example still runs, which nothing else does at all — the examples are
-  compiled and never run — and it is what the `vector3` bump's near miss
-  argues for.
-- **`README.md` and the screenshots**, which are writing.
-- **`R2` re-run.** Not an unrun check but a stale one: it last ran at
-  `7c5bceb`, before `F4`, before `F11` gave the mod its own textures, and before
-  `.gitattributes` changed. `R1` is stale the same way at `afbe504`.
-
-**On the push:** `git rev-list --count origin/master..HEAD` reads **19** at
-`3548d58`, with `origin/master` at `65b4c46`. **The submodule pointer is the
-only working-tree change**, and step 9 already requires confirming that
-`tests/game/mods/vector3`'s pinned commit is pushed — it is: `5077617` is
-`origin/master` there. **`F12-2` did not hand its
-decision back** — the
-flat solid tile stays, and that is under *other decisions*.
-`CHANGELOG.md` took `F11`'s **Changed** and **Removed** sections on 2026-09-05,
-`F12`'s and `F13`'s on 2026-09-06, `F14`'s **Added** line and `B53`'s **Fixed**
-line on 2026-09-07, and `B54`'s **Changed** and **Fixed** lines the same day, so
-step 4 is back to the heading alone. (F11, F12, F13, F14, B53, B54)
-
-**The unnumbered step before step 0 — play `W1`, `W5` and `W6` — is done,
-2026-09-04 at `23f0227`, all three passing.** It is kept unnumbered so the steps
-below keep the numbers commit messages and the release skill cite. `B50` and
-`B52` were **fixed in `1b991ae`** with the gates green, and these three checks
-were the whole of the rest of the evidence. `W1` ran **at every codelevel** — the
-level-2-and-below case it had been asking for since 2026-08-28 *and* the three
-levels above, in one session — with the third observation finally made: a drone
-places straight afterwards, so a leaked record is **ruled out** rather than
-unlikely. `W5` gave `B52` its first result ever, both cases. `W6` passed all
-four of its cases, `/clearobjects` not ending a program included. **The engine
-version was not restated by the author** and `PLAYTEST.md` records it as not
-recorded.
-
-**`B51` is fixed, and it goes in v1.0.0** — the question of deferring it to
-`Phase 9` did not arise, the fix being one branch and one `S()` key. A run cut
-short now says *stopped*, in English and French. It is committed at `8de3cea`.
-**And it is played:** `D7` passed on 2026-09-04 — no spec asserts what
-`Drone.finish` sends, so that check was the only evidence there could be, and it
-is now in. `CHANGELOG.md` has its *Fixed* line. **Nothing in the release list
-waits on `B51` any more.** (B51)
-
-0. **`B50` and `B52` — fixed at `1b991ae` and played; `B48`, `F10` and `B49` — committed
-   and all three confirmed in a world.** `1b991ae` decoupled the drone record and
-   the run from the entity: one globalstep advances every drone, `on_deactivate`
-   only drops the view, and an object is handed back once the block is in memory.
-   It touched `lib/drone.lua`, `lib/drone_entity.lua`, `lib/register.lua`,
-   `lib/stepper.lua`, both locale files — the *drone has disappeared* key is
-   deleted — and `tests/integration_spec.lua`. `B29`'s guard and `B30`'s
-   behaviour both moved with it; see *Now*. Its gates are green and **its three
-   checks passed on 2026-09-04 at `23f0227`**, which closes the unnumbered step
-   above. The other three
-   shared one working tree with the gates green over all of it, and went out
-   as three commits on 2026-09-03: `B48` `4179877`, one line in
-   `lib/filesystem.lua`; `F10` `b23a8bc`, covering `lib/register.lua`, `C21`, the
-   hand-written region of `doc/api.md`, `README.md`'s Quick start and the eight
-   French translations in `locale/codeblock.fr.tr`; `B49` `d8c32f7`, covering
-   `lib/env.lua`, `lib/sandbox.lua`, `lib/api.lua`'s `blocks` entry with
-   `doc/api.md` regenerated, one new locale key with its French, and 13 new
-   `env_spec` cases. The playing is done for all three — `E16`, the four `F10-n`
-   checks and `W4` — and now for `B50` and `B52` too, `W1`, `W5` and `W6` on
-   2026-09-04. **CI has since seen all of it** — run 47, green on all three
-   jobs at `65b4c46`. (B50, B52, B48, F10, C21, B49)
-
-   **Two findings arrived after this list was written and are not in it:**
-   `S8` and `S9`, 2026-09-07, both **open with their options** and neither
-   fixed. They are not features and not part of any numbered step; what they
-   need is the decision in *Now* above.
-1. **`B47` — done, and playtested.** Answered by slowing the beat to 1 s rather
-   than stopping the self-refresh, quantising, or moving to mouse-down;
-   `AUDIT.md` keeps why each of the other three was not taken. `H10` passed with
-   a few presses in twenty still missing, which the author accepted — so what
-   ships is a mitigation with its residue named. (B47)
-2. **`settingtypes.txt`'s generator and `--check` — done**, `scripts/gen_settingtypes.lua`,
-   with a step in the CI job that already runs the other two. The defaults come
-   from `lib/config.lua`, the prose and the menu bounds from the script, and it
-   **also fails on a setting `config.lua` reads that the menu does not offer** —
-   the half no hand-kept file could do. It found `C20` on its first run. (C7,
-   C17, C20)
-3. **`CONTENTDB.md` — done, `c2e541f`**, with `.cdb.json` regenerated from it in
-   the same commit. It had drifted exactly as `C19` said it would: the corner
-   display *"naming the one limit the run will actually stop on"* was `F4`'s
-   two-line HUD that `F8` replaced, *"pause, resume, cancel and remove"* was the
-   four-button panel `F8` cut to **Stop** and **Pause/Resume**, and `F10` had
-   made the Quick start's step 1 false. **Nothing checks this file against the
-   code or against `CHANGELOG.md`**, so it will drift again — its *Recent
-   changes* list is hand-kept and `B50`/`B52` are not in it, which is a judgement
-   call rather than an omission: a player does not read *the drone no longer
-   disappears* as a feature. **`F11` rewrote its opening feature and its recent
-   changes in `d075742`**, and **one more drift was caught on 2026-09-05**: an
-   *Important notes* line still said the corner display *"says which limit it is
-   heading for"*, which is `F4`'s HUD that `F8` replaced two features before
-   `c2e541f` corrected the same claim elsewhere in the file. Edit the Markdown
-   and run `bash scripts/gen_cdb_json.sh` — **never `.cdb.json` by hand**.
-   (C19, F10, F11)
-4. **`CHANGELOG.md` loses `(unreleased)` from its heading** at the tag, and its
-   *Known limitations* section carries `B47`'s residue, since step 1 mitigated it
-   rather than closing it. **v1.0.0's breaking list gained three of `F10`'s
-   changes on 2026-09-03**, once they were committed and green and not before —
-   the `/codeblock` command rename, the end of the tool handout, the end of the
-   privilege grant — and `B48` and `B49` are in *Fixed* beside them. **`F11`'s
-   Changed and Removed sections went in on 2026-09-05**, once both passes were
-   committed and green: the palette renamed, the two dependencies gone, the mod's
-   own nodes and `register_blocks`. **`F12` revised the same entries on
-   2026-09-06** rather than adding new ones — 105 nodes and 35 colours, three
-   tiles with a flat solid, `ramp` in place of `color`, and `get_block`'s
-   coordinates as a new *Added* line. **So this step is the heading alone.**
-   (F10, F11, F12)
-5. **`README.md` has three problems now, and `F11` added the worst.** Line 10
-   says the mod *"works in any game that provides the blocks it places"* — false
-   since `d075742`, and **backwards**: bringing its own blocks so it needs no
-   game to provide any is the selling point. It also wants a short **For game
-   authors** section documenting `codeblock.register_blocks`, whose contract is
-   in `lib/blocks.lua`'s header meanwhile — **not** `doc/api.md`, which is for a
-   player writing a program and whose `--check` does not read its hand-written
-   region. Then the two older ones: the ContentDB URLs are on
-   `content.minetest.net`, the pre-rename domain, which redirects, so it is stale
-   rather than broken but ships in the archive; and line 23 reads *"enable
-   `codeblock` mod ant its dependencies"*, which is both a typo and, after `F11`,
-   one dependency rather than three. (C19, F10, F11)
-6. **Upload the new screenshots to the ContentDB page.** They load from raw
-   GitHub URLs on `master`, so the page needs the new names and the dropped 2021
-   file removing. (C19)
-
-**The release.**
-
-7. **Re-run `R2` on the archive built from the release commit**, which is
-   `git archive --format=zip --prefix=codeblock/ -o /tmp/codeblock.zip <tag>` —
-   the tag rather than `HEAD`, because that is what ContentDB builds from, and
-   `export-ignore` is read from the `.gitattributes` at that revision. `R1` was
-   re-checked at `7dbe18f` and passes — eleven top-level entries, `textures/`
-   shipping PNGs only, no `tests/` or `scripts/`. `R2` is the one that matters
-   more and is older: it last ran at `7c5bceb`, before `F4` added
-   `lib/hud.lua` to the `dofile` list and before `.gitattributes` changed at
-   `60dc8dd`. The `C16` probe itself is untouched, so the guard is not in doubt;
-   what is unproven is that *this* archive loads in a game that is not
-   `codecube`. **Play it outside its own game** — `B38`, `B39` and `C18` were all
-   invisible in `codecube`.
-8. **`release-check`**, and do not start the tag until it says ready: the nine
-   in-engine specs, the six standalone, luacheck, **all three** `--check`
-   generators, CI green on the tagged commit's own `head_sha`, the licence field,
-   ContentDB's rules against the long description, and a fresh clone that can run
-   its own suite.
+1. **Decide `S9`** — before or after the tag. Needs a `vector3` release and a
+   submodule bump. (`S9`)
+2. **Decide what the test fixture pins** — newest, oldest supported, or a
+   documented floor. Luanti has no dependency version mechanism. (`S8`)
+3. **Push.** The one item that can fail rather than merely take time.
+4. **Fix `README.md`.** Line 10's *"works in any game that provides the blocks
+   it places"* is false and backwards since `d075742`; add a short **For game
+   authors** section for `codeblock.register_blocks`; the ContentDB URLs are on
+   the pre-rename `content.minetest.net`; line 23 reads *"ant its dependencies"*
+   and there is now one. (`C19`, `F10`, `F11`)
+5. **Upload the new screenshots to the ContentDB page** — it loads them from raw
+   GitHub URLs on `master`, so the new names go up and the dropped 2021 file
+   comes off. (`C19`)
+6. **Run playtests `F-6` and `F-7`**, both unrun. (`S8`, `C23`)
+7. **Re-run `R2`** on the archive built from the release tag, not `HEAD`. Stale
+   since `7c5bceb`, before `F4`, `F11`'s textures and `.gitattributes`. Install
+   it in a game that is not `codecube`. (`C16`, `C10`)
+8. **`release-check`**, and do not start the tag until it says ready.
 9. **Strike what the release closed** from `ROADMAP.md` and `TODO.md`, confirm
-   `tests/game/mods/vector3`'s pinned commit is pushed, then commit, push, and
-   tag `v1.0.0` on `master`.
+   the `vector3` submodule commit is pushed, commit, push, tag `v1.0.0`.
 10. **Upload to ContentDB**, long description from the regenerated `.cdb.json`.
-11. **Configure the release webhook** — trigger **Branch or tag creation**, not
-   push, because this project tags and push would publish every commit on
-   `master`.
+11. **Configure the release webhook** — trigger **Branch or tag creation**.
 
-**After the tag, and deliberately not before.** `Phase 9` opens on what comes
-back from players; `codecube` adopts the release on its own schedule and must set
-`codeblock_flat_sky = true` in its own `minetest.conf` when it does (`C18`).
-`Phase 10` is Blockly and needs the four obstacles under `F6` answered in writing
-before any code.
+Done and not repeated here: `CHANGELOG.md` is the heading alone, `CONTENTDB.md`
+was corrected at `c2e541f`, `settingtypes.txt`'s generator landed, `B47` shipped
+mitigated, and `B48`, `B49`, `B50`, `B51`, `B52`, `B53`, `B54`, `C21`, `C22`,
+`C23` and `F10`–`F14` are all committed with their playtests run.
+
+**After the tag.** `Phase 9` opens on what comes back from players. `codecube`
+adopts the release on its own schedule and must set `codeblock_flat_sky = true`
+in its own `minetest.conf` (`C18`). `Phase 10` needs `F6`'s four obstacles
+answered in writing before any code.
 
 ## Milestones
 
-Phases 0–7 are closed; one line each, with the findings they covered.
-`AUDIT.md` holds the reasoning.
+| Phase | Goal | State | Closed |
+|---|---|---|---|
+| 0 | Make change safe | done | 2/2 |
+| 1 | Ship the compliance fixes | done | 4/4 |
+| 2 | Rewrite the sandbox preprocessor | done | 11/11 |
+| 3 | Replace ActiveFormspecs | done | 3/3 |
+| 4 | Performance | done | 4/4 |
+| 5 | Limits that track real load | done | 4/4 |
+| 6 | Limits for what the server spends | done | 3/3 |
+| 7 | Clear the way for features | done | 26/26 |
+| 8 | Features for v1.0.0 | in progress | 12/12 features; `S8`, `S9`, `C24`, `A17`, `A18` open |
+| 9 | v1.x.y — after the release | not started | 0/1 |
+| 10 | v2.0.0 — the Blockly editor | not started | 0/1 |
 
-- **0 · Make change safe** — done (2/2). Run on the current engine, put the
-  riskiest code under test, restore linting. (C8, A12)
-- **1 · Ship the compliance fixes** — done (4/4). The ContentDB version ceiling
-  gone, licensing settled, the user-visible command and editor bugs fixed.
-  (C1, B5, B8, B9)
-- **2 · Rewrite the sandbox preprocessor** — done (11/11). Instrumentation over a
-  token stream, per-run environment snapshots with unassignable API names, the
-  blacklist retired to a diagnostics aid, the string metatable bounded.
-  (B1–B4, B6, B23, S1–S4, A10)
-- **3 · Replace ActiveFormspecs** — done (3/3). The last unmaintained dependency
-  gone, and with it the only code patching the engine namespace; documentation
-  generated from `lib/api.lua` landed alongside. (A1, A2, B22)
-- **4 · Performance** — done (4/4). The drone builds at the speed the hardware
-  allows, bulk shapes are one VoxelManip pass each, the WorldEdit fork is gone.
-  (A5, B12, A4, A15)
-- **5 · Limits that track real load** — done (4/4), `43e95a8`. Gave each limit a
-  resource to stand for, made the step budget a shared pool, added
-  `settingtypes.txt`. (S5, S6, C7, C13)
-- **6 · Limits for what the server spends** — done (3/3), `2647228`. Eleven proxy
-  limits became seven real ones, each in a unit a player reads, converted once in
-  `lib/limits.lua`. (B25, B26, C14)
-- **7 · Clear the way for features** — done (26/26), `742a1ca`–`191b533`. Removed
-  the duplication that made every feature cost more than it should. Two reviews
-  of the range then opened seven findings, five of them regressions the phase
-  itself introduced. (A3, A6, A9, A11, A16, C6, C10–C12, B7, B10, B11, B13–B18,
-  B21, B27–B32, C16)
+Findings by phase: 0 (`C8`, `A12`); 1 (`C1`, `B5`, `B8`, `B9`); 2 (`B1`–`B4`,
+`B6`, `B23`, `S1`–`S4`, `A10`); 3 (`A1`, `A2`, `B22`); 4 (`A5`, `B12`, `A4`,
+`A15`); 5 (`S5`, `S6`, `C7`, `C13`, at `43e95a8`); 6 (`B25`, `B26`, `C14`, at
+`2647228`); 7 (`A3`, `A6`, `A9`, `A11`, `A16`, `C6`, `C10`–`C12`, `B7`, `B10`,
+`B11`, `B13`–`B18`, `B21`, `B27`–`B32`, `C16`, `742a1ca`–`191b533`); 9 (`C24`);
+10 (`F6`).
 
-"Done" through Phase 7 means the findings are closed and the gates green, **not**
-that the editor and drone paths were exercised by hand. Phase 8's playtests have
-since found **fifteen** defects in code earlier phases called done (B36–B44,
-C17, C18, S7, and now `B50`–`B52`) — the newest of them were the largest.
-**All fifteen are fixed.** All three of the newest were filed 2026-09-03 out of
-`W1`'s fail at codelevel 1 and the reading that explained it; `B50` and `B52`
-were fixed the same day at `1b991ae` and **confirmed in a world on 2026-09-04**,
-and `B51` was fixed at `8de3cea` on 2026-09-04 and confirmed by `D7` the same
-day. **So all fifteen fixes are played.**
+**Done through Phase 7 means findings closed and gates green, not played.**
+Phase 8's playtests have since found fifteen defects in code those phases called
+done — `B36`–`B44`, `C17`, `C18`, `S7`, `B50`–`B52` — and all fifteen are fixed
+and played.
 
-### 8 · Features for v1.0.0 — in progress (12 features, all twelve shipped; 32 findings, `C24`, `S8` and `S9` open — `S8` latent since the `vector3` bump, `S9` unfixed on both versions; `F11` to `F14` played 2026-09-07 with `B54` the only defect found; `PLAYTEST.md` has two unrun checks, `F-6` and `F-7`, and no fail)
+**Phase 8 open findings: `C24`, `S8`, `S9`.** `S8` is latent since the `vector3`
+bump and reachable again on v1.5; `S9` is unfixed on both versions; `C24` is
+queued for `Phase 9`. `A17` and `A18` are low and pre-existing; `A17` wants the
+author's decision, not a cleanup. `B10`'s refusal is out of the phase rather
+than done — its check was removed as untestable and reaching it needs a way to
+observe the server releasing a mapblock.
 
-The last phase before v1.0.0 and the only one that adds rather than repairs.
-Started as seven features: `F6` moved out on 2026-08-28 (Blockly is `Phase 10`)
-and `F5` was **dropped unbuilt on 2026-08-29** — *"not very interesting in the
-end."* **`F10` was added on 2026-09-03** and is in `Phase 8` rather than `Phase 9`
-for one reason: it renames two chat commands, and a rename is free before the
-first tag and breaking after it.
-
-**`F11` was added on 2026-09-04 and shipped on 2026-09-05.** The mod brings its
-own nodes and drops the `default` and `wool` dependencies, so it can be
-installed into any game on ContentDB rather than the three that ship both. Same
-reason for the phase as `F10`, only larger: it renames the whole player-facing
-block palette.
-
-**`F12` was added and shipped on 2026-09-06, the last feature before the tag.**
-It replaces `F11`'s palette outright — 35 colours, 105 nodes — swaps
-`color(v, min, max)` for one `ramp` per block category, and gives `get_block`
-relative coordinates. Same reason for the phase again: both are breaking changes
-to names a saved program writes, and both are free only while v1.0.0 is
-untagged.
-
-**`F13` was added and shipped on 2026-09-06 as well**: one new name,
-`is_block`, the predicate form of `F12`'s `get_block`. Adding a name breaks
-nothing, so its phase is a matter of when it was asked for rather than of the
-tag. The same commit closed `C22`. **`F11` to `F14` were played on 2026-09-07 at
-`8e6350f`** — fifteen passes, one fail, `B54` the only finding — and **the six
-checks that were left passed later the same day** at `2feadb1` over code
-`24842d3`, with no defect reported. `F13`'s checking is folded into `F12-3` and
-`F12-4`, both of which now pass. **No CI over any of the seventeen unpushed
-commits.**
-
-**`F14` was added and shipped on 2026-09-07** — three ordered palette views and
-`ramp.of`, adding names and renaming none, so its phase is when it was asked for
-rather than the tag. **Every feature in the phase has now shipped.** **`F15` was
-shaped the same day and given no phase**: `colorhex` is feasible only as
-*nearest of 256* and is not scheduled.
-
-Shipped: `F1` `500dd85`, `F2` `dee0bc7`, `F3` `90cfb70`, `F7` `afbe504`,
-`F4` `729c255`, `F8` `d619fba` revised `60dc8dd`, `F9` `8869d8c` revised
-`cd13414`, `F10` `b23a8bc`, `F11` `d075742` + `6126abe`, `F12` `01f9641`,
-`F13` `4450ce1`, `F14` `e3e2178`. **`F9` was added and shipped on 2026-09-02** out of `F8`'s playtest,
-the second time a feature here has come from playing the one before it — and the
-second time in a row that what a display *said* was the thing playing it found.
-
-Shipped with them: **`F10` `b23a8bc`, played and committed 2026-09-03**, with
-`B48` `4179877` and `B49` `d8c32f7` out of the same tree. **Every feature in the
-phase has shipped.** **The three playtest checks against `1b991ae` — `W1`, `W5`
-and `W6`, the only evidence `B50` and `B52` will ever have — all passed on
-2026-09-04 at `23f0227`.** **`B51` was fixed the same day at `8de3cea`** — a run
-cut short says *stopped* — and `D7` passed that day too. The twenty checks `F11`
-to `F14` and `B53` then added were cut to **five unrun plus one re-run** by the
-session of 2026-09-07, which found `B54` and nothing else, and **a second
-session the same day cleared all six**. Left in the phase: the `S8`/`S9`
-decision, the push, `README.md`, the screenshots, `F-6` — written after those
-sessions and unrun — and `R2` on the release archive, the one check whose
-result has gone stale rather than being unrun. **CI is outstanding
-again**: run 47 is green on all three jobs at `65b4c46`, which is
-`origin/master` and **eighteen** commits behind `HEAD`, so it has seen no part of
-`F11`, `F12`, `F13`, `F14`, `B53`'s fix or `B54`'s. `H10` passed 2026-09-02. **`F9`
-passed its playtest on 2026-09-02** — all eight cases in both languages, no
-defect, and one decision reversed: the paused clock, built and re-checked the same
-day. **`B47` and `settingtypes.txt` closed the same day**, and writing the second
-found `C20`, a check that had never once matched anything.
-**`B10`'s refusal is out of the phase rather than done** — its check was removed
-as untestable, and a route to it needs a way to observe the server releasing a
-mapblock, which nothing here has.
-
-**`CONTENTDB.md` drifted, which settled the argument rather than illustrating
-it, and it was corrected at `c2e541f`.** It is a hand-kept summary of
-`CHANGELOG.md` — the same family as `doc/api.md` and `locale/template.txt` — and
-two of its claims described `F4`'s displays, which `F8` had replaced two features
-ago. Nothing failed, nothing reported it, and the release skill's step naming the
-file is precisely the note about remembering that this project has twice found
-does not hold. **It is still hand-kept**, so it will drift again. (C19)
-
-### 9 · v1.x.y — features and defects after the release
-
-**Allocated 2026-08-28.** Everything that is not 1.0.0 and not Blockly: features
-too late for the release, defects the release turns up, and the playtest groups
-only a shipped version can reach. **No fixed content on purpose** — a phase for
-what comes back from players is worth more empty than filled in advance.
-
-The one thing already in it: **the first release under real use is where a finding
-series meets people who did not write it.** Everything in `AUDIT.md` was found by
-the author, one reviewer or one spec. That is a narrow sample.
-
-One finding is queued here rather than before the tag:
-
-- Give CI a job that boots the engine, so the three in-engine-only specs and
-  every engine-guarded case are run by something other than a local
-  `run_tests.ps1` (audit `C24`).
-
-### 10 · v2.0.0 — the Blockly editor
-
-**Allocated 2026-08-28.** `F6` alone, and a major version because it is the change
-that most plausibly breaks how a program is stored and edited. Its four obstacles
-are under `F6` and **none has an answer yet**. The author's framing is the point:
-*time to plan and think*, not a queue position. **Do not start building it because
-the phase exists.**
+**Phase 9 holds one item:** give CI a job that boots the engine, so the three
+in-engine-only specs and every engine-guarded case are run by something other
+than a local `run_tests.ps1` (`C24`). Closing it means a CI job that starts
+Luanti, or `lfs` for one directory enumeration — not a dependency worth adding.
+Otherwise deliberately empty: a phase for what comes back from players is worth
+more empty than filled in advance.
 
 ## The features
 
-Ids are quotable in commit messages and never renumbered. A shipped entry keeps
-only the constraints a future change would re-break; the survey of options that
-led to it is in git and `CHANGELOG.md`.
+A shipped entry is one line. What was load-bearing in it is under *Other
+decisions*. `F6` and `F15` describe work not done and keep their shape.
 
-### F1 · small · shipped `500dd85` — the default block for a bare `place()`
-
-The player picks a default in a Settings panel in the editor, stored per player
-under `codeblock:default_block`; a program overrides it for its own run with
-`default_block(block)`. **Two levels deliberately:** *what do I usually build
-with* belongs to the player and outlives the session; *what does this program
-build with* belongs to the program and travels with it when shared.
-
-**Agreed, and load-bearing.**
-
-- **The picker is a `textlist`, not item rows in a `scroll_container`.** The
-  editor formspec is in **legacy coordinates**, where a `scroll_container` maps
-  its contents into a different space and clips them to its own rectangle, and an
-  `item_image_button` inside one gets a hit area that does not match where it is
-  drawn. The help panels get away with a container only because `item_image`
-  takes no clicks. Do not "restore" the item-row plan without first converting
-  the whole editor to the new coordinate system.
-- **A legacy button's `W` is not a width.** From `src/gui/guiFormSpecMenu.cpp` at
-  5.17.0: a `button` gets `geom.X = W*spacing.X - (spacing.X - imgsize.X)` while
-  a `textlist` gets `geom.X = W*spacing.X`, with `spacing = imgsize * 5/4`. So a
-  button is short by a fixed **0.2 units whatever `W` is** — the offset does not
-  scale. Hence `F2`'s *Create a copy* is `3.2` against a 3-wide file list and `+`
-  is `0.95`. `H` is not a height either: the height is fixed and `H` only shifts
-  it down. **`lua_api.md` records none of this**, so the reference cannot settle
-  a misalignment here.
-- **One panel, not a second form.** `lib/forms.lua` holds one form per player, so
-  a settings form would displace the editor. Every future setting adds a row here.
-- **Not privileged, unlike everything beside it.** Codelevel is privileged
-  because it bounds resource use; block choice does not — stone and red wool cost
-  the server the same. `air` is selectable, so a bare `place()` can erase.
-- **The preference is read once per run** into `drone.default_block`, so a mid-run
-  change cannot split one build between two blocks. **The read validates through
-  `blocks` and falls back to stone** — meta outlives a palette change, and
-  validating *through* `blocks` rather than around it is what stops a default
-  arriving from a form becoming a way to place any node name. Because the
-  fallback is mandatory, **no init line was added** to the meta block in
-  `lib/register.lua`, unlike its neighbours. **Meta is written on click**, not on
-  form close, which kept the preference immune to `B33`.
-- **Argued out: a `persist` flag on `default_block()`.** It would be the only API
-  call whose effect outlives its run; a shared program would silently rewrite the
-  reader's saved preference with no undo; in a loop it is a meta write per
-  iteration from inside a budgeted run; and no spec could reach it. If
-  persistence from a program is ever wanted it gets its own command.
-
-`PLAYTEST.md`'s `F1-1` and `F1-2` both passed at `246bb37`.
-
-### F2 · small · shipped `dee0bc7` — open a copy of a program
-
-*Create a copy* writes what is on screen to a derived name and opens it. Plus,
-asked for after the first playtest: the file list sorts `foo_2` before `foo_10`.
-
-**Agreed, and load-bearing.**
-
-- **The naming derivation.** `foo.lua` → `foo_1.lua` → `foo_2.lua`, first free
-  *N* up to 99. **Numeric because the author asked for it explicitly:**
-  language-agnostic, so the name does not depend on the server's locale. **Strip
-  a trailing `_%d+` before appending**, and never widen either strip to match
-  mid-name — both are anchored to the end. The first implementation used `_copy`
-  and took the whole stem, so the previous suffix became part of the next base;
-  since the base is also what gets trimmed to the 15-character limit, each round
-  both nested and lost a character. Trimming the suffix instead is not an option
-  — it hands back the original name for any stem already at the limit.
-- **Two behaviours are deliberate.** A freed number is reused. And a name already
-  at the limit shifts base at the tenth copy, so copying *that* starts a new
-  family; fixing it would let copies past the length rule every other filename
-  obeys.
-- **Scope.** Bottom-left, **not** the Save/Remove/Close row — that row already
-  runs to `x=14.08` against a help row starting at 14. The copy contains **what
-  is on screen, not what is on disk**. The name is **derived, not typed**. The
-  drone's file chooser does not get the button.
-- **Argued out:** saving the original before copying — a copy is a copy; and a
-  `filesystem.copy_file` helper — a copy is a derived name plus `write_file`,
-  already the module's one write path, so a helper called from one branch would
-  hide ownership of a write.
-- **The natural sort key** lives in `lib/filesystem.lua` and prefixes each digit
-  run with its own length (`('%03d'):format(#digits) .. digits`), so `foo_2`
-  precedes `foo_10` **without guessing a padding width**. The key is injective,
-  so no tie-break is needed. The drone's file chooser reads the same `ud.list` —
-  one sort, two consumers, which is why the key belongs in the filesystem layer.
-
-No spec reaches it and none was added: `forms_spec` stubs `core.show_formspec`.
-Evidence is `PLAYTEST.md` `E13`, pass.
-
-### F3 · medium · shipped `90cfb70` — `sleep(seconds)`
-
-Parks the drone and hands the step back, so a program builds at a pace it chooses
-rather than the codelevel's. Defaults to one second, takes fractions. The
-mechanism was already there — `drone.wake_at`. **Named `sleep`, not the `wait`
-first specified.**
-
-**Agreed, and load-bearing.**
-
-- **The risk was wall time, not CPU, and it is answered by charging up front.**
-  `max_runtime_s` charges the time a *step* spent, so a sleeping drone is charged
-  nothing and an unbounded wait would let a program live for ever holding a
-  record, an entity and a slot in the shared pool. The wait is charged *before*
-  it starts: `sleep(1e9)` puts the run past its ceiling and the stepper reports
-  the same timeout a program that never finishes gets. **That is
-  `max_runtime_s`'s one exception** — it now bounds time the program did not
-  spend on CPU — and both places it is documented say so.
-- **Argued out: a per-codelevel cap on `sleep`.** The up-front charge bounds it
-  without another limit, mirror row or documented row.
-- **Argued out: routing it through `end_command`.** That writes `wake_at` from
-  `pace_ms` and the last writer wins. **A sleep is not a command:** it pays no
-  pace and is not counted as one.
-- **It must keep yielding through `release()`** — the only `coroutine.yield` in
-  `lib/cost.lua`, which clears the mapblock memo first. Yielding any other way
-  reintroduces `B25`'s silent lost write.
-- **Adding a name is breaking even though nothing was renamed.** `env.new_env`
-  raises on assignment to any name the API defines, so a saved program using
-  `sleep` as its own global now fails on that line. The edit spans `lib/api.lua`,
-  `impls` in `lib/sandbox.lua`, regenerated `doc/api.md` and `api_spec`'s name
-  list.
-
-`PLAYTEST.md`'s `F3-1` passed at `246bb37`.
-
-### F4 · large · shipped `729c255` — a live drone panel
-
-Two surfaces, because one cannot do the other's job. A **HUD** carries the live
-read-out while a program runs; a **formspec panel** carries the per-limit
-breakdown and the buttons.
-
-**Merged from three `TODO.md` lines, because they are one feature:** the drone
-info UI, "show the program's budget while it runs", and the player-side half of
-"option to pause the drone" (the in-program half is `F3`).
-
-**Settled 2026-08-28.**
-
-- **A HUD cannot carry buttons, and that is what splits the feature.** 5.17.0 has
-  nine element types — `image`, `text`, `statbar`, `inventory`, `hotbar`,
-  `waypoint`, `image_waypoint`, `compass`, `minimap` — none is a button, and **no
-  HUD click callback exists anywhere in the API**.
-  `register_on_player_receive_fields` is formspec-only; `get_player_control` is
-  key *state*, not a click target.
-- **The HUD is nevertheless right for the read-out.** `hud_change(id, stat,
-  value)` updates one field: no formspec string, **no input focus reset**, and it
-  does not go through `lib/forms.lua`, so it does not collide with the
-  one-form-per-player rule. The editor can stay open with the HUD live over it.
-- **It shows only while that player's own drone is running.** A permanent status
-  area is decoration, and decoration imposed on every game that installs this mod
-  is exactly the `C18` shape.
-- **Player toggle over a server default.** A `flag` in `lib/config.lua`,
-  overridden per player in meta — read with `get_string`, because `get_int`
-  cannot tell an unset key from a stored `0` (`B5`).
-- **Pause is not `wake_at`.** Reusing it would clobber a pending `sleep()`:
-  resuming sets `wake_at = nil` and the drone wakes early. A separate
-  `drone.paused`, checked in `stepper.awake`, leaves a sleeping program's own wake
-  time intact — and a paused drone already takes no share of the step pool.
-- **Do not reintroduce the dependency `A11` removed.** `lib/drone.lua` does not
-  know forms exist and must not learn that a HUD exists either. Drive both from
-  the other side, reading `drone.budget`.
-- **Stop must go through `Drone.finish`**, the single place an outcome is
-  announced, or the player gets two messages or none (`B12`, `B30`). Anything
-  reading a drone by name from a callback must respect the **serial guard**
-  (`B29`): read the record fresh — a panel that caches a drone table across
-  redraws hits exactly that, and so does a panel left open while its run ends.
-
-**Argued out, so it is not proposed again.**
-
-- **A Start button.** Duplicates the poser's left-click and doubles the entries
-  into `get_safe_coroutine`.
-- **An admin view of another player's drone.** No one asked, and it adds a
-  privilege surface to a feature that otherwise has none.
-- **A `statbar` for the percentage.** It needs a texture pair and draws in
-  half-image steps; a coloured `text` says the same thing to the pixel.
-- **A live-refreshing panel that reproduces the HUD.** The panel refreshes on the
-  same tick but does not duplicate the HUD's job. Two surfaces, one each.
-- **Two destructive buttons.** *Cancel* and *Remove drone* shipped side by side
-  for one afternoon and were **the same `Drone.on_remove` call** under different
-  labels. The author asked what the difference was; there was none. **A second
-  button that offers a distinction the code does not make is worse than no
-  button.**
-
-### F5 · large · dropped 2026-08-29 — change a codelevel while a program runs
-
-**Cut by the author, unbuilt:** *"not very interesting in the end."* `F4` covers
-the watching half of what it was for. Kept because two of its rules outlive the
-feature, and because a feature with no recorded reason for its absence gets
-proposed again.
-
-- **Codelevel is privileged, and this is the feature most able to break that.** An
-  intermediate version once removed privs so players could set their own level — a
-  privilege escalation, reverted before it shipped (`B9`). If a codelevel control
-  is ever exposed in `F4`'s panel it must be privilege-gated **per press, not per
-  form**.
-- **The subtler hole is the counters, not the privilege.** Rebuilding the budget
-  from a new codelevel mid-run **must carry `used` across**; a rebuild that resets
-  it turns re-levelling into a way to spend `max_nodes_written` or
-  `max_runtime_s` twice over — a limit bypass through a legitimate command.
+| Id | Size | State | What it is |
+|---|---|---|---|
+| `F1` | small | shipped `500dd85` | A per-player default block, picked in the editor's Settings panel; `default_block(block)` overrides it for one run. |
+| `F2` | small | shipped `dee0bc7` | *Create a copy* writes what is on screen to a derived name and opens it; the file list sorts `foo_2` before `foo_10`. |
+| `F3` | medium | shipped `90cfb70` | `sleep(seconds)` parks the drone and hands the step back. Defaults to one second, takes fractions. |
+| `F4` | large | shipped `729c255` | A live HUD read-out while a program runs, and a formspec panel with the per-limit breakdown and the buttons. |
+| `F5` | large | dropped 2026-08-29 | Change a codelevel mid-run. Cut unbuilt by the author — *"not very interesting in the end."* |
+| `F6` | large | planned, `Phase 10` | Blockly web-based editor. See below. |
+| `F7` | small | shipped `afbe504` | A tab whose buffer differs from what was last written gets a trailing `*`. |
+| `F8` | medium | shipped `d619fba`, revised `60dc8dd` | Made the drone panel readable: three hard-limit rows, coloured percentages, one destructive button. |
+| `F9` | small | shipped `8869d8c`, revised `cd13414` | The state and the run's clock time in the same words on both surfaces. |
+| `F10` | medium | shipped `b23a8bc` | The mod stops imposing itself: no tool handout, no privilege grant, `/codeblock tools`, `level`, `generate`. |
+| `F11` | large | shipped `d075742` + `6126abe` | The mod registers its own nodes and drops `default` and `wool`; a game adds a category of its own. |
+| `F12` | large | shipped `01f9641` (examples `b752ea3`) | 35 colours, 105 nodes, one `ramp` per category, `get_block` relative coordinates. |
+| `F13` | small | shipped `4450ce1` | `is_block(block, n_right, n_up, n_forward)`, the predicate form of `get_block`. Closed `C22` in the same commit. |
+| `F14` | small | shipped `e3e2178` | `light_hues`, `dark_hues`, `neutrals` and `ramp.of(list, v, min, max)`. |
+| `F15` | large | shaped, not scheduled | `colorhex("#F7A8E7")`. See below. |
 
 ### F6 · Phase 10 / v2.0.0 · planned — Blockly web-based editor
 
-Build programs by dragging blocks in a browser instead of typing Lua.
+Build programs by dragging blocks in a browser instead of typing Lua. A major
+version because it is the change most likely to break how a program is stored
+and edited. The author's framing is the point: *"Blockly will be 2.0.0 so I have
+time to plan and think."* **Do not start building it because the phase exists.**
 
-**Settled 2026-08-28: `F6` is `Phase 10` and v2.0.0.** The author's reason is that
-it needs thinking rather than scheduling: *"Blockly will be 2.0.0 so I have time
-to plan and think."* Four obstacles, none of which has moved:
+**Four obstacles, none answered.**
 
 - **This mod has no HTTP allowance and cannot give itself one.**
-  `core.request_http_api` only returns a table for a mod named in the server's
-  `secure.http_mods` or `secure.trusted_mods` — the administrator's setting, not
-  something a ContentDB package can arrange. **A feature that silently does
+  `core.request_http_api` returns a table only for a mod named in the server's
+  `secure.http_mods` or `secure.trusted_mods`. **A feature that silently does
   nothing on a correctly configured server is worse than one that is absent.**
-- **Mod security blocks the write side.** A mod may not write into its own
-  directory, so generated Lua would land in the player's file area through
-  `lib/filesystem.lua`, which has no spec coverage.
-- **The assets have to come from somewhere.** Blockly is JavaScript and the engine
-  has no browser. Either the player loads a page hosted elsewhere — a third-party
-  runtime dependency for an offline single-player game, and a licensing and
-  privacy question under AGPL-3.0-only — or something in-tree serves it, which is
-  a server this mod does not have.
-- **What would settle feasibility:** one written-down answer to *where do the
-  assets live and who allows the HTTP call*, before any code.
-
-### F7 · small · shipped `afbe504`, confirmed by `E16` — show which tabs are unsaved
-
-A tab whose buffer differs from what is on disk gets a trailing `*`.
-
-**Why it exists.** `E12` failed three times and was traced twice for a write that
-was never happening. What the player saw each time was the unsaved edit surviving
-a tab switch — correct — and then vanishing on ESC, also correct with *Save on tab
-switch* unticked. The sequence is only surprising because nothing said the buffer
-was dirty.
-
-**The alternative stays rejected.** Resetting the text area to the file's content
-on a tab switch would make the state visible by throwing the player's typing away.
-That is exactly `B35`. **Do not gate the capture again.**
-
-**Constraints.**
-
-- **The marker is render-only.** `meta.tabs[i]` holds the filename `write_file`,
-  `read_file` and `remove_file` are handed; a `*` appended there would create a
-  file named `foo.lua*`. Decorate the label as the `tabheader` is built and
-  nowhere else.
-- **A flag, not a diff against a kept pristine copy** — chosen by the author: one
-  boolean per tab against doubling the editor's memory for a cosmetic mark.
-  `meta.dirty` is a third array beside `meta.tabs` and `meta.contents`,
-  maintained at the same four sites and **kept dense rather than sparse**, because
-  `table.remove` on a table with nil holes has no defined behaviour in Lua 5.1.
-- **The flag cannot be set from `fields.content` *arriving*** — the textarea
-  reports itself on every submit, so that would mark every tab on the first button
-  press. It is set from `fields.content ~= meta.contents[active]`, compared before
-  the buffer is overwritten. So the mark means *differs from what was last
-  written*, not *differs from disk*: type a character and undo it and the tab
-  stays marked, which is the harmless direction.
-- `save_active` clears the flag **only on a write that happened**: a refused save
-  leaves the buffer differing from the file, which is what the mark is for.
-- **That comparison is line-ending-sensitive, and it was wrong for eleven months
-  of shipped examples** (`B48`, 2026-09-03). `read_file` opens `'rb'` and the
-  client's textarea returns LF, so a CRLF file never equalled the field coming
-  back and **every bundled example was permanently marked** the moment it lost
-  focus. `read_file` now normalises to LF. Anything else here that compares a
-  buffer from disk against a field from a formspec has the same problem.
-
-### F8 · medium · shipped `d619fba`, revised `60dc8dd`, playtested — make the drone panel readable
-
-Everything `F4`'s first playtest asked for, in one feature because all of it edits
-the same two surfaces: the two findings that session filed (`B45`, `B46`) and the
-changes it asked for, then two more passes from screenshots.
-
-**Settled, and load-bearing.**
-
-- **The panel is unconditional and the setter's left click means *drone info***
-  — from `H4` and `H8`. No two-meanings-by-state: click, get the panel, and if
-  nothing is running it says so. **An effect that depends on state the player
-  cannot see is one they have to guess at, and the guess destroyed builds.**
-  `on_punch` was considered and rejected: a stray punch destroying a long build is
-  the objection that moved Cancel into the panel to begin with.
-- **One destructive button.** *Cancel* and *Remove drone* were the same call; they
-  are now **Stop**, with **Pause/Resume** beside it and closing moved to an `x` at
-  the top right.
-  **So since `F8` the setter removes nothing**, and `Drone.on_remove` has exactly
-  two callers: that button, and `register_on_leaveplayer`. **The record kept
-  saying otherwise from `F8` on 2026-08-29 to 2026-09-04** — `B51`'s text,
-  playtest `D7`'s recipe and two older `D` checks all described *removing a drone
-  with the setter*. The `D7` run of 2026-09-04 caught it: the author tried that
-  route and was told *Drone is busy, please wait!*, which is `Drone.on_place`'s
-  guard against a second drone over a running one and correct. All four places
-  are corrected. Nothing in the code was wrong; only the gesture the record named.
-- **Hard limits only, three rows.** The map footprint is a throttle that sits at
-  its ceiling by design (`B45`); listing it beside three ceilings that do end a
-  run invites exactly the misreading. The *Will stop on: …* summary line is gone —
-  the binding limit is shown by colouring its percentage **amber**, with **red**
-  at 80% or more, so there is either nothing to look at or one thing.
-- **Layout, from the author's screenshot.** The limit name is **bold** and shares
-  its left edge with the description; the description is an **area label**
-  (`label[x,y;w,h;text]`), which the engine wraps and gives no scrollbar, because
-  the single-line version was cut off at the panel edge in French.
-- **Long numbers get `K`/`M`/`G`** and every row its own percentage, threshold
-  10 000 so a small count still reads as a plain integer.
-- **Every limit gets a describing line** — where `B46`'s fix lands. This is the
-  panel earning its space over the HUD: the HUD is four words and a number, the
-  panel can afford a sentence.
-- **The panel's heading is bold, its state coloured** — settled 2026-08-30:
-  `running` **green**, `paused` **yellow**, deliberately neither of the amber and
-  red used on the rows below. **One colour meaning two things on one form is worse
-  than no colour.** Built by **concatenation**, not from the `S('@1 : @2')` key
-  the HUD still uses, because only half the line is coloured. `lua_api.md` permits
-  exactly that — *"string concatenation will still work as expected (note that you
-  should only use this for things like formspecs) … and operations such as
-  `core.colorize` which are also concatenation"*. A label's `font` is **per
-  element**, so the state is bold too; splitting it would need a second label at a
-  guessed x, nothing in Lua being able to measure rendered text. `bold` is a
-  documented `font` value for `label` (a *font modification option*), and `halign`
-  works on labels **only** in the area-label form.
-- **The HUD is a five-line block** hanging from the top-right corner:
-  `<file> : running` in bold, `Budget usage`, then `Blocks: n%`, `CPU: n%`,
-  `Memory: n%`, with the same colour rule as the panel. The `- ` prefixes and the
-  heading's `:` were dropped on 2026-08-30 — a fixed-width corner block three
-  items long is already a list. **The two-line version that named only the binding
-  limit is gone**: naming one was meant to teach which resource a program spends,
-  and in a world it only meant the other two were invisible while the answer was
-  nearly always the same.
-  Three facts made it cheap: a HUD `text` element has a **`style` bitfield**
-  (1 bold, 2 italic, 4 monospace); colour is per element through `number`, which
-  every client honours, so **one element per line** gives per-line colour without
-  `core.colorize` and its protocol-44 floor; and `alignment = {x = -1, y = 1}`
-  hangs the block down-and-left from the corner.
-- **The HUD gets its own short names** — `Blocks`, `CPU`, `Memory` — and that
-  duplication is deliberate: the panel's row is a heading over a sentence, the
-  HUD's is one line of five. `Server time used` earns its length beside an
-  explanation; on the HUD it would be the whole line.
-- **The three preference checkboxes moved onto the *Settings* panel**, beside the
-  default-block picker, from the editor form's bottom edge.
-
-**Playtested 2026-09-02 at `8f5bb2e`, group `H`: eight pass, one partial.** Every
-point above is confirmed in a world, and `B45` and `B46` with them. The run asked
-for three more display changes, which are `F9`, and filed `B47`.
-
-**Constraints.**
-
-- **The editor form is legacy coordinates and the panel is `formspec_version[4]`.**
-  Work inside the editor is subject to the button-width and `scroll_container`
-  traps in `CLAUDE.md`; the panel is not.
-- **`limits.report` and `limits.binding` stay pure functions of `caps` and
-  `used`** so `limits_spec` keeps pinning them. `K`/`M`/`G` formatting is
-  presentation and belongs with the display — `lib/limits.lua` converts units, it
-  does not choose words.
-- **The panel tick must check the session is still the panel's.** `lib/forms.lua`
-  is one form per player, so opening the editor over an open panel silently
-  replaces the session; the tick compares the stored meta table against
-  `forms.get_meta(name)` before redrawing. Pinned by `forms_spec`.
-
-### F9 · small · shipped `8869d8c`, revised `cd13414`, playtested `029fab9` — say the state and the time in the same words
-
-From the group `H` re-run of 2026-09-02, in the same relation to `F8` as `F8` was
-to `F4`: the behaviour passed, and playing it showed three things the words get
-wrong. All three are on the two surfaces `F8` owns, so they are one feature.
-
-**Asked for, and the reasoning.**
-
-- **The HUD's `CPU` becomes *CPU time* / *Temps CPU*.** `CPU` alone reads as a
-  load percentage, which is the misreading `B46` was filed for one word further
-  along. It costs a line on a five-line block, and the block is fixed-width
-  already. `F8`'s short-names decision stands otherwise — `Blocks` and `Memory`
-  do not become sentences.
-- **The idle panel reads `<program> : inactif`**, filename bold and state
-  coloured, replacing the sentence `Drone idle, holding @1`. One panel telling
-  two states in two shapes is what it looks like today. The colour is a third
-  one, neither `RUNNING_COLOUR` nor `PAUSED_COLOUR` carrying a meaning that fits
-  *idle* — and `F8`'s rule holds: one colour meaning two things on one form is
-  worse than no colour.
-- **The panel heading carries the run's clock time** —
-  `<program> : <state> (<duration>)`, the duration **not** bold. Nothing on
-  either surface says how long a run has been going: *Server time used* is
-  deliberately not that number, which is the whole of `B46`, and after it the
-  player has no way at all to ask *how long has this been building*. So this is
-  `B46`'s missing half, not a duplicate of it.
-
-**Constraints.**
-
-- **The heading is built by concatenation and stays that way** — the `S('@1 : @2')`
-  key cannot carry a partly-coloured line, and a third part makes that more true,
-  not less. The duration needs its own element or its own label to escape the
-  heading's `font=bold`, a label's font being per element and nothing in Lua being
-  able to measure rendered text.
-- **A wall-clock duration must not be charged, displayed as, or derived from
-  `used.runtime`.** Two numbers about time on one form is precisely the confusion
-  `B46` closed, so the duration is a `get_us_time` delta and the row keeps its
-  describing line saying it is not clock time.
-- **Renaming `CPU` is an `S()` key change**, so the `.tr` files and
-  `locale/template.txt` move with it or the existing translation is orphaned with
-  no error anywhere — the `C17` rule.
-
-**The author's four choices, 2026-09-02.**
-
-- **The idle state is bold and not coloured.** Green and yellow on that line mean
-  *a run is happening*; idle is the absence of one, and a third colour would
-  quietly change what the colour is for.
-- **`6m 27s`**, seconds alone under a minute and `1h 12m` past an hour. Minutes
-  are the scale a build runs at.
-- **Bold, immediately after the state** — asked for as *not bold*, reversed the
-  same day once it was on screen. The entry below says what that forced.
-- **It keeps counting through a pause**, staying one honest answer to *how long
-  since I started this*. The state word beside it already says nothing is
-  advancing, and it needs no accumulator on the drone. **Reversed 2026-09-02
-  after the playtest — see below.**
-- **The panel only, not the HUD.** This is the panel earning its space: the corner
-  block is four words and a number a line.
-
-**Built, and load-bearing.**
-
-- **The duration closes the heading, in parentheses and bold with the rest of
-  it — one label.** It first shipped as a second, unbolded label right-aligned
-  into the gap before the close `x`, because a label's font is per element and
-  *not bold* was the ask. **The author reversed that within the hour: bold, just
-  after the state.** Which settles the trade the right-aligned version was
-  dodging — adjacency was worth more than the weight of the type.
-  **Take the reason for that first attempt with the reversal, not instead of
-  it:** nothing in Lua can measure rendered text, so *adjacent and differently
-  styled* is the combination that cannot be built. In one label it needs no
-  position of its own and cannot drift from the words it follows; as two, the x
-  where `<file> : running` ends varies with the player's font and `gui_scaling`.
-  Do not reintroduce the second label to unbold it.
-- **`core.colorize` resets to `#fff` after the word it wraps**, which is what
-  keeps the state coloured and the parentheses after it plain, inside one label.
-- **`elapsed` reads `drone.tstart`, the same `get_us_time` stamp the finish
-  message reports as `duration:`**, so the live figure and the final one cannot
-  disagree.
-- **What a translated string holds server-side is neither the key nor the rendered
-  text.** `core.translate` wraps the whole in `\27(T@codeblock)` and substitutes
-  each `@n` with its argument between `\27F` and `\27E`. A spec that asserts on
-  `1m 30s` fails, and so does one that asserts on `@1m @2s`; `forms_spec` builds
-  its expected value with the same `S()` call instead. Three assertions were
-  written the wrong way first and the suite caught all three.
-
-**Playtested 2026-09-02 at `029fab9` — `F9-1`: pass, all eight cases, both
-languages.** No defect, and one reversal.
-
-**The clock stops while a run is paused — asked for 2026-09-02 on seeing it,
-built the same day with four gates green.** Case 4 checked the opposite and
-passed; the decision above is what changed, not the code's fidelity to it. *How
-long since I started this* turned out to be the wrong question for a paused run,
-the same way *CPU* was the wrong word for `used.runtime`: the number a player
-wants is how long the build has taken, and a pause is not part of it.
-
-- **`max_runtime_s` already ignored a pause**, which is why this was small.
-  `stepper.advance` returns at once for a drone that is not awake and charges
-  only the time it spent advancing, so the wall clock was the one figure a pause
-  inflated. Now the two agree.
-- **`Drone.elapsed_us(drone)` is the single answer**, and both surfaces read it:
-  the panel's heading through `elapsed`, which now formats microseconds instead
-  of reading `tstart` itself, and the finish message through `__tostring`. The
-  live number and the final one are the same call, not two expressions that have
-  to be kept equal — which is what `F9-1` case 8 is checking.
-- **`tstart` is shifted forward on resume, rather than a `paused_us` being
-  accumulated.** One field to keep correct instead of two, and every reader still
-  reads `tstart`: one that forgot `paused_at` would be right except while paused.
-  The whole of it is `(paused_at or now) - (tstart or now)`.
-- **`Drone.toggle_pause` is the only thing that may write `drone.paused`**, since
-  the two fields are one fact in halves — stated on both, and the reason the
-  toggle moved out of the formspec handler into the file that owns the run's
-  timing. `on_run` clearing both is the only other writer.
-- **What it costs:** a drone paused an hour and resumed reports the build's time,
-  not the time since it was started. That is the point.
-- **Proved by five `forms_spec` assertions**, and the hold is *fabricated* — the
-  stamps are the whole of a paused reading, no wall clock enters it, which is
-  what makes 105 s of elapsed wall time showing as `45s` assertable at all.
-- **Checked in a world the same day**: `PLAYTEST.md`'s `F9-1` case 4, rewritten and
-  passed. So that case has passed once each way round, which is the clearest
-  evidence there is that this was a decision and not a defect.
-
-### F10 · medium · shipped `b23a8bc`, playtested — the mod stops imposing itself
-
-Three things happened to a player on first contact with this mod without anything
-asking for them. Two go, one is replaced by a command. The author's words:
-*"It's better if this mod does not touch the inventory, so the user installing it
-would need to pick the tools in creative mode, and add a /codeblock tool or
-similar so the user can quickly make the 2 tools appear."*
-
-This is the same shape as `C18`'s sky override and `B39`'s inventory wipe:
-`codecube`'s presentation living in the mod and imposed on every other game that
-installs it. **`B16` and `B39` were both partial fixes to the line this closes** —
-`B39` narrowed an inventory wipe to the one case where the player had something
-to lose, and the real answer is that a mod should not be writing into a player's
-inventory unasked at all.
-
-**What it does.**
-
-- **The tools are no longer handed out on join.** `set_tools` and its
-  `register_on_joinplayer` call are deleted. Players take the two tools from the
-  creative inventory or ask for them. The *"No room for the drone tools, free a
-  slot and rejoin"* refusal goes with the function — and it was never once seen
-  run, which `D4`'s entry says in as many words.
-- **Both tools become droppable**, the `on_drop` stubs removed. Undroppable made
-  sense only while the mod forced them on the player: without the handout, a
-  player who picks one up could otherwise never be rid of it, and the command
-  makes them replaceable at any time.
-- **The privilege grant is gone**, and it is a finding in its own right:
-  **`C21`**. `register_on_newplayer` granted `fly`, `fast` and `noclip` to every
-  new player of **any** game that installs this mod. Removed outright. **Found
-  while building `F10`, not reported by anyone** — the author was asking about
-  the inventory and this was in the same twenty lines. Being found inside a
-  feature is not a reason to escape an id: it is a defect in committed code, the
-  same as `C18` and `B39`.
-- **One chat line on first join**, from `register_on_newplayer`, naming the
-  command and the creative inventory as the two routes to the tools. Never
-  repeated. Chosen over saying nothing, because a player joining a server with no
-  creative inventory would otherwise have no route into the mod at all.
-- **One command replaces two.** `/codelevel` and `/codegenerate` become
-  subcommands of `/codeblock`:
-
-      /codeblock tools    [<player>]        put both tools in a player's main inventory
-      /codeblock level    [<player>] <1-4>  as /codelevel did
-      /codeblock generate [<player>]        as /codegenerate did
-
-  Bare `/codeblock`, or an unrecognised subcommand, prints the three usages.
-
-**Agreed, and load-bearing.**
-
-- **Privileges are unchanged in effect and now uniform.** `tools` and `generate`
-  are free for yourself and need the `codeblock` priv for someone else; `level`
-  is privileged either way. That last one is not symmetry for its own sake:
-  codelevel bounds resource use, so a player able to raise their own would be
-  lifting their own ceilings. That is `B9`, reverted before it ever shipped, and
-  `F5`'s entry says the same thing from the other side.
-- **`/codeblock tools` must add what is missing, never clear.** The whole point
-  of the feature is that the mod stops writing into an inventory unasked, so the
-  command inherits `B39`'s rule rather than escaping it: both carrying reads stay
-  — `main` **or** `craft` — because a tool parked in the craft grid would
-  otherwise be duplicated every time the command is run, silently. It is now run
-  on demand and repeatedly, which makes that failure easier to reach than the
-  once-per-join version ever was.
-- **A full inventory is a refusal, not a partial hand-out.** The old join-time
-  refusal was unreachable in practice; the command's is a thing a player can
-  produce deliberately, so it has to say what happened rather than half-succeed.
-- **The first-join line names only the tools.** No hint about the editor, the
-  examples or the drone.
-
-**Argued out, so it is not proposed again.**
-
-- **Aliases keeping `/codelevel` and `/codegenerate` working.** Cut on two
-  grounds: v1.0.0 is unreleased and already carries a thirteen-item breaking
-  list, so the rename is free now and never will be again; and two names for one
-  command is a second surface to document, translate and keep in step. **This is
-  the omission most likely to be proposed again.**
-- **A setting to keep the privilege grant, `C18`-style.** A `flag` in
-  `lib/config.lua`, off by default, was offered and declined. Nothing in this mod
-  needs creative flight to be reachable, and a game that wants it sets it in its
-  own config. **A setting no code path here depends on is a setting maintained
-  for nobody** — which is the one respect in which this is *not* `C18`, where the
-  sky override at least had a game asking for it.
-
-**What it drags, none of it automatic.**
-
-New and retired `S()` keys, so `locale/template.txt` is regenerated and every
-`.tr` moves with them or the existing translations are orphaned with no error
-anywhere (the `C17` rule); three keys are now legitimately orphaned, being the
-usages this replaced. **`doc/api.md`'s *Chat commands* section**, which is the
-one part of that file no generator writes and no `--check` reads — see the entry
-under *other decisions worth not re-litigating*; it documented `/codelevel` and
-`/codegenerate` while the gate reported the file up to date. The Quick start in
-**`CONTENTDB.md`** and in **`README.md`**, both of which told the player they are
-given the two tools; `README.md` has been rewritten, `CONTENTDB.md` is left for
-the author's pending wording review, and `.cdb.json` follows it through
-`bash scripts/gen_cdb_json.sh` — **that one is still outstanding**, and it is
-step 3 under *Finalising v1.0.0*. `CHANGELOG.md`'s v1.0.0 breaking list **gained
-the command rename, the end of the handout and the end of the grant on
-2026-09-03**, once the commit made them true. `PLAYTEST.md`
-gains four checks, `F10-1`–`F10-4`, because **every part of this is in the class no spec can
-reach** — a tool callback, an inventory write, a privilege grant, a chat
-command, a first-join path.
-
-**Written, played and committed on 2026-09-03 — `b23a8bc`.** The
-gates were run over the working tree holding `F10` and `B48` together: luacheck
-silent, `doc/api.md`, `locale/template.txt` and `settingtypes.txt` each *up to
-date*, nine in-engine specs **458 passed / 0 failed / 1 xfail / 0 xpass** with no
-errors; the tree was gated again after `B49` joined it and read 471. By
-`build-feature`'s rule the feature is **done** — committed with its gates green,
-and its in-world checks run rather than merely written. **CI has since seen
-it**, green at `65b4c46` in run 47.
-
-**The playtest, 2026-09-03, engine 5.17.0, on `b9143b0` plus what was then the
-uncommitted tree, and re-affirmed at `16cd05c` after the commit.** All four
-checks — `F10-1`–`F10-4` in `PLAYTEST.md` — pass. Three passed outright:
-`/codeblock tools`, the two renamed subcommands, and recovering a dropped tool.
-The first was recorded **partial** and completed later the same day. It settled the risk `code-expert`
-had flagged as unconfirmable — **the first-join chat line does arrive**, because
-`chat_send_player` called from `register_on_newplayer` fires before the client
-has finished loading and the message is not dropped — and then the two cases that
-had been unreported: a fresh player's inventory holds **neither tool**, and
-`/privs` shows **no `fly`, `fast` or `noclip`**. That last one is **`C21`'s only
-possible in-world evidence**, so the removal is observed rather than green.
-**`D4` is superseded by this group**, its own note having said so on the
-condition that `F10` be committed; that condition was met at `b23a8bc` and
-`PLAYTEST.md` now says the check is not to be run against current code.
-
-**The English-only observation, and the rule it leaves behind.** Both the chat
-line and the `/codeblock tools` replies appeared in English on a French client.
-That was the known state, not a defect: this feature added eight `S()` keys and
-`code-expert` was deliberately told not to invent French, so
-`gen_locale.lua --check` had been listing all eight as untranslated and three
-retired usage keys as orphaned — the legitimate fallback state per `C17`. **The
-eight French translations were written and the three orphans removed later the
-same day**, and the check now reads `locale/*.tr cover every message and nothing
-else` alongside `locale/template.txt is up to date`. **And the author read them
-in a world on 2026-09-04 — *"F10: french works ok"*** — which closes the owed
-reading, recorded against `F10-1` and `F10-2` in `PLAYTEST.md`. The commit and
-the engine version were not restated; the strings have not changed since
-`b23a8bc`. No finding id: nothing was committed untranslated, so this is a
-feature being incomplete before it ships, which `build-feature` records here
-rather than in `AUDIT.md`. The rule generalises and
-is in `CLAUDE.md` beside the two `C17` rules: **a new `S()` key ships
-English-by-default and nothing fails**, because an untranslated message
-legitimately falls back, so a feature adding player-facing strings is not
-finished until the `.tr` files are written — and the only thing that will tell
-you is playing it in another language. `F10` is the first feature here to
-demonstrate it.
-
-### F11 · large · shipped `d075742` + `6126abe`, played 2026-09-07 (all ten live checks pass) — the mod brings its own blocks
-
-**`F12` replaced the palette this feature introduced.** The 33 names below are
-what `d075742` shipped and are gone; the current palette is 35 colours and 105
-nodes, under `F12`. What survives from here and is still load-bearing is
-everything *except* the list: why the dependencies were dropped, the naming
-rule, the category namespacing, the tile technique, and the whole of pass 2.
-
-**Built in two passes on 2026-09-04 and 2026-09-05, with the gates green over
-both.** `d075742` registers the mod's own 99 nodes and drops
-`default` and `wool`; `6126abe` lets a game add a category of its own. It is
-in `Phase 8` rather than
-`Phase 9` for the same reason `F10` did, only more so: it renames the whole block
-palette, and a rename is free before the first tag and breaking after it.
-**It was played on 2026-09-07, engine 5.17.0: all ten of its live checks pass
-and no finding was filed against it.** Eight passed at `8e6350f` and the last
-two, `F11-10` and `F11-11`, at `2feadb1` over code `24842d3` once the test mod
-existed. `F11-4` is **retired**, both
-its successors (`F12-1`, `F12-2`) having passed. **`F11-1` was run first and
-passed**, so a legacy dropdown returns the stored item and not the displayed
-text — the one failure here that would have meant converting the editor out of
-legacy coordinates. **`F11-3` passed**, which is this feature's whole purpose
-observed in a third-party game that ships neither `default` nor `wool`, and
-nothing local could show it.
-
-**What is outstanding is CI and nothing else**: both commits are unpushed. **The
-game-author path now has in-world evidence.** `F11-10` and `F11-11` passed with
-`F12-6` on 2026-09-07, using the test mod at `../codeblock-test-mod`, which
-matters because `register_blocks` is half of why `6126abe` exists. `F11-10` is
-`lib/blocks.lua`'s only in-world evidence — the good call, four refusal lines
-from three bad calls, the late call refused — and **`F11-11` is the `rev_blocks`
-fix's only possible evidence, so that fix is now observed rather than
-correct-by-reading**.
-
-**Why it exists: distribution.** `mod.conf` read
-`depends = default, wool, vector3` and now reads `depends = vector3`. Neither `default` nor `wool` is a ContentDB
-package — they are Minetest Game's — so the engine refused to load this mod in
-any game that did not happen to ship both. That is Minetest Game, `codecube`,
-and a handful of others; **every other game on ContentDB could not install it at
-all**. So the mod provides its own nodes, and a game may add its own on top.
-**This is the strongest reason this project has had for a breaking change**, and
-the one whose window closes at the tag.
-
-**What the player gets.**
-
-- **`colors`** — a palette of solid, uniform coloured blocks, ours, with a large
-  choice of named colours.
-- **`glass`** and **`lamps`** — ours, **one per colour**. Chosen over a single
-  uncoloured glass and a single lamp, and over solid colour only: transparency
-  and light are what make a build read as architecture, and they are the two
-  things dropping `default` would otherwise cost.
-- **A game may register its own category** under its own name — `wool`,
-  `plants`, `minetest`, whatever it calls it — in its own namespace.
-- **`blocks`, `plants`, `wools` and `iwools` all go.** `iwools` is replaced by
-  the hue-ordered `hues` array, and `color(v, min, max)` mapped onto that —
-  `F12` has since replaced `color` with `ramp.hues`.
-
-**Agreed 2026-09-04, and load-bearing.**
-
-- **Both dependencies are dropped outright, not made optional.** `mod.conf`
-  becomes `depends = vector3`. Optional dependencies — keeping `default` and
-  `wool` when the game has them — were rejected because the palette would then
-  vary by game: a program would stop meaning the same thing everywhere,
-  `doc/api.md` would describe a palette that may not exist, and the help panel
-  would offer blocks the player cannot place. **For a mod whose artefact is a
-  shared program, portability beats range.** Dropping `wool` only and leaving
-  `default` optional was rejected as deferring the question rather than settling
-  it.
-- **The timing is the argument.** The short names are what a **player's program**
-  writes: `lib/config.lua` builds `allowed_blocks.all[shortname] = 'default:stone'`
-  and `place()` takes the short name. There are **121 of them** — 106 from
-  `default`, 15 from `wool`, plus `air` — and renaming them breaks saved player
-  programs, which are data no game can migrate. `CLAUDE.md` says that is a major
-  version bump. **v1.0.0 is not tagged, so this is free today and never again.**
-  An embedding game adopts it on its own schedule, which is what pinning a
-  release is for.
-- **Replacing the wool nodes is nearly invisible; replacing `default` is not.**
-  A program says `wools.red`, not `wool:red`, so our own node behind the same
-  short name changes nothing it can see. The 106 `default` names have no such
-  cover.
-- **The palette is hand-picked and ordered by approximate hue.** Not a computed
-  hue × shade grid — hand-picked names read better in a program — and not the
-  fifteen wool names, which are not the large choice asked for. **The order is
-  load-bearing:** a number maps onto the ramp, so a gradient across it has to
-  read as a rainbow. That is exactly what `iwools` was and why it kept an order
-  of its own.
-- **The names and their order are the decision; the hex values are not.**
-  `code-expert` picks the hexes and the author judges them in a world.
-- **`F11`'s own list of 33 names is superseded and not reproduced here.** It was
-  six neutrals and nine families of three, `salmon red maroon` through
-  `magenta rose pink`; `F12` replaced every one of them on 2026-09-06. The
-  current list is under `F12`.
-- **Every family reads light / plain / dark, and the plain word is the family's
-  own name.** The list as first drafted had **no `red`, no `yellow` and no
-  `brown`** — the three names a player types first — because each family's
-  mid-tone had a fancier name: `crimson`, `gold`, `bronze`. Caught in review of
-  the `F11` brief before any code, and each mid-tone was renamed to its plain
-  word. **Do not re-prettify them.** The rule that came out of it: the obvious
-  name for a colour must exist, and it must be the middle of its family.
-  **`F12` kept this rule and made it mechanical** — every family is
-  `light_x` / `x` / `dark_x` — so it survived the palette that produced it.
-- **A game's registration is validated, then trusted.** codeblock checks only
-  what it alone can know: the short name is a valid Lua identifier, because a
-  player reads it as a table key; it does not collide with a built-in category or
-  another registered one; the node is registered; and the call happened at load
-  time. **What the node *does* is the game's business.** Policing `on_construct`,
-  timers, inventories and drops was considered and rejected — codeblock would be
-  second-guessing a game about its own nodes, and every guess is a false refusal
-  waiting to happen. Doing no checks at all was rejected too: a typo'd name would
-  surface later as a broken help panel and a confusing `B49` warning with nothing
-  naming the game that caused it.
-
-**Code arrangement, settled by `project-manager` rather than by the author, so it
-is not re-proposed.**
-
-- **One node definition per colour, not a `param2` colour palette.** Neither
-  write path carries `param2`: `lib/shapes.lua` writes `data[i] = id` from
-  `get_content_id`, and `lib/cost.lua`'s `place_block` writes
-  `set_node{name = block}`. Grepping `lib/` for `param2` returns nothing. So a
-  definition per colour costs nothing in either path, and a `param2` palette
-  would change both.
-- **Shared tile PNGs plus `^[multiply:#rrggbb`, not one image file per colour and
-  not `^[colorize`.** A solid colour needs no per-colour art. The brief
-  specified `^[colorize:<hex>:255` and **`code-expert` corrected it against
-  `lua_api.md`**: at ratio 255 colorize *replaces* every pixel with the flat
-  colour and throws the tile away, while multiply scales RGB per pixel
-  and leaves alpha alone — which is also what makes the semi-transparent
-  glass tile safe. **Do not switch back to colorize**; it would destroy the
-  glass and the lamps in the same edit. `F11` had two tiles and `F12` has
-  three — `textures/codeblock_block.png`, `codeblock_glass.png` and
-  `codeblock_lamp.png` — and the hexes live in `lib/config.lua`, read by
-  `lib/nodes.lua` and by nothing else.
-- **The short-name space stays flat and unique behind the category tables.**
-  `place()` takes one string and the write paths are unchanged, so
-  `colors.crimson`, `glass.crimson` and `lamps.crimson` cannot all be the key
-  `crimson`: the table spells a name and the value is the unique flat key.
-
-**The four points this entry named as open, all settled as built.**
-
-- **`air` is a plain top-level name holding `'air'`, belonging to no category.**
-  Not `colors.air`, not a category of one. It is engine-provided, it is the one
-  name that erases rather than builds, and a category is a namespace of nodes
-  this mod or a game registered — `air` is neither's. It opens the block picker
-  for the same reason.
-- **The tile carries a faint grain, not a flat fill.** A perfectly uniform colour
-  reads as a texture-missing surface at distance, and the grain is what
-  `^[multiply` preserves and `^[colorize` would have destroyed.
-  **`F12` reversed this for the solids** — the block tile is now flat pure white
-  so the hex is reproduced exactly — and it is the one `F11` decision `F12`
-  overturned without a playtest having judged it. The grain moved to the lamps,
-  as a grid. **`F12-2` is where the question comes back.**
-- **`lib/config.lua` is a `palette` of `{name, hex}` pairs with the derived
-  views built beside it** — `F12` moved the source one level back, to the two
-  literals `neutrals` and `families` that `palette` and `hues` are derived from
-  — and `allowed_blocks`'s `all` union stays as the flat
-  key → itemstring map every write path resolves through. The views —
-  `by_node`, `categories`, `by_name`, `pickable`, `hues` — are all maintained by
-  one function, `config.add_category`. **They are mutated and never replaced**,
-  which is what lets a reader hold a local reference and still see a category
-  registered later.
-- **A category's names are reached through `allowed_blocks.by_name[name].spelled`
-  and never by indexing the structure table itself.** That is deliberate and it
-  is a security shape, not a style: a game chooses its own category name, so if
-  a name indexed `allowed_blocks` directly a game could name a category `all` or
-  `fallback` and overwrite the map every write path reads. `by_name` is the one
-  table a game-chosen string may index.
-- **The palette is the mod's own and is not a translation of `wool`'s.** Five of
-  the fifteen wool short names had no equivalent in `F11`'s 33 and that was
-  accepted; `F12`'s 35 has `dark_grey` and `dark_green` but the principle is
-  unchanged. Do not size a palette to match another mod's.
-
-**Pass 2 — a game adds a category, `6126abe`.**
-
-`codeblock.register_blocks(category, {short = itemstring, ...})`, from a mod that
-names `codeblock` in its own `depends`. The category then appears in the sandbox,
-the block picker and the help panel beside `colors`, `glass` and `lamps`.
-`lib/blocks.lua` is the whole of it and its header carries the contract.
-
-- **Queued at the call, validated at `register_on_mods_loaded`.** That is the
-  ordering constraint and it is the reason the queue exists:
-  `core.registered_nodes` is complete only once every mod has run, so checking a
-  node's existence *at the call* would refuse a perfectly good node belonging to
-  a mod that happens to load later. **Do not move the check into
-  `register_blocks`.**
-- **A refusal is `core.log('error', …)` naming the calling mod, never a raise.**
-  `lib/api.lua` raises on a description disagreeing with its implementations, but
-  that is codeblock's own inconsistency; **a game's typo must not abort the
-  server** and take down everything else that game does. A call arriving after
-  the seal is refused the same way and **not merely warned** — it cannot be
-  validated, so accepting it would be accepting an unchecked name.
-- **A registered category gets namespaced flat keys — `wool.red` — while the
-  mod's own keep bare ones — `red`, `red_glass`, `red_lamp`.** `place()` takes
-  one string out of a single flat space, so the namespacing is what makes it
-  impossible for a game to shadow a built-in. It also means a dotted key travels
-  into player meta as a `default_block`, which `F11-11` checks.
-- **The help row is one layout everywhere: a `Blocks` button plus an
-  always-drawn category selector.** Chosen by the author over `code-expert`'s
-  proposal of a dropdown shown only when a game has registered something. **The
-  grounds: two layouts for one thing means the rare one is where a defect
-  sits**, and `B38` and `B39` were both exactly that — correct in `codecube`,
-  broken everywhere else. The three category buttons `F1` drew are gone.
-- **Built-in categories keep their translated labels; a game's shows raw.** The
-  raw name is what a program types, so translating it would show a French player
-  a word that does not work in `place()`.
-- **The selector's guard branches on the arriving value *matching* a label it
-  drew, never on it *differing*, and it sits below the `quit` branch.** A legacy
-  dropdown is an always-sent field (`B37`), so a guard written as *if it differs
-  from what is open, switch* would fire on an ESC and swallow the close.
-  `lua_api.md` 5.17.0 line 3579 documents an `index event` parameter that sends
-  the index instead of the text and would retire the question outright — but it
-  is *"allowed parameter since formspec version 4"* and **this form is legacy
-  coordinates**, so reaching for it means converting the whole editor. Recorded
-  so the next person finds the reason rather than the parameter.
-- **Three load-time snapshots were the real cost of pass 2, and one was a live
-  defect.** A view built once at load time is a view taken before any game has
-  registered anything: `pickable` and `help_categories` in `lib/formspecs.lua`,
-  found by `code-expert`, and **`rev_blocks` in `lib/commands.lua`**, found in
-  verification and the only one that was wrong in a way a player would meet —
-  `get_block()` would have answered `false` for every game-registered node. **All
-  three were invisible to the suite**; two now have cases and the third cannot
-  have one, `lib/commands.lua` capturing `core.get_node` at load and a real call
-  at mod load dying because content ids are not cached yet. Its evidence is
-  `F11-11` and nothing else, and **`F11-11` passed on 2026-09-07**, so the fix
-  is observed. **This is what `config.add_category` exists for**:
-  derive a view in one place and a late registration reaches every reader.
-  None of the three got a finding id — they were wrong in code that never
-  shipped, which is `F2`'s precedent.
-
-**What it dragged, kept because it names where the change lives.** `lib/api.lua`
-(`blocks`, `plants`, `wools`, `iwools` became `colors`, `glass`, `lamps`, `hues`
-and a top-level `air`; `random.block|plant|wool` became `random.color|glass|lamp`),
-the `impls` table and `color` in `lib/sandbox.lua`, `lib/commands.lua`,
-`lib/drone.lua`, `lib/formspecs.lua`, `scripts/gen_docs.lua`, `init.lua`,
-`tests/api_spec.lua`'s name list, `tests/integration_spec.lua`, and **every
-bundled example**. It added the mod's **first registered nodes and its first
-textures**, so `.gitattributes` and the release archive moved with it.
-`tests/game/mods/default` and `tests/game/mods/wool` — empty stubs that existed
-only to satisfy `depends` — are **deleted**, replaced by
-`tests/game/mods/cbfixture` holding the three mapgen aliases the engine
-validates at startup.
-
-**What it still owes.** Nothing in the code: `CHANGELOG.md` has its **Changed**
-and **Removed** sections as of 2026-09-05, `CONTENTDB.md` was rewritten in pass 1
-with `.cdb.json` regenerated, and the eleven `PLAYTEST.md` checks are written
-and, as of 2026-09-07, **all run**. What is left is **pushing so CI sees any of
-it**. One thing that closes with them: `CONTENTDB.md` tells a reader on the
-package page that a game can register a category and *"it shows up in the editor
-beside the built-in ones"*, and that was **the one claim on that page nothing in
-a world had checked**. `F11-10` case 1 checked it — the category appeared in the
-sandbox, the picker and the help selector under its raw name — so the sentence
-stands as written and needs no edit; it simply stops being unverified.
-`README.md` is the one document still wrong: line 10 says the mod *"works in any
-game that provides the blocks it places"*, which is now false and backwards —
-that is release step 5, and the README also wants a short **For game authors**
-section documenting `register_blocks`, whose contract lives in
-`lib/blocks.lua`'s header meanwhile. **`doc/api.md` is the wrong home for it**:
-that file is for a player writing a program, and its `--check` does not read the
-hand-written region anyway.
-
-**The new `S()` keys are translated, and that is precisely why `F11-1` is the
-check to run first.** `Blocks`, `Colors`, `Glass` and `Lamps` all carry French in
-`locale/codeblock.fr.tr` (`Blocs`, `Couleurs`, `Verre`, `Lampes`), so the
-selector a French player sees is drawn from translated text — and the guard
-compares the arriving value against **the label it drew**, translation included.
-If a legacy dropdown returns displayed text on one client and something else on
-another, French is where it shows. **Unlike `F10`, this feature is not waiting on
-translation; it is waiting on a French client proving the round trip.**
-
-### F12 · large · shipped `01f9641`, played 2026-09-07 (all six checks pass; `F12-4` on a re-run after `B54`) — a new palette, one ramp per category, and `get_block` coordinates
-
-**Shipped 2026-09-06 with every gate green and no finding filed**, in two
-commits: `b752ea3` is the author's own recolouring of the bundled examples onto
-`F11`'s palette, plus the deletion of `lib/examples/tests.lua` and
-`preprocess_spec`'s example count moving 14 → 13; `01f9641` is the feature, 24
-files. **Played 2026-09-07, engine 5.17.0, and all six checks now pass.** At
-`8e6350f`: `F12-1`, `F12-2`, `F12-3` and `F12-5` passed and **`F12-4` failed on
-`B54`** — `print` printing only its first argument, so the check could not get
-past its own first line. At `2feadb1` over code `24842d3`: **`F12-4` re-run,
-which observed the rotation for the first time**, and **`F12-6`**, using the
-test mod at `../codeblock-test-mod`. CI has seen neither commit.
-
-**It went into `Phase 8` for `F11`'s reason.** Every `F11` colour name is gone
-and `color` is gone with no alias — two breaks to names a saved program writes,
-free only while v1.0.0 is untagged, and a major bump after it.
-
-**How it was shaped.** The author gave it as a list of notes rather than as a
-feature, so steps 1 to 3 of `build-feature` happened compressed inside one
-`AskUserQuestion` exchange. Their notes asked for: the example edits committed,
-a solid texture made homogeneous and the lamps given a grid, the blocks
-reordered by rainbow then lightness, `color(v, min, max)` renamed to something
-like `ramp.colors`, and `get_block` given parameters relative to the drone so a
-program need not move to read — with the observation that it could already
-answer `nil`, probably in unloaded chunks.
-
-**What the author decided, and what they did not.**
-
-- **The palette is the author's, the neutral hexes are not.** Offered two
-  reorderings of `F11`'s 33, the author **replaced the palette outright**,
-  giving thirty hexes and their names: ten hue families —
-  `pink red orange yellow olive lime green cyan blue violet`, in that wheel
-  order — each as `light_x` / `x` / `dark_x`, plus *"white, light_grey,
-  grey_dark_grey, black"*, five neutrals read through a typo. **They gave no
-  neutral hex values**, so `project-manager` chose an even grey ramp —
-  `#ffffff #c0c0c0 #808080 #404040 #101010`. **Those five are the easiest thing
-  in the palette to change**, and `F12-1` looked at them on 2026-09-07 and
-  passed: **nothing was said against them, so the even grey ramp stands.**
-- **The ramp is called `ramp`** — *"ramp colors/glass/lamps/hues"*, the author's
-  own wording out of the options offered.
-- **Every category gets a ramp, including a game's** — *"for every category
-  blocks/hues/lamps/glass"*. **The consequence is worth not re-arguing:** only
-  `ramp.hues` reads as a gradient. `ramp.colors`, `ramp.glass` and `ramp.lamps`
-  walk light, plain and dark inside each family in turn and therefore **strobe**,
-  because those categories are ordered by family and not by lightness. That
-  follows from the author's own answer, it is documented in the help text, and
-  it is not a defect. `F12-5` is where both are seen side by side.
-- **`get_block` loads the map it reads** — *"Load the block first, charged as map
-  footprint"* — rather than answering `nil` for anything the drone has not
-  already visited.
-
-**Constraints a future change would re-break.**
-
-- **`lib/config.lua` holds two literals, `neutrals` and `families`, and derives
-  `palette` and `hues` from them.** `F11`'s flat list with an index range for
-  the neutrals **could not express *the plain shade of each family***, which is
-  what `hues` now means. Do not flatten it back. `fallback` is still `grey`.
-- **The solid tile is flat pure white**, so `^[multiply` reproduces the palette
-  hex exactly. Glass is unchanged; `textures/codeblock_lamp.png` is new, a faint
-  grid at ground 252 with lines at 234 every 8 px, so a wall of lamps reads as
-  blocks. `scripts/gen_textures.py` writes all three. **The cost was real and is
-  now judged: `F12-2` passed on 2026-09-07 at `8e6350f` and the flat tile
-  stays.** A wall of same-coloured solid blocks has **no node-edge definition at
-  all**, the grain having gone, and that reads acceptably in a build rather than
-  as a missing texture. **Do not put a grain back on the solids** — it would cost
-  the exact hex, which is the whole reason the tile is pure white. This was the
-  one `F11` decision reversed without a playtest behind it, and the playtest has
-  now been done.
-- **`ramp_over(list)` in `lib/sandbox.lua` is `color`'s body verbatim** with
-  `nhues` generalised — `test-agent` diffed it against `HEAD:lib/sandbox.lua` to
-  confirm the clamping semantics did not move. It had **no spec coverage at all**
-  when `F12` shipped; `F13` gave it **57 assertions** across all four built-in
-  ramps at `4450ce1`, and the closure factory was **not** exported to get them —
-  the spec writes a program into the throwaway world and runs it. What `F12-5`
-  is still the only check for is the *visual* half: a gradient reading as a
-  gradient.
-- **`add_category` gained a `keys` view**, derived there and nowhere else, per
-  `F11`'s rule about load-time snapshots. That is what a ramp indexes.
-- **`lib/api.lua`'s *Choosing blocks* group gained an `id`**, so `lib/blocks.lua`
-  can append a registered category's ramp to it without matching on a title that
-  a rewording would break — the same reasoning already commented on the `blocks`
-  group. **A registered category is sorted alphabetically**, so its ramp is a
-  lookup and not a gradient, and the generated documentation says so: the mod
-  cannot know a game's colour order, or whether the category is colours at all.
-- **`get_block(n_right, n_up, n_forward)` moves nothing.** Three optional
-  offsets, rotated by the drone's facing exactly as `place_relative` does,
-  neither position nor facing touched. It loads the mapblock it reads through a
-  new `codeblock.cost.load_block`, shared with `place_block` — the memo is still
-  **per-resume** and `release()` is still the **only** `coroutine.yield` in
-  `lib/cost.lua`. Without the load, `get_node` answers `ignore` for anything not
-  in server memory, which is indistinguishable from map that does not exist, so
-  every read outside the drone's own footprint would come back `nil`.
-- **Three answers, and `nil` is permanent.** A block name; `false` for a node no
-  program can place; `nil` for map that was never generated or a position
-  outside the world. `core.load_area` **does not run mapgen**, so waiting will
-  not turn a `nil` into a name.
-- **The world edge is one predicate.** A new `inside_world` is shared with
-  `check_inside_world`, so the query's edge and the raise's edge cannot drift.
-  **The asymmetry is deliberate** — a write raises out of the world, a read
-  answers `nil` — because raising on the query a player uses to look before they
-  leap is the wrong shape. It is commented in `lib/commands.lua`. **Do not turn
-  it into a raise.**
-
-**What the suite can and cannot reach, measured rather than assumed.**
-`codeblock.commands.drone_get_block` is exported, so `integration_spec` **does**
-reach and assert the out-of-world branch — `code-expert`'s report that
-`get_block` was unreachable was wrong. What is unreachable is a read that lands
-**inside** the world: a probe at the origin at mod load dies inside builtin with
-`bad argument #1 to '__index' (number expected, got nil)`, content ids not being
-cached yet, so **there is no position anywhere at which an in-world read can be
-asked for from the suite**. `F12-3` and `F12-4` are the only evidence there will
-be, and both passed on 2026-09-07. Two other things the record had wrong are in `AUDIT.md`'s corrections list.
-
-**Gates at `01f9641`, local only.** luacheck silent; `doc/api.md`,
-`locale/template.txt` and `settingtypes.txt` each *up to date*; `locale/*.tr`
-covering every message and nothing else; six standalone specs under Lua 5.1;
-nine in-engine, none skipped, **544 passed / 0 failed / 0 xpass / 1 known
-xfail**, `integration_spec` at **182 assertions**. Every changed and new
-assertion was made to fail once against ten separate deliberate breaks, with
-`md5sum` confirming `lib/` restored byte-identical, and `codeblock_run_tests`
-was confirmed gone from the real config afterwards.
-
-### F13 · small · shipped `4450ce1`, played 2026-09-07 through `F12-3` and `F12-4` — `is_block`
-
-**Shipped 2026-09-06 with every gate green.** **Its in-world checking folds into
-`F12-3` and `F12-4`, and both passed on 2026-09-07** — `F12-3` at `8e6350f`,
-`F12-4` on a re-run at `2feadb1` over code `24842d3` after failing at `8e6350f`
-on `B54` rather than on anything `is_block` does. So `is_block` answering
-correctly over real map **and** its offsets turning with the drone are both
-observed. One new player-facing name,
-`is_block(block, n_right, n_up, n_forward)`, the predicate form of `F12`'s
-`get_block` and beside it in the *Choosing blocks* group. The author asked for
-it in these words: *"add is_block(block, nx, ny, nz) to check if a block at a
-pos is as specified. nx,ny,nz optional and if not specified default to actual
-block. In choose block category"* — the parameter names became `get_block`'s,
-and everything else is as asked.
-
-**In `Phase 8` because a new API name is free before the tag**, like `F11` and
-`F12`, though this one adds rather than renames and so breaks nothing.
-
-**Constraints a future change would re-break.**
-
-- **It calls `drone_get_block`, it does not read the map itself.** The mapblock
-  load, the footprint charge and `end_command` all have to happen identically to
-  `get_block`'s or the two answers drift. One call is one command whatever the
-  answer.
-- **`type(block) == 'string'` is load-bearing and is pinned by a spec driven to
-  failure.** Outside the world the read answers `nil`, and `colors.typo` is also
-  `nil`, so a plain `found == block` would report `true` for a misspelt name at
-  a position that has no answer at all. Do not simplify it away.
-- **A nil block does **not** resolve through the default-block fallback.**
-  `place()` substituting grey for a name that does not exist is right for a
-  write and a trap for a query, so `is_block(colors.typo)` is `false`. The
-  reporting was already there: reading `colors.typo` warns once per run through
-  the environment's `unknown_block` (`B49`).
-- **Everything false is one answer** — a node no program can place, ungenerated
-  map, outside the world, a name that does not exist, a different block. That is
-  what a predicate is, and `get_block` is what tells them apart. It is under
-  *what ships broken* as well, because someone will read it as a defect.
-
-**A known imprecision, left as it is deliberately.** `unknown_block`'s message
-reads *"no block named '@1', the default block is used instead"*, and in
-`is_block` no default block is used — the answer is just `false`. Rewording the
-key would orphan the French translation (`C17`), and the wording is correct for
-`place()`, which is where it fires almost always. Not a finding; recorded here so
-it is not rediscovered.
-
-**Its in-world checking folds into `F12-3` and `F12-4`**, which were extended
-rather than joined by new entries: `is_block` is the same read path, so a
-separate group would mean walking to the same three positions twice. Neither has
-been run.
-
-**Gates at `4450ce1`, local only.** luacheck silent — it was **not** silent
-before, which is how `C22` was found; `doc/api.md`, `locale/template.txt` and
-`settingtypes.txt` each *up to date*; six standalone specs under Lua 5.1; nine
-in-engine, **610 passed / 0 failed / 0 xpass / 1 known xfail**,
-`integration_spec` at **248 assertions**. The same commit closed `C22` and
-covered `ramp_over`, which is where 66 of those assertions came from.
-
-### F14 · small · shipped and played 2026-09-07, `e3e2178` — palette views and a generic ramp
-
-Three ordered arrays of short colour names beside the existing `hues`, and one
-generic ramp. Across `lib/api.lua`, `lib/config.lua`, `lib/sandbox.lua`,
-`.luacheckrc`, a regenerated `doc/api.md` and `tests/api_spec.lua`'s name list.
-Shaped, settled with the author and committed on 2026-09-07.
-
-- `light_hues` — the ten light shades, colour-wheel order
-- `dark_hues` — the ten dark shades, colour-wheel order
-- `neutrals` — the five neutrals, light to dark
-- `ramp.of(list, v, min, max)` — ramps any array, including one the program
-  built itself
-
-**The constraint the whole shape rests on.** A palette view is one axis —
-*which colours, in what order* — and a category is the other — *which
-material*. Every category is indexed by the **same short name**, so `glass[h]`
-and `lamps[h]` turn any of these arrays into a glass or lamp gradient with no
-extra names. **Four arrays therefore give twelve gradients.** `hues` already
-worked this way and nobody had noticed.
-
-`place(ramp.of(dark_hues, y, 1, 20))` places a solid block with no wrapping,
-because for the `colors` category the short name **is** the flat key. That is
-not a special case in `ramp.of`: it falls out of `F11`'s key layout, where
-`colors.red`, `glass.red` and `lamps.red` resolve to `red`, `red_glass` and
-`red_lamp`. **The palette itself did not change** — still 35 colours, 105 nodes.
-
-**One ramp mapping, not two.** `ramp_over`'s index arithmetic came out into
-`ramp_pick(list, v, m, M)`, and `ramp.of` **is** that function rather than
-something resembling it, so the generic ramp and the per-category ramps cannot
-drift apart. Clamping and not wrapping; a non-number `v` or a zero-width range
-gives the first entry; a non-table or an empty list answers `nil`.
-
-**Decided, with the grounds. All four are under *other decisions* as well.**
-
-- **Three arrays of colour names, not twelve arrays of blocks.** The author's
-  first reading was that `dark_glass` and `dark_lamps` arrays would be needed
-  too. Spelling out every combination is **eleven new names for what indexing
-  already does**.
-- **Nested selection tables were rejected** — `colors.light.red`,
-  `colors.dark.red`, and the same under `glass` and `lamps`. Nine new names;
-  they give **no ramps at all**; `snapshot` and `unknown_block` would both have
-  to learn to nest; and the shape is **asymmetric with a game-registered
-  category, which has no shade tiers**, so it breaks the equal footing `F11` and
-  `F12` established. The whole gain is one character over `colors.dark_red`.
-- **A named ramp per tier was rejected** in favour of `ramp.of` — six names
-  instead of four, and no way to ramp a list the player built.
-- **`ramp.of` does not validate.** It returns whatever is in the list, so a
-  player may ramp a list of their own. A non-table or an empty list returns
-  `nil` rather than raising — the same judgement `ramp_over` already makes about
-  a non-number `v`: **an arithmetic accident should not stop a program.**
-
-**Three more names a game can no longer take, which `lib/blocks.lua` does not
-show.** `blocks.install` seeds its taken-set from `api.names()`, so
-`light_hues`, `dark_hues` and `neutrals` now refuse a
-`codeblock.register_blocks` category of the same name. That is correct — a
-category shadowing a view would break the environment — but it is three more
-names out of a game's namespace, and it is a consequence of adding a top-level
-name rather than anything written down in the validator.
-`test-agent` added `refused_for('dark_hues', …, 'already taken')` to hold it,
-the existing batch having covered none of the three.
-
-**Gates at the shipping commit, local only, read from their output — and run by
-`test-agent` itself rather than taken from `code-expert`.** luacheck silent;
-`doc/api.md`, `locale/template.txt` and `settingtypes.txt` each *up to date*;
-`locale/*.tr` cover every message and nothing else. Nine specs in-engine, none
-skipped and no errors: **646 assertions / 0 failed / 0 xpass / 1 known
-`preprocess_spec` xfail**, with `integration_spec` at **284** against 248 at
-`4450ce1`. The six standalone specs under Lua 5.1 in WSL pass unchanged at
-**251**. `codeblock_run_tests` confirmed gone from the real config, no BOM.
-
-**36 new assertions** — 35 in a new `integration_spec` section, *the palette
-views, and ramp.of over them (F14)*, and one in the `blocks.install` section.
-`test-agent` drove the new coverage to failure three ways and reverted each,
-verifying `lib/sandbox.lua` byte-identical afterwards by SHA-256: the views
-bound to the wrong lists with one published unsnapshotted (**11 failed**, the
-config leak visible), `ramp.of` given a shifted argument list (**9 failed**),
-and `ramp_pick` wrapping instead of clamping (**11 failed**).
-
-**The third break is the answer to the refactor's one risk, and is recorded as
-such.** All eleven of its failures landed in the **pre-existing `F12` ramp
-section**. So taking the index arithmetic out of `ramp_over` did not orphan the
-57 `F12` assertions, which were the only thing standing behind the per-category
-ramps.
-
-**Playtest — three entries, `F14-1` to `F14-3`, and all three passed on
-2026-09-07 at `8e6350f`, engine 5.17.0.** Most of `F14` is
-pure functions in the sandbox and the specs reach them, so the arrays and the
-clamping need no world. `F14-1` is the editor's API help panel, which
-`api.to_hypertext` renders only in a running world. `F14-2` and `F14-3` came out
-of the coverage work and are the two things it could not assert: that reading
-past the end of a view stays **silent**, and that a gradient built through a
-view actually **lands**.
-
-**Why `F14-2` cannot become a spec, ever.** `lib/sandbox.lua` binds
-`chat_send_player` as a load-time local, so a spec cannot intercept the
-misspelling report by replacing `core.chat_send_player` around a run, and there
-is no logged-in player to receive it. An assertion that nothing was raised would
-pass against a *reporting* version too, which makes it vacuous. That is a
-general limit on what the suite can see, not a gap in this feature. **It was run
-on 2026-09-07 and passed** — `dark_hues[99]` built the default block with no chat
-line, `colors.gray` in the same session was reported once by name — so the
-asymmetry is now observed rather than reasoned, and that is the only evidence it
-can ever have. **`B54` later widened the same limit to a second local**:
-`lib/commands.lua` binds `chat_send_player` too, which is the route `print`
-takes, so what `print` sends is playtest `W7` and can never be a spec either.
+- **Mod security blocks the write side.** Generated Lua lands in the player's
+  file area through `lib/filesystem.lua`, which has no spec coverage.
+- **The assets have to come from somewhere.** Either a page hosted elsewhere — a
+  third-party runtime dependency for an offline game, and an AGPL-3.0-only
+  licensing and privacy question — or an in-tree server this mod does not have.
+- **What would settle feasibility:** one written answer to *where do the assets
+  live and who allows the HTTP call*, before any code.
 
 ### F15 · large · shaped 2026-09-07, not scheduled — `colorhex`, a palette node
 
-**Shaped and not queued, deliberately.** The author asked whether
-`place(colorhex("#F7A8E7"))` is possible. It was checked against the bundled
-5.17.0 `lua_api.md` and against this codebase, and the answer is written up in
-full here **so that nobody re-investigates it**. It has no phase: it is additive
-and breaks nothing, so it is not tag-forced, and it is the largest single piece
-of work anyone has costed in this project.
+**Feasible, but not as an arbitrary colour.** There is no runtime node
+registration in Luanti, so a hex nobody anticipated cannot become a node. The
+engine offers `paramtype2 = "color"` plus a 256-pixel `palette` texture — one
+node carrying 256 colours indexed by `param2` (5.17.0 `lua_api.md` line 1182).
+So `colorhex` **snaps to the nearest of 256**, and its name and documentation
+must say *nearest*.
 
-**Verdict: feasible, but not as an arbitrary colour.** Nodes can only be
-registered at mod load — **there is no runtime node registration** — so a hex
-nobody anticipated cannot become a node. What the engine offers instead is
-`paramtype2 = "color"` plus a `palette` texture: **one node carries 256 colours,
-indexed by `param2`** (5.17.0 `lua_api.md` line 1182, *palette should contain
-256 pixels*). So `colorhex` **snaps to the nearest of 256 fixed colours**, and
-the name and its documentation have to be honest that it is *nearest*, not
-exact.
+**Plain `color` is the right paramtype2.** `colorwallmounted` gives 32 colours,
+`colorfacedir` 8, `color4dir` 64; these nodes need no rotation, so all eight
+bits go to colour.
 
-The other colour paramtype2s trade colour count for rotation bits —
-`colorwallmounted` 32, `colorfacedir` 8, `color4dir` 64. **These nodes need no
-rotation, so plain `color` with all eight bits is the right one.**
+**It fits this mod.** The solid tile is already flat pure white, which is
+exactly what a palette tints. It is additive — three nodes and one PNG, the 105
+stay — so no saved program and no existing world breaks.
 
-**Why it fits this mod unusually well.** The solid tile is already **flat pure
-white**, which is exactly what a palette tints — the same property that makes
-`^[multiply` reproduce each palette hex exactly (`F12`).
+**What it costs.** `allowed_blocks.all` stops being name → itemstring, so every
+write path changes shape. `lib/shapes.lua` is the bulk of it: a second full-size
+`set_param2_data` array per slab, in the one path that has to stay fast.
+`get_block` and `is_block` reverse-look-up through `by_node[itemstring]`, which
+cannot tell 256 colours apart, so both must read `param2`. The block picker
+cannot enumerate 256 × 3. `lib/cost.lua:236` is trivial by comparison.
 
-**It is additive.** Three new nodes and one 256-pixel PNG. The 105 stay, so no
-saved program and no existing world breaks.
-
-**What it costs, read off the code as it stands.**
-
-- **`allowed_blocks.all` stops being name → itemstring.** A palette block is an
-  itemstring **and** a `param2`, so every write path changes shape.
-- `lib/cost.lua` line 236 is `set_node(pos, {name = block})`; adding a `param2`
-  there is trivial.
-- **`lib/shapes.lua` is the bulk of the work.** Line 300 writes `set_data`
-  only. A palette block needs a `set_param2_data` pass as well: **a second
-  full-size array per slab, in the one path that has to stay fast.** Nothing
-  else in the feature is comparable in cost.
-- **`get_block()` and `is_block()` reverse-look-up through
-  `by_node[itemstring]`, which cannot tell 256 colours apart.** Both would have
-  to read `param2`.
-- **The editor's block picker cannot enumerate 256 × 3.**
-
-**Open, and recorded as open rather than answered.**
-
-- **What the 256 colours are** — a colour cube, a greyscale allocation, or
-  something tuned by hand.
-- **How the value reaches `place()`.** `place()` takes one string today and that
-  contract is load-bearing. One candidate worth writing down: `colorhex` returns
-  **the normalised hex string itself**, every write path recognises a hex-shaped
-  key before consulting `all`, and `get_block()` answers a hex for a palette
-  node. That keeps the one-string contract and makes `place('#F7A8E7')` work
-  directly.
+**Two questions open on purpose.** Which 256 colours — a colour cube, a
+greyscale allocation, or hand-tuned. And how the value reaches `place()`, whose
+one-string contract is load-bearing; one candidate is `colorhex` returning the
+normalised hex string itself, every write path recognising a hex-shaped key
+before consulting `all`, which would make `place('#F7A8E7')` work directly.
 
 ## Other decisions worth not re-litigating
 
-- **`S8`'s choice was settled by freezing the constants, upstream in `vector3`
-  and not here, on 2026-09-07.** The two options were deep-copying `vector`'s
-  constants per run — this project's recommendation, measured at 6.6 µs a run —
-  or **freezing them read-only**, so that `dir = vector.one; dir.x = -1` raises.
-  The author took the second, in the other repository: vector3 2.0's changelog
-  reads *"Writing to an exported constant raises `read only`. The constants are
-  one table per name shared by every mod in the process, so a write used to
-  change `vector3.zero` for everybody."* **Do not re-propose the deep copy** —
-  it would now be a second answer to a question that has one. Two consequences
-  are recorded rather than inferred. **`S8` is not thereby resolved**:
-  `lib/env.lua`'s `snapshot` is still shallow and still claims otherwise in its
-  header, so the finding is **latent against v2.0.1 and reachable again on
-  v1.5**. And **the raise is a real cost to player code** — the idiom that
-  breaks is the one the author's own `game.lua` used — which is why the example
-  was rewritten to the constructor, below.
-- **What the test fixture should pin is open, and the bump did not settle it.**
-  `tests/game/mods/vector3` now points at v2.0.1, so the suite proves codeblock
-  works against **that** version and nothing about v1.5, which a player may
-  equally have installed. It is in *Finalising v1.0.0* as a question, **not
-  here**, because nothing about it is agreed: pin the newest, pin the oldest
-  supported, or document a floor in `mod.conf` — and Luanti has no dependency
-  version mechanism, `min_minetest_version` being an engine floor.
-- **Write-protecting `vector3`'s metatable from inside this mod is recommended
-  against, decided 2026-09-07 while filing `S9`.** Reaching
-  `getmetatable(vector3.one)` at load and sealing it is the obvious shortcut and
-  it is **`C18`'s mistake** — this mod imposing its own policy on its host, and
-  here on **another author's package**, which every other mod using the
-  `vector3` global would then be subject to without asking. The real fix is in
-  `vector3`: `local mt = {__index = vector3, __add = …}`, separating the
-  metatable from the methods table, after which `v.__index` reads nil. Nothing
-  in this repository reads `v.__add` as a field, so the separation costs nothing
-  here. Recorded so the shortcut is not proposed later as obvious.
-  **Leave-and-document was rejected for both `S8` and `S9`**: `S8` crosses to
-  other players and `S9` crosses to other mods, so neither is a documented
-  limitation a player could work around.
-- **The example copies with the constructor, not with `clone()`**, decided
-  2026-09-07 with `S8`'s one-line fix to `lib/examples/game.lua`:
-  `dir = vector(1, 1, 1)` rather than `dir = vector.one:clone()`. Three grounds.
-  The constructor is **what `lib/api.lua` documents**; it **matches the
-  committed version's own `dir = vector(1, 0, 1)`**, so the example is not
-  teaching a new idiom on the way past; and an example reading *reach for a
-  named constant and remember to copy it* would teach **the habit that caused
-  the defect**. Nothing else in the file changed — the author's rewrite is
-  intact.
-- **The `register_blocks` test mod lives outside this repository and is not
-  versioned**, asked for by the author on 2026-09-07 and written to
-  `../codeblock-test-mod` so it can be copied into any game. `F11-10`, `F11-11`
-  and `F12-6` all need a second mod calling `codeblock.register_blocks`, and the
-  obvious home — `tests/game/mods/` — is **wrong**, because that directory is
-  all-enabled: a mod registering a category there would change `api.names()` and
-  the palette underneath every spec run, which is the one thing the specs must
-  hold still. So it is deliberately untracked, and the cost of that is accepted:
-  **what it registers is written into `F11-10` in enough detail to rebuild it**,
-  which is the record standing in for version control. **Do not move it into
-  `tests/game/mods/`.** It earned its keep on 2026-09-07: `F11-10`, `F11-11`
-  and `F12-6` all passed with it, which is the game-author path's only in-world
-  evidence.
-- **A playtest result line names both commits when the checkout was on a
-  record-only one**, settled 2026-09-07 when the author ran six checks without
-  naming a commit and `HEAD` was `2feadb1`, a Markdown-only commit. The form is
-  `2feadb1`, record-only over `24842d3` — the checkout first, then the last
-  commit that touched `lib/`. **The grounds: the reader has to be able to tell
-  which *code* was played**, and a commit hash that touched no source cannot
-  tell them, so a bare `HEAD` in a result line is not evidence about the code.
-  Written into `PLAYTEST.md`'s *How to record a result* so it is found there
-  rather than here.
-- **`mod ?` in the late-call refusal gets no finding id**, decided 2026-09-07.
-  `lib/blocks.lua:195` reads `core.get_current_modname() or '?'`, and
-  `lua_api.md` 5.17.0 documents that function as answering the loading mod's
-  name *when loading a mod* — so a call from a `core.after` falls to `'?'` and
-  the refusal names no mod. It is cosmetic and **not fixable from inside
-  `register_blocks`**: after load the engine does not know who the caller is.
-  What it would cost is a playtester carrying `F11-10` case 2's *name the calling
-  mod* criterion into case 3 and reading a correct refusal as a fail, so the
-  answer is in case 3's recipe rather than in `AUDIT.md`.
-- **The new-file template names no individual colour**, decided 2026-09-07 while
-  fixing `B53`. `code-expert` proposed `colors.orange`, a one-word change from
-  the broken `blocks.obsidian`. It was **rejected**: naming a current colour
-  rebuilds exactly the dependency that had just broken, and the template is prose
-  no check can read, so the standing lesson here — *a note about remembering does
-  not hold where a check would* — has no check to fall back on. What shipped is
-  `for i = 1, #hues do place(hues[i]) up(1) end`: `place`, `up` and `hues` are
-  structural names that change only in a major version, and `#hues` fits the loop
-  to whatever the palette holds, so a shorter palette makes a shorter tower rather
-  than an error. It also makes a better first program — a rainbow column instead
-  of ten identical blocks. **Do not shorten it back to a named colour.**
-- **`lib/examples/game.lua` is tracked, and is a shipped example**, decided by
-  the author on 2026-09-07 and committed at `63c3c33`. It had been sitting
-  untracked in `lib/examples/`. The decision settles **two consequences**, both
-  now intended rather than accidental: **it ships to players in a release** —
-  `generate_examples` enumerates the directory, so `/codeblock generate` writes
-  it into each player's directory alongside the other thirteen — and **it
-  unblocked `C23`**, whose second direction had been deferred only because a
-  two-way check against the directory would have gone red locally and green in
-  CI while the file was untracked. Both directions are in at `63c3c33`.
-  **Two things about the file itself, both flagged to the author and both left
-  as they are.** It is a bouncing-lamp demo that ends in `while 1 == 1 do` with
-  no exit, so it runs until `max_runtime_s` stops it — **the only shipped example
-  that never terminates**. And its `sleep(0.03)` is in the moving branch only, so
-  a bounce runs at full speed. Neither is a defect and neither was changed; they
-  are recorded so nobody reads either as an oversight and quietly fixes it.
-- **`C23`'s second direction was deferred for a few hours, not disputed**,
-  decided 2026-09-07 and superseded the same day by the decision above. Kept
-  because the shape of the reasoning recurs: a check that would be
-  **red locally and green in CI** is backwards, and the fix is to settle the
-  local anomaly rather than to weaken the check.
-- **The neutrals stay five, and are not expanded to ten greys**, decided
-  2026-09-07. The author asked for ten shades black-to-white and for a naming
-  convention or aliases, then **chose against it after seeing the `F15`
-  feasibility**: a 256-colour palette node gives a smooth greyscale and every
-  other colour with it, which makes ten hand-named greys redundant. Both schemes
-  considered are kept so neither is proposed again. **Numbered with aliases** —
-  `grey_1` (black) … `grey_10` (white), with `black`, `dark_grey`, `grey`,
-  `light_grey` and `white` kept as aliases resolving to the **same flat keys**,
-  so `is_block(colors.grey, …)` still answers true and no saved program breaks,
-  `grey` staying the fallback; its cost is that `add_category` grows an alias
-  concept and five of the ten carry two names. **Ten hand-picked English
-  names** — `slate`, `charcoal`, `silver`, `ash` — argued against because they
-  have **no guessable order**, which is the one thing a greyscale needs. And
-  either way, **ten *evenly spaced* steps moves the existing five hexes**:
-  `ff, c0, 80, 40, 10` is not an even ramp, so `colors.grey` would change shade
-  in worlds already built.
-- **A palette view is one axis and a block category is the other**, settled
-  2026-09-07 with `F14`. Every category is indexed by the same short name, so an
-  ordered array of names — `hues`, `light_hues`, `dark_hues`, `neutrals` —
-  becomes a gradient in any material by indexing: `glass[h]`, `lamps[h]`. **Four
-  arrays give twelve gradients with no extra names.** Three alternatives were
-  rejected on that reading: **twelve arrays of blocks** (eleven new names for
-  what indexing does), **nested selection tables** — `colors.dark.red` and the
-  same under `glass` and `lamps` — (nine new names, no ramps at all, `snapshot`
-  and `unknown_block` both having to nest, and **asymmetric with a
-  game-registered category, which has no shade tiers**, against one character
-  saved), and **a named ramp per tier** (six names instead of four, and no way
-  to ramp a list the player built).
-- **`ramp.of` does not validate its list**, 2026-09-07 with `F14`. It returns
-  whatever is in the array, so a player may ramp one of their own; a non-table
-  or an empty list answers `nil` rather than raising. That is the judgement
-  `ramp_over` already makes about a non-number `v` — **an arithmetic accident
-  should not stop a program.**
-- **`colorhex` is feasible only as *nearest of 256*, and it is shaped rather
-  than scheduled**, 2026-09-07. There is no runtime node registration in
-  Luanti, so an arbitrary hex cannot become a node; `paramtype2 = "color"` with
-  a 256-pixel palette texture is the only route, and `lib/shapes.lua` would need
-  a second full-size `set_param2_data` array per slab in the one path that has
-  to stay fast. The whole investigation is under `F15`. **Do not re-derive it.**
-- **Exporting `getScriptEnv` to give the sandbox implementations coverage was
-  offered and refused**, 2026-09-06 with `F13`. Pinning a spec to a private
-  closure factory is pinning to the implementation, and the factory would then
-  be public for the sake of a test. What was done instead is the only real door:
-  the spec **writes a program into the throwaway world** and runs it through
-  `get_safe_coroutine`. The `run-tests` skill's rule against a spec touching a
-  user directory stands for *a spec that passes vacuously because none exists*;
-  this one was driven to failure eight ways, so it is the opposite case, and the
-  distinction is written into the skill so nobody deletes the write.
-- **`.luacheckrc`'s sandbox std stays hand-written and is checked, not
-  generated**, decided 2026-09-06 with `C22`. It is a linter configuration a
-  human also edits, so generating it would take the file away from the person
-  who has to change it. `gen_docs.lua --check` compares it with `api.names()`
-  both ways instead. **The std holds API names and nothing else** — that rule is
-  what makes the comparison a plain equality, and the bare `_` the examples pass
-  lives in `files["lib/examples/**"].read_globals` for exactly that reason. The
-  reasoning, and the bare-string escape hatch that switches typo-catching off
-  without going red, are under `C22` in `AUDIT.md`.
-- **`default` and `wool` are dropped outright rather than made optional**,
-  decided 2026-09-04 with `F11`. **Optional dependencies keeping them when the
-  game has them** were rejected because the palette would then vary by game: a
-  program would stop meaning the same thing everywhere, `doc/api.md` would
-  describe a palette that may not exist, and the help panel would offer blocks
-  the player cannot place. For a mod whose artefact is a shared program,
-  **portability beats range**. **Dropping `wool` only and leaving `default`
-  optional** was rejected as deferring the question rather than settling it.
-  **A computed hue × shade grid** for the replacement palette was rejected in the
-  same exchange: hand-picked names read better in a program. The order of the
-  palette is by hue and is not cosmetic — a ramp maps a number onto it, so a
-  gradient has to read as a rainbow.
-- **Every block category gets a ramp, and only `ramp.hues` is a gradient** —
-  the author's answer on 2026-09-06 with `F12`, *"for every category
-  blocks/hues/lamps/glass"*. `ramp.colors`, `ramp.glass` and `ramp.lamps` walk
-  light, plain and dark inside each family in turn and therefore **strobe**.
-  That is a consequence of the answer, not a defect, and it is said in the help
-  text. **Do not re-order `colors` by lightness to fix it** — the picker and the
-  creative inventory read by family, which is what a person looking for a colour
-  wants, and `ramp.hues` already exists for the gradient case.
-- **`get_block` answers `nil` outside the world; `place` raises there** —
-  decided with `F12` and commented in `lib/commands.lua`. Both use the one
-  `inside_world` predicate so the edges cannot drift. The asymmetry is the
-  point: a read is the query a player uses to look before they leap, and
-  stopping their program for asking is the wrong shape. **Do not make it
-  symmetrical.**
-- **`color(v, min, max)` was removed with no alias**, `F12`, 2026-09-06. An
-  alias was not considered worth its cost: v1.0.0 is untagged, the same release
-  already renames every block name a program writes, and a name kept for
-  compatibility with a version that was never released is a name kept for ever.
+### Dependencies and the sandbox
+
+- **`S8` was settled by freezing `vector3`'s constants, upstream.** Writing to
+  an exported constant now raises `read only`. **Do not re-propose the per-run
+  deep copy** — measured at 6.6 µs, and now a second answer to a settled
+  question. `S8` itself stays open: `env.snapshot` is still shallow.
+- **Write-protecting `vector3`'s metatable from inside this mod is refused.**
+  Sealing `getmetatable(vector3.one)` at load is `C18`'s mistake on another
+  author's package, and every other mod using the global would be subject to it.
+  The fix belongs in `vector3`: `local mt = {__index = vector3, __add = …}`,
+  after which `v.__index` reads nil. Nothing here reads `v.__add` as a field.
+- **Leave-and-document was rejected for both `S8` and `S9`.** `S8` crosses to
+  other players and `S9` to other mods, so neither is a limitation a player
+  could work around.
+- **What the test fixture pins is open**, not settled by the bump. It is a
+  question under *Finalising v1.0.0*, not a decision.
+- **An example copies with the constructor, not `clone()`.**
+  `lib/examples/game.lua` reads `dir = vector(1, 1, 1)`. The constructor is what
+  `lib/api.lua` documents, it matches the file's own `vector(1, 0, 1)`, and
+  *reach for a named constant and remember to copy it* would teach the habit
+  that caused the defect.
+- **`lib/examples/game.lua` is tracked and ships** (`63c3c33`). Two properties
+  are intended, not oversights: it is the only shipped example that never
+  terminates, ending in `while 1 == 1 do`, and its `sleep(0.03)` is in the
+  moving branch only, so a bounce runs at full speed.
+
+### The palette and a game's blocks
+
+- **`default` and `wool` are dropped outright, not made optional.** Optional
+  dependencies would make the palette vary by game, so a program would stop
+  meaning the same thing everywhere and `doc/api.md` would describe a palette
+  that may not exist. **For a mod whose artefact is a shared program,
+  portability beats range.** Dropping `wool` only defers the question rather
+  than settling it.
+- **The palette is hand-picked and ordered by hue.** Not a computed hue × shade
+  grid — hand-picked names read better in a program. The order is load-bearing:
+  a ramp maps a number onto it, so a gradient must read as a rainbow.
+- **Every family's mid-tone carries the plain word** — `red`, `yellow`, not
+  `crimson`, `gold`. The obvious name for a colour must exist and must be the
+  middle of its family, light / plain / dark. `F12` made it mechanical:
+  `light_x` / `x` / `dark_x`.
+- **The neutrals stay five.** Ten greys were asked for and declined after the
+  `F15` feasibility: a 256-colour palette node gives a smooth greyscale and
+  every other colour with it. Both rejected schemes: `grey_1`…`grey_10` with the
+  five existing names as aliases onto the same flat keys, which costs
+  `add_category` an alias concept; and ten hand-picked English names, which have
+  **no guessable order**. Either way ten *even* steps moves the existing hexes,
+  so `colors.grey` would change shade in worlds already built.
+- **One node definition per colour, not a `param2` palette.** Neither write path
+  carries `param2` today — `shapes.lua` writes `data[i] = id`, `cost.lua` writes
+  `set_node{name = block}` — so a definition per colour costs nothing.
+- **`^[multiply:#rrggbb`, never `^[colorize:<hex>:255`.** At ratio 255 colorize
+  replaces every pixel and throws the tile away; multiply scales RGB per pixel
+  and leaves alpha alone, which is what keeps the glass transparent. Switching
+  back would opaque the glass and flatten the lamps in one edit.
+- **The solid tile is flat pure white**, so `^[multiply` reproduces each palette
+  hex exactly. **Do not put a grain back on the solids** — it would cost the
+  exact hex. `F12-2` judged the flat wall acceptable in a world; the question is
+  closed.
+- **The five neutral hexes are the project's, not the author's** — `#ffffff
+  #c0c0c0 #808080 #404040 #101010`, an even grey ramp chosen because the author
+  named the neutrals without values. `F12-1` passed and said nothing against
+  them.
+- **A palette view is one axis and a block category is the other.** Every
+  category is indexed by the same short name, so `glass[h]` and `lamps[h]` turn
+  any ordered array into a gradient in any material. **Four arrays give twelve
+  gradients with no extra names**, which is why there is no `dark_glass` array.
+  Three rejected readings: twelve arrays of blocks (eleven names for what
+  indexing does); nested `colors.dark.red` tables (nine names, no ramps,
+  `snapshot` and `unknown_block` both learning to nest, and **asymmetric with a
+  game-registered category, which has no shade tiers**); a named ramp per tier
+  (six names instead of four, and no way to ramp a list the player built).
+- **`lib/config.lua` holds two literals, `neutrals` and `families`**, and
+  derives `palette` and the four views from them. `F11`'s flat list with an
+  index range could not express *the plain shade of each family*. Do not flatten
+  it back. `fallback` is still `grey`.
+- **Derive every view in `config.add_category` and nowhere else.** A list built
+  at load time in a reader is a snapshot taken before any game registered
+  anything; three such snapshots existed and `rev_blocks` in `lib/commands.lua`
+  was a live defect. The views are mutated and never replaced, so a held
+  reference sees a late arrival.
+- **The short-name space is flat and unique behind the category tables.**
+  `colors.red`, `glass.red` and `lamps.red` resolve to `red`, `red_glass` and
+  `red_lamp`, because `place()` takes one string.
+- **A registered category gets namespaced flat keys — `wool.red`.** That is what
+  makes it impossible for a game to shadow a built-in. A dotted key travels into
+  player meta as a `default_block`.
+- **Read a category through `allowed_blocks.by_name[name].spelled`, never by
+  indexing the structure table.** A game chooses its own category name, so a
+  name indexing `allowed_blocks` directly could be `all` or `fallback` and
+  overwrite the map every write path resolves through. `by_name` is the one
+  table a game-chosen string may index.
+- **`air` is a plain top-level name holding `'air'`.** Not `colors.air` and not
+  a category of one: it is engine-provided, and a category is a namespace of
+  nodes this mod or a game registered.
+- **The palette is the mod's own and is not a translation of `wool`'s.** Do not
+  size a palette to match another mod's.
+- **`register_blocks` is queued at the call and validated at
+  `register_on_mods_loaded`.** `core.registered_nodes` is complete only then, so
+  checking at the call would refuse a node belonging to a mod that loads later.
+  **Do not move the check into `register_blocks`.**
+- **A refusal is `core.log('error', …)` naming the calling mod, never a raise**
+  — a game's typo must not abort the server. A call after the seal is refused,
+  not warned about: it cannot be validated.
+- **codeblock validates a game's category and then trusts it.** Valid Lua
+  identifier, no collision, registered node, load time. **Policing what the node
+  does** was rejected — every guess is a false refusal waiting to happen — and
+  **no checks at all** was rejected too, since a typo surfaces later as a broken
+  help panel with nothing naming the game that caused it.
+- **`mod ?` in a late-call refusal is cosmetic and gets no id.**
+  `core.get_current_modname()` answers only while loading, so a call from a
+  `core.after` names no mod, and it is not fixable from inside
+  `register_blocks`. `F11-10` case 3's recipe says so, so a correct refusal is
+  not read as a fail.
+- **Adding a top-level API name takes a name out of every game's namespace**,
+  because `blocks.install` seeds its taken-set from `api.names()`. `F14` took
+  three at once. Weigh it, and say so in `CHANGELOG.md`.
+- **None of the 105 nodes has a `sounds` field.** Every
+  `node_sound_*_defaults()` belongs to a game, and calling one would put the mod
+  back in the position `F11` took it out of.
+
+### The player-facing API
+
+- **`color(v, min, max)` was removed with no alias.** v1.0.0 is untagged and the
+  same release already renames every block name a program writes; a name kept
+  for compatibility with a version never released is a name kept for ever.
+- **Every block category gets a ramp, and only `ramp.hues` is a gradient.**
+  `ramp.colors`, `ramp.glass` and `ramp.lamps` walk light, plain and dark inside
+  each family and therefore **strobe**. That follows from the author's own
+  answer and is said in the help text. **Do not re-order `colors` by lightness
+  to fix it** — the picker and the creative inventory read by family.
+- **One ramp mapping, not two.** `ramp_pick(list, v, m, M)` is the whole of it;
+  `ramp_over(list)` binds it to one list and **`ramp.of` is `ramp_pick`
+  itself**, so the generic and per-category ramps cannot drift. Clamps, never
+  wraps; a non-number `v` or a zero-width range gives the first entry.
+- **`ramp.of` does not validate its list.** A player may ramp a list of their
+  own; a non-table or an empty list answers `nil` rather than raising. **An
+  arithmetic accident should not stop a program.**
+- **`get_block` answers `nil` outside the world; `place` raises there.** Both
+  use the one `inside_world` predicate so the edges cannot drift. The asymmetry
+  is the point — raising on the query a player uses to look before they leap is
+  the wrong shape. **Do not make it symmetrical.**
+- **`get_block` loads the map it reads**, through `codeblock.cost.load_block`
+  shared with `place_block`, and is charged as footprint. Without the load,
+  `get_node` answers `ignore` for anything not in server memory, which is
+  indistinguishable from map that does not exist. The memo stays **per-resume**
+  and `release()` stays the only `coroutine.yield` in `lib/cost.lua`.
+- **`get_block`'s `nil` is permanent.** `core.load_area` does not run mapgen, so
+  waiting will not turn a `nil` into a name.
+- **`is_block` calls `drone_get_block` and does not read the map itself**, so
+  the load, the footprint charge and the one-command cost cannot drift from
+  `get_block`'s. `type(block) == 'string'` is load-bearing and pinned by a spec:
+  outside the world the read is `nil` and `colors.typo` is `nil` too, so a plain
+  `found == block` would report `true` for a misspelt name at a position with no
+  answer. A nil block does **not** resolve through the default-block fallback.
+- **`unknown_block`'s message says *"the default block is used instead"* even
+  under `is_block`, where none is.** Rewording the key would orphan the French
+  translation and it is correct for `place()`. Left deliberately.
+- **Warn about an unknown block name at the read, not at the call site.** By the
+  time a nil reaches `placement` the typed key is gone. At the read it names
+  `notablock`, covers every block-taking command including ones added later, and
+  fires when the value is stored and placed much later. **The scope is a table
+  read only** — `place('notablock')` already raises.
+- **A warning, not an error, and once per run.** Erroring would break saved
+  programs; one line per run keeps a typo in a loop out of chat. Accepted side
+  effect: `if blocks[name] then` as a membership probe costs one chat line per
+  run.
+- **An `__index` on the copy is not the read-only proxy `S1` rejects.** Proxies
+  are refused because Lua 5.1 has no `__pairs` or table `__len`, so they break
+  `pairs(colors)` and `#hues`. An `__index` on a real copy fires only for an
+  absent key. `hues` is excluded: reading past the end of an array is
+  legitimate.
+- **`print` is variadic, space-joined and nil-safe.** Read the varargs with
+  `select('#', ...)` and `select(i, ...)`, **never** `{...}` with `#` — Lua 5.1
+  cannot see a nil in the middle or at the end, and `get_block()` answers `nil`
+  over ungenerated map. Join with a **space**, not real Lua's tab: Luanti's chat
+  console has no tab stops and the engine wraps on spaces. `print()` alone sends
+  a bare `> ` and still costs one command. **`error` was not widened** — real
+  Lua's is not variadic either.
+- **`sleep`'s wait is charged before it starts**, so `sleep(1e9)` puts the run
+  past `max_runtime_s` and reports the same timeout a non-terminating program
+  gets. That is `max_runtime_s`'s one exception — it bounds time not spent on
+  CPU — and both places it is documented say so. **A per-codelevel cap on
+  `sleep` was argued out**: the up-front charge bounds it without another limit,
+  mirror row and documented row. **Routing it through `end_command` was argued
+  out too**: that writes `wake_at` from `pace_ms` and the last writer wins, and
+  **a sleep is not a command** — it pays no pace and is not counted as one.
+- **`sleep` must keep yielding through `release()`**, the only `coroutine.yield`
+  in `lib/cost.lua`, which clears the mapblock memo first. Yielding any other
+  way reintroduces `B25`'s silent lost write.
+- **Adding a player-facing name is breaking even when nothing is renamed.**
+  `env.new_env` raises on assignment to any API name, so a saved program using
+  `sleep` as its own global now fails on that line.
+- **A run cut short says *stopped***, matching the panel button's own label. The
+  rejected two: *cancelled* names no gesture in the interface, and *stopped
+  before finishing* is a sentence where the other outcomes are one word. The
+  shared verb with the timeout line was weighed and accepted.
+  `register_on_leaveplayer` is the other caller, so a player disconnecting
+  mid-run is told *stopped*; nobody sees that line. **Those two are the whole of
+  `Drone.on_remove`'s callers — the setter has not been one since `F8`.**
+- **The drone record is decoupled from its entity.** The entity is a *view*:
+  every drone is advanced from the one globalstep `lib/register.lua` already
+  registers, `on_deactivate` sets `drone.obj = nil` rather than ending the run,
+  and the object is re-spawned with the **same serial** once the drone's
+  mapblock is loaded again — at most once a second, gated on `get_node_or_nil`
+  rather than on `add_entity` failing, which would log an engine warning per
+  attempt. **There is no `on_step` on the entity and adding one would undo all
+  of it.**
+- **Two alternatives to that lost, and one earlier rejection was itself wrong.**
+  Option A closed neither of `B52`'s cases; option B closed them only by
+  forceloading, which spends the game's shared `max_forceloaded_blocks` and runs
+  ABMs wherever a drone goes — a `C18`-class imposition on the surrounding game.
+  The globalstep driver had been refused once as inverting `A11`'s direction of
+  dependency, and **that reading was mistaken**: `register.lua` already owns
+  orchestration, so driving the drones from it *follows* `A11`. **Do not
+  re-raise it.**
+- **Two costs were accepted with that decision, not overlooked.** A far-away
+  runaway loses its accidental stop, so `max_nodes_written`, `max_runtime_s` and
+  `map_memory_mb` carry the whole load — the last unintended backstop going
+  away. And **`/clearobjects` no longer ends a program**: it blanks the view,
+  which comes back. Neither is a defect.
+- **The default block is read once per run** into `drone.default_block`, so a
+  mid-run change cannot split one build between two blocks. The read **validates
+  through the palette and falls back**, which is what stops a default arriving
+  from a form becoming a way to place any node name. Meta is written **on
+  click**, not on form close, which kept the preference immune to `B33`.
+- **Block choice is not privileged, unlike everything beside it.** Codelevel is
+  privileged because it bounds resource use; stone and red wool cost the server
+  the same. `air` is selectable, so a bare `place()` can erase.
+- **A `persist` flag on `default_block()` was argued out.** It would be the only
+  API call whose effect outlives its run; a shared program would silently
+  rewrite the reader's saved preference with no undo; in a loop it is a meta
+  write per iteration inside a budgeted run; and no spec could reach it.
+  Persistence from a program would get its own command.
+
+### The editor, the panel and the HUD
+
+- **The block picker is a `textlist`, not item rows in a `scroll_container`.**
+  The editor formspec is in **legacy coordinates**, where a `scroll_container`
+  maps its contents into a different space and clips them, and an
+  `item_image_button` inside one gets a hit area that does not match where it is
+  drawn. The help panels get away with a container only because `item_image`
+  takes no clicks.
+- **A legacy button's `W` is not a width.** `src/gui/guiFormSpecMenu.cpp` at
+  5.17.0: a `button` gets `W*spacing - (spacing - imgsize)`, a `textlist` gets
+  `W*spacing`, with `spacing = imgsize * 5/4`. A button is short by a fixed
+  **0.2 units whatever `W` is**. Hence *Create a copy* at `3.2` against a 3-wide
+  file list and `+` at `0.95`. `H` is not a height either. `lua_api.md` records
+  none of it.
+- **One panel, not a second form.** `lib/forms.lua` holds one form per player,
+  so a settings form would displace the editor. Every future setting adds a row.
+- **The panel tick must check the session is still the panel's** — opening the
+  editor over an open panel silently replaces it. Pinned by `forms_spec`.
+- **The panel is unconditional and the setter's left click means *drone info*.**
+  No two-meanings-by-state: click, get the panel, and if nothing is running it
+  says so. **An effect that depends on state the player cannot see is one they
+  have to guess at**, and the guess destroyed builds. `on_punch` was rejected —
+  a stray punch ending a long build is the objection that moved Stop into the
+  panel.
+- **One destructive button.** *Cancel* and *Remove drone* were the same
+  `Drone.on_remove` call under two labels. **A second button that offers a
+  distinction the code does not make is worse than no button.**
+- **Stop goes through `Drone.finish`**, the single place an outcome is
+  announced, or the player gets two messages or none (`B12`, `B30`). Anything
+  reading a drone by name from a callback reads the record fresh and respects
+  the **serial guard** (`B29`).
+- **Hard limits only, three rows.** The map footprint is a throttle that sits at
+  its ceiling by design (`B45`); listing it beside three ceilings that end a run
+  invites the misreading. The *Will stop on: …* line is gone — the binding limit
+  is the one coloured **amber**, **red** at 80%.
+- **Every limit row gets a describing line, as an area label.** The single-line
+  version was cut off at the panel edge in French; the engine wraps an area
+  label and gives it no scrollbar. This is the panel earning its space over the
+  HUD.
+- **Long numbers get `K`/`M`/`G`**, threshold 10 000, so a small count still
+  reads as a plain integer. Formatting is presentation: `limits.report` and
+  `limits.binding` stay pure functions of `caps` and `used` so `limits_spec`
+  keeps pinning them.
+- **The panel heading is bold with the state coloured** — `running` green,
+  `paused` yellow, idle bold and **not** coloured. **One colour meaning two
+  things on one form is worse than no colour**, and a third colour for idle
+  would quietly change what the colour is for. Built by **concatenation**, not
+  from the `S('@1 : @2')` key, because only part of the line is coloured; a
+  label's `font` is per element and `halign` works only in the area-label form.
+- **The heading carries the run's clock time, bold and immediately after the
+  state** — `<program> : <state> (<duration>)`. Asked for as *not bold* and
+  reversed within the hour once on screen. **Nothing in Lua can measure rendered
+  text**, so *adjacent and differently styled* is the combination that cannot be
+  built: as two labels, the x where the state ends varies with the player's font
+  and `gui_scaling`. **Do not reintroduce the second label to unbold it.**
+- **The clock stops while a run is paused** — *how long has this build taken*,
+  not *how long since I started it*. `max_runtime_s` already ignored a pause.
+  Reversed from `F9`'s original decision the same day, on seeing it in a world.
+- **`Drone.elapsed_us(drone)` is the single answer** both the panel heading and
+  the finish message read, so the live figure and the final one cannot disagree.
+  `tstart` is shifted forward on resume rather than a `paused_us` accumulated —
+  one field to keep correct instead of two. **`Drone.toggle_pause` is the only
+  thing that may write `drone.paused`**, `on_run` clearing both being the only
+  other writer.
+- **A wall-clock duration must not be charged, displayed as, or derived from
+  `used.runtime`.** Two numbers about time on one form is what `B46` closed, so
+  it is a `get_us_time` delta and the row keeps its line saying it is not clock
+  time.
+- **The duration is on the panel only, not the HUD.** The corner block is four
+  words and a number a line; its first line already carries a filename and a
+  state.
+- **The HUD is a five-line block** hanging from the top-right, with its own
+  short names — `Blocks`, *CPU time*, `Memory`. That duplication is deliberate:
+  the panel's row is a heading over a sentence. `CPU` alone read as a load
+  percentage, which is `B46`'s misreading one word along. **The two-line version
+  naming only the binding limit is gone** — naming one meant the other two were
+  invisible while the answer was nearly always the same. A HUD `text` has a
+  `style` bitfield (1 bold, 2 italic, 4 monospace) and per-element colour
+  through `number`, so one element per line gives per-line colour without
+  `core.colorize`.
+- **A HUD cannot carry buttons.** 5.17.0 has nine element types and none is a
+  button; **no HUD click callback exists anywhere in the API**. That is what
+  splits `F4` into two surfaces. `register_on_player_receive_fields` is
+  formspec-only and `get_player_control` is key state, not a click target.
+- **The HUD shows only while that player's own drone is running.** A permanent
+  status area is decoration, and decoration imposed on every game is `C18`'s
+  shape.
+- **Pause is not `wake_at`.** Reusing it would clobber a pending `sleep()`:
+  resuming would wake the drone early. `drone.paused` is checked in
+  `stepper.awake` and a paused drone takes no share of the step pool.
+- **`lib/drone.lua` does not know forms exist and must not learn that a HUD
+  exists.** Drive both from the other side, reading `drone.budget` (`A11`).
+- **Four things were argued out of `F4`.** A **Start button** duplicates the
+  poser's left click and doubles the entries into `get_safe_coroutine`. An
+  **admin view of another player's drone** adds a privilege surface nobody asked
+  for. A **`statbar`** needs a texture pair and draws in half-image steps, where
+  a coloured `text` says the same thing to the pixel. A **live-refreshing panel
+  reproducing the HUD** — two surfaces, one job each.
+- **The three preference checkboxes live on the *Settings* panel**, not the
+  editor form's bottom edge.
+- **Slowing the display beat rather than making the panel static.** `PERIOD` 0.5
+  → 1 s, one constant in `lib/hud.lua` driving both surfaces. It halves a
+  dropped-click window it does not close. Three closures were rejected: *stop
+  the self-refresh* takes away the liveness `F8` was built for; *quantise the
+  string* cannot beat the elapsed clock, which changes every beat; *act on
+  mouse-down* means a `textlist` where Stop is a button, and a destructive
+  action on mouse-down is worse than a dropped click. **The fallback is the
+  static panel, not a shorter beat**, and the bar for taking it is misses in
+  ordinary use.
+- **The unsaved-tab marker is a flag, not a diff against a kept pristine copy**
+  — one boolean per tab against doubling the editor's memory for a cosmetic
+  mark. `meta.dirty` is kept **dense**, because `table.remove` on a table with
+  nil holes has no defined behaviour in Lua 5.1.
+- **The marker is render-only.** `meta.tabs[i]` holds the filename the
+  filesystem is handed; a `*` appended there would create `foo.lua*`. Decorate
+  the label as the `tabheader` is built and nowhere else.
+- **The flag is set from `fields.content ~= meta.contents[active]`, compared
+  before the buffer is overwritten** — not from the field *arriving*, which
+  would mark every tab on the first button press. So the mark means *differs
+  from what was last written*. `save_active` clears it only on a write that
+  happened.
+- **That comparison is line-ending-sensitive** (`B48`): `read_file` opens `'rb'`
+  and the textarea returns LF, so every CRLF file was permanently marked.
+  `read_file` now normalises to LF. Anything else comparing a disk buffer
+  against a formspec field has the same problem.
+- **Resetting the text area to the file's content on a tab switch was
+  rejected.** It makes the dirty state visible by throwing the player's typing
+  away, which is exactly `B35`. **Do not gate the capture again.**
+- **The copy naming derivation.** `foo.lua` → `foo_1.lua` → `foo_2.lua`, first
+  free *N* up to 99, **numeric because the author asked for it** — language
+  agnostic, so the name does not depend on the server's locale. **Strip a
+  trailing `_%d+` before appending**, anchored to the end, never widened to
+  match mid-name: taking the whole stem nested the suffix and lost a character
+  to the 15-character limit each round. Trimming the suffix instead hands back
+  the original name for any stem already at the limit.
+- **A copy contains what is on screen, not what is on disk**, its name is
+  derived and not typed, and the button is bottom-left rather than in the
+  Save/Remove/Close row, which already runs to `x=14.08` against a help row
+  starting at 14. The drone's file chooser does not get the button. **Saving the
+  original first was argued out** — a copy is a copy — and so was a
+  `filesystem.copy_file` helper: a copy is a derived name plus `write_file`,
+  already the module's one write path.
+- **The natural sort key lives in `lib/filesystem.lua`** and prefixes each digit
+  run with its own length, so `foo_2` precedes `foo_10` **without guessing a
+  padding width**. It is injective, so no tie-break is needed. The file chooser
+  reads the same `ud.list` — one sort, two consumers.
 - **The help row is one layout in every game — a `Blocks` button and an
-  always-drawn category selector** — the author's choice on 2026-09-05, over
-  `code-expert`'s proposal of a dropdown drawn only when a game has registered a
-  category. **The grounds: two layouts for one thing means the rare one is where
-  a defect sits.** `B38` and `B39` were both exactly that — correct in
-  `codecube`, broken in every other game — and neither was found by a gate. The
-  cost accepted with it is a selector with one entry per built-in category and
-  nothing else in the common case, which is a pixel cost against a class of
-  defect this project has paid for twice. **Built-in categories keep their
-  translated labels and a game's shows raw**, because the raw name is what a
-  program types.
+  always-drawn category selector.** Chosen over a dropdown shown only when a
+  game has registered something. **Two layouts for one thing means the rare one
+  is where a defect sits**: `B38` and `B39` were both exactly that, correct in
+  `codecube` and broken everywhere else. Built-in categories keep their
+  translated labels; a game's shows raw, because the raw name is what a program
+  types.
 - **The selector's guard branches on the arriving value *matching* a label it
-  drew, never on it *differing*, and sits below `quit`** — decided 2026-09-05
-  with `F11`'s second pass. A legacy dropdown is an always-sent field (`B37`), so
-  *if it differs from what is open, switch* would fire on an ESC and swallow the
-  close. **The formspec-version-4 `index event` parameter would retire the
-  question outright** — `lua_api.md` 5.17.0 line 3579, the dropdown sending its
-  index instead of its text — and it is **not reachable here**, being *"allowed
-  parameter since formspec version 4"* while the editor is legacy coordinates.
-  Recorded so the next reader finds the reason and not just the parameter;
-  taking it means converting the whole editor, which has its own entry below.
-- **`^[multiply:#rrggbb`, never `^[colorize:<hex>:255`, for the block tiles** —
-  established 2026-09-04 when `code-expert` corrected the `F11` brief against
-  `lua_api.md`. At ratio 255 colorize replaces every pixel with the flat colour
-  and throws the tile's grain away; multiply scales RGB per pixel and leaves
-  alpha alone, which is also what keeps the semi-transparent glass tile
-  transparent. Switching back would flatten the grain and opaque the glass in
-  one edit.
-- **Every colour family's mid-tone carries the plain word** — `red`, `yellow`,
-  `brown` — settled 2026-09-04 in review of the `F11` brief, which had
-  `crimson`, `gold` and `bronze` instead and so shipped a 33-colour palette with
-  none of the three names a player types first. The rule: the obvious name for a
-  colour must exist and must be the middle of its family, light / plain / dark.
-- **codeblock validates a game's registered block category and then trusts it**,
-  decided 2026-09-04 with `F11`. It checks the name is a valid Lua identifier,
-  does not collide, names a registered node, and arrives at load time.
-  **Policing what the node does** — `on_construct`, timers, inventories, drops —
-  was rejected: codeblock would be second-guessing a game about its own nodes and
-  every guess is a false refusal waiting to happen. **No checks at all** was
-  rejected too: a typo'd name surfaces later as a broken help panel and a
-  confusing `B49` warning with nothing naming the game that caused it.
-- **A run cut short says *stopped***, the author's choice on 2026-09-04 from
-  three options, fixing `B51`. **The grounds:** *stopped* matches the panel
-  button's own label — **Stop**, *Arrêter* — so the word names the gesture the
-  player just made. **The rejected two were *cancelled* and *stopped before
-  finishing***: the first names no gesture in the interface, the second is a
-  sentence where the other outcomes are one word. **The shared verb with the
-  timeout line was weighed and accepted**: *Program '@1' stopped: it used all @2 s
-  of running time* self-describes, so the two do not blur — and if they ever read
-  as one message in a world, that is a finding rather than a re-opening of this.
-  The other caller came with it, knowingly: `register_on_leaveplayer` also calls
-  `Drone.on_remove`, so a player who disconnects mid-run is now told *stopped*.
-  Nobody sees that line and *stopped* is the truer of the two. **Those two are
-  the whole of `Drone.on_remove`'s callers** — the setter is not a route and has
-  not been one since `F8`, whatever `B51`'s first text and `D7`'s first recipe
-  said. The wording decision is unaffected; do not re-open it on the strength of
-  the route being renamed.
-- **Decoupling the drone record from its entity**, chosen 2026-09-03 for `B50`
-  and **shipped the same day as `1b991ae`**, and **a fourth option rather than
-  either of the two that were put to the author**. The entity is a *view* of a
-  drone instead of the thing that owns it: every drone is advanced from the one
-  globalstep `lib/register.lua` already registered, `on_deactivate` sets
-  `drone.obj = nil` rather than ending the run, and the entity is re-spawned with
-  the **same serial** once the drone's mapblock is loaded again — at most once a
-  second, gated on `get_node_or_nil` rather than on `add_entity` failing, which
-  would log an engine warning per attempt.
-  **The earlier rejection of a globalstep driver was reconsidered and was
-  wrong.** It had been refused as inverting `A11`'s direction of dependency, and
-  that reading was mistaken: `register.lua` already registers a globalstep and
-  already owns orchestration, so driving the drones from it **follows** `A11`.
-  Do not re-raise it.
-  **Why this over the other two.** It closes **`B50` and `B52` both**. Option A
-  closed neither of `B52`'s cases. Option B closed them only by forceloading,
-  which spends the game's shared `max_forceloaded_blocks` and runs ABMs wherever
-  a drone goes — a `C18`-class imposition of this mod's needs on the surrounding
-  game, which is the one thing this project has already decided once not to do.
-  It also **saves a sleeping or paused drone**, which A did not.
-  **Its two costs were accepted with the decision, not overlooked.** A far-away
-  runaway loses its accidental stop: it used to be killed by its own entity
-  vanishing, and now `max_nodes_written`, `max_runtime_s` and `map_memory_mb`
-  carry the whole load. That is not new exposure — they already carried it for
-  anything in range — but it is **the last unintended backstop going away**. And
-  **`/clearobjects` stops ending programs**: it blanks the view, which comes
-  back. Neither is a defect and neither should be filed as one.
-- **The per-codelevel numbers, retuned 2026-08-30, and the singleplayer default
-  with them.** `max_nodes_written` came down an order of magnitude at every level
-  — `1e5 / 5e5 / 1e6 / 1e7` — because the old top of 1e8 was a hundred million
-  nodes nobody had ever asked a program for, and a ceiling that cannot be reached
-  teaches nothing about what a program costs. `max_runtime_s` became
-  `250 / 500 / 1000 / 2000`. Level 2 gained in three places at once — `pace_ms`
-  15 → 5 ms, `map_memory_mb` 16 → 32, `max_string_mb` 4 → 8 — because it is the
-  level a server hands out and it was the awkward one: paced enough to feel slow
-  without the room to finish anything.
-  The **singleplayer default went 4 → 3**, `S6` narrowed rather than reversed: the
-  original argument proves too much, arguing for the *unpaced* levels, and 3 is
-  already unpaced. Level 4 is every ceiling at its widest at once, and nothing
-  should sit there without someone asking.
-  The bundled examples were shrunk to match: **every one now completes at
-  codelevel 2**, the largest being `planet.lua` at about 71% of that level's node
-  budget. Two consequences before nudging any of these again — `planet.lua` and
-  `death_star.lua` do **not** fit codelevel 1's 1e5 and never did, and
-  `cube(200,200,200)` now needs codelevel 4.
-- **`max_runtime_s` and level 4's node ceiling, retuned again 2026-09-02**, from
-  the group `H` run: `max_runtime_s` `250 / 500 / 1000 / 2000` → **`30 / 60 /
-  120 / 300`**, and `max_nodes_written`'s top **`1e7` → `5e7`** with the other
-  three levels untouched.
-  **What made 2000 s wrong was the unit, not the arithmetic.** The measurement
-  behind it: a program that built for **387 s of clock time spent about 18 s** of
-  server time, ~4.6%, because a codelevel-4 drone is given ~8 ms of a ~90 ms step
-  (`B46`). At that ratio 2000 s of *charged* time is over eleven hours of
-  building — a ceiling nothing could reach, which is exactly the objection that
-  brought `max_nodes_written` down on 2026-08-30. 300 s at the same ratio is a
-  couple of hours of building and still stops a runaway inside a few minutes of
-  real time.
-  **The two moved in opposite directions on purpose.** Time came down because it
-  bounded nothing; level 4's node count went up because with `pace_ms` at 0 and
-  no dimension limit, *how much may I build* is the only ceiling a poweruser
-  meets, and 1e7 is a 215-node cube. 5e7 is a 368-node cube. Levels 1–3 stay
-  where 2026-08-30 put them, so **the bundled examples still fit codelevel 2**
-  and nothing in `F-5` or `W3` needs re-measuring.
-  Three mirrors moved with it — `doc/api.md`'s codelevel table (**hand-written
-  prose that `gen_docs.lua` does not check the numbers of**, only that every
-  limit has a row), `settingtypes.txt`, and the worked example in
-  `lib/config.lua`'s own comment.
-- **A full-size cover in the release archive**, 2026-09-02. `screenshot.png` is
-  the mosaic verbatim, 1.83 MB, which puts the archive at **2.21 MB** — above the
-  1.60 MB the `.gitattributes` work trimmed to 1.42 MB. Deliberate: it is the one
-  image Luanti draws in the Mods tab and the one the README embeds, and it had
-  been four features stale, showing an editor with no tabs, no *Create a copy*
-  and the checkboxes `F8` moved. **A stale cover misrepresents the mod to every
-  player deciding whether to install it; 0.7 MB does not.** If the size ever
-  matters, resize the cover rather than reverting to an old one — and note
-  `screenshots/mozaic.png` is now byte-identical to it, so the repository carries
-  the image twice while only one copy ships.
-- **Slowing the display beat rather than making the panel static**, decided
-  2026-09-02 for `B47`. `PERIOD` `0.5` → `1` s, one constant in `lib/hud.lua`
-  driving both surfaces. It halves a dropped-click window it does not close, and
-  three directions that would have closed it were each rejected for what they
-  cost: *stop the self-refresh* takes away the liveness `F8` was built for,
-  *quantise the string* cannot beat `F9`'s elapsed clock (which at a 1 s beat
-  changes on every beat, so there is nothing left to quantise), and *act on
-  mouse-down* means a `textlist` where *Pause* and *Stop* are buttons — a
-  destructive action on mouse-down being worse than a dropped click. **The
-  fallback is named and still unspent:** `H10` did find a few misses in twenty,
-  and the next direction is the static panel rather than a shorter beat — the bar
-  for taking it being misses in *ordinary use*, which is not what a rapid-press
-  count measures. `AUDIT.md` holds the engine-source chain behind all of it.
-- **A generator for `settingtypes.txt`, with its prose in the script rather than
-  parsed out of `lib/config.lua`**, built 2026-09-02. Two audiences, two
-  documents: `config.lua`'s comments are for whoever edits the code and cite
-  finding ids, the menu's descriptions are for an administrator. So the script
-  derives the **numbers** and owns the **words**, which is all a generator can
-  honestly promise (`C19`). What it adds beyond the numbers agreeing is a
-  completeness check in both directions — a setting `config.lua` reads and the
-  menu does not offer, or a menu entry nothing reads — and that is the half a
-  hand-kept file could never have.
-- **Making a new check fail once before trusting it**, forced by `C20` on
-  2026-09-02. Two checks in a row here were written, committed, believed and
-  matched nothing: three name prefixes that missed every limit, then a shape
-  match whose `%w+` missed the same names for a different reason. **A check that
-  cannot fail is indistinguishable from a check that passes.** Both generators
-  have now been run against a deliberately undrawn limit and seen to exit 1.
-- **The duration on the HUD as well** — cut from `F9` on 2026-09-02. The corner
-  block is four words and a number a line by design, and its first line already
-  carries a filename and a state. The two surfaces disagreeing is the objection,
-  and they do not: the panel says more than the HUD everywhere else too.
-- **Freezing the duration while a run is paused** — cut with it, then **reversed
-  the same day on seeing it in a world**, and it is the entry here that has
-  changed. The objection was a paused-time accumulator disagreeing with the
-  `duration:` the finish message prints; what answers it is `Drone.elapsed_us`,
-  one call both surfaces read, with `tstart` shifted forward on resume rather
-  than a second field kept correct. So the decision that stands is **the clock
-  stops** — *how long has this build taken* rather than *how long since I started
-  it*. The reasoning is under `F9`; do not re-cut it from this line.
-- **Unbolding the duration by splitting it off into its own label** — decided
-  against 2026-09-02, after it shipped that way for an hour. A label's font is
-  per element, so *adjacent* and *not bold* cannot both hold; the author chose
-  adjacent. See `F9`.
-- **`doc/api.md` has a hand-written region that no check covers**, established
-  2026-09-03. `gen_docs.lua` owns the file only from the `# Lua api` heading
-  onward; `# Codelevel` and `# Chat commands` sit above it, are written by hand,
-  and `--check` never reads them. The gate therefore reported *doc/api.md is up
-  to date* while the file still documented `/codelevel` and `/codegenerate`,
-  which `F10` had renamed. **Same family as `C17`, `C19` and `C20` — a mirror of
-  the source drifting in silence — but the blindness is by design**, because the
-  region describes chat commands and privileges and `lib/api.lua` knows nothing
-  about either. Do not close it by teaching the generator to write that section:
-  it would need a second source of truth for something no other file describes.
-  Edit it by hand whenever a command or a codelevel limit moves, and never read
-  a green `--check` as covering it. It went stale for exactly one feature.
-- **A per-feature playtest check is named `F<feature>-<n>`** — asked for by the
-  author 2026-09-03, when four checks were all titled `F10` and two `F1`, so no
-  citation could name one of them. Numbered in document order, never renumbered,
-  and a feature with one check still takes the `-1`. `F<feature>` on its own goes
-  on meaning the feature, whose entry is in this file. The *Filesystem and
-  example generation* group stays `F-1`–`F-5`, where the `F-` is filesystem and
-  not a feature at all — confusable beside `F1-1`, and left alone on purpose:
-  renaming it would break the references in `AUDIT.md` and `TODO.md` for a
-  cosmetic gain.
-- **No rendering has a next-step panel** — decided 2026-09-03, `playtest.html`
-  first and the other two later the same day. `.reports/playtest.html`'s *What is
-  outstanding* does that job instead, short and visual, each row linking to the
-  category it belongs to. **`audit.html` then lost *Next step for this document*
-  and `roadmap.html` its *Now* panel**, on the same reason in each case: **the
-  document's own first section already says what is outstanding**, so the panel
-  was a second, shorter answer to the question the section below it answers at
-  length — and two answers drift. `audit.html` now opens on *The categories*
-  after its summary strip, and `roadmap.html` on *Finalising v1.0.0*. Everything
-  else about the three stands: summary strip, anchors matching the ids,
-  self-contained, `prefers-color-scheme`, and a footer naming the commit.
-  Recorded in `.claude/agents/project-manager.md`, which prescribed a panel for
-  two of the three.
-- **`/codeblock tools`, not `/codetools`** — chosen by the author 2026-09-03. A
-  subcommand namespace over a fourth top-level name in the `/code*` family, and
-  the two existing commands folded into it rather than the family left split:
-  *"and we'll unify by renaming /codelevel also"*. The alternative kept three
-  flat names and no room to grow.
-- **Aliases for `/codelevel` and `/codegenerate`** — cut with `F10` on
-  2026-09-03, on two grounds. v1.0.0 is unreleased and already carries a
-  thirteen-item breaking list, so the rename costs nothing now and will cost
-  something for ever afterwards; and two names for one command is a second
-  surface to document, translate and keep in step. Of everything `F10` left out
-  this is the one most likely to be asked for again — the answer is that it is
-  cheap only until the tag.
-- **A setting to keep the `fly`/`fast`/`noclip` grant** — declined 2026-09-03.
-  `C18`'s treatment was offered, a `flag` in `lib/config.lua` off by default, and
-  the grant was removed outright instead: nothing in this mod needs creative
-  flight to be reachable, and a game that wants it sets it in its own config. **A
-  setting no code path here depends on is a setting maintained for nobody.** Do
-  not read `C18` as a precedent for keeping the next piece of `codecube`
-  presentation behind a flag; `C18` is the exception and its own entry says so.
-- **A first-join hint about anything but the tools** — cut with `F10`. The line
-  names the command and the creative inventory and stops there.
-- **Warning about an unknown block name at the read, not at the call site** —
-  decided 2026-09-03 with `B49`. By the time a nil reaches `placement` the key
-  the player typed is gone, so the message could only say *some block was wrong*;
-  at the read it names `notablock`. It also covers every block-taking command at
-  once, including ones added later, and it fires when the value is stored in a
-  variable and placed much later. Warning at the call site would instead need
-  `select('#', ...)` in a dozen sandbox wrappers just to distinguish an omitted
-  argument from a nil one. **The scope is a table read and only that**:
-  `place('notablock')` was never silent — it raises *Cannot place this block*.
-- **A warning rather than an error, and once per run** — the author's choice,
-  2026-09-03. Erroring would break saved player programs, which is a bar this
-  project sets high; one line per run keeps a typo inside a loop from filling
-  chat. **The accepted side effect is recorded rather than left to be
-  rediscovered:** `if blocks[name] then` as a membership probe now costs one chat
-  line per run. Cheap, but a visible behaviour change for that idiom.
-- **An `__index` on the copy is not the read-only proxy `S1` rejects** —
-  established 2026-09-03 and now pinned by `env_spec`. Proxies are refused here
-  because Lua 5.1 has no `__pairs` or table `__len`, so they break `pairs(blocks)`
-  and `#hues` for player code. An `__index` on a real copy fires **only** for an
-  absent key, so iteration, length and every present key are untouched. Do not
-  collapse the two ideas back together. `hues` is deliberately excluded: it is
-  integer-indexed, and reading past the end of an array is legitimate. (The two
-  tables were `blocks` and `iwools` until `F11` renamed the palette; the rule is
-  unchanged.)
-- **Building `F5`** — dropped unbuilt 2026-08-29. Do not re-propose it as a small
-  addition to the drone panel: the privilege gating and the counter-carrying under
-  its entry are what make it large.
-- **Putting a button in a HUD** — impossible, not merely unwise. See `F4`.
-- **Batching `place()` into `core.bulk_set_node`** — not for 1.0.0. 1.3x against
-  five flush sites whose omission is a silently wrong build; the arithmetic wants
-  redoing since Phase 6 changed the yield cadence. (A4)
-- **Letting a file be removed without opening it first** — won't fix: "not really
-  needed". `B14`'s cold path stays unreachable as a result. (B34)
-- **Resurrecting the `soe` checkbox** — deliberately dead. A warning on unsaved
-  changes is what is wanted instead (in `TODO.md`).
-- **Chasing the remaining `minetest` names** — what is left must stay: the config
-  filename, the forbidden-identifier list naming both aliases, the `vector3`
-  submodule. Same for `loadstring`, `setfenv`, `math.pow`, `math.atan2`. (C6)
-- **Computing the codelevel limits instead of overriding literals** — it would
-  silently disable `gen_docs.lua`'s documented-limit check. (C7, C14)
-- **Moving the settings to the game** — they are all this mod's, and it is its own
-  ContentDB package. (C7)
-- **The last `.editorconfig` difference** — `align_call_args = true` fixes wrapped
-  arguments but pushes a table constructor out to the paren column.
-- **A reverse "no unexpected API name" check in `api_spec`** — it would duplicate
-  `api.build` and make every API addition a spec edit. (A16, F1)
+  drew, never on it *differing*, and sits below the `quit` branch.** A legacy
+  dropdown is an always-sent field (`B37`), so *if it differs, switch* would
+  fire on ESC and swallow the close. The formspec-version-4 `index event`
+  parameter would retire the question (`lua_api.md` 5.17.0 line 3579) and is
+  **not reachable here** — the editor is legacy coordinates.
 - **Converting the editor form to the new coordinate system** — a change to the
   whole editor, unverifiable from a headless server, and not part of any feature
-  that has needed it. (A1, F1)
-- **Writing `.cdb.json` by hand** — never. ContentDB reads `long_description`
-  from that JSON only and a JSON string cannot hold a newline, so the shipped
-  field is one enormous escaped line: the artefact, not the source. Edit
-  `CONTENTDB.md` and run the generator. (C19)
-- **The release webhook's trigger is *Branch or tag creation*, not push**, because
-  this project tags; push events would publish every commit on `master`.
+  that has needed it. (`A1`, `F1`)
+
+### Limits and settings
+
+- **Codelevel is privileged and players never set their own.** An intermediate
+  version once removed the privs so they could — a privilege escalation,
+  reverted before it shipped (`B9`). If a codelevel control is ever exposed in
+  the panel it must be privilege-gated **per press, not per form**.
+- **Rebuilding a budget from a new codelevel mid-run must carry `used` across.**
+  A rebuild that resets it turns re-levelling into a way to spend
+  `max_nodes_written` or `max_runtime_s` twice — a limit bypass through a
+  legitimate command. That is why `F5` is large.
+- **The per-codelevel numbers, 2026-08-30.** `max_nodes_written` `1e5 / 5e5 /
+  1e6 / 1e7`, down an order of magnitude: a ceiling that cannot be reached
+  teaches nothing about what a program costs. Level 2 gained in three places at
+  once — `pace_ms` 15 → 5, `map_memory_mb` 16 → 32, `max_string_mb` 4 → 8 —
+  because it is the level a server hands out and it was paced enough to feel
+  slow without room to finish anything. The singleplayer default went **4 → 3**:
+  level 4 is every ceiling at its widest at once.
+- **`max_runtime_s` is `30 / 60 / 120 / 300`, retuned 2026-09-02, and level 4's
+  node ceiling went `1e7` → `5e7`.** What made 2000 s wrong was the unit: a
+  program that built for 387 s of clock time spent about 18 s of server time,
+  ~4.6%, so 2000 s charged was eleven hours of building. The two moved in
+  opposite directions on purpose — with `pace_ms` at 0, *how much may I build*
+  is the only ceiling a poweruser meets, and 1e7 is a 215-node cube against
+  5e7's 368.
+- **The bundled examples all fit codelevel 2**, the largest `planet.lua` at ~71%
+  of that level's node budget. Before nudging any limit: `planet.lua` and
+  `death_star.lua` do not fit codelevel 1 and never did, and `cube(200,200,200)`
+  needs codelevel 4.
+- **The codelevel tables stay plain literals with overrides applied
+  afterwards.** Two generators grep the source for a name assigned a table whose
+  first element is a number, so a computed value switches both checks off
+  without failing. (`C7`, `C14`)
+- **The settings are all this mod's and do not move to the game.** It is its own
+  ContentDB package. `C18`'s `flat_sky` is the one exception and its own entry
+  says so; **do not read it as a precedent.**
+- **A setting to keep the `fly`/`fast`/`noclip` grant was declined.** Nothing
+  here needs creative flight to be reachable, and a game that wants it sets it
+  in its own config. **A setting no code path here depends on is a setting
+  maintained for nobody.**
+- **`/codeblock tools`, not `/codetools`.** A subcommand namespace over a fourth
+  top-level `/code*` name, with the two existing commands folded in rather than
+  the family left split.
+- **Aliases keeping `/codelevel` and `/codegenerate` working were cut.** v1.0.0
+  is unreleased and already carries a thirteen-item breaking list, so the rename
+  is free now and never again; and two names for one command is a second surface
+  to document, translate and keep in step. **This is the omission most likely to
+  be proposed again.**
+- **Privileges are uniform.** `tools` and `generate` are free for yourself and
+  need the `codeblock` priv for someone else; `level` is privileged either way,
+  because a player able to raise their own codelevel is lifting their own
+  ceilings.
+- **`/codeblock tools` must add what is missing, never clear.** Both carrying
+  reads stay — `main` **or** `craft` — because a tool parked in the craft grid
+  would otherwise be duplicated on every run, silently. It is run on demand and
+  repeatedly, which makes that easier to reach than the once-per-join version
+  was.
+- **A full inventory is a refusal, not a partial hand-out.** A player can
+  produce it deliberately, so it has to say what happened rather than
+  half-succeed.
+- **The first-join line names the command and the creative inventory, and
+  stops.** No hint about the editor, the examples or the drone.
+
+### Documents, generators and checks
+
+- **Make a new check fail once before trusting it.** Two here were written,
+  committed, believed and matched nothing: three name prefixes that missed every
+  limit, then a shape match whose `%w+` missed the same names because Lua's `%w`
+  excludes the underscore every limit name has (`C20`). **A check that cannot
+  fail is indistinguishable from a check that passes.**
+- **A check that would be red locally and green in CI is backwards.** Settle the
+  local anomaly rather than weaken the check — `C23`'s second direction was
+  deferred for hours on exactly that, and the answer was to track the file.
+- **A generator guarantees the output matches its input, and nothing more.**
+  `.cdb.json` never drifted; it was faithfully generated from the wrong source
+  for the project's whole life (`C19`).
+- **`settingtypes.txt`'s generator owns the prose and derives the numbers.** Two
+  audiences, two documents: `config.lua`'s comments are for whoever edits the
+  code, the menu's descriptions for an administrator. What it adds beyond the
+  numbers agreeing is a **completeness check in both directions** — a setting
+  nothing offers, or a menu entry nothing reads.
+- **`doc/api.md` has a hand-written region no check covers.** `gen_docs.lua`
+  owns the file only from `# Lua api` down; `# Codelevel` and `# Chat commands`
+  sit above it. The gate reported *up to date* while the file documented
+  `/codelevel` and `/codegenerate` after `F10` renamed them. **The blindness is
+  by design** — that region describes chat commands and privileges, which
+  `lib/api.lua` knows nothing about. Edit it by hand; never read a green
+  `--check` as covering it.
+- **`.luacheckrc`'s sandbox std stays hand-written and is checked, not
+  generated** — it is a linter configuration a human also edits. `gen_docs.lua
+  --check` compares it with `api.names()` both ways. **The std holds API names
+  and nothing else**, which is what makes the comparison a plain equality; the
+  bare `_` the examples pass lives in `files["lib/examples/**"].read_globals`.
+- **Never write `.cdb.json` by hand.** ContentDB reads `long_description` from
+  that JSON only and a JSON string cannot hold a newline, so the shipped field
+  is one enormous escaped line: the artefact, not the source. Edit
+  `CONTENTDB.md` and run `bash scripts/gen_cdb_json.sh`. (`C19`)
+- **Exporting `getScriptEnv` to give the sandbox implementations coverage was
+  refused.** Pinning a spec to a private closure factory pins the
+  implementation, and the factory would be public for the sake of a test. The
+  spec **writes a program into the throwaway world** and runs it through
+  `get_safe_coroutine` instead; it was driven to failure eight ways, so the
+  `run-tests` rule against a spec touching a user directory does not apply.
+- **A per-feature playtest check is named `F<feature>-<n>`**, numbered in
+  document order and never renumbered; a feature with one check still takes
+  `-1`. The *Filesystem and example generation* group stays `F-1`–`F-5`, where
+  `F-` is filesystem and not a feature — confusable and left alone, since
+  renaming it would break references for a cosmetic gain.
+- **A playtest result line names both commits when the checkout was on a
+  record-only one** — `2feadb1`, record-only over `24842d3`. The reader has to
+  be able to tell which *code* was played, and a hash that touched no source
+  cannot tell them.
+- **The `register_blocks` test mod lives outside this repository, at
+  `../codeblock-test-mod`, and is not versioned.** `tests/game/mods/` is
+  all-enabled, so a mod registering a category there would change `api.names()`
+  and the palette underneath every spec run. **Do not move it in.** What it
+  registers is written into `F11-10` in enough detail to rebuild it.
+- **No rendering has a next-step panel.** `.reports/playtest.html` opens on
+  *What is outstanding*, `audit.html` on *The categories*, `roadmap.html` on
+  *Finalising v1.0.0*. The document's own first section already answers the
+  question, so a panel above it is a second, shorter answer, and two answers
+  drift.
+- **A full-size cover ships in the release archive.** `screenshot.png` is the
+  mosaic verbatim, 1.83 MB, putting the archive at 2.21 MB. **A stale cover
+  misrepresents the mod to every player deciding whether to install it; 0.7 MB
+  does not.** Resize rather than revert if the size ever matters.
+- **The release webhook's trigger is *Branch or tag creation*, not push**,
+  because this project tags; push would publish every commit on `master`.
+- **A reverse "no unexpected API name" check in `api_spec`** would duplicate
+  `api.build` and make every API addition a spec edit. (`A16`, `F1`)
+- **The last `.editorconfig` difference stays.** `align_call_args = true` fixes
+  wrapped arguments but pushes a table constructor out to the paren column.
+- **Chasing the remaining `minetest` names** — what is left must stay: the
+  config filename, the forbidden-identifier list naming both aliases, the
+  `vector3` submodule. Same for `loadstring`, `setfenv`, `math.pow`,
+  `math.atan2`. (`C6`)
+
+### Not built
+
+- **`F5`.** Do not re-propose it as a small addition to the drone panel: the
+  privilege gating and the counter-carrying above are what make it large.
+- **A button in a HUD** — impossible, not merely unwise. See the HUD entry
+  above.
+- **Batching `place()` into `core.bulk_set_node`** — not for 1.0.0. 1.3x against
+  five flush sites whose omission is a silently wrong build; the arithmetic
+  wants redoing since Phase 6 changed the yield cadence. (`A4`)
+- **Removing a file without opening it first** — won't fix, *"not really
+  needed"*. `B14`'s cold path stays unreachable as a result. (`B34`)
+- **The `soe` checkbox** — deliberately dead. A warning on unsaved changes is
+  wanted instead, and is in `TODO.md`.
+- **The new-file template naming an individual colour.** `colors.orange` was
+  proposed as a one-word fix for `B53` and rejected: naming a current colour
+  rebuilds the dependency that had just broken, and the template is prose no
+  check can read. What ships is `for i = 1, #hues do place(hues[i]) up(1) end` —
+  structural names that change only in a major version, fitting itself to
+  whatever the palette holds. **Do not shorten it back.**
 
 ## What ships broken
 
 - `heap_mb` cannot stop one huge allocation, and a pathological Lua pattern can
-  still burn CPU inside a single `find` or `match`. (S2)
-- The step budget is never checked *inside* one VoxelManip pass, so a single slab
-  — around 65k nodes, under 10 ms — still overshoots it. (A5)
-- A shape large in **two** dimensions still asks for more mapblocks than the
-  footprint ceiling in a single pass, and the run dies instead of waiting. Only
-  one axis can be sliced away. (B42)
+  burn CPU inside a single `find` or `match`. (`S2`)
+- The step budget is never checked inside one VoxelManip pass, so a single slab
+  — ~65k nodes, under 10 ms — overshoots it. (`A5`)
+- A shape large in **two** dimensions asks for more mapblocks than the footprint
+  ceiling in one pass, and the run dies instead of waiting. Only one axis can be
+  sliced away. (`B42`)
 - The map footprint decays linearly over the unload window rather than tracking
-  each block, so it estimates what is resident rather than measuring it. (S5)
+  each block, so it estimates what is resident. (`S5`)
 - Nothing charges for writing a shape to the map database or pushing it to
-  clients: both happen after a run reports `completed`. Not a defect — every mod
-  writing to the map has it — but no limit bounds what a large shape costs the
-  server, and none should be sold as if it did. (S5, from `W3`)
-- **Nothing on screen says why a drone is slow.** The map row was dropped from
-  both surfaces deliberately (`B45`), which leaves the `H6` pause confusion able
-  to return. A known gap, not an oversight.
-- `place()` writes one node per call; the four bulk shapes do not. (A4)
-- A file cannot be removed from the editor without opening it first, so `B14`'s
-  cold-cache removal is unreachable for good. (B34, B14)
+  clients; both happen after a run reports `completed`. (`S5`)
+- Nothing on screen says why a drone is slow — the map row was dropped from both
+  surfaces deliberately, which leaves `H6`'s pause confusion able to return.
+  (`B45`)
+- `place()` writes one node per call; the four bulk shapes do not. (`A4`)
 - A copy of a name already at the 15-character limit shifts base at the tenth
-  copy — fixing it would let copies past the length rule. (F2)
-- The unsaved-tab mark is a flag, not a diff, so typing a character and undoing it
-  leaves the tab marked until the next save. (F7)
-- A program that probes membership with `if blocks[name] then` on a name that is
-  not there gets one warning line per run. Accepted knowingly with the fix, not
-  overlooked: the warning fires on an absent key and cannot tell a probe from a
-  typo. (B49)
+  copy. Fixing it would let copies past the length rule. (`F2`)
+- The unsaved-tab mark is a flag, not a diff, so typing a character and undoing
+  it leaves the tab marked until the next save. (`F7`)
+- `if blocks[name] then` as a membership probe costs one chat line per run.
+  (`B49`)
 - A player created before `1f7cd97` keeps the stored "off" for both editor
-  checkboxes; the ticked default reaches new players only. (B36)
-- `save_on_exit` is read, written and acted on nowhere: the checkbox stays
-  commented out.
+  checkboxes; the ticked default reaches new players only. (`B36`)
+- `save_on_exit` is read, written and acted on nowhere.
 - A file over `max_file_kb` — 128 kB by default — cannot be opened or saved at
-  all, and the ceiling cannot be raised from inside the game. That is the price of
-  not reading it whole. (B40)
-- Cancelling the file chooser removes the drone it placed, rather than never
-  placing one; removing a file takes the drone holding it. Both deliberate, and
-  the two had to agree. (B41, B44)
+  all, and the ceiling cannot be raised from in-game. (`B40`)
+- Cancelling the file chooser removes the drone it placed; removing a file takes
+  the drone holding it. Both deliberate, and the two had to agree. (`B41`,
+  `B44`)
 - **`codecube` must set `codeblock_flat_sky = true`** in its own `minetest.conf`
-  when it adopts a release with `C18` in it, or its world gets an ordinary
-  day/night cycle. One line in the game, nothing here. This repository does not
-  track whether it was added, so forgetting it looks like a regression in the
-  game's sky — which belongs to the game's record, not this one.
-- **A panel button still misses a few presses in twenty**, measured by `H10` at
-  a deliberate rapid pace. The 1 s beat halves the window rather than closing it,
-  and there is no way to close it without giving up the panel's liveness. A
-  dropped click is silent — `on_close` never runs — so the symptom is a button
-  that needs pressing twice. **Accepted, not overlooked**, and the change that
-  would close it is named under `B47`. (B47)
-- ~~`tests/game/mods/vector3/mod.conf` carries a 5.5 version ceiling.~~
-  **Gone with the v2.0.1 submodule bump, 2026-09-07**: that file now reads
-  `min_minetest_version = 5.3` and no `max_minetest_version`. It was never
-  fixable from here — a separate repository — and it was fixed there. (C1)
+  when it adopts a release, or its world gets an ordinary day/night cycle. This
+  repository does not track whether it was added. (`C18`)
+- A panel button misses a few presses in twenty at a deliberate rapid pace,
+  measured by `H10` and accepted. A dropped click is silent. (`B47`)
 - `scripts/gen_cdb_json.sh` is verified by nothing and escapes neither `"` nor a
-  backslash. (B22)
-- `.gitattributes` decides what reaches a player and **no CI checks it**. (C10)
+  backslash. (`B22`)
+- `.gitattributes` decides what reaches a player and no CI checks it. (`C10`)
 - `README.md:14`'s trailing whitespace is deliberate — a Markdown hard break
-  `gen_cdb_json.sh` folds into the ContentDB description. (B21)
-- **None of the mod's 105 nodes has a `sounds` field, so they are silent to walk
-  on, dig and place.** Deliberate: every `node_sound_*_defaults()` belongs to a
-  game, and calling one would put this mod back in the position `F11` took it
-  out of — needing a game to provide something. A player will read silence as
-  broken, so `F11-6` exists to have it seen once and recorded as intended. (F11)
-- **A wall of one solid colour has no node-edge definition, and that is
-  accepted.** `F12` made the solid tile a flat pure white so `^[multiply`
-  reproduces each hex exactly, which cost the grain `F11` had put there for
-  exactly this reason. **Judged in a world on 2026-09-07 at `8e6350f`, playtest
-  `F12-2`: the flat wall reads acceptably and the tile stays.** The choice was
-  between an exact hex and a wall that reads as blocks, and the hex won. The
-  glass keeps its frame and highlight and the lamps their faint grid, so two of
-  the three tiles still have definition. **Do not propose a grain for the solids
-  again** — it was carried as an open question from `F12` shipping until this
-  playtest, and it is now closed. (F12)
-- **`print` is variadic, space-joined, and nil-safe — four decisions from
-  `B54`.** The varargs are read with `select('#', ...)` and `select(i, ...)` and
-  **never** `{...}` with `#`, because Lua 5.1 cannot see a nil in the middle or
-  at the end of a vararg list and `get_block()` answers `nil` over ungenerated
-  map, so a player prints a nil routinely. They are joined with a **space** and
-  not real Lua's tab, because Luanti's chat console has no tab stops and the
-  engine's chat wrapping breaks on spaces — reasoned from the client's text path,
-  and playtest `W7` asked for the wrapping **on an exception-only basis** and
-  passed with no exception at `2feadb1` over code `24842d3` on 2026-09-07.
-  **`print()` with no arguments
-  sends a bare `> `** rather than refusing, because a blank separator line is
-  what real Lua does and refusing would make it the one API call that silently
-  does nothing; it still costs one command. And **`error` was deliberately not
-  widened**, real Lua's `error(message, level)` not being variadic. (B54)
-- **`is_block` cannot say *why* it answered false.** A node no program can
-  place, ungenerated map, outside the world, a name that does not exist and a
-  different block are one answer. Deliberate — it is a predicate — and
-  `get_block` tells them apart. (F13)
-- **A game's own block category shows its raw name in the help row's selector**,
-  untranslated, where the mod's own three are translated. The raw name is what a
-  program types; translating it would offer a French player a word `place()`
-  does not accept. (F11)
+  `gen_cdb_json.sh` folds into the ContentDB description. (`B21`)
+- The 105 nodes are silent to walk on, dig and place. Deliberate; `F11-6` exists
+  to have it seen once and recorded as intended. (`F11`)
+- A wall of one solid colour has no node-edge definition. The choice was between
+  an exact hex and a wall that reads as blocks, and the hex won; `F12-2` judged
+  it acceptable. (`F12`)
+- `is_block` cannot say *why* it answered false — a node no program can place,
+  ungenerated map, outside the world, a name that does not exist and a different
+  block are one answer. `get_block` tells them apart. (`F13`)
+- A game's block category shows its raw, untranslated name in the help selector.
+  (`F11`)
 
 ## Four rules this phase paid for
 
 - **Run a playtest group that has never been run before writing the next
-  feature.** Eight sessions on the editor found four findings; the one session
-  that finally left the editor found three, including the worst defect this
-  project has recorded against committed code (`B39`). `F4` repeated the lesson:
-  four green gates, and ten minutes in a world found two more.
+  feature.** Eight sessions on the editor found four findings; the first session
+  that left the editor found three, including `B39`. `F4` repeated it: four
+  green gates, and ten minutes in a world found two more.
 - **Play the mod outside its own game before a release.** `B38`, `B39` and `C18`
   are all invisible in `codecube`, where a player carries nothing but the two
-  drone tools and the sunless sky is the game's design.
-- **A check is a starting point, not a script — do the obvious next thing to
-  whatever it leaves on screen.** `B41` was reported while a session was checking
-  something else, and `B44` came out of re-running `B41`'s own check and then
-  removing the file the drone was holding. The written steps are what stops a
-  session forgetting; they are not what finds things.
-- **Read what the game actually said, not just whether it did the right thing.**
-  `F-3` case 2 passed on behaviour and printed the server's absolute filesystem
-  path in English. That is `S7`, and a pass/fail line would have buried it.
+  drone tools and a sunless sky is the game's design.
+- **A check is a starting point, not a script.** Do the obvious next thing to
+  whatever it leaves on screen. `B41` was reported while a session was checking
+  something else, and `B44` came out of re-running `B41`'s check and then
+  removing the file the drone was holding.
+- **Read what the game said, not just whether it did the right thing.** `F-3`
+  case 2 passed on behaviour and printed the server's absolute filesystem path
+  in English. That is `S7`, and a pass/fail line would have buried it.
 
 ---
 
-2026-09-07 · codeblock master at `2feadb1`, a record-only commit; the last
-commit touching `lib/` is `24842d3`, which is `B54`'s fix, and that is the code
-the second playtest session played. `origin/master` is at `65b4c46` and **has
-seen no part of `F11`, `F12`, `F13`, `F14`, `B53`, `C23` or `B54`** —
-**seventeen unpushed commits**, from
-`git rev-list --count origin/master..HEAD`, which reads 17 at `2feadb1`.
-
-**`F11`, `F12`, `F13` and `F14` are all shipped and all four are now fully
-played.** Two sessions on 2026-09-07, engine 5.17.0: at `8e6350f`, fifteen
-passes and one fail (`F12-4`, cause `B54`); then at `2feadb1` over code
-`24842d3`, **`F11-10`, `F11-11`, `F12-6`, `E17`, `W7` and `F12-4` re-run, all
-six passing with no defect reported**. The three `F11`/`F12` ones needed a
-second mod calling `register_blocks`, written at `../codeblock-test-mod`, so
-**the game-author path finally has in-world evidence**. `F11` in two passes:
-`d075742` — the mod registers nodes of its own, `mod.conf` drops to
-`depends = vector3`, `blocks`/`plants`/`wools`/`iwools` become
-`colors`/`glass`/`lamps`/`hues` plus a top-level `air`, the `default` and `wool`
-test stubs are replaced by `tests/game/mods/cbfixture`, and every bundled
-example is ported — and `6126abe`, `codeblock.register_blocks(category,
-entries)`, queued at the call and validated at `register_on_mods_loaded`.
-`F12` at `01f9641`: **35 colours and 105 nodes** from two literals in
-`lib/config.lua`, a flat solid tile and a new grid tile for the lamps,
-`color(v, min, max)` replaced by **one `ramp` per block category** including a
-game's, and `get_block` given three optional offsets that turn with the drone
-and load the map they read. **`test-agent` verified all three commits and filed
-no finding against any.** `F13` at `4450ce1` adds `is_block`, closes `C22` and
-covers `ramp_over`; its in-world checking folds into `F12-3` and `F12-4`, both
-of which now pass.
-`F14` at `e3e2178` adds `light_hues`, `dark_hues`, `neutrals` and
-`ramp.of(list, v, min, max)`, changing no palette and renaming nothing, and its
-one refactor — `ramp_over`'s index arithmetic out into `ramp_pick`, which
-`ramp.of` **is** — was killed against a deliberate wrap and took eleven `F12`
-assertions with it, which is the evidence that the older ramps were not
-orphaned.
-
-**Gates at `de3bcbb`**, read from output rather than exit codes: luacheck
-silent, all three `--check` generators up to date, six standalone specs under
-Lua 5.1, nine in-engine with **651 passed / 0 failed / 0 xpass / 1 known
-`preprocess_spec` xfail**, none skipped and no errors, `integration_spec` at
-**288 assertions** and `preprocess_spec` at **55**. The xfail was confirmed
-still genuinely failing rather than passing vacuously. At `e3e2178` the same run
-was 646 and 284, at `4450ce1` 610 and 248, at `01f9641` 544 and 182.
-`codeblock_run_tests` is confirmed
-gone from the real config. Every gate was made to fail on purpose before it was
-read as green, and every changed or new assertion killed against a deliberate
-break.
-
-**`PLAYTEST.md` stands at 84 entries, `F11-4` retired, so 83 live — two unrun,
-`F-6` and `F-7`, and no fail.** 80 carry a pass as their most recent result; the
-one that does not is `H8`'s partial, two of its cases being unperformable.
-**Both unrun checks were written after the two sessions.** `F-6` is for `S8`: it
-watches the fixed `game.lua` across three runs, and its third case is `S8`'s
-only possible in-world reading. **`F-7` is for the shipped examples as a set**,
-written after the `vector3` bump and standing rather than one-off — they are
-compiled by `tests/preprocess_spec.lua` and run by nothing, and the bump changed
-four constructors from answering quietly to raising. Three fails are recorded and each is superseded by a later pass
-on the same entry — `W1` twice and `F12-4` once. **The only thing the checklist
-still asks for is a re-check rather than a check**: `R1` and `R2` are stale,
-last run at `afbe504` and `7c5bceb`, and describe a release archive that `F4`,
-`F11` and `.gitattributes` have changed since. **`F11-4` is superseded by
-`F12-1` and `F12-2`**, both of which passed; the author ran it once anyway after
-its retirement and it passed, which revives nothing.
-Three check recipes were repaired the same day: `F-3`, `W4` and `W5` still told
-the runner to `place(blocks.…)`, which `F11` retired, so they would have failed
-on their first line for a reason that is not what they test.
-
-**`AUDIT.md` stands at 92 findings, five open** — `A17` and `A18`, both low,
-both pre-existing, both filed 2026-09-05 while recording `F11`; **`C24`**,
-medium, filed 2026-09-07, CI booting no engine so nothing CI runs reaches an
-in-engine-only check; and **`S9` high and `S8` medium**, both filed 2026-09-07
-from one probe session. **`S8`'s decision was taken upstream the same day** —
-vector3 2.0 froze the constants — so `S8` stays open but **latent**, its only
-reachable exploit gone on v2.0.1 and back on v1.5, and `env.snapshot` unchanged.
-**Those three low and medium ones do not block the tag; `S9` is a question that
-does** — it is high, it crosses to every other mod using the `vector3` global,
-it is **unfixed on both v1.5 and v2.0.1**, and the decision is recorded as open
-rather than settled. No bug finding is open: **`B53` was
-filed and fixed inside 2026-09-07**, and neither `F12` nor `F14` added one. **`C23` was filed and closed inside 2026-09-07 too**,
-`de3bcbb` then `63c3c33`; `C22` was filed and fixed on 2026-09-06, both inside
-`4450ce1`'s work.
-
-What is left before the tag: **the `S9` decision and the fixture question** —
-the two things here that are questions rather than pieces of work. `S9` is high
-and reaches other mods, so whether v1.0.0 ships with it open is part of it; the
-fixture question is what `tests/game/mods/vector3` should pin now that a player
-may have either version. Then **push**, nineteen
-commits unpushed with `git rev-list --count origin/master..HEAD` reading 19 at
-`3548d58`, the largest item that can still fail rather than merely take time;
-then `README.md`'s three problems — line 10's now-false portability claim, the
-missing *For game authors* section, the pre-rename ContentDB URLs — the
-screenshots, **`F-6` and `F-7`**, `R2` on the release archive, then `release-check`, the
-heading and the tag. **`F12-2` did not hand the flat-solid-tile decision back**,
-and the feature playtesting is finished: what the two sessions left is `B54`,
-filed and fixed inside the day.
-
-**`C24` is queued after the tag, not before it.** Closing it means either a CI
-job that boots Luanti — the real fix, which would also put `forms_spec`,
-`stepper_spec` and `integration_spec` under CI for the first time — or a
-standalone way to enumerate a directory, which in Lua 5.1 means `lfs` and is not
-a dependency worth adding for one case. Neither is a spec change, so neither is
-`test-agent`'s alone.
-
----
-
-Last reviewed **2026-09-07**, describing commit **`3548d58`** with the
-`tests/game/mods/vector3` submodule moved to **v2.0.1 (`5077617`)** in the
-working tree and nothing else changed. It records the bump: **`S8`'s open
-decision closed upstream** by freezing the constants, `S8` itself **open and
-latent** because `env.snapshot` is still shallow and v1.5 is still installable,
-**`S9` unfixed on both versions** and so still high and open, the support matrix
-in `CLAUDE.md`, the `pairs()` difference in `CHANGELOG.md`, and a new standing
-playtest `F-7` for the shipped examples. Gates read from output at `3548d58`:
-luacheck silent, three `--check` generators up to date, 253 standalone and
-**665** in-engine assertions, 0 failed, 0 xpass — no count moved under the new
-dependency. Earlier the same day the second playtest session closed `F11-10`,
-`F11-11`, `F12-6`, `E17`, `W7` and `F12-4` re-run, all six passing.
+Last reviewed **2026-09-07**, describing commit **`a45cb3f`**. `origin/master`
+is **`65b4c46`**, **20 commits behind**. `PLAYTEST.md`: 84 entries, `F11-4`
+retired, two unrun (`F-6`, `F-7`), no fail. `AUDIT.md`: 92 findings, five open —
+`S9` high, `S8` and `C24` medium, `A17` and `A18` low.

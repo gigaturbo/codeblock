@@ -7,10 +7,14 @@ allowed-tools: Read, Grep, Glob, Bash, Edit, Write
 
 # Writing code in CodeBlock
 
-The architecture — the run pipeline, the API's single source, the limits, the
-formspec session, the two tools — is in `CLAUDE.md` and is not restated here.
-Read it. This skill is the craft: what to verify, what a change drags with it,
-and the behaviours that have already cost findings.
+The architecture is in five skills and is not restated here. Read the one that
+covers the file you are about to touch: **`program-pipeline`** for the run
+pipeline, the limits and the world writes; **`drone-and-tools`** for the drone
+record, its entity and the two tools; **`editor-formspecs`** for `forms.lua` and
+`formspecs.lua`; **`blocks-and-palette`** for the nodes, the palette and the
+ramps; **`generated-files`** for `lib/api.lua` and everything derived from it.
+This skill is the craft: what to verify, what a change drags with it, and the
+behaviours that have already cost findings.
 
 The editing, coding and helper conventions are in `~/.claude/CLAUDE.md`. They are
 the author's, they apply here unchanged, and they are not restated either. The
@@ -55,30 +59,12 @@ Six questions for any change that runs while player code runs:
 6. Can a player set a limit that bounds what the server spends? Codelevel is
    privileged — never player-settable, in any new form.
 
-A snapshot gives each run **copies** of the API's tables, not read-only proxies:
-Lua 5.1 has no `__pairs` or `__len`, so a proxy would break `pairs(blocks)` for
-player code. Do not "improve" that into a proxy.
+**How the environment is built is the `program-pipeline` skill's.** What leaks
+through it is two open findings, `S8` and `S9` in `AUDIT.md`; read them before
+adding a table-valued entry to the environment.
 
-**Those copies are shallow, so they isolate *assigning into* a table and not
-*mutating through* it** (S8, open). Every value the snapshots hold is a string, a number or
-a closure — except `vector`, whose fourteen constants (`vector.one`, `vector.x`,
-`vector.nx`, …) are real `vector3` instances built once at load, so
-`dir = vector.one; dir.x = -dir.x` writes into the module's own constant for
-every run and every mod on the server. Adding a table-valued entry to the
-environment inherits that, so pass a fresh one per run or copy its leaves.
-
-**And any `vector3` instance exposes the shared class table as `v.__index`**
-(S9, open, and ranked above S8), because `vector3.__index = vector3`: `vector(1,1,1).__index.unpack = 0` replaces
-the method for every subsequent run and for every other mod using the `vector3`
-global. Metamethod lookup is raw on the metatable, so a write onto an *instance*
-is harmless and a write *through* `.__index` is not; only vector3 itself can
-close that, by separating the metatable from the methods table. The
-forbidden-name list does not and must not help — it deliberately ignores a name
-after `.`.
-
-Everything a player's program can spend has a ceiling in `lib/limits.lua`, in the
-unit it is checked in, converted once. `charge` stops the run; `hold` makes the
-drone wait. Adding a cost means adding it there, not counting it locally.
+**A new cost goes in `lib/limits.lua`, never counted locally.** One ceiling, one
+counter, in the unit it is checked in.
 
 ## Lua 5.1 / LuaJIT, as it actually is here
 
@@ -92,89 +78,68 @@ drone wait. Adding a cost means adding it there, not counting it locally.
 - `collectgarbage('count')` is the **Lua** heap. A MapBlock is C++ side and
   invisible to it — that is why `map_memory_mb` exists beside `heap_mb`.
 
-## The engine behaviours that cost findings here
+## Writing a line a player reads
 
-Do not re-derive these, and do not undo the guards they bought.
+- **Read varargs with `select('#', ...)` and `select(i, ...)`, never `{...}` and
+  `#`.** Lua 5.1 cannot see a nil in the middle or at the end of a vararg list,
+  and `get_block()` answers `nil` over ungenerated map, so a player prints a nil
+  routinely and `{...}` truncates the line there (`B54`).
+- **Join with a space, not real Lua's tab.** Luanti's chat console has no tab
+  stops, so a tab renders as an ordinary glyph, and the engine's chat wrapping
+  breaks on spaces, so a tab-joined line refuses to wrap on a narrow console.
+  `lua_api.md` documents neither.
+- **No spec can see the line.** Both senders are load-time locals, so a spec
+  asserting that `print` merely does not raise is vacuous. The `run-tests` skill
+  says what to pin instead.
 
-| Behaviour | Finding |
-|---|---|
-| `set_node` into a mapblock not in memory silently does nothing — `core.load_area` first. Bulk shapes need no call; `read_from_map` emerges the region. | S5 |
-| The mapblock memo in `place_block` is **per-resume**, not per-run; `release` clears it before every yield. Widening its lifetime brings back the silent lost write. | S5 |
-| `ObjectRef:remove()` takes effect at the end of the step, so `on_deactivate` can fire after a replacement drone exists under the same name. The **serial** guard is what protects it, not the clear-before-remove ordering. And `markForDeactivation` sets `m_pending_deactivation` *after* the Lua callback returns, so **a second `on_deactivate` fires from inside the first** and the cleared record absorbs it — so the ordering is load-bearing too, for its own reason. | B29 |
-| An entity with `static_save = false` is unloaded when the mapblock it stands in is **not in server memory** — not when it leaves active-block range — and is then deleted outright, there being nothing to save. Nothing but `load_area`/`forceload_block` keeps that block loaded past ~192 nodes from a player, and **`load_area` does not reset the block's usage timer**, so a stationary drone loses its block after `server_unload_unused_data_timeout`. | B50, B52 |
-| `Drone.finish` is the single place an outcome is announced (B12, B30). A new ending is a new **branch and a new `S()` key inside it**, never a second announcement path — that is how *cut short* was added: `Drone.on_remove` passes `'stopped'`, which the stepper never produces. | B51 |
-| `get_int` cannot tell an unset key from a stored `0`. Read a boolean preference with `get_string`, where absent is `""`. | B5 |
-| A **scrollbar arrives in the field table on every submit**; a **checkbox is absent unless it was the box clicked**. `lua_api.md` reads as though the opposite. So: in one `elseif` chain, every always-sent field comes last or is read before the chain. | B37 |
-| A **dropdown is always-sent too** (`parseDropDown` sets `send = true`), so it belongs in that same class. Two exceptions: on the submit a dropdown's *own* change fires, `OnEvent` clears `send` on every **other** dropdown and restores it after; and a dropdown drawn with selected index `0` selects nothing, so `acceptInput` skips it and the field is absent. Compare an arriving value against the state it was **drawn** from, never against something else that happens to correlate. | B37, F11 |
-| Every editor redraw re-renders the text area, so `fields.content` is captured once before the branch chain, never inside a branch. | B35 |
-| `on_place` fires only with a node under the crosshair; aiming at sky or unloaded ground calls `on_secondary_use`. Both route into one call, and the no-node check sits above the busy check. | B38 |
-| **Never clear a player's inventory** — add what is missing, and read both `main` and `craft` so a tool parked in the craft grid is not duplicated on every join. | B39 |
-| A form closes by one path however it was reached, so load order is load-bearing: `forms.lua` is dofiled before `register.lua`. | B33 |
-| Never build a translation key with `..`, and never edit an `S()` key in the source alone. | C17 |
+## The guards that must not be undone
 
-The editor formspec is in **legacy coordinates**. A `scroll_container` maps its
-contents into a different space and clips them; an `item_image_button` inside one
-gets a hit area that does not match where it is drawn; a legacy button's `W` is
-short by a fixed 0.2 units and its `H` only shifts it down. Anything new in that
-form has to know all of it.
+An index, not the reasoning. Read the skill named before changing the code the
+row is about.
 
-**Every legacy element's `W` is its own unit, so two of them do not line up by
-sharing a number.** Legacy `spacing` is `(1.25·S, 15/13·S)` for imgsize `S`, and
-a position is always `x · spacing.X` — but a `button` is `W · spacing.X − 0.25·S`
-wide, a `textlist` is `W · spacing.X`, and a **`dropdown` is `W · spacing.Y`**,
-with no offset. Converting between them is arithmetic, not a guess: the editor's
-selector spans a button row's 2.625·S at `W = 2.275`, and sits at `y = -0.025` so
-its rectangle (`y` to `y + 2·m_btn_height`) lands on the buttons' (`H·S/2 ±
-m_btn_height`). A **dropdown returns the item's *text*, not its index**, unless
-the `index event` parameter is given — which is a formspec version 4 parameter
-and so unavailable in a legacy form. Neither the widths nor that last point is
-in `lua_api.md`; `parseButton`, `parseDropDown` and `acceptInput` are.
-
-**Branch on a value *matching* something you drew, never on it *differing*.**
-For an always-sent field whose round trip you cannot check offline — a dropdown's
-item text, which for a translated label is an escape sequence — the two are not
-symmetric. Match, and a value you do not recognise is ignored: the control
-silently does nothing. Differ, and an unrecognised value reads as a change on
-every submit, consuming whatever else the player did in the same event, ESC
-included. The first failure is cosmetic and the second loses their work, so pick
-the shape rather than the fact you could not verify.
+| Guard | Finding | Where it is written |
+|---|---|---|
+| `load_area` before a single-node write, and the per-resume mapblock memo | `S5` | `program-pipeline` |
+| One ramp implementation, `ramp_pick`, behind every ramp | `F12`, `F14` | `blocks-and-palette` |
+| `register_blocks` queued at the call, validated at `register_on_mods_loaded` | `F11` | `blocks-and-palette` |
+| The serial guard, and clearing the record before `obj:remove()` | `B29` | `drone-and-tools` |
+| No `on_step` on the drone entity; the globalstep drives the run | `B50`, `B52` | `drone-and-tools` |
+| `on_place` and `on_secondary_use` routed into one call, aim checked before busy | `B38` | `drone-and-tools` |
+| Add a missing tool, never clear an inventory; read `main` and `craft` | `B39` | `drone-and-tools` |
+| `fields.content` captured before the branch chain | `B35` | `editor-formspecs` |
+| Always-sent fields last in an `elseif` chain | `B37` | `editor-formspecs`, `luanti-reference` |
+| One close path, and `forms.lua` dofiled before `register.lua` | `B33` | `editor-formspecs` |
+| A boolean preference read with `get_string` | `B5` | `editor-formspecs`, `luanti-reference` |
+| No `..` in a translation key; no key edited in the source alone | `C17` | `generated-files` |
+| Limit tables kept as plain literals so two generators can see them | `C20` | `program-pipeline`, `generated-files` |
+| `Drone.finish` the single announcement path; a new ending is a new branch | `B12`, `B30`, `B51` | `drone-and-tools` |
+| A dropdown is always-sent, and its two exceptions | `B37`, `F11` | `editor-formspecs` |
+| Every legacy element's `W` is its own unit | `F11` | `editor-formspecs` |
+| Branch on a value matching what you drew, never on it differing | `B37` | `editor-formspecs` |
 
 ## What a change drags with it
 
-Four files here restate the source, are read by a human, by a linter or by
-ContentDB rather than by the code, and **drift silently — nothing fails when they
-are wrong**.
+A lookup table. **How each one is checked, and why, is the `generated-files`
+skill's.** Read it before touching any row.
 
-| A change to | drags | checked by |
-|---|---|---|
-| a player-facing name | `lib/api.lua`, the `impls` table in `lib/sandbox.lua`, `doc/api.md`, the explicit name list in `tests/api_spec.lua`, and `stds.codeblock_sandbox` in `.luacheckrc` | `api.build` refuses to load on a mismatch in either direction; `lua scripts/gen_docs.lua --check`, which compares the sandbox std with `api.names()` both ways (C22) |
-| any `S()` literal | `locale/template.txt`, and the orphaned key in every `locale/*.tr` | `lua scripts/gen_locale.lua --check` — template only; a `.tr` gap is legitimate |
-| a codelevel limit or setting | the plain literal in `lib/config.lua`, then regenerate `settingtypes.txt`; the codelevel row in `doc/api.md` is hand-written | `lua scripts/gen_settingtypes.lua --check` and `gen_docs.lua`'s documented-row guard, both matching **by shape** — a computed table turns both off without failing |
-| the ContentDB long description | `CONTENTDB.md`, then `bash scripts/gen_cdb_json.sh` | nothing. Never edit `.cdb.json` |
-| any file added to the tree | `.gitattributes` | nothing. ContentDB builds with `git archive`, so a file with no `export-ignore` rule ships to a player |
+| A change to | drags |
+|---|---|
+| a player-facing name | `lib/api.lua`, the `impls` table in `lib/sandbox.lua`, `doc/api.md`, the name list in `tests/api_spec.lua`, `stds.codeblock_sandbox` in `.luacheckrc` |
+| any `S()` literal | `locale/template.txt`, and the orphaned key in every `locale/*.tr` |
+| a codelevel limit or setting | the literal in `lib/config.lua`, a regenerated `settingtypes.txt`, the hand-written codelevel row in `doc/api.md` |
+| a chat command or a privilege | the hand-written region above `# Lua api` in `doc/api.md` |
+| the ContentDB long description | `CONTENTDB.md`, then `bash scripts/gen_cdb_json.sh` |
+| any file added to the tree | `.gitattributes` |
+| the new-file template in `lib/formspecs.lua` | `tests/integration_spec.lua`, which reads it out of the source |
 
-Regenerating is part of the change, not a follow-up: `gen_docs.lua`,
-`gen_locale.lua` and `gen_settingtypes.lua` all run under a bare Lua 5.1 from the
-repo root, and `gen_locale.lua` lists `lib/` through `ls`, so it wants WSL rather
-than PowerShell.
+**Regenerating is part of the change, not a follow-up.**
 
-**A check that cannot fail is indistinguishable from a check that passes.** Two
-of the guards here were written, committed, believed and matched nothing — the
-second because Lua's `%w` excludes the underscore that every limit name contains
-(C20). So `[%w_]` wherever an identifier is matched, and **make a new check fail
-once**, against a deliberately broken input, before trusting it.
+**Make a new check fail once**, against a deliberately broken input, before
+trusting it. A check that cannot fail is indistinguishable from one that passes.
 
-**`stds.codeblock_sandbox` in `.luacheckrc` holds API names and nothing else.**
-It is what `lib/examples/**` is linted against, and an entry that is not an API
-name — the bare `_` the examples pass for "use the default" — belongs in
-`files["lib/examples/**"].read_globals`, which luacheck adds to the std. A bare
-string entry there accepts *any* field of that name, so `table` covers
-`table.randomizer` and the check cannot see a typo under it; a name whose fields
-are all described is spelled out instead.
-
-A player-facing rename breaks saved player programs, which are data no game can
-migrate. That is a **major version bump**, and it is the author's call before you
-write it.
+**A player-facing rename breaks saved player programs**, which are data no game
+can migrate. That is a **major version bump**, and it is the author's call before
+you write it.
 
 ## Comments
 
