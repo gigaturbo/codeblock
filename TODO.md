@@ -36,11 +36,6 @@ Features
 
 Decisions wanted from the author
 
-- [ ] DECIDE: whether to adopt the per-constant copy for `S8` — `vector3(c)` in
-      `snapshot_module`, fourteen constructions per program start. It is the only
-      thing that closes `S8` on v1.5, and it makes `vector.one` writable inside
-      codeblock and frozen everywhere else. Case both ways in the roadmap
-      (audit S8)
 - [ ] DECIDE: what `tests/game/mods/vector3` should pin, now that three releases
       are in the wild and the submodule is at v2.0.2. Pin the newest, the oldest
       supported, or document a floor (audit S8)
@@ -48,11 +43,16 @@ Decisions wanted from the author
 Checks left in a running world — the checklist is `PLAYTEST.md`
 
 - [ ] run F-6 — `game.lua` three times over, plus its case 3 reproducer, the
-      only in-world reading `S8` can have. **Name which vector3 you are running**
+      only in-world reading the `S8` fix can have. Case 3 must now print `1 1 1`
+      three times on every version. **Name which vector3 you are running**
       (audit S8; playtest F-6)
+- [ ] run R5 — swap the vector3 submodule to v1.5 and v2.0.1 by hand, start a
+      world on each, and read `debug.txt` for the one warning naming the version.
+      Put the pin back afterwards (audit S9; playtest R5)
 - [ ] run F-7 — every shipped example, one at a time. Standing check, after any
-      dependency bump and before a release; owed again by the vector3 v2.0.2
-      bump (audit C23, C24, S8; playtest F-7)
+      dependency bump and before a release; passed on the v2.0.2 bump and owed
+      again by the S8 fix, which changes the vector table every example runs in
+      (audit C23, C24, S8; playtest F-7)
 - [ ] re-run R2 on the archive built from the release commit. Install it in a
       game that is not codecube (audit C16, C10)
 

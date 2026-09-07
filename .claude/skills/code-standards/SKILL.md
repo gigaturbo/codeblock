@@ -59,9 +59,10 @@ Six questions for any change that runs while player code runs:
 6. Can a player set a limit that bounds what the server spends? Codelevel is
    privileged — never player-settable, in any new form.
 
-**How the environment is built is the `program-pipeline` skill's.** What leaks
-through it is two open findings, `S8` and `S9` in `AUDIT.md`; read them before
-adding a table-valued entry to the environment.
+**How the environment is built is the `program-pipeline` skill's.** What leaked
+through it is `S8` and `S9` in `AUDIT.md`, both resolved; read them before adding
+a table-valued entry to the environment, because a snapshot is one level deep and
+the caller owns the leaves.
 
 **A new cost goes in `lib/limits.lua`, never counted locally.** One ceiling, one
 counter, in the unit it is checked in.

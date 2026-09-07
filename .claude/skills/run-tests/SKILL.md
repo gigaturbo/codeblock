@@ -62,10 +62,18 @@ and says nothing about the other two.
 **The raises are an improvement for a player.** `srandom` answering `(0,0,0)` for
 a bad argument is silently wrong geometry, which is worse than nil.
 
-**`pairs` is the trap, on both 2.0.x.** `frozen()` (`vector3.lua:370`) builds an
-*empty* table with `__index` onto a private backing vector, so `next`, `rawget`,
-`pairs`, `table.copy` and `core.serialize` all read a constant as empty —
-silently, and not as a raise.
+**`pairs` is the trap, on both 2.0.x — in mod code.** `frozen()`
+(`vector3.lua:370`) builds an *empty* table with `__index` onto a private
+backing vector, so `next`, `rawget`, `pairs`, `table.copy` and `core.serialize`
+all read a constant as empty — silently, and not as a raise. **It is no longer
+true inside a player's program**: `snapshot_vector3` rebuilds each constant with
+the constructor (`S8`), so the run's copy is an ordinary vector and iterates.
+The row above describes what mod code holds.
+
+**The mod names an old `vector3` in `debug.txt` at load.** One `warning` from
+`init.lua` when `vector3(1, 1, 1).__index ~= nil`, giving the guessed version
+and *Install vector3 2.0.2 or newer*. Silent on the pinned v2.0.2, so a suite
+run shows nothing. Its check is `PLAYTEST.md` `R5`.
 
 **`v.__index` is nil only from v2.0.2.** It carries `__index` and every
 metamethod on a separate `meta` table, which is `S9`'s fix. On v1.5 and v2.0.1

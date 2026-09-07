@@ -40,12 +40,17 @@ surface.** Not the forbidden-name list.
 
 **The snapshot copies are one level deep.** They isolate *assigning into* a table
 and not *mutating through* it, and `lib/env.lua`'s own header states the
-guarantee more widely than it holds. So `vector`'s fourteen load-time constants
-are shared by every run (`S8`), and any `vector3` instance hands back the shared
-class table as `v.__index`, letting a program replace its methods for every other
-mod on the server (`S9`). Both are open. Neither is escalation: `getfenv` and
-`debug` are out of the environment, so a poisoned method still cannot reach
-`core`.
+guarantee more widely than it holds, so **the caller owns the leaves**. That is
+`S8`: `vector`'s fourteen load-time constants were shared by every run, and
+`snapshot_vector3` in `lib/sandbox.lua` now rebuilds each one with `vector3(v)`
+before the module goes out. `env.snapshot_module` stays shallow. **Any table-
+valued entry added to the environment needs the same question asked.**
+
+**`S9` was the other leak and is fixed upstream.** Up to `vector3` v2.0.1 any
+instance handed back the shared class table as `v.__index`, letting a program
+replace its methods for every other mod on the server; v2.0.2 carries them on a
+separate `meta` table. Neither leak was escalation: `getfenv` and `debug` are out
+of the environment, so a poisoned method still cannot reach `core`.
 
 **The step's budget is shared, not per drone.** It is the smaller of the
 codelevel cap and an equal share of one server-wide pool, so N drones do not cost

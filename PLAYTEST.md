@@ -51,20 +51,21 @@ Result: ...
 
 | | Count |
 |---|---|
-| Entries | 84 |
+| Entries | 85 |
 | Retired | 1 — `F11-4` |
-| Live checks | 83 |
-| Most recent result a pass | 80 |
+| Live checks | 84 |
+| Most recent result a pass | 81 |
 | Partial | 1 — `H8` |
-| Unrun | 2 — `F-6`, `F-7` |
+| Unrun | 2 — `F-6`, `R5` |
 | Fail as most recent result | 0 |
 
 Checks needing action:
 
 | Check | State | Reason |
 |---|---|---|
-| [`F-6`](#f-6--gamelua-starts-in-the-same-direction-every-time-s8) | unrun | `S8`'s only possible in-world evidence. |
-| [`F-7`](#f-7--every-shipped-example-still-runs-after-a-dependency-bump-c23-c24-s8) | unrun | Standing check: after any `vector3` bump, and before a release. Owed again by v2.0.2. |
+| [`F-6`](#f-6--gamelua-starts-in-the-same-direction-every-time-s8) | unrun | `S8`'s only in-world reading, and now the check that confirms the fix. |
+| [`R5`](#r5--an-old-vector3-is-named-in-the-log-at-mod-load-s9) | unrun | The load-time warning about an old `vector3`. Needs the submodule swapped by hand. |
+| [`F-7`](#f-7--every-shipped-example-still-runs-after-a-dependency-bump-c23-c24-s8) | owed again | Passed on the v2.0.2 bump. The `S8` fix changes the `vector` table every example runs in. |
 | [`R1`](#r1--the-archive-contains-no-tests-c16-c10) | stale | Texture and example counts have changed since the last run. |
 | [`R2`](#r2--a-real-install-with-the-test-flag-set-c16) | stale | Last run at `7c5bceb`, before `F4` and two `.gitattributes` changes. |
 | [`H8`](#h8--the-panel-over-the-editor-and-a-run-that-ends-under-it-f4-f8-b33-b29) | partial | Cases 1 and 3 cannot be performed by hand. |
@@ -797,8 +798,13 @@ time. **Pass: it sets off in the same direction every time** — up and away,
 stop at two runs** — two runs that differ could be read as a fresh drone facing
 differently.
 
-**Case 3 — the `S8` reproducer, a measurement rather than a pass.** Put this in a
-file of its own and run it **three times**:
+**Case 2 is a regression guard, not `S8` evidence.** `game.lua` reads
+`dir = vector(1, 1, 1)` since `3548d58`, so it uses the constructor and never
+touches a constant. **A pass here closes nothing.** Case 3 is the one that reads
+on `S8`.
+
+**Case 3 — the `S8` reproducer.** Put this in a file of its own and run it
+**three times**:
 
 ```lua
 dir = vector.one
@@ -806,14 +812,19 @@ print(dir.x, dir.y, dir.z)
 dir.x = -dir.x
 ```
 
-**On vector3 v1.5, expect `1 1 1`, then `-1 1 1`, then `1 1 1`** — the module's
-own constant, written through a shallow snapshot and shared by every player until
-the server restarts. **On v2.0.1 and v2.0.2 the third line raises `read only`**,
-which is the freeze rather than a fix to `env.snapshot`: `S8` is latent there,
-not resolved. **v2.0.2 changes nothing in this case** — it fixed `S9`, which no
-program can observe. **Record what it prints and which version you ran.** Once
-`S8`'s per-constant copy is adopted this case must print `1 1 1` three times on
-every version, and raise on none.
+**Pass, on every version: `1 1 1` three times, and no raise.** The run's
+`vector.one` is its own object, rebuilt with the constructor in
+`snapshot_vector3`, so writing to it reaches nothing outside the run and nothing
+after it.
+
+**What a fail looks like on each version.** On v1.5, `1 1 1`, then `-1 1 1`,
+then `1 1 1` — the module's own constant, shared by every player until the server
+restarts. On v2.0.1 and v2.0.2, the third line raising `read only` — the freeze
+showing through, which means the copy did not happen. **Record what it prints and
+which version you ran.**
+
+**This is `S8`'s only in-world reading.** The fix is probe-verified at the
+library level on all three versions and unproven through a real drone.
 
 Result: not yet run.
 
@@ -823,7 +834,8 @@ Result: not yet run.
 release.** `tests/preprocess_spec.lua` **compiles** every shipped example and
 **nothing runs one**, so a compile cannot see a call that raises.
 
-**Owed again by the bump to v2.0.2 (`fc8a5b8`).**
+**Owed again by the `S8` fix**, which changes the `vector` table every example
+runs in. The v2.0.2 bump is covered by the result below.
 
 In a world at codelevel 3 or 4, on open ground with room around and above the
 drone: run `/codeblock generate`, then open each generated example in the editor
@@ -838,7 +850,10 @@ expected.
 **Fail:** any example stops with a Lua error on a line it did not choose to stop
 on — report the file, the line and the message.
 
-Result: not yet run.
+Result: pass — `72b614d` · engine 5.17.0 · 2026-09-07 — `vector3` v2.0.2, every
+shipped example still runs after the bump. **The world was launched against a
+clean `72b614d`**, before the `S8` fix entered the working tree, so this is
+evidence about the bump alone.
 
 ---
 
@@ -1171,7 +1186,7 @@ Result: pass — `246bb37` · engine 5.17.0 · 2026-08-27 — four drones shared
 
 ## Release and install
 
-R1–R4.
+R1–R5.
 
 ### R1 · The archive contains no `tests/` [C16, C10]
 
@@ -1264,6 +1279,34 @@ out-of-range guard read in `debug.txt`:
 2026-09-02 11:50:08: WARNING[ServerStart]: [codeblock] setting
 codeblock_default_auth_level is not a codelevel from 1 to 4; ignored
 ```
+
+### R5 · An old `vector3` is named in the log at mod load [S9]
+
+`init.lua` logs one `core.log('warning', ...)` when the installed `vector3`
+exposes its method table, detected by `vector3(1, 1, 1).__index ~= nil`. **No
+spec can reach it:** it fires at mod load before any spec runs, and the fixture
+pins v2.0.2, where the branch is never taken.
+
+**Swap the submodule by hand and start a world each time.** In bash, from the
+repository root:
+
+```bash
+git -C tests/game/mods/vector3 checkout 1662164   # v1.5
+git -C tests/game/mods/vector3 checkout 5077617   # v2.0.1
+git -C tests/game/mods/vector3 checkout fc8a5b8   # v2.0.2, the pin
+```
+
+Start a world on each and read `debug.txt`. **Put the pin back before running
+the suite.**
+
+**Pass:** on v1.5 and v2.0.1, exactly one `[codeblock]` warning, naming the
+guessed version and saying *Install vector3 2.0.2 or newer*. On v2.0.2,
+silence — a line on every start that reports nothing is noise.
+
+**Read the version it guessed.** v1.5 and v2.0.1 are told apart by whether the
+constants iterate, so a wrong name means the guess is wrong, not the detection.
+
+Result: not yet run.
 
 ---
 

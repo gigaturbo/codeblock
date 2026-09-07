@@ -18,95 +18,19 @@ and security, `C` compliance and packaging, `A` architecture and performance;
 | Series | Total | Resolved | Open | Won't fix |
 |---|---|---|---|---|
 | `B` bugs | 51 | 50 | — | `B34` |
-| `S` sandbox and security | 9 | 8 | `S8` | — |
+| `S` sandbox and security | 9 | 9 | — | — |
 | `C` compliance and packaging | 18 | 17 | `C24` | — |
 | `A` architecture and performance | 14 | 12 | `A17`, `A18` | — |
-| **Total** | **92** | **87** | **4** | **1** |
+| **Total** | **92** | **88** | **3** | **1** |
 
 | Id | Sev | What | Waiting on |
 |---|---|---|---|
-| `S8` | medium | `env.snapshot` is shallow, so `vector`'s fourteen load-time constants are shared and mutable through the copy | the author's decision on adopting the per-constant `vector3(c)` copy — the open question in `ROADMAP.md` |
 | `C24` | medium | CI boots no engine, so three specs and every engine-guarded case never run in CI | a CI job that boots Luanti |
 | `A17` | low | three exported functions in `lib/utils.lua` have no caller | the author's decision: delete in v1.0.0, or declare `codeblock.utils` public |
 | `A18` | low | `meta.active = #meta.tabs` written as a loop at two sites | nothing — two one-line replacements and a spec run |
 | `B34` | low | won't fix: a file cannot be removed without opening it first | decided — a working route exists |
 
 ## Open and won't fix
-
-### S8 · medium · open, latent against vector3 v2.0.x — a snapshot is shallow, so a run can corrupt a shared constant
-
-**Mechanism.** `lib/env.lua:31`'s `env.snapshot` copies one level and
-`env.snapshot_module` wraps it, so `lib/sandbox.lua`'s
-`['vector'] = snapshot_module(vector3)` hands every run the same nested objects.
-`vector3.lua:488–501` builds fourteen instances at load — `zero one x y z xy yz
-xz nx ny nz nxy nyz nxz` — so `dir = vector.one; dir.x = -dir.x` writes into the
-module's own constant, for every player until restart.
-
-**`lib/env.lua`'s header states the guarantee this breaks.** It holds for
-*assigning into* a snapshot and fails for *mutating through* it. That sentence
-needs the shallow-versus-deep distinction when the fix lands.
-
-**The symptom alternates**, so a player debugging it sees it work every other
-run: `run 1 — got: 1 1 1`, `run 2 — got: -1 -1 -1`, `run 3 — got: 1 1 1`.
-
-**`vector` is the only table this reaches**, checked at every `snapshot` and
-`snapshot_module` call site: the palette views and every category's `spelled`
-map hold strings, `random.*`, `ramp.*` and `table.randomizer` are closures over
-config tables never handed out, `api.build`'s nested tables are built per run,
-`_G` is sealed.
-
-**Recommended fix: rebuild each constant with the constructor,
-`vector3(c)`, in `snapshot_module`.** Fourteen constructions per program start,
-beside a disk read. **Probe-verified on both versions a player can install, v1.5
-and v2.0.2**: on each it constructs, the result is a distinct object, it is
-writable, the original is unharmed, it carries the methods, and it compares
-equal by value. `V(c.x, c.y, c.z)` works equally on both if a reason to avoid
-the constructor ever appears. **No observable change for player code** —
-`vector3.__eq` is component-wise, so identity is not observable through `==`.
-`snapshot_module` has one caller, so *one level deep, leaves are fresh vector3
-instances* is the guarantee to state.
-
-**Not by deep-copying each leaf with `setmetatable(copy, getmetatable(v))`.**
-That was this document's recommendation and it is wrong against a frozen
-constant. Three probe readings: `pairs` over a frozen constant yields **no
-keys**, so the copy is an empty table; `setmetatable(copy, getmetatable(leaf))`
-makes the copy **alias the original**, because
-`getmetatable(copy).__index == getmetatable(vector3.one).__index`, so it reads
-through the same backing vector; and a write into that copy still raises.
-
-**The wrong recommendation is recorded rather than deleted** because it is worse
-than doing nothing and looks like it worked. Someone would implement it, see a
-green suite, and mark `S8` resolved having changed nothing.
-
-**Not by freezing the constants here.** It costs nothing per run but turns
-`dir = vector.one; dir.x = -1` into a raise, breaking a reasonable player idiom.
-
-**That option happened upstream instead.** vector3 2.0 made a write to an
-exported constant raise `read only`.
-
-**Keep — why it is still open.** Nothing in `lib/env.lua` changed. The freeze
-removes the only *reachable* exploit, so the defect is **latent, not gone**, and
-**reachable again for any player running vector3 v1.5**, which `mod.conf` cannot
-exclude: it reads `depends = vector3` and Luanti has no version constraints. Do
-not mark this resolved on the strength of a submodule bump.
-
-**Keep — a v2.0 change nobody listed.** `frozen()` (`vector3.lua:370`) builds an
-*empty* table with `__index` onto a private backing vector, so `next`, `rawget`,
-`pairs`, `table.copy` and `core.serialize` read a constant as empty —
-`pairs(vector.one)` yields three keys on v1.5 and nothing on either 2.0.x,
-**silently rather than as a raise**. Nothing here does it; `CHANGELOG.md` says so
-because codeblock is where a player meets `vector`.
-
-**What a spec can have, and how it must not be written.** `tests/env_spec.lua`,
-staying standalone, with its **own two-level fixture** — `{inner = {n = 1}}`,
-write through the copy, assert the original — which fails against today's code
-by construction. An assertion phrased against `vector.one` would pass for a
-reason outside this repository and fail again on v1.5.
-
-**One shipped example aliased a constant and is fixed at `3548d58`** —
-`lib/examples/game.lua`, `dir = vector.one` → `dir = vector(1, 1, 1)`. The fix
-is **compile-verified only**: `tests/preprocess_spec.lua` compiles every example
-and nothing runs one. Its check is playtest `F-6`, unrun.
 
 ### C24 · medium · open — CI boots no engine, so an in-engine-only check never runs in CI
 
@@ -191,12 +115,36 @@ restated.
   only for absent keys — so a program using an API name as its own global stops
   working.
 - **`S1` — the guarantee is shallow.** It isolates assigning into a snapshot,
-  not mutating through it. That is `S8`.
+  not mutating through it. `env.snapshot_module` stays that way and stays
+  dependency-free; the caller owns the leaves. That is `S8`.
+- **`S8` — the leaves are copied at the call site, not in `lib/env.lua`.**
+  `snapshot_vector3` in `lib/sandbox.lua` takes `env.snapshot_module(vector3)`
+  and replaces every table-valued entry that passes vector3's own duck test —
+  numeric `x`, `y`, `z` — with `vector3(v)`. Fourteen constructions per program
+  start. Deepening `env.snapshot` instead would copy tables of strings on every
+  other call site for nothing.
+- **`S8` — the duck test, not `vector3(v)` on every table.** A future `vector3`
+  release exporting a table of another shape must not raise at the start of
+  every program.
+- **`S8` — rebuild with the constructor, never by copying the keys and
+  reattaching `getmetatable(v)`.** Against a frozen v2.0.x constant that yields
+  an empty table aliased to the original. The reading is under *Corrections*.
+- **`S8` — one player-visible consequence, and it is intended.** Inside a
+  program on v2.0.x, `pairs(vector.one)` yields three keys and `table.copy` and
+  `core.serialize` over a constant work, because the run's copy is an ordinary
+  vector rather than a frozen empty table. **Mod code still holds the frozen
+  originals**, so the `run-tests` support matrix still describes them.
 - **`S9` — a metatable is not a methods table.** `vector3.__index = vector3`
   made the class table an ordinary field of every instance, so a player program
   could replace `unpack`, `__add` or `__eq` for every mod using the `vector3`
   global. **That is live on v1.5 and v2.0.1**, both of which a player may have
   installed; the support matrix in `run-tests` is where that is tracked.
+- **`S9` — `init.lua` names an exposed method table in the log, and detects it
+  read-only.** The test is `vector3(1, 1, 1).__index ~= nil`. **Never probe by
+  writing to a constant**: that succeeds on v1.5 and changes the constant
+  server-wide, causing `S8` in order to test for `S9`. The line is English and
+  untranslated, `debug.txt` being for whoever runs the server, and it is silent
+  on a library without the hole. Its check is `R5`.
 - **`S9` — this mod does not write-protect another package's tables.** Sealing
   `getmetatable(vector3.one)` at load is `C18`'s mistake on another author's
   package, and every other mod using the global would be subject to it. Leave-
@@ -593,6 +541,7 @@ a row carries a rule, it is above under *Keep*.
 | `S5` | medium | `place()` could pin an unbounded number of mapblocks in server memory, and no limit could see them | `map_memory_mb`, the per-resume same-mapblock memo, and one shared step pool | Phase 6 |
 | `S6` | medium | every player got the widest limits by default | resolved once from `core.is_singleplayer()`, validated against `auth_levels`; singleplayer tightened to 3 | Phase 5, `af018d0` |
 | `S7` | low | a failed file open told the player the server's absolute path, in English whatever the game's language | the player gets `unreadable`; `err` goes to the log at `warning` | `6fea453` |
+| `S8` | medium | `env.snapshot` copies one level, so `vector`'s fourteen load-time constants were the module's own: `dir = vector.one; dir.x = -dir.x` wrote into a constant every player read, until restart | `snapshot_vector3` in `lib/sandbox.lua` rebuilds each constant with `vector3(v)`, behind vector3's own duck test; `lib/env.lua`'s header no longer overclaims and `env.snapshot_module` stays shallow | `124d032` |
 | `S9` | high | `vector3.__index = vector3` made the class table an ordinary field of every instance, so `v.__index.unpack = f` replaced a method for every mod using the `vector3` global | fixed upstream in `vector3` v2.0.2: a separate `meta` table carries `__index` and every metamethod, `new` sets it, and `frozen()` copies from it and skips `__index` — `v.__index` reads nil, on a constant as well as a fresh vector | submodule bumped to `fc8a5b8` |
 
 ### C · Compliance and packaging
@@ -642,6 +591,11 @@ blurred.
 
 **Claimed only: nothing.**
 
+**`S8`'s fix is in the working tree and not committed.** `HEAD` is `72b614d`
+and `git status` shows `init.lua`, `lib/env.lua` and `lib/sandbox.lua` modified.
+Gates were run over it and are green, and no spec count moved. The resolved row
+carries no commit until it has one.
+
 **Committed with gates green, unproven in a world — three:**
 
 - **`B14`** — the cold-cache save-after-rejoin path. Permanently out of reach
@@ -650,8 +604,12 @@ blurred.
 - **`S7`'s log half** — that the server's absolute path reaches `debug.txt` at
   `warning`. The player-facing half is confirmed by `F-3` case 2.
 - **`lib/examples/game.lua`'s constant fix (`3548d58`)** — its check `F-6` is
-  the one unrun entry in `PLAYTEST.md`. The specs compile every example and run
-  none.
+  unrun. The specs compile every example and run none.
+
+**Unproven in a world — the `S9` load-time warning.** `init.lua` logs one
+`warning` when the installed `vector3` hands back its method table. No spec can
+reach it: it fires at mod load, and the fixture pins v2.0.2, where the branch is
+not taken. Its check is `R5`, unrun.
 
 **Not verified anywhere, with no route left: `B10`'s refusal.** Playtest `D2`'s
 second case aimed at it twice and was removed as untestable; producing it needs
@@ -659,7 +617,13 @@ a server-side way to observe that a mapblock has been let go.
 
 **Weaker than a playtest, and said so: `S8` and `S9` are probe-verified at the
 library level**, under plain Lua 5.1 against the real `lib/env.lua` and the real
-`vector3.lua`, and neither was run through a real drone. `S9`'s close-out is the
+`vector3.lua`, and neither was run through a real drone. **`S8`'s fix was read
+independently of the agent that wrote it**: `snapshot_vector3` was lifted out of
+`lib/sandbox.lua` by source and run against v1.5, v2.0.1 and v2.0.2. On each,
+zero constants are shared with the module, `local d = r.one; d.x = -d.x`
+succeeds on two successive runs, the module's own `one.x` stays `1`, the run's
+copy holds `-1`, and `vector(1,2,3)` still resolves through `__call`. Its
+in-world reading is `F-6`, unrun. `S9`'s close-out is the
 same kind of reading: at `fc8a5b8`, `v.__index`, `v.__add`, `v.__eq` and
 `vector.one.__index` all read nil, `getmetatable(v) == vector3` is false, the
 finding's own poisoning line raises, and `v:unpack()`, `v + v`, `==` and
@@ -674,10 +638,21 @@ machine's WSL layer. Current local figures and the CI state belong to
 
 Each of these is a wrong claim that would otherwise be repeated as fact.
 
-- **`S8`'s recommended fix was wrong and is corrected in place above.**
-  Deep-copying a frozen constant and reattaching `getmetatable(v)` produces an
-  empty table aliased to the original, so it fixes nothing while looking fixed.
-  The constructor, `vector3(c)`, is the recommendation.
+- **`S8`'s first recommended fix was wrong, and stays recorded.** Deep-copying a
+  frozen constant and reattaching `getmetatable(v)` produces an empty table
+  aliased to the original, so it fixes nothing while looking fixed. Three probe
+  readings: `pairs` over a frozen constant yields **no keys**; the reattached
+  metatable makes the copy read through the original's backing vector; and a
+  write into that copy still raises. Someone would implement it, see a green
+  suite, and mark `S8` resolved having changed nothing. The constructor is what
+  shipped.
+- **`S8`'s suggested spec was the wrong shape and is replaced.** This document
+  asked for a two-level fixture in `tests/env_spec.lua` — `{inner = {n = 1}}`,
+  write through the copy, assert the original. `env.snapshot_module` is
+  deliberately shallow, so that spec would assert against the contract. **The
+  suggestion for `test-agent`**, not yet written: a program running
+  `local a = vector.one a.x = -1` through `get_safe_coroutine` completes without
+  raising, which fails against the old code on the pinned v2.0.2.
 - **Copy-on-read would *not* make `vector.x == vector.x` false.** `vector3.__eq`
   is component-wise and Lua 5.1 selects it when both operands share a metatable,
   so identity is not observable through `==`. Its real costs are that
@@ -738,4 +713,5 @@ Each of these is a wrong claim that would otherwise be repeated as fact.
 
 ---
 
-Last reviewed **2026-09-07**, describing commit the `vector3` submodule bump to **`fc8a5b8`** (v2.0.2).
+Last reviewed **2026-09-07**, describing `124d032` — the `S8` fix and the `S9`
+load-time warning.
