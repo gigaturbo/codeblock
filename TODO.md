@@ -129,8 +129,9 @@ Features
       now reads `for i = 1, #hues do place(hues[i]) up(1) end`, which names no
       individual colour and fits itself to whatever the palette holds, so the
       same rot cannot recur. Covered by four cases that read the template out of
-      lib/formspecs.lua rather than copying it. Playtest E17 is written and
-      unrun (audit B53; playtest E17)
+      lib/formspecs.lua rather than copying it. **Playtest E17 passed
+      2026-09-07** with the colours counted, which is this fix's only possible
+      evidence (audit B53; playtest E17)
 - [x] BUG: "the print function in the game cannot concatenate arguments" —
       reported 2026-09-07 while you were running F12-4, the first check here
       that made anyone want to print a boolean. `print` took exactly one
@@ -147,8 +148,10 @@ Features
       Lua's not being variadic either. Twelve new spec cases pin that one call
       is one command however many arguments it carries — **and all twelve would
       have been green before the fix**, because what print puts in the chat is
-      observable from no spec at all. Playtest W7 is written for it and is
-      unrun (audit B54; playtest W7, F12-4)
+      observable from no spec at all. **Playtest W7 passed 2026-09-07** — all
+      three programs, and the space-joined line wrapping on a narrow console,
+      which was the last part of the reasoning nothing had confirmed
+      (audit B54; playtest W7, F12-4)
 - [x] DECIDE: what to do with the untracked `lib/examples/game.lua` in your
       working tree — **answered 2026-09-07: track it**, committed at 63c3c33. It
       is a shipped example now, written into every player's directory by
@@ -173,11 +176,13 @@ Features
       was filed against it.** F11-1 was run first and passed in both languages,
       so the editor does not have to leave legacy coordinates, and F11-3 passed,
       which is the whole point of the feature seen in a third-party game.
-      F11-4 is retired, both its successors having passed. **What is left is
-      F11-10 and F11-11, which both need a second mod calling
-      register_blocks** — with F12-6 that is the entire game-author path with no
-      in-world evidence — **and pushing, since CI has seen no part of it.** The
-      shape and the decisions are in ROADMAP.md under `F11` (audit F11)
+      F11-4 is retired, both its successors having passed. **F11-10 and F11-11
+      then passed later the same day**, with the test mod at
+      `../codeblock-test-mod`, so all ten live checks pass and the game-author
+      path has in-world evidence — F11-11 being the rev_blocks fix's only
+      possible one. **What is left is pushing, since CI has seen no part of
+      it.** The shape and the decisions are in ROADMAP.md under `F11`
+      (audit F11)
 - [x] FEAT: a new palette, a ramp per block category, and coordinates for
       `get_block` — your five notes of 2026-09-06, shaped in one exchange and
       **shipped as `F12` at 01f9641** (with b752ea3 for your own example edits).
@@ -193,9 +198,10 @@ Features
       category gets one. `get_block(right, up, forward)` turns with the drone,
       moves nothing, and loads the map it reads, charged as footprint as you
       asked — `nil` still means never-generated or outside the world, and that
-      one is permanent. Gates green, no finding filed. **What is left is playing
-      it: four of its six checks passed on 2026-09-07, F12-4 failed on the
-      print defect above and is owed a re-run, and F12-6 is unrun.** **F12-2
+      one is permanent. Gates green, no finding filed. **All six of its checks
+      passed on 2026-09-07**: four first time, F12-6 later the same day with the
+      test mod, and F12-4 on a re-run after failing on the print defect above —
+      so the rotation it exists for is observed at last. **F12-2
       passed and did not hand the flat-solid decision back** — the flat wall
       reads acceptably, so the tile stays and the exact hex is kept; that is now
       in ROADMAP.md's decisions log so it is not proposed again. The shape is in
@@ -213,10 +219,10 @@ Features
       that warning says *"the default block is used instead"*, which is not true
       when `is_block` asked it; rewording the key would orphan the French
       translation and it is right for `place()`, so it was left. Gates green.
-      Its playtest folds into F12-3 and F12-4: **F12-3 passed on 2026-09-07, so
-      is_block answering over real map is observed; F12-4 failed on the print
-      defect above before the reads were reached, so its offsets turning with
-      the drone is not** (audit F13)
+      Its playtest folds into F12-3 and F12-4, **and both passed on 2026-09-07**
+      — F12-3 first time, F12-4 on a re-run after the print defect above stopped
+      it short — so is_block answering over real map and its offsets turning
+      with the drone are both observed (audit F13)
 - [x] FEAT: palette views and a generic ramp — `light_hues`, `dark_hues`,
       `neutrals` and `ramp.of(list, v, min, max)`, settled with you on
       2026-09-07 as `F14` and **shipped the same day with every gate green**.
@@ -424,19 +430,24 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
       print defect above, not anything F12 or F13 does. Three passes settled
       questions the record was carrying: F11-1 (the selector returns the stored
       item, so no editor conversion), F12-2 (the flat solid tile stays) and
-      F14-2 (silence past the end of a view, observed at last)
+      F14-2 (silence past the end of a view, observed at last). **A second
+      session the same day cleared the six checks it left**, at 2feadb1 over
+      code 24842d3, with no defect reported — see the two lines below
       (audit B54; playtest F11-*, F12-*, F14-*)
-- [ ] run F11-10, F11-11 and F12-6 — **the mod that calls
-      codeblock.register_blocks is written**, at ../codeblock-test-mod,
-      outside this repository so it cannot change api.names() under the specs,
-      so all three are unblocked and cheapest in one session off its `wool`
-      category. **It is the only part of F11, F12 and F14 with no in-world
-      evidence at all** after 2026-09-07, and F11-11 is the rev_blocks fix's
-      only possible evidence (audit F11, F12; playtest F11-10, F11-11, F12-6)
-- [ ] run E17 and W7, and re-run F12-4 on 24842d3 or later — E17 is B53's only
-      check, W7 is B54's and is the only thing that can see what print puts in
-      the chat, and F12-4's fail was against print rather than against the
-      rotation it exists for (audit B53, B54; playtest E17, W7, F12-4)
+- [x] run F11-10, F11-11 and F12-6 — done 2026-09-07, all three passing, with
+      the mod at ../codeblock-test-mod, which stays outside this repository so
+      it cannot change api.names() under the specs. **That is the game-author
+      path's only in-world evidence**, and F11-11 is the rev_blocks fix's only
+      possible evidence, so that fix is observed rather than
+      correct-by-reading. F11-10 is lib/blocks.lua's only in-world evidence and
+      its `mod ?` line read as intelligible rather than as a trap
+      (audit F11, F12; playtest F11-10, F11-11, F12-6)
+- [x] run E17 and W7, and re-run F12-4 on 24842d3 or later — done 2026-09-07,
+      all three passing. E17 is B53's only check and the colours were counted;
+      W7 is B54's and settled the space separator and the wrapping, which
+      nothing else could; F12-4's re-run observed the rotation for the first
+      time, its earlier fail having been against print
+      (audit B53, B54; playtest E17, W7, F12-4)
 - [ ] re-run R2 on the archive built from the release commit — R1 was
       re-checked at `7dbe18f` and still passes, but R2 last ran before F4 added
       lib/hud.lua and before .gitattributes changed at `60dc8dd`. Install it in

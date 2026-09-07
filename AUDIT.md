@@ -22,12 +22,15 @@ it.
 
 **90 findings. 86 resolved, 3 open (`A17`, `A18`, `C24`), 1 won't fix (`B34`).**
 
-**The `F11`–`F14` playtest session ran on 2026-09-07 at `8e6350f`, engine 5.17.0,
-and it produced exactly one finding: `B54`.** Sixteen results in one sitting,
-fifteen of them passes; the one fail is `F12-4`, and its cause is `B54` rather
-than anything `F12` or `F13` did. **Every result line carries `8e6350f`**, the
-commit the session was run at, not `HEAD` — `B54`'s fix landed afterwards at
-`24842d3`.
+**Two playtest sessions ran on 2026-09-07, engine 5.17.0, and between them they
+produced exactly one finding: `B54`.** The first, at `8e6350f`, gave sixteen
+results in one sitting, fifteen of them passes; the one fail is `F12-4`, and its
+cause is `B54` rather than anything `F12` or `F13` did. **Every result line from
+it carries `8e6350f`**, the commit it was run at, not `HEAD` — `B54`'s fix
+landed afterwards at `24842d3`. The second cleared the six checks that were
+left — `F11-10`, `F11-11`, `F12-6`, `E17`, `W7` and `F12-4` re-run — **all six
+passing, with no defect reported and so no finding filed**, at `2feadb1` over
+code `24842d3`. **`PLAYTEST.md` now has no unrun check and no fail.**
 
 **`B54` is `print` printing only its first argument, and the entry below is worth
 reading for what its coverage does *not* witness.** `print` took one parameter,
@@ -36,8 +39,12 @@ while the concatenated form raised correctly and unhelpfully. Twelve new spec
 cases pin the **charge** — one call is one command however many arguments — and
 **all twelve would have been green before the fix**, because what `print` sends
 is observable from no spec at all: `test-agent` established that by probe rather
-than by argument, and the probe read `nil`. Playtest `W7` was written for it and
-is unrun.
+than by argument, and the probe read `nil`. **Playtest `W7` passed on
+2026-09-07** at `2feadb1` over code `24842d3` — all three programs, and no
+exception reported against the space-joined line wrapping on a narrow console,
+which the recipe asked for on that basis and was the one part of the reasoning
+nothing else could ever confirm. The fix is now confirmed in a
+world.
 
 **Three passes from that session close things that were being carried.**
 **`F12-2` passed and did not hand its decision back** — the flat pure white
@@ -48,15 +55,16 @@ dropdown returns the stored item and not the displayed text, which is the one
 failure that would have meant converting the editor out of legacy coordinates.
 **`F11-3` passed**, which is `F11`'s whole purpose observed in a third-party game.
 
-**What the session did not reach is the entire game-author path, and it is the
-one part of `F11`, `F12` and `F14` with no in-world evidence.** `F11-10`,
-`F11-11` and `F12-6` all need a second mod calling `codeblock.register_blocks`,
-and none was run. So the contract in `lib/blocks.lua`, its three refusals, the
-late-call seal, a registered category reaching `place()`, `get_block()` and player
-meta, and a registered category's own ramp are **committed, gated and unseen** —
-and `F11-11` is the `rev_blocks` fix's only possible evidence. It does not block
-the tag; it is the honest gap to name where anyone weighing the *game author*
-claim will read it.
+**The game-author path was what the first session could not reach, and the
+second closed it.** `F11-10`, `F11-11` and `F12-6` all need a second mod calling
+`codeblock.register_blocks`; it was written to `../codeblock-test-mod` and all
+three passed on 2026-09-07. So the contract in `lib/blocks.lua`, its three
+refusals, the late-call seal, a registered category reaching `place()`,
+`get_block()` and player meta, and a registered category's own ramp are each
+**observed** rather than committed-and-unseen. **`F11-11` is the `rev_blocks`
+fix's only possible evidence and it passed**, so that fix stops being written up
+as correct-by-reading; it is the last thing on this document's *gates green,
+unproven in a world* list to come off.
 
 **`B53` was found by the author, filed and fixed on 2026-09-07 at `de3bcbb`**,
 and it is the worst kind of defect this project has shipped into a working tree:
@@ -110,9 +118,10 @@ n_right, n_up, n_forward)` is the predicate form of `F12`'s `get_block`, and the
 same commit gave `.luacheckrc`'s sandbox std the both-directions check that
 `C22` asked for. The finding's full entry is under *C · Compliance and
 packaging* below. Its in-world checking folds into `F12-3` and `F12-4`, which
-were extended rather than joined by new entries. **`F12-3` passed on 2026-09-07
-at `8e6350f`; `F12-4` failed on `print` before reaching the reads** and is owed a
-re-run, so `is_block`'s rotation is still unobserved.
+were extended rather than joined by new entries. **Both passed on 2026-09-07** —
+`F12-3` at `8e6350f`, and `F12-4` on a re-run at `2feadb1` over code `24842d3`
+after failing on `print` before reaching the reads — so `is_block`'s rotation is
+observed.
 
 **`F12` is committed at `01f9641` and `test-agent` filed no finding against it
 either** — a new 35-colour palette (105 nodes), one `ramp` per block category in
@@ -122,9 +131,9 @@ in the committed or the uncommitted code was demonstrable as a defect, so
 both marked below — `C10`'s misleading-command note, whose example file was
 deleted at `b752ea3`, and the *unprovable by running* entry, which claimed no
 spec could reach `get_block()` at all and was narrower than that. Its six
-in-world checks are `F12-1` to `F12-6` in `PLAYTEST.md`; **four passed on
-2026-09-07 at `8e6350f`, `F12-4` failed on `B54` and `F12-6` is unrun**, needing
-a second mod that registers a category.
+in-world checks are `F12-1` to `F12-6` in `PLAYTEST.md`, and **all six pass as
+of 2026-09-07**: four at `8e6350f`, then `F12-6` and `F12-4`'s re-run at
+`2feadb1` over code `24842d3`, `F12-4` having first failed on `B54`.
 
 **`F11` is committed in two passes and `test-agent` filed no finding against
 it.** `d075742` gives the mod its own 99 nodes and drops `default` and `wool`;
@@ -139,18 +148,20 @@ reached. The third **was a live defect** — `get_block()` would have answered
 `false` for every game-registered node — and it was wrong only in code that never
 shipped, which is the `F2` precedent: a feature wrong before it ships is recorded
 in its `ROADMAP.md` entry, not given an id. The reasoning is under `F11` there.
-**Two things about `F11` are outstanding and neither is a finding: CI has seen no
-part of it**, both commits being unpushed, **and two of its `PLAYTEST.md` checks
-are still unrun** — `F11-10` and `F11-11`, both needing a second mod that calls
-`register_blocks`. **The other eight passed on 2026-09-07 at `8e6350f`** and
-`F11-4` is retired. **The CI half is true of `F12`, `F13` and `F14` as well.** `origin/master` is at `65b4c46`; `d075742`, `6126abe`, `7514f39`,
+**One thing about `F11` is outstanding and it is not a finding: CI has seen no
+part of it**, both commits being unpushed. **All ten of its live checks now
+pass** — eight at `8e6350f` on 2026-09-07 and `F11-10` and `F11-11` at
+`2feadb1` over code `24842d3` the same day, with the mod at
+`../codeblock-test-mod` — and `F11-4` is retired. **`F11-11` is the `rev_blocks`
+snapshot fix's only possible evidence, so that fix is now observed** rather than
+correct-by-reading. **The CI half is true of `F12`, `F13` and `F14` as well.** `origin/master` is at `65b4c46`; `d075742`, `6126abe`, `7514f39`,
 `b752ea3`, `01f9641`, `6aadd16`, `4450ce1`, `84da24e`, `e3e2178`, `35f2aff`,
-`de3bcbb`, `1865310`, `63c3c33`, `8e6350f`, `24842d3` and this record change —
-**sixteen commits**, taken from `git rev-list --count origin/master..HEAD`, which
-reads **15** at `24842d3`.
+`de3bcbb`, `1865310`, `63c3c33`, `8e6350f`, `24842d3`, `1aa2f29` and `2feadb1` —
+**seventeen commits**, taken from `git rev-list --count origin/master..HEAD`,
+which reads **17** at `2feadb1`.
 **Take the number from that command and never from counting the hashes**: it was
 recorded low four passes running, each time by counting a copied-forward list by
-hand. All sixteen are unpushed, so **CI has looked at
+hand. All seventeen are unpushed, so **CI has looked at
 nothing since `B51`**, and it has never run the
 new `.luacheckrc` check. Anything below claiming a CI state describes `65b4c46` and no later
 commit.
@@ -184,7 +195,7 @@ both are corrected, and the correction is under the entry below.
 
 | Category | Count | Open |
 |---|---|---|
-| B bugs | 51 | — (`B54` found by playtest `F12-4`, filed and fixed 2026-09-07 at `24842d3`, with `W7` unrun; `B53` filed and fixed 2026-09-07 at `de3bcbb`; `B51` fixed at `8de3cea` and confirmed in a world by `D7`) — and `B34` won't fix, `B47` resolved with a residue, `B48` fixed at `4179877` and confirmed by `E16`, `B49` fixed at `d8c32f7` and confirmed by `W4`, `B50` and `B52` fixed at `1b991ae` and confirmed in a world by `W1`, `W5` and `W6` on 2026-09-04 |
+| B bugs | 51 | — (`B54` found by playtest `F12-4`, filed and fixed 2026-09-07 at `24842d3`, confirmed in a world by `W7` the same day; `B53` filed and fixed 2026-09-07 at `de3bcbb`, confirmed by `E17` the same day; `B51` fixed at `8de3cea` and confirmed in a world by `D7`) — and `B34` won't fix, `B47` resolved with a residue, `B48` fixed at `4179877` and confirmed by `E16`, `B49` fixed at `d8c32f7` and confirmed by `W4`, `B50` and `B52` fixed at `1b991ae` and confirmed in a world by `W1`, `W5` and `W6` on 2026-09-04 |
 | S sandbox and security | 7 | — |
 | C compliance and packaging | 18 | `C24` — filed 2026-09-07: CI boots no engine, so nothing CI runs reaches an in-engine-only check. (`C23` filed and resolved inside 2026-09-07, `de3bcbb` then `63c3c33`; `C21` fixed by `F10` at `b23a8bc`, confirmed in a world by `F10-1`; `C22` filed and fixed 2026-09-06 at `4450ce1`) |
 | A architecture and performance | 14 | `A17`, `A18` — both low, both pre-existing, both filed 2026-09-05 while recording `F11` |
@@ -253,10 +264,11 @@ per-argument `print` — five failing the expected way and the zero-argument one
 the opposite direction with `got: 0`, a per-argument implementation charging
 nothing for `print()`. `lib/sandbox.lua` was md5-verified restored afterwards.
 
-**Every defect the playtests found is fixed.** The latest is **`B54`, found
-running `F12-4` on 2026-09-07 at `8e6350f` and fixed the same day at `24842d3`**;
-its own check, `W7`, is unrun, so the fix is *gates green, unproven in a world*
-until that check is done. `B53` was **not** found by a playtest — the author hit
+**Every defect the playtests found is fixed, and every one is now confirmed in a
+world.** The latest is **`B54`, found running `F12-4` on 2026-09-07 at `8e6350f`
+and fixed the same day at `24842d3`**; its own check, `W7`, **passed later that
+day** at `2feadb1` over code `24842d3`, so the fix is verified and not merely
+gated. `B53` was **not** found by a playtest — the author hit
 it in ordinary use on 2026-09-07, before the `F11`–`F14` session had been played,
 and it is fixed the same day. `W1`'s
 re-run at codelevel 1 on 2026-09-03 was `B50`, and diagnosing it produced `B51`
@@ -265,10 +277,12 @@ and `B52`; `B50` and `B52` are fixed in `1b991ae` and confirmed in a world on
 the same day. The one thing **not verified anywhere** is `B10`'s refusal, aimed
 at twice through playtest `D2` and missed twice — the recipe is the suspect and
 its check was removed as untestable on 2026-09-02.
-**Gates green, unproven in a world — three:** `B14`, permanently blocked on
-`B34` being won't-fix, `S7`'s log half, and **`B54`**, whose one possible check
-is `W7` and whose spec coverage deliberately witnesses the charge rather than the
-chat line. **`B51` was on it for a few hours of
+**Gates green, unproven in a world — two:** `B14`, permanently blocked on
+`B34` being won't-fix, and `S7`'s log half. **`B54` was on it for one day** —
+its spec coverage witnesses the charge and not the chat line, so `W7` was its
+only possible evidence, and `W7` passed 2026-09-07 at `2feadb1` over code
+`24842d3`. **`B53` never reached the list**, `E17` passing the same day. **`B51`
+was on it for a few hours of
 2026-09-04 and left the same day**, `D7` reading *stopped* and *arrêté* in a
 world. **`B50` and `B52` left it that day too**, when `W1` at every codelevel,
 `W5` and `W6` all passed at `23f0227` — the list had been exactly four since
@@ -334,9 +348,9 @@ last `LUACHECK_STRICT=1` `W421` in it. **Neither blocks the tag.**
 
 **No bug or sandbox finding is open**, and `C24` above is the only compliance
 one. **`B54` is the last bug**, found running playtest `F12-4` on 2026-09-07 and
-fixed the same day at `24842d3`; what it leaves is one unrun check, `W7`, not an
-open finding. Before it `B53`, also filed and fixed inside 2026-09-07, at
-`de3bcbb`.
+fixed the same day at `24842d3` and **confirmed in a world by `W7`** later that
+day. Before it `B53`, also filed, fixed and confirmed inside 2026-09-07 —
+`de3bcbb`, then `E17`.
 `C23` was the last compliance finding to close, filed and resolved inside
 2026-09-07 as well — `de3bcbb` for one direction, `63c3c33` for the other.
 Before it, `C22`, open for
@@ -1099,6 +1113,11 @@ change would re-break is still load-bearing.
   same kind.** The fourth case runs the **pre-`F11` text as a permanent control
   that must fail**, so the coverage cannot pass vacuously by resolving nothing.
   Driven to failure by breaking the anchor: cases 1 and 3 failed by name.
+  **Confirmed in a world by playtest `E17`** on 2026-09-07 at `2feadb1` over
+  code `24842d3` — a file created with `+` ran untouched and raised the
+  ten-block column, **with the colours counted**, ten different hues rather than
+  one repeated. That is what the spec cannot reach: the route from the button to
+  a program a player actually runs.
 - **B54 · medium · resolved `24842d3` 2026-09-07** — `print` took **exactly one
   parameter**, so it printed its first argument and dropped the rest with no
   error. `print("is: ", is_block(colors.red))` put `> is: ` in the chat and
@@ -1112,7 +1131,8 @@ change would re-break is still load-bearing.
   written here that made anyone want to print a **boolean**, `F13`'s `is_block`
   being three days old. That check's own recipe prints three values, so it could
   not get past its first line, and `F12-4` is recorded as a fail against `print`
-  rather than against the rotation it exists for. Severity **medium**: nothing is
+  rather than against the rotation it exists for; **it was re-run and passed
+  later the same day**, so that fail is a `B54` sighting and nothing owed. Severity **medium**: nothing is
   corrupted and no build is lost, but `print` is how a player debugs, and a
   debugging tool that discards its arguments silently costs more than the minutes
   it takes to hit.
@@ -1128,9 +1148,12 @@ change would re-break is still load-bearing.
     console has no tab stops, so a tab goes through the client font as an
     ordinary glyph rather than as alignment, and the engine's chat wrapping
     breaks on spaces, so a tab-joined line would refuse to wrap on a narrow
-    console. **`lua_api.md` says nothing about either**, so this is reasoned from
-    the client's text path and is **not verified in a world** — playtest `W7`
-    carries it, and it is the only thing that can.
+    console. **`lua_api.md` says nothing about either**, so this was reasoned
+    from the client's text path — and **playtest `W7` is what checked it**, on an
+    exception-only basis (*say if it does not wrap*), passing on 2026-09-07 at
+    `2feadb1` over code `24842d3` with no exception reported against a long
+    space-joined line on a narrow console. `W7` was the only thing that could
+    ever say so.
   - **Zero arguments sends a bare `> `, deliberately.** `print()` in real Lua is
     a blank separator line, and refusing to send would make it the one API call
     that silently does nothing. It still costs one command, so it cannot be
@@ -1160,7 +1183,9 @@ change would re-break is still load-bearing.
   `lib/sandbox.lua` was restored and md5-verified afterwards.
   **State it plainly: all twelve would have been green before the fix.** They
   guard the new implementation against a refactor; they do not witness the
-  defect. **`W7` is what witnesses it**, and nothing else will.
+  defect. **`W7` is what witnesses it**, and nothing else will — and it did, on
+  2026-09-07 at `2feadb1` over code `24842d3`, reading `> is: true`, a bare
+  `> ` for `print()` and `> a nil b` with no truncation.
   The change also touched `lib/api.lua` — `params = {'message', '...'}` and
   *Print every argument in the chat, joined by a space* — with `doc/api.md`
   regenerated from it.
@@ -1811,23 +1836,26 @@ document says so.
   committed as well (`4179877`, `b23a8bc`, `d8c32f7`). **`B50` and `B52` left it
   on 2026-09-04**, when all three of the checks written for them passed at
   `23f0227`.
-- **Gates green, playtest written and not yet run — `F11` and `F12`, sixteen
-  checks between them.** `F11-1` to `F11-11` were written 2026-09-05 at
-  `6126abe` and `F11-4` has since been superseded by `F12-1` and `F12-2`,
-  leaving ten; `F12-1` to `F12-6` were written 2026-09-06 at `01f9641`. None has
-  been run. That is the whole of the outstanding evidence for both features:
+- **Gates green, playtest written and not yet run — empty again as of
+  2026-09-07, and the entry is kept for what it recorded.** `F11` and `F12` put
+  sixteen checks on it: `F11-1` to `F11-11` written 2026-09-05 at `6126abe`,
+  `F11-4` since superseded by `F12-1` and `F12-2`, leaving ten, and `F12-1` to
+  `F12-6` written 2026-09-06 at `01f9641`. **All sixteen have now been run** —
+  most at `8e6350f` on 2026-09-07 and the last three at `2feadb1` over code
+  `24842d3` the same day — and so have `E17` and `W7`, added for `B53` and
+  `B54`. That was the whole of the outstanding evidence for both features:
   **nothing either does is provable by the specs** — a registered node, a
   texture, a creative-inventory listing, the picker, the help row, a game's own
   registration, a ramp read as a gradient and a `get_block` that lands inside
-  the world all need a world. No finding is behind them; a feature's checks
-  being unrun is outstanding *checking*, not unfinished work. Before that entry
-  this list was empty and every check in `PLAYTEST.md` carried a result, which
-  had not been true before: `B51`'s `D7` was written with the fix on 2026-09-04
-  and run the same day, `B50` and `B52`'s three checks all ran on 2026-09-04,
-  and `B49`'s `W4` on 2026-09-03 at `16cd05c`.
+  the world all need a world. No finding was behind them; a feature's checks
+  being unrun is outstanding *checking*, not unfinished work.
 - **Correct by reading, unprovable by running.** The `rev_blocks` fix in
   `lib/commands.lua` — the third of `F11`'s load-time snapshots, and the one
-  that was a live defect. Its evidence is playtest `F11-11` and nothing else.
+  that was a live defect. Its evidence is playtest `F11-11` and nothing else,
+  and **`F11-11` passed on 2026-09-07** at `2feadb1` over code `24842d3`:
+  `get_block()` answered a game-registered category's own name rather than
+  `false`. **So it is no longer correct-by-reading — it is observed**, and the
+  claim should not be written up as an outstanding risk again.
   **`F12` narrowed this claim and it is worth stating exactly, because it was
   overstated once.** `codeblock.commands.drone_get_block` is exported, so a spec
   *can* call `get_block`, and `integration_spec` now asserts its out-of-world
@@ -1864,7 +1892,9 @@ document says so.
   it**: a probe capturing `core.chat_send_player` around a real
   `print("a", "b")` read `want: > a b, got: nil`, and the probe was removed and
   the finding kept as a comment. So **what `print` puts in the chat is playtest
-  `W7` and can never be a spec**, and the twelve cases that were written pin the
+  `W7` and can never be a spec** — and **`W7` was run on 2026-09-07 at
+  `2feadb1` over code `24842d3` and passed**, which is the only evidence `B54`
+  can have. The twelve cases that were written pin the
   *charge* instead — one call is one command — all twelve of which would have
   been green before the fix. **Do not later "correct" the two locals into one.**
   The `F14-2` misspelling report goes through `lib/sandbox.lua`'s binding at
@@ -2044,18 +2074,19 @@ failing. At `e3e2178` the same run was 646 and 284, at `4450ce1` 610 and 248, at
 
 **CI has looked at none of it.** `origin/master` is at `65b4c46` — run 47, green
 on all three jobs, checked against the Actions API on 2026-09-04 — and
-**sixteen** commits are unpushed, `git rev-list --count origin/master..HEAD`
-reading 15 at `24842d3`.
+**seventeen** commits are unpushed, `git rev-list --count origin/master..HEAD`
+reading 17 at `2feadb1`. **With the playtests done, the push is the largest
+thing outstanding in this project.**
 
-**Gates green, unproven in a world is three**, `B14`, `S7`'s log half and `B54`;
-and **five playtest checks are unrun, with one owed a re-run**. The five are
-`F11-10`, `F11-11` and `F12-6` — the whole game-author path, needing a second mod
-that calls `register_blocks` — plus `E17` for `B53` and `W7` for `B54`. The
-re-run is **`F12-4`**, whose fail on 2026-09-07 was `B54` and says nothing about
-the rotation it exists for. `F11-4` is **retired**, both its successors having
-passed.
+**Gates green, unproven in a world is two**, `B14` and `S7`'s log half; `B54`
+left the list on 2026-09-07 when `W7` passed. **No playtest check is unrun and
+none carries a fail**, for the first time: the six that were outstanding —
+`F11-10`, `F11-11`, `F12-6`, `E17`, `W7` and `F12-4` re-run — all passed on
+2026-09-07 at `2feadb1` over code `24842d3`, with no defect reported. `F11-4` is
+**retired**, both its successors having passed.
 
 ---
 
-Last reviewed **2026-09-07**, describing commit **`24842d3`** — `B54`'s fix, the
-`F11`–`F14` playtest session at `8e6350f`, and this record change.
+Last reviewed **2026-09-07**, describing commit **`2feadb1`** — record-only,
+over code `24842d3`, which is `B54`'s fix. It records the second playtest
+session of that day: six checks, six passes, no finding filed.

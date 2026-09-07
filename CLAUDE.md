@@ -227,8 +227,10 @@ answers `nil` over ungenerated map, so a player prints a nil routinely and
 tab** — Luanti's chat console has no tab stops, so a tab renders as an ordinary
 glyph rather than as alignment, and the engine's chat wrapping breaks on spaces,
 so a tab-joined line refuses to wrap on a narrow console. `lua_api.md` documents
-neither, which is why the second is reasoned from the client's text path and is
-**unverified** until `W7` runs.
+neither, so the second was reasoned from the client's text path — and `W7`
+checked it **on an exception-only basis** (*say if it does not wrap*): its pass
+on 2026-09-07 at `2feadb1`, over code `24842d3`, on engine 5.17.0 reported no
+exception, so the space separator stands.
 
 ## Architecture
 

@@ -18,6 +18,16 @@ date**: a pass recorded three phases ago is not evidence about today's code. A
 `fail` is not a finding — report it and let `AUDIT.md` allocate or widen an id.
 Reasoning lives in `AUDIT.md` under the bracketed id, or `ROADMAP.md` for an `F`.
 
+**When the checkout was at a record-only commit, name both.** The reader needs
+to know which *code* was played, and a commit that touched only Markdown says
+nothing about that. Write it
+`2feadb1`, record-only over `24842d3` — the checkout, then the last commit
+that touched `lib/`. The 2026-09-07 results below are the first to use it.
+
+**Within one entry the results run oldest first**, so a re-run is added under
+the result it supersedes. `W1` is the one exception and runs the other way;
+leave it, because its two halves are annotated as one result in two parts.
+
 ## How a check is written
 
 **Hand the runner an actual program or command to run**, not a description of
@@ -30,50 +40,59 @@ A recipe also **names the shell it is for** — that has cost a session twice
 
 ## Where it stands
 
-**82 entries, of which `F11-4` is retired — so 81 live checks. Five are unrun
-and one carries a fail**, which is the smallest this document has been able to
-say since `F11` landed and the first time it has had to say *fail* since
-2026-09-03.
+**82 entries, of which `F11-4` is retired — so 81 live checks. Nothing is
+outstanding: no unrun check, no fail.** 80 carry a pass as their most recent
+result and one, `H8`, carries a partial because two of its cases cannot be
+performed at all. **That is the first time this document has had nothing to
+ask for**, and it is what the two sessions of 2026-09-07 bought. The one thing
+it still asks for is not a check but a re-check: **`R1` and `R2` are stale**,
+last run at `afbe504` and `7c5bceb`, and both describe a release archive that
+`F4`, `F11` and `.gitattributes` have changed since.
 
-**The session of 2026-09-07 at `8e6350f`, engine 5.17.0, is the largest run this
-project has had: sixteen results in one sitting.** Fifteen passes — `F11-1`,
-`F11-2`, `F11-3`, `F11-5` to `F11-9`, `F12-1`, `F12-2`, `F12-3`, `F12-5` and all
-three `F14-n` — and **one fail, `F12-4`, which is `B54`**. It was run at
-`8e6350f`, so every result line carries that commit and not `HEAD`; `B54`'s fix
-landed afterwards at `24842d3`.
+**Two sessions on 2026-09-07, engine 5.17.0, and between them twenty-two
+results.** The first, at `8e6350f`, is the largest single run this project has
+had: sixteen results, fifteen passes — `F11-1`, `F11-2`, `F11-3`, `F11-5` to
+`F11-9`, `F12-1`, `F12-2`, `F12-3`, `F12-5` and all three `F14-n` — and **one
+fail, `F12-4`, which was `B54`**. `B54`'s fix landed afterwards at `24842d3`.
+The second cleared what was left: **`F11-10`, `F11-11`, `F12-6`, `E17`, `W7` and
+`F12-4` re-run, all six passing**, at `2feadb1` over code `24842d3`. **No defect
+was reported, so the second session produced no finding id.**
 
-**What is outstanding, and it is five entries and one re-run:**
+**What those six closed, because each was the only evidence something could
+have:**
 
-- **`F11-10`, `F11-11` and `F12-6` — the whole game-author path, and it is now
-  unblocked rather than waiting on a mod.** **The mod exists, at
-  `../codeblock-test-mod`** — outside this repository and unversioned, which is
-  deliberate and is described in `F11-10` — so all three are runnable as
-  written, and cheapest run in one session since `F11-11` and `F12-6` both use
-  its `wool` category. Until then the path has **no in-world evidence at all**
-  while every other part of `F11`, `F12` and `F14` has: the contract, the
-  refusals, the late-call seal, a registered category reaching `place()`,
-  `get_block()` and player meta, and a registered category's own ramp are all
-  committed, gated and unseen. **`F11-11` is also the `rev_blocks` fix's only
-  possible evidence.**
-- **`E17`**, written 2026-09-07 at `de3bcbb` for `B53` — a brand new file
-  running as it is. Nothing in the *Editor* group would have caught `B53`, because
-  every other check there opens a file that already exists.
-- **`W7`**, written 2026-09-07 for `B54` — what `print` puts in the chat. No
-  spec can see it, which `test-agent` established by running a probe and watching
-  it read `nil`.
-- **`F12-4` must be re-run**, on `24842d3` or later. Its fail is against `print`
-  and says nothing about the rotation it exists for: the recipe's own first line
-  prints three values, so on the broken build the check stopped before the reads
-  were looked at.
+- **`F11-10` is `lib/blocks.lua`'s only in-world evidence** — the good call, the
+  three refusals with their four log lines, and the late call refused and
+  returning `false`. It also settles that the `mod ?` line in case 3 reads as
+  intelligible rather than as a trap.
+- **`F11-11` is the `rev_blocks` fix's only possible evidence**, and it passed:
+  `get_block()` answers a game-registered category's own name rather than
+  `false`. **The record should no longer carry that fix as an outstanding
+  risk.** It also checked the package page's claim that a registered category
+  shows up in the editor beside the built-in ones.
+- **`F12-6`** — a registered category's own ramp, on the same terms as the
+  mod's.
+- **`E17` is `B53`'s only check** — a brand new file running untouched, with the
+  colours counted. Nothing in the *Editor* group would have caught `B53`, every
+  other check there opening a file that already exists.
+- **`W7` is `B54`'s only check**, and the only thing that can ever see what
+  `print` puts in the chat. It also settled the space-vs-tab separator, whose
+  wrapping it asked for on an exception-only basis and drew no exception —
+  reasoned from the client's text path and checked nowhere else.
+- **`F12-4`'s re-run observed the rotation for the first time.** Its earlier
+  fail was `B54` stopping the recipe on its own first line, so it says nothing
+  about `get_block` and `is_block` turning with the drone; that fail is retired
+  as a `B54` sighting and kept because it is how `B54` was found.
 
-**This is outstanding *checking*, not unfinished work** for the four features:
-`F11` to `F14` are committed with their gates green and no finding against any of
-them. `B54` is the one finding this session produced, and it is fixed.
+**`F11` to `F14` are committed with their gates green, no finding stands against
+any of them, and their checking is now done as well.** `B54` is the one finding
+either session produced, and it is fixed and now confirmed in a world.
 
 **`F13` added no entry, and that is deliberate.** `is_block` is `get_block`'s
 read path, so `F12-3` and `F12-4` were **extended** at `4450ce1` rather than
 joined by a group of their own: a separate group would walk to the same three
-positions twice. `F12-3` passed; `F12-4` is the one owed a re-run. `F12-5` was
+positions twice. Both have passed — `F12-3` first time, `F12-4` on its re-run —
+so `F13` is checked in a world without an entry of its own. `F12-5` was
 narrowed the same day: `ramp_over`'s clamping now has spec coverage, so what was
 left there was the visual half, and it passed.
 
@@ -108,10 +127,11 @@ reasoned**, which is the only kind of evidence it can ever have. **`F11-3`** is
 the whole point of `F11`: the mod loading and building in a third-party game that
 ships neither `default` nor `wool`, which nothing local could show.
 
-**One fail is the most recent result on one check** — `F12-4`, above — and one
-result is a partial, `H8`, only because two of its cases cannot be performed.
-`F9-1`, `R1`, `E16`, `W1`, `W3` and the four `F10-n` checks each carry two
-results or more. **`H10` passed 2026-09-02 with a few presses still missing** —
+**No fail is the most recent result on any check.** Three fails are recorded and
+all three are superseded by a later pass on the same entry — `W1` twice, and
+`F12-4` once. **The one result that is not a pass is `H8`'s partial**, and only
+because two of its cases cannot be performed. `F9-1`, `R1`, `E16`, `W1`, `W3`,
+`F12-4` and the four `F10-n` checks each carry two results or more. **`H10` passed 2026-09-02 with a few presses still missing** —
 the residue `B47`'s fix leaves, accepted rather than closed.
 
 **Three check recipes could not have run at all, and were repaired on
@@ -249,7 +269,7 @@ checks a real install into a foreign game, not what the archive contains.
 
 E1–E17. Runs of 2026-08-27 and 2026-08-28, engine 5.17.0, in the author's test
 game. They produced `B33` (widened to three losing paths), `B34`, `B35`, `B36`
-and `B37`. **`E17` is newer and unrun**: written 2026-09-07 for `B53`, which
+and `B37`. **`E17` is newer**, written and run on 2026-09-07 for `B53`, which
 nothing in this group would have caught, because every check here opens a file
 that already exists.
 
@@ -523,7 +543,11 @@ rainbow and why the count of colours is the discriminator. `integration_spec`
 covers the template compiling and running; **what only a world can show is the
 route from the button to a program a player actually runs.**
 
-Result: not yet run.
+Result: pass — `2feadb1`, record-only over `24842d3` · engine 5.17.0 ·
+2026-09-07 — the file created with `+` ran untouched and raised the ten-block
+column, and **the colours were counted**: ten different hues in wheel order, not
+one repeated. `B53` is now confirmed in a world, and this is the only evidence
+that fix can have.
 
 ---
 
@@ -1198,7 +1222,9 @@ charged time for every example, `torus.lua` and `density.lua` included.
 W1–W7. **`W7` is the one check in this group about what a program *says* rather
 than what it writes**, added 2026-09-07 for `B54`, and it is here because a
 running program's own output has no other group and the per-feature series is
-reserved for `F<feature>-<n>` ids. Everything else here is a map write.
+reserved for `F<feature>-<n>` ids. Everything else here is a map write. **`W7`
+passed on 2026-09-07** at `2feadb1` over code `24842d3`, so all seven checks in
+this group carry a pass.
 
 W1–W3 played 2026-08-28, and that run **settled questions rather than
 finding defects**: `W2` answered `A4`, the oldest thing on the audit's *not
@@ -1637,14 +1663,21 @@ report read *"the print function in the game cannot concatenate arguments"*.
 not real Lua's tab, on the reasoning that Luanti's chat console has no tab stops
 — a tab goes through the client font as an ordinary glyph — and that the engine's
 chat wrapping breaks on spaces, so a tab-joined line would refuse to wrap on a
-narrow console. **`lua_api.md` says nothing about either**, so that is reasoned
-from the client's text path and **is not verified**. Look at a long `print` on a
-narrow console once, and say if it does not wrap.
+narrow console. **`lua_api.md` says nothing about either**, so that was reasoned
+from the client's text path — and this check asked for the wrapping **on an
+exception-only basis** (*say if it does not wrap*), and its run on 2026-09-07
+reported no exception, so the space separator stands.
 
 **`error` was deliberately not widened** — real Lua's `error(message, level)` is
 not variadic — so there is nothing to check there.
 
-Result: not yet run.
+Result: pass — `2feadb1`, record-only over `24842d3` · engine 5.17.0 ·
+2026-09-07 — all three programs: `> is: true` on one line with one space,
+`print()` a bare `> ` and not `> nil`, and `> a nil b` with no truncation at the
+nil. **The separator is settled too** — no exception was reported against the
+space-joined line wrapping on a narrow console, which the recipe asked for on
+that basis and was the one part of `B54`'s reasoning that no gate and no
+document could confirm. `B54` is now confirmed in a world.
 
 ---
 
@@ -2278,7 +2311,15 @@ this check has been run.
    call, which is why **the pass here is `the late call returned false`** rather
    than a mod name in codeblock's own line.
 
-Result: not yet run.
+Result: pass — `2feadb1`, record-only over `24842d3` · engine 5.17.0 ·
+2026-09-07 — **all three cases, and this is `lib/blocks.lua`'s only in-world
+evidence.** The good call logged `the game added 1 block category` and the
+category appeared in the sandbox, the picker and the help selector under its raw
+name; the three refusals produced **four** lines, so `'ghost'`'s two-line
+behaviour is observed and not just designed; the late call was refused and
+returned `false`. Case 3 also settles that **`mod ?` reads as intelligible
+rather than as a trap** — the author passed it with the caveat in front of them,
+which is what the caveat was written to buy.
 
 ### F11-11 · A registered category reaches `place()`, `get_block()` and player meta [F11]
 
@@ -2306,7 +2347,13 @@ assumed.
    **Pass:** the dotted key survived in player meta as `default_block`, and a
    bare `place()` builds it.
 
-Result: not yet run.
+Result: pass — `2feadb1`, record-only over `24842d3` · engine 5.17.0 ·
+2026-09-07 — all three cases. `place('wool.red')` landed the node,
+**`get_block()` answered the category's own name and not `false`** from both
+positions, and the dotted key survived a disconnect and rejoin as
+`default_block`. **The `rev_blocks` fix is now evidenced**, which nothing else
+could ever have done: the record should stop describing it as correct-by-reading
+and unproven.
 
 ### F12-1 · 105 nodes register, and the picker shows them in palette order [F12]
 
@@ -2436,7 +2483,9 @@ so a move introduced in one would show here.
 **This check cannot be performed on a build whose `print` takes one argument**,
 and that is how `B54` was found: the recipe's own first line prints three values,
 and until `24842d3` only `i` came out. The reads themselves were never reached
-by the eye. **Re-run it in full** — the rotation half is still unobserved.
+by the eye. It was re-run in full on 2026-09-07 once the fix was in, so **the
+rotation is observed as of that second result** and the fail below stands as a
+`B54` sighting rather than as anything owed.
 
 Result: fail — `8e6350f` · engine 5.17.0 · 2026-09-07 — **the check could not get
 past its own first line.** `print(i, get_block(0, 0, 1), is_block(colors.red, 0,
@@ -2444,8 +2493,16 @@ past its own first line.** `print(i, get_block(0, 0, 1), is_block(colors.red, 0,
 one concatenated string raised *attempt to concatenate a boolean value*. That is
 **`B54`**, filed and fixed the same day at `24842d3`. **Nothing is known about
 the rotation this check exists for**: the fail is against `print`, not against
-`get_block` or `is_block`, and this entry stays owed until it is re-run on
-`24842d3` or later.
+`get_block` or `is_block`, and this entry stayed owed until it was re-run on
+`24842d3` or later. **Superseded by the result below; kept because it is how
+`B54` was found.**
+
+Result: pass — `2feadb1`, record-only over `24842d3` · engine 5.17.0 ·
+2026-09-07 — the re-run, in full. The wall was reported at exactly one of the
+four facings with `is_block` `true` there and `false` at the other three, and
+the `place()` afterwards landed where it would have landed before the reads.
+**This is the first time the rotation this check exists for has been observed**,
+for `get_block` and `is_block` together; the earlier fail never reached it.
 
 ### F12-5 · A ramp reads as a gradient, and the other ramps strobe [F12]
 
@@ -2498,7 +2555,12 @@ was written for.
 gradient and the generated documentation says so. That is deliberate: the mod
 cannot know a game's colour order, or whether its category is colours at all.
 
-Result: not yet run.
+Result: pass — `2feadb1`, record-only over `24842d3` · engine 5.17.0 ·
+2026-09-07 — both cases: `ramp.wool(1..3, 1, 3)` gave `wool.blue`,
+`wool.green`, `wool.red` in that order, and `ramp.wool` is listed in the help
+panel's *Choosing blocks* group beside the four built-in ramps with its
+alphabetical-order note. A registered category getting a ramp on the same terms
+as the mod's own is observed.
 
 ### F14-1 · The API help panel lists the new views and `ramp.of` [F14]
 
