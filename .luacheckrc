@@ -113,11 +113,15 @@ stds.codeblock_sandbox = {
         -- checkpoints
         "save", "go",
         -- blocks
-        "colors", "glass", "lamps", "hues", "air",
-        -- One ramp per block category. Spelled out rather than left open, so a
-        -- typo in an example is caught; a category a game registers gets a ramp
-        -- too, but no example can name one.
-        ramp = {fields = {"hues", "colors", "glass", "lamps"}},
+        "colors", "glass", "lamps", "air",
+        -- The four palette views: arrays of colour names, one axis of the
+        -- palette against the category's material.
+        "hues", "light_hues", "dark_hues", "neutrals",
+        -- One ramp per block category, plus the generic one over any array.
+        -- Spelled out rather than left open, so a typo in an example is caught;
+        -- a category a game registers gets a ramp too, but no example can name
+        -- one.
+        ramp = {fields = {"hues", "colors", "glass", "lamps", "of"}},
         -- utilities. `table` and `vector` are left open: a program sees the
         -- whole standard library and the whole vector3 module through them,
         -- and only table.randomizer is an API name of ours.

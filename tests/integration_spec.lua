@@ -1068,6 +1068,243 @@ if bad == 0 then default_block(colors.white) else default_block(colors.black) en
 end
 
 --------------------------------------------------------------------------------
+-- the palette views, and ramp.of over them (F14)
+--
+-- hues, light_hues, dark_hues and neutrals are one axis of the palette - which
+-- colours, in what order - and a category is the other, which material. The two
+-- meet because every category is indexed by the same *short* colour name, so
+-- glass[h] and lamps[h] turn any of these arrays into a glass or a lamp
+-- gradient without a fourth set of names existing; and for colors the short
+-- name and the flat key coincide, so a name straight out of one of them is a
+-- solid block already. That relationship is the whole of the design and nothing
+-- else in the suite reaches it: a view built out of flat keys would read as a
+-- plausible array of names, would still ramp, and would only fail where it is
+-- indexed into a category.
+--
+-- ramp.of is ramp_pick itself - the arithmetic the four F12 ramps were already
+-- going through, extracted into a module local. The sweep below compares it
+-- against ramp.hues across the range and past both ends, which is what says the
+-- extraction changed nothing: the two now share one implementation, so they
+-- could only disagree if the extraction had left something behind.
+--
+-- Same readback channel as the section above: default_block, the one command
+-- that writes a value onto the record and refuses anything that is not a real
+-- block, plus a white/black flag for the answers that are not block names.
+--------------------------------------------------------------------------------
+
+do
+    local blocks = codeblock.config.allowed_blocks
+
+    --- The block a one-line program's expression resolved to, or the error that
+    -- stopped it, so a run that did not happen reads as a failure.
+    local function answer(expr)
+        local drone, err = sandboxed('default_block(' .. expr .. ')\n')
+        if err then return 'error: ' .. err end
+        return drone.default_block
+    end
+
+    --- Whether a condition held inside a real program. Anything whose answer is
+    -- not a block name is read back this way. An error comes back as its own
+    -- text rather than as false, so a case that could not be asked at all reads
+    -- as a failure and not as a negative answer.
+    local function holds(cond)
+        local drone, err = sandboxed(
+                               ('if %s then default_block(colors.white) else default_block(colors.black) end\n')
+                                   :format(cond))
+        if err then return 'error: ' .. err end
+        return drone.default_block == 'white'
+    end
+
+    --- Whether `view` holds exactly `want`, in order, read from inside a
+    -- program. The wanted names are written into the source as a literal rather
+    -- than read back out of the config, so a view derived from the wrong column
+    -- of the palette is caught by what it holds and not merely by its length.
+    local function spells(view, want)
+        local quoted = {}
+        for i, name in ipairs(want) do quoted[i] = ("'%s'"):format(name) end
+        local drone, err = sandboxed(([[
+local want = {%s}
+local bad = 0
+for i = 1, %d do if %s[i] ~= want[i] then bad = bad + 1 end end
+if bad == 0 then default_block(colors.white) else default_block(colors.black) end
+]]):format(table.concat(quoted, ', '), #want, view))
+        if err then return 'error: ' .. err end
+        return drone.default_block == 'white'
+    end
+
+    -- The lengths, separately from the contents, so a view that lost an entry
+    -- says so by name instead of failing the order case for a second reason.
+    it('light_hues is one name per family', holds('#light_hues == 10'), true)
+    it('dark_hues is one name per family', holds('#dark_hues == 10'), true)
+    it('neutrals is the five greys', holds('#neutrals == 5'), true)
+
+    it('light_hues runs light_pink to light_violet, in colour-wheel order',
+       spells('light_hues', {
+        'light_pink', 'light_red', 'light_orange', 'light_yellow',
+        'light_olive', 'light_lime', 'light_green', 'light_cyan', 'light_blue',
+        'light_violet'
+    }), true)
+    it('dark_hues runs dark_pink to dark_violet, in the same order',
+       spells('dark_hues', {
+        'dark_pink', 'dark_red', 'dark_orange', 'dark_yellow', 'dark_olive',
+        'dark_lime', 'dark_green', 'dark_cyan', 'dark_blue', 'dark_violet'
+    }), true)
+    it('neutrals runs white to black', spells('neutrals', {
+        'white', 'light_grey', 'grey', 'dark_grey', 'black'
+    }), true)
+
+    ----------------------------------------------------------------------------
+    -- short colour names, not flat block keys
+    --
+    -- The three cases below are the design premise. A view of flat keys would
+    -- satisfy every case above and every ramp case below, and would fail only
+    -- here, where the name is used the way the feature exists to be used.
+    ----------------------------------------------------------------------------
+
+    it('a view holds the short colour name', holds("light_hues[1] == 'light_pink'"),
+       true)
+    it('so a category turns one into that material in glass',
+       answer('glass[light_hues[1]]'), 'light_pink_glass')
+    it('and into a lamp', answer('lamps[light_hues[1]]'), 'light_pink_lamp')
+    -- The other half: for colors the short name *is* the flat key, so a name
+    -- out of a view needs nothing around it to be placed as a solid.
+    it('and is a solid block already, with nothing around it',
+       answer('dark_hues[1]'), 'dark_pink')
+
+    ----------------------------------------------------------------------------
+    -- ramp.of is the same mapping as the ramps it was extracted from
+    ----------------------------------------------------------------------------
+
+    -- Half-integers as well as whole ones, because rounding is where the two
+    -- would part company first, and past both ends, because clamping is the
+    -- other half of the arithmetic. The explicit range is swept too: min and
+    -- max are arguments ramp.of carries one position further along than the
+    -- ramps do, which is exactly the kind of thing an extraction gets wrong.
+    local agreed, agree_err = sandboxed([[
+local bad = 0
+for k = -6, 28 do
+    local v = k / 2
+    if ramp.of(hues, v) ~= ramp.hues(v) then bad = bad + 1 end
+    if ramp.of(hues, v, -5, 20) ~= ramp.hues(v, -5, 20) then bad = bad + 1 end
+end
+if ramp.of(hues, 'x') ~= ramp.hues('x') then bad = bad + 1 end
+if ramp.of(hues, 3, 3, 3) ~= ramp.hues(3, 3, 3) then bad = bad + 1 end
+if bad == 0 then default_block(colors.white) else default_block(colors.black) end
+]])
+    it('the ramp.of sweep runs', agree_err, nil)
+    it('ramp.of over hues answers exactly what ramp.hues answers',
+       agreed.default_block, 'white')
+
+    ----------------------------------------------------------------------------
+    -- the composition, end to end
+    ----------------------------------------------------------------------------
+
+    -- orange is the third family, and over 1..10 the mapping is the identity,
+    -- so 3 is the value that has to come back orange. A ramp wired to the wrong
+    -- view answers a light or a plain shade here and a ramp off by one answers
+    -- red or yellow.
+    it('a ramp over dark_hues placed as a solid', answer('ramp.of(dark_hues, 3, 1, 10)'),
+       'dark_orange')
+    it('the same ramp read through glass',
+       answer('glass[ramp.of(dark_hues, 3, 1, 10)]'), 'dark_orange_glass')
+    it('and through lamps', answer('lamps[ramp.of(dark_hues, 3, 1, 10)]'),
+       'dark_orange_lamp')
+
+    ----------------------------------------------------------------------------
+    -- ramp.of's edges
+    --
+    -- None of them raises. ramp.of takes a list a program may have built
+    -- itself, so every way of handing it something it cannot use has an answer
+    -- rather than an error: stopping a program over an arithmetic accident is
+    -- the wrong shape for a function a player calls inside a loop.
+    ----------------------------------------------------------------------------
+
+    it('a list that is not a table answers nothing',
+       holds('ramp.of(42, 1, 1, 10) == nil'), true)
+    it('no list at all answers nothing', holds('ramp.of() == nil'), true)
+    it('an empty list answers nothing', holds('ramp.of({}, 1, 1, 10) == nil'),
+       true)
+    it('a value that is not a number answers the first entry',
+       answer('ramp.of(hues, "middle", 1, 10)'), 'pink')
+    it('a range of zero width answers the first entry',
+       answer('ramp.of(hues, 5, 3, 3)'), 'pink')
+    it('below the range it clamps rather than wrapping',
+       answer('ramp.of(hues, -1000, 1, 10)'), 'pink')
+    it('above the range it clamps rather than wrapping',
+       answer('ramp.of(hues, 1000, 1, 10)'), 'violet')
+    it('min omitted defaults to 1', answer('ramp.of(hues, 1)'), 'pink')
+    it('max omitted defaults to the length of the list',
+       answer('ramp.of(hues, 10)'), 'violet')
+    -- The default range follows the list it was handed, and is not a fixed ten
+    -- borrowed from the hues: neutrals is five long, so 5 is its last entry and
+    -- 10 would be off the end of it.
+    it('and to the length of whichever list it was handed',
+       answer('ramp.of(neutrals, 5)'), 'black')
+    it('which is the same list its first entry comes from',
+       answer('ramp.of(neutrals, 1)'), 'white')
+
+    ----------------------------------------------------------------------------
+    -- a list the program built itself
+    --
+    -- The reason ramp.of exists rather than a fourth and fifth named ramp.
+    ----------------------------------------------------------------------------
+
+    it("a two-entry list of the program's own answers its first entry",
+       answer('ramp.of({colors.white, colors.red}, 1, 1, 2)'), 'white')
+    it('and its last', answer('ramp.of({colors.white, colors.red}, 2, 1, 2)'),
+       'red')
+    -- It returns whatever the list holds and does not check that an entry is a
+    -- block name, so a program may ramp anything it has in order.
+    it('a list of things that are not blocks ramps the same way',
+       holds("ramp.of({'a', 'b'}, 2, 1, 2) == 'b'"), true)
+
+    ----------------------------------------------------------------------------
+    -- the views are snapshots (S1)
+    --
+    -- One copy per run, like every other palette table the environment
+    -- publishes. The first program has to be seen to write, or the second one
+    -- reading a clean array would prove nothing: an assignment that raised
+    -- would leave exactly the same trace.
+    ----------------------------------------------------------------------------
+
+    it('a program may write into a palette view within its own run', holds(
+           "(function() dark_hues[1] = 'tampered' return dark_hues[1] == 'tampered' end)()"),
+       true)
+    it('but the next run reads the array unaltered', answer('dark_hues[1]'),
+       'dark_pink')
+    it('and the config behind it is untouched', blocks.dark_hues[1], 'dark_pink')
+
+    -- The array may be written into; the name it is published under may not, or
+    -- a program could swap the whole view out from under the ramps.
+    local _, replaced = sandboxed('dark_hues = {}\n')
+    it('and the name itself cannot be reassigned',
+       (replaced or ''):find('cannot be reassigned', 1, true) ~= nil, true)
+
+    ----------------------------------------------------------------------------
+    -- reading past the end
+    --
+    -- Legitimate, and deliberately carries no misspelling report: the views are
+    -- arrays, and walking one until it answers nil is a reasonable thing for a
+    -- program to do, unlike misspelling colors.gray.
+    --
+    -- **What is not asserted here is the absence of the report**, and it cannot
+    -- be from a spec. lib/sandbox.lua binds chat_send_player as a load-time
+    -- local, so replacing core.chat_send_player around a run intercepts
+    -- nothing, and the message goes to a player name no one is logged in
+    -- under. What a case here would assert is that nothing raised, which is
+    -- true of the reporting version too - so it would pass either way. Whether
+    -- a stray warning reaches a player belongs in PLAYTEST.md.
+    ----------------------------------------------------------------------------
+
+    it('an index past the end of a view reads nil',
+       holds('dark_hues[99] == nil'), true)
+    it('and the program carries on', answer('colors.white'), 'white')
+
+    codeblock.filesystem.remove_file('test_player', program_file)
+    codeblock.filesystem.remove_user_data('test_player')
+end
+
+--------------------------------------------------------------------------------
 -- the block palette, and the nodes it registers (F11)
 --
 -- The mod registers its own blocks now, so whether `place(name)` lands on a
@@ -1272,6 +1509,13 @@ do
     -- refusal.
     it('a category colliding with any API name is refused',
        refused_for('ramp', {red = 'codeblock:red'}, 'already taken'), true)
+
+    -- A palette view is an API name and not a category, so it is spoken for by
+    -- api.names() alone - the by_name seeding below it in blocks.install never
+    -- sees one. A game registering `dark_hues` would shadow the array every
+    -- ramp.of example in doc/api.md reads. (F14)
+    it('a category colliding with a palette view is refused',
+       refused_for('dark_hues', {red = 'codeblock:red'}, 'already taken'), true)
 
     it('a block naming an unregistered node is refused',
        refused_for('agame', {red = 'nosuch:node'}, 'no mod has registered'),

@@ -229,12 +229,17 @@ centered.horizontal.cylinder(length, radius, block, hollow) -- A lying cylinder 
 Anything taking a `block` argument wants a value from one of these. The names each table holds are listed under Block types below.
 
 ```lua
-colors -- Solid coloured blocks, indexed by name. A name that does not exist reads as nil and builds your default block instead; the first time a run does that, it says so in the chat.
-glass  -- One see-through block per colour, indexed by name.
-lamps  -- One glowing block per colour, indexed by name. The light itself is the same whatever the colour.
-hues   -- One name per hue family as an array, in colour-wheel order: the plain shade of each, without the lighter and darker ones and without the neutrals.
-air    -- Empty space. Place it to carve rather than to build.
+colors     -- Solid coloured blocks, indexed by name. A name that does not exist reads as nil and builds your default block instead; the first time a run does that, it says so in the chat.
+glass      -- One see-through block per colour, indexed by name.
+lamps      -- One glowing block per colour, indexed by name. The light itself is the same whatever the colour.
+hues       -- The plain shade of each hue family as an array, in colour-wheel order.
+light_hues -- The light shade of each hue family, same order.
+dark_hues  -- The dark shade of each hue family, same order.
+neutrals   -- The neutrals as an array, white to black.
+air        -- Empty space. Place it to carve rather than to build.
 ```
+
+**`hues`** &mdash; `hues`, `light_hues`, `dark_hues` and `neutrals` are the four ways of walking the palette: which colours, in what order. They hold colour names rather than blocks, and every table above is indexed by the same names, so `glass[hues[1]]` is glass and `lamps[dark_hues[1]]` is a lamp. A name out of one of them is a solid block already, so `place(hues[1])` needs nothing around it. Use them with `ramp.of`.
 
 ## Choosing blocks
 
@@ -248,11 +253,14 @@ ramp.hues(v, min, max)                    -- Map a number onto the hues: a smoot
 ramp.colors(v, min, max)                  -- Map a number onto the solid colours, in palette order.
 ramp.glass(v, min, max)                   -- Map a number onto the glass blocks, in palette order.
 ramp.lamps(v, min, max)                   -- Map a number onto the lamps, in palette order.
+ramp.of(list, v, min, max)                -- Map a number onto any array: one of the palette orders, or a list you built.
 get_block(n_right, n_up, n_forward)       -- The block at an offset from the drone, without moving it.
 is_block(block, n_right, n_up, n_forward) -- Whether the block at an offset from the drone is the one named.
 ```
 
-**`ramp.hues`** &mdash; The one ramp that reads as a gradient, because `hues` is one name per family in colour-wheel order. The three below walk light, plain and dark inside each family in turn, so a gradient across one of them strobes.
+**`ramp.hues`** &mdash; The one ramp over a whole table that reads as a gradient, because `hues` is one name per family in colour-wheel order. `ramp.colors`, `ramp.glass` and `ramp.lamps` walk light, plain and dark inside each family in turn, so a gradient across one of them strobes; `ramp.of` over a palette order does not.
+
+**`ramp.of`** &mdash; The same mapping as the ramps above, with the list given rather than fixed. `ramp.of(hues, i, 1, n)` walks the colour wheel; the material is whatever you index with the answer, so `glass[ramp.of(dark_hues, i, 1, n)]` is the dark shades in glass. It returns whatever the list holds, so a list of your own works too, and a value that is not a list at all reads as nothing rather than stopping the program.
 
 **`get_block`** &mdash; Each offset defaults to zero, so `get_block()` reads where the drone is and `get_block(0, 0, 1)` reads one step ahead of it. The offsets turn with the drone, the same way `place_relative` does. Three answers: the name of a block the drone could place, `false` for a node it could not, and `nil` where there is no answer at all - map that has never been generated, or a position outside the world.
 
@@ -311,8 +319,8 @@ table.randomizer(t) -- Return a function that picks a random value from t.
 
 # Block types
 
-The names each block table holds, in palette order. Generated from
-`lib/config.lua`.
+The names each block table holds, in palette order, then the four
+palette orders themselves. Generated from `lib/config.lua`.
 
 ## `colors`
 
@@ -336,5 +344,23 @@ white, light_grey, grey, dark_grey, black, light_pink, pink, dark_pink, light_re
 
 ```lua
 pink, red, orange, yellow, olive, lime, green, cyan, blue, violet
+```
+
+## `light_hues`
+
+```lua
+light_pink, light_red, light_orange, light_yellow, light_olive, light_lime, light_green, light_cyan, light_blue, light_violet
+```
+
+## `dark_hues`
+
+```lua
+dark_pink, dark_red, dark_orange, dark_yellow, dark_olive, dark_lime, dark_green, dark_cyan, dark_blue, dark_violet
+```
+
+## `neutrals`
+
+```lua
+white, light_grey, grey, dark_grey, black
 ```
 

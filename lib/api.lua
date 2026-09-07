@@ -206,9 +206,28 @@ api.groups = {
             }, {
                 name = 'hues',
                 kind = 'value',
-                doc = 'One name per hue family as an array, in colour-wheel ' ..
-                    'order: the plain shade of each, without the lighter ' ..
-                    'and darker ones and without the neutrals.'
+                doc = 'The plain shade of each hue family as an array, in ' ..
+                    'colour-wheel order.',
+                note = '`hues`, `light_hues`, `dark_hues` and `neutrals` are ' ..
+                    'the four ways of walking the palette: which colours, in ' ..
+                    'what order. They hold colour names rather than blocks, ' ..
+                    'and every table above is indexed by the same names, so ' ..
+                    '`glass[hues[1]]` is glass and `lamps[dark_hues[1]]` is ' ..
+                    'a lamp. A name out of one of them is a solid block ' ..
+                    'already, so `place(hues[1])` needs nothing around it. ' ..
+                    'Use them with `ramp.of`.'
+            }, {
+                name = 'light_hues',
+                kind = 'value',
+                doc = 'The light shade of each hue family, same order.'
+            }, {
+                name = 'dark_hues',
+                kind = 'value',
+                doc = 'The dark shade of each hue family, same order.'
+            }, {
+                name = 'neutrals',
+                kind = 'value',
+                doc = 'The neutrals as an array, white to black.'
             }, {
                 name = 'air',
                 kind = 'value',
@@ -238,10 +257,12 @@ api.groups = {
                 name = 'ramp.hues',
                 params = {'v', 'min', 'max'},
                 doc = 'Map a number onto the hues: a smooth rainbow.',
-                note = 'The one ramp that reads as a gradient, because `hues` ' ..
-                    'is one name per family in colour-wheel order. The three ' ..
-                    'below walk light, plain and dark inside each family in ' ..
-                    'turn, so a gradient across one of them strobes.'
+                note = 'The one ramp over a whole table that reads as a ' ..
+                    'gradient, because `hues` is one name per family in ' ..
+                    'colour-wheel order. `ramp.colors`, `ramp.glass` and ' ..
+                    '`ramp.lamps` walk light, plain and dark inside each ' ..
+                    'family in turn, so a gradient across one of them ' ..
+                    'strobes; `ramp.of` over a palette order does not.'
             }, {
                 name = 'ramp.colors',
                 params = {'v', 'min', 'max'},
@@ -254,6 +275,19 @@ api.groups = {
                 name = 'ramp.lamps',
                 params = {'v', 'min', 'max'},
                 doc = 'Map a number onto the lamps, in palette order.'
+            }, {
+                name = 'ramp.of',
+                params = {'list', 'v', 'min', 'max'},
+                doc = 'Map a number onto any array: one of the palette ' ..
+                    'orders, or a list you built.',
+                note = 'The same mapping as the ramps above, with the list ' ..
+                    'given rather than fixed. `ramp.of(hues, i, 1, n)` walks ' ..
+                    'the colour wheel; the material is whatever you index ' ..
+                    'with the answer, so `glass[ramp.of(dark_hues, i, 1, n)]` ' ..
+                    'is the dark shades in glass. It returns whatever the ' ..
+                    'list holds, so a list of your own works too, and a ' ..
+                    'value that is not a list at all reads as nothing rather ' ..
+                    'than stopping the program.'
             }, {
                 name = 'get_block',
                 params = {'n_right', 'n_up', 'n_forward'},
@@ -571,14 +605,19 @@ function api.to_markdown(allowed)
     if allowed then
         w('# Block types')
         w()
-        w('The names each block table holds, in palette order. Generated from')
-        w('`lib/config.lua`.')
+        w('The names each block table holds, in palette order, then the four')
+        w('palette orders themselves. Generated from `lib/config.lua`.')
         w()
         local listed = {}
         for _, category in ipairs(allowed.categories or {}) do
             listed[#listed + 1] = category
         end
-        listed[#listed + 1] = {name = 'hues', names = allowed.hues}
+        -- The palette views are name lists as much as a category is, and the
+        -- point of them is their order, which nothing else here shows. One that
+        -- the caller did not supply is skipped by the `names` guard below.
+        for _, view in ipairs({'hues', 'light_hues', 'dark_hues', 'neutrals'}) do
+            listed[#listed + 1] = {name = view, names = allowed[view]}
+        end
         for _, category in ipairs(listed) do
             if category.names then
                 w('## `' .. category.name .. '`')

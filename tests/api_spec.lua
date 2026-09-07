@@ -222,14 +222,15 @@ do
         'vertical.cylinder', 'horizontal.cylinder', 'centered.cube',
         'centered.sphere', 'centered.dome', 'centered.cylinder',
         'centered.vertical.cylinder', 'centered.horizontal.cylinder',
-        'colors', 'glass', 'lamps', 'hues', 'air', 'vector', 'get_block',
+        'colors', 'glass', 'lamps', 'hues', 'light_hues', 'dark_hues',
+        'neutrals', 'air', 'vector', 'get_block',
         'is_block',
         'print', 'ipairs', 'pairs', 'random', 'random.color', 'random.glass',
         'random.lamp', 'table.randomizer',
         -- One ramp per block table, and a game that registers a category of its
         -- own gets one too - that one is lib/blocks.lua's and is asserted in
         -- integration_spec, because it does not exist until a game has loaded.
-        'ramp.hues', 'ramp.colors', 'ramp.glass', 'ramp.lamps',
+        'ramp.hues', 'ramp.colors', 'ramp.glass', 'ramp.lamps', 'ramp.of',
         'floor', 'ceil', 'round', 'round0', 'deg', 'rad', 'exp', 'log', 'max',
         'min', 'pow', 'sqrt', 'abs', 'sin', 'sinh', 'asin', 'cos', 'cosh',
         'acos', 'tan', 'tanh', 'atan', 'atan2', 'pi', 'e', 'error'

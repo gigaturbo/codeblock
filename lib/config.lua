@@ -258,12 +258,19 @@ end
 -- then ten hue families in colour-wheel order, each one light / plain / dark so
 -- the plain name a player reaches for first always exists.
 --
--- The two literals below are the source, and both `palette` and `hues` are
--- derived from them. `palette` is the flat {name, hex} list lib/nodes.lua reads
--- - the hexes go nowhere else, one shared tile per variant being multiplied by
--- each of them rather than 105 images being drawn. `hues` is the plain middle
--- of each family, and ramp.hues(v, min, max) maps a number onto that, so the
--- family order has to read as a wheel.
+-- The two literals below are the source, and `palette` and the four palette
+-- views are derived from them. `palette` is the flat {name, hex} list
+-- lib/nodes.lua reads - the hexes go nowhere else, one shared tile per variant
+-- being multiplied by each of them rather than 105 images being drawn.
+--
+-- The four views - `hues`, `light_hues`, `dark_hues` and `neutrals` - are
+-- ordered arrays of short colour names, and they are one axis of the palette:
+-- which colours, in what order. The category is the other axis: which material.
+-- Because every category is indexed by the same short name, glass[h] and
+-- lamps[h] turn any of these arrays into a glass or a lamp gradient, so the
+-- four views cost three names each rather than one per material. The three hue
+-- views are in colour-wheel order, so ramp.hues and ramp.of over them read as
+-- gradients; `neutrals` is light to dark. (F14)
 --------------------------------------------------------------------------------
 
 -- The neutral ramp, light to dark. These five hexes are a choice rather than a
@@ -287,14 +294,19 @@ local families = {
     {'violet', '#a985de', '#7f56b8', '#563b7e'}
 }
 
-local palette, hues = {}, {}
-for _, neutral in ipairs(neutrals) do palette[#palette + 1] = neutral end
-for _, family in ipairs(families) do
+local palette, hues, light_hues, dark_hues, neutral_names = {}, {}, {}, {}, {}
+for i, neutral in ipairs(neutrals) do
+    palette[#palette + 1] = neutral
+    neutral_names[i] = neutral[1]
+end
+for i, family in ipairs(families) do
     local plain = family[1]
-    hues[#hues + 1] = plain
-    palette[#palette + 1] = {'light_' .. plain, family[2]}
+    hues[i] = plain
+    light_hues[i] = 'light_' .. plain
+    dark_hues[i] = 'dark_' .. plain
+    palette[#palette + 1] = {light_hues[i], family[2]}
     palette[#palette + 1] = {plain, family[3]}
-    palette[#palette + 1] = {'dark_' .. plain, family[4]}
+    palette[#palette + 1] = {dark_hues[i], family[4]}
 end
 
 codeblock.config.palette = palette
@@ -326,7 +338,15 @@ codeblock.config.palette = palette
 local blocks = {
     all = {air = 'air'},
     by_node = {air = 'air'},
+    -- The four palette views, short colour names rather than flat keys. For
+    -- `colors` the two are equal, which falls out of F11's key layout - a
+    -- category holds its short name unchanged and only glass and lamps suffix
+    -- it - so place(ramp.of(dark_hues, i, 1, n)) places a solid block with no
+    -- wrapping, while glass[ramp.of(dark_hues, i, 1, n)] places its glass.
     hues = hues,
+    light_hues = light_hues,
+    dark_hues = dark_hues,
+    neutrals = neutral_names,
     categories = {},
     by_name = {},
     pickable = {{key = 'air', label = 'air'}},

@@ -51,7 +51,13 @@ local by_name = codeblock.config.allowed_blocks.by_name
 local colors = by_name.colors.spelled
 local glass = by_name.glass.spelled
 local lamps = by_name.lamps.spelled
+-- The palette views: ordered arrays of short colour names. A category is
+-- indexed by the same short name, so glass[h] turns any of them into a glass
+-- gradient without a fourth set of names existing. (F14)
 local hues = codeblock.config.allowed_blocks.hues
+local light_hues = codeblock.config.allowed_blocks.light_hues
+local dark_hues = codeblock.config.allowed_blocks.dark_hues
+local neutrals = codeblock.config.allowed_blocks.neutrals
 local table_randomizer = codeblock.utils.table_randomizer
 
 local snapshot = codeblock.env.snapshot
@@ -72,32 +78,37 @@ end
 
 local function round0(num) return floor(num + 0.5) end
 
---- One ramp: a function mapping a number in [m, M] onto `list`, which is an
--- ordered array of the flat block keys place() takes.
+--- One entry of `list` for a number `v` in [m, M]. The whole of the ramp
+-- mapping: every ramp in the environment goes through here, so ramp.of and the
+-- per-category ramps cannot drift apart.
 --
 -- Out of range clamps to the end entries rather than wrapping, so a value at or
--- below `min` gives the first block and one at or above `max` the last. The
--- default range is the list's own length, so ramp(i) over 1..#list walks it
--- once. A non-number `v`, and a range of zero width, both give the first entry -
--- there is no other answer to give and raising would stop a program over an
--- arithmetic accident.
---
--- Called once per category per run, so a game's category gets a ramp on the same
--- footing as the mod's own.
-local function ramp_over(list)
+-- below `m` gives the first entry and one at or above `M` the last. The default
+-- range is the list's own length, so ramp(i) over 1..#list walks it once. A
+-- non-number `v`, and a range of zero width, both give the first entry - there
+-- is no other answer to give and raising would stop a program over an
+-- arithmetic accident. A `list` that is not a table, or is empty, answers nil
+-- for the same reason: ramp.of takes a list a program may have built itself.
+local function ramp_pick(list, v, m, M)
+    if type(list) ~= 'table' then return nil end
     local n = #list
-    local span = n - 1
-    return function(v, m, M)
-        local m = (type(m) == 'number') and m or 1
-        local M = (type(M) == 'number') and M or n
-        m, M = min(m, M), max(m, M)
-        if type(v) ~= 'number' then return list[1] end
-        if M == m then return list[1] end
-        local i = round0((v - m) / (M - m) * span) + 1
-        if i < 1 then i = 1 end
-        if i > n then i = n end
-        return list[i]
-    end
+    if n == 0 then return nil end
+    m = (type(m) == 'number') and m or 1
+    M = (type(M) == 'number') and M or n
+    m, M = min(m, M), max(m, M)
+    if type(v) ~= 'number' then return list[1] end
+    if M == m then return list[1] end
+    local i = round0((v - m) / (M - m) * (n - 1)) + 1
+    if i < 1 then i = 1 end
+    if i > n then i = n end
+    return list[i]
+end
+
+--- One ramp bound to `list`, an ordered array of the flat block keys place()
+-- takes. Called once per category per run, so a game's category gets a ramp on
+-- the same footing as the mod's own.
+local function ramp_over(list)
+    return function(v, m, M) return ramp_pick(list, v, m, M) end
 end
 
 local function getScriptEnv(drone)
@@ -185,11 +196,14 @@ local function getScriptEnv(drone)
             place_ccylinder(drone, 'H', l, r, block, hollow)
         end,
         -- The block categories are added below, after this table: they are not
-        -- known until every mod has loaded. hues is the wheel order as an
-        -- array, where reading past the end is a legitimate thing to do, so it
-        -- gets no misspelling report. air is engine-provided and belongs to no
-        -- category, so it is a plain name.
+        -- known until every mod has loaded. The four palette views are arrays,
+        -- where reading past the end is a legitimate thing to do, so none of
+        -- them gets a misspelling report. air is engine-provided and belongs to
+        -- no category, so it is a plain name.
         ['hues'] = snapshot(hues),
+        ['light_hues'] = snapshot(light_hues),
+        ['dark_hues'] = snapshot(dark_hues),
+        ['neutrals'] = snapshot(neutrals),
         ['air'] = 'air',
         -- choosing blocks
         ['random.color'] = table_randomizer(colors),
@@ -199,6 +213,12 @@ local function getScriptEnv(drone)
         -- colors keys, one per family, so it is the only one that reads as a
         -- gradient. The per-category ramps are added below with the categories.
         ['ramp.hues'] = ramp_over(hues),
+        -- The generic ramp, over any array: the palette views above, or a list
+        -- the program built. It is ramp_pick itself, so its mapping is the
+        -- other ramps' by construction rather than by resemblance. What it
+        -- returns is whatever the list holds - it does not check that an entry
+        -- is a block name, because a program may ramp anything.
+        ['ramp.of'] = ramp_pick,
         ['get_block'] = function(x, y, z)
             return drone_get_block(drone, x, y, z)
         end,
