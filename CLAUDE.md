@@ -194,6 +194,33 @@ against a version that reports as well as one that does not — a vacuous
 assertion. *Nothing is reported* is a `PLAYTEST.md` check (`F14-2`), never a
 spec.
 
+**`B54` widened that to `print`, and there are two locals, not one.** Do not
+"correct" either into the other: `lib/sandbox.lua:8` binds `chat_send_player`
+and uses it at line 126 for the **unknown-block warning** `F14-2` is about, while
+`lib/commands.lua:26` binds the one `drone_send_message` — and therefore
+`print` — goes through. So **what `print` puts in the chat is unobservable from
+a spec as well**, and that was driven to a result rather than assumed: a probe
+capturing `core.chat_send_player` around a real `print("a", "b")` read
+`want: > a b, got: nil`. The consequence is the trap: **a spec asserting that
+`print` merely does not raise would have been green throughout `B54`**, the
+one-argument version having raised nothing while dropping everything after the
+first value. What the twelve committed cases pin instead is **the charge** —
+one `print` call is one command however many arguments it carries, the join
+happening in the sandbox so `drone_send_message` keeps taking one value — and
+they guard the implementation rather than witnessing the defect. The chat line
+itself is `PLAYTEST.md` `W7`.
+
+Two `print` constraints follow, both invisible to every gate. **Read the varargs
+with `select('#', ...)` and `select(i, ...)`, never `{...}` and `#`** — Lua 5.1
+cannot see a nil in the middle or at the end of a vararg list, and `get_block()`
+answers `nil` over ungenerated map, so a player prints a nil routinely and
+`{...}` would truncate the line there. **Join with a space, not real Lua's
+tab** — Luanti's chat console has no tab stops, so a tab renders as an ordinary
+glyph rather than as alignment, and the engine's chat wrapping breaks on spaces,
+so a tab-joined line refuses to wrap on a narrow console. `lua_api.md` documents
+neither, which is why the second is reasoned from the client's text path and is
+**unverified** until `W7` runs.
+
 ## Architecture
 
 ### Running a player's program

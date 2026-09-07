@@ -30,59 +30,83 @@ A recipe also **names the shell it is for** — that has cost a session twice
 
 ## Where it stands
 
-**81 entries, of which `F11-4` is superseded — so 80 live checks, twenty of
-them unrun.** The unrun twenty are `F11-1` to `F11-11` less `F11-4`, written
-2026-09-05 at `6126abe` when `F11` landed, `F12-1` to `F12-6`, written
-2026-09-06 at `01f9641`, `F14-1` to `F14-3`, written 2026-09-07: the first
-while `F14` was still being built, the other two out of its coverage work, once
-it had shipped — and **`E17`**, written 2026-09-07 at `de3bcbb` for `B53`, the
-new-file template naming a category `F11` had deleted. Before them every one of
-the 60 older checks carried a
-result, which had not been true before 2026-09-04. **This is outstanding
-*checking*, not unfinished work:** `F11` to `F14` are committed with
-their gates green and no finding against any, and what these entries cover is
-the part no spec can reach — a registered node, a texture, the creative
-inventory, the picker, the help row, a game's own `register_blocks` call, a
-colour ramp read as a gradient, a read that lands inside the world, the API
-help panel rendering, and **a chat line that must not appear**.
+**82 entries, of which `F11-4` is retired — so 81 live checks. Five are unrun
+and one carries a fail**, which is the smallest this document has been able to
+say since `F11` landed and the first time it has had to say *fail* since
+2026-09-03.
+
+**The session of 2026-09-07 at `8e6350f`, engine 5.17.0, is the largest run this
+project has had: sixteen results in one sitting.** Fifteen passes — `F11-1`,
+`F11-2`, `F11-3`, `F11-5` to `F11-9`, `F12-1`, `F12-2`, `F12-3`, `F12-5` and all
+three `F14-n` — and **one fail, `F12-4`, which is `B54`**. It was run at
+`8e6350f`, so every result line carries that commit and not `HEAD`; `B54`'s fix
+landed afterwards at `24842d3`.
+
+**What is outstanding, and it is five entries and one re-run:**
+
+- **`F11-10`, `F11-11` and `F12-6` — all three need a second mod calling
+  `codeblock.register_blocks`.** That is the **entire game-author path**, and it
+  now has **no in-world evidence at all** while every other part of `F11`, `F12`
+  and `F14` has. The contract, the refusals, the late-call seal, a registered
+  category reaching `place()`, `get_block()` and player meta, and a registered
+  category's own ramp are all committed, gated and unseen. They are cheapest run
+  in one session, since `F11-11` and `F12-6` both want `F11-10`'s mod. **`F11-11`
+  is also the `rev_blocks` fix's only possible evidence.**
+- **`E17`**, written 2026-09-07 at `de3bcbb` for `B53` — a brand new file
+  running as it is. Nothing in the *Editor* group would have caught `B53`, because
+  every other check there opens a file that already exists.
+- **`W7`**, written 2026-09-07 for `B54` — what `print` puts in the chat. No
+  spec can see it, which `test-agent` established by running a probe and watching
+  it read `nil`.
+- **`F12-4` must be re-run**, on `24842d3` or later. Its fail is against `print`
+  and says nothing about the rotation it exists for: the recipe's own first line
+  prints three values, so on the broken build the check stopped before the reads
+  were looked at.
+
+**This is outstanding *checking*, not unfinished work** for the four features:
+`F11` to `F14` are committed with their gates green and no finding against any of
+them. `B54` is the one finding this session produced, and it is fixed.
 
 **`F13` added no entry, and that is deliberate.** `is_block` is `get_block`'s
 read path, so `F12-3` and `F12-4` were **extended** at `4450ce1` rather than
 joined by a group of their own: a separate group would walk to the same three
-positions twice. Read those two before running them — both changed on
-2026-09-06 after the count above was written. `F12-5` was narrowed the same day:
-`ramp_over`'s clamping now has spec coverage, so what is left there is the
-visual half.
+positions twice. `F12-3` passed; `F12-4` is the one owed a re-run. `F12-5` was
+narrowed the same day: `ramp_over`'s clamping now has spec coverage, so what was
+left there was the visual half, and it passed.
 
-**Run `F11-1` first**, the category selector on a French client. It is the only
-one of the twenty whose failure would be expensive: a legacy dropdown returning
-displayed text rather than the stored item would mean converting the editor out
-of legacy coordinates. Everything else in both groups is appearance, digging,
-inventory, a game's registration or a read, and a fail there is a small fix.
+**`F11-1` was run first and passed, which is the expensive question answered.**
+It was the only one of the twenty whose failure would have cost anything: a
+legacy dropdown returning displayed text rather than the stored item would have
+meant converting the editor out of legacy coordinates. **It returns the stored
+item**, in French and in English, so the editor stays where it is.
 
-**`F12-2` is the one that may hand a decision back.** `F12` made the solid tile
-a flat pure white so `^[multiply` reproduces each hex exactly, which means a
-wall of one solid colour now has **no node-edge definition at all** — the grain
-`F11` chose deliberately is gone from the solids, though the glass keeps its
-frame and the lamps gained a grid. That is a judgement only a wall in a world
-can make, and the answer may be to put a grain back.
+**`F12-2` passed and did not hand the decision back.** It was written expecting
+to: `F12` made the solid tile a flat pure white so `^[multiply` reproduces each
+hex exactly, which removed the grain `F11` had deliberately put there and left a
+wall of one solid colour with no node-edge definition at all. **The wall reads
+acceptably**, so the flat tile stays, the exact hex is kept, and the question is
+closed rather than carried. It is in `ROADMAP.md` under *other decisions* so it
+is not proposed again.
 
-**`F11-4` is superseded, not run and forgotten.** It checked 33 colours reading
-as their hexes and a wall showing the grain; `F12` replaced the palette with 35
-and removed the grain from the solids, so both halves of it moved — the hexes to
-`F12-1`, the wall to `F12-2`. The entry is kept in place as a pointer, because
-`F11`'s checks are numbered in commit messages and the record.
+**`F11-4` is retired rather than superseded-and-owed.** It checked 33 colours
+reading as their hexes and a wall showing the grain; `F12` replaced the palette
+with 35 and removed the grain from the solids, so both halves moved — the hexes
+to `F12-1`, the wall to `F12-2`. **Both passed on 2026-09-07**, so everything it
+was for has been looked at in its current form. The entry stays in place as a
+pointer, because `F11`'s checks are numbered in commit messages and the record.
 
-**Of the 60 with results, none has a fail as its most recent one**, and one is a
-partial — `H8`, and only because two of its cases cannot be performed. `F9-1`,
-`R1`, `E16`, `W1`, `W3` and the four `F10-n` checks each carry two results or
-more. **`D7` was the last of the 60 to get one**: written 2026-09-04 with `B51`'s
-fix and played the same day, at `8de3cea` plus a comment-only edit — *stopped*
-with a partial node count, and *arrêté* in French. That is **`B51` observed fixed
-in a world**, and nothing else can ever show it, no spec asserting what
-`Drone.finish` sends. The engine version was not restated by the author.
-**`H10` passed 2026-09-02 with a few presses still missing** — the residue
-`B47`'s fix leaves, accepted rather than closed.
+**Two passes are worth more than a tick.** **`F14-2`** is the check `test-agent`
+could not turn into a spec — reading past the end of a palette view stays silent
+while a genuine misspelling still reports — and it is now **observed rather than
+reasoned**, which is the only kind of evidence it can ever have. **`F11-3`** is
+the whole point of `F11`: the mod loading and building in a third-party game that
+ships neither `default` nor `wool`, which nothing local could show.
+
+**One fail is the most recent result on one check** — `F12-4`, above — and one
+result is a partial, `H8`, only because two of its cases cannot be performed.
+`F9-1`, `R1`, `E16`, `W1`, `W3` and the four `F10-n` checks each carry two
+results or more. **`H10` passed 2026-09-02 with a few presses still missing** —
+the residue `B47`'s fix leaves, accepted rather than closed.
 
 **Three check recipes could not have run at all, and were repaired on
 2026-09-07.** `F-3`, `W4` and `W5` each handed the runner a program saying
@@ -1165,7 +1189,12 @@ charged time for every example, `torus.lua` and `density.lua` included.
 
 ## Writing to the world
 
-W1–W6. W1–W3 played 2026-08-28, and that run **settled questions rather than
+W1–W7. **`W7` is the one check in this group about what a program *says* rather
+than what it writes**, added 2026-09-07 for `B54`, and it is here because a
+running program's own output has no other group and the per-feature series is
+reserved for `F<feature>-<n>` ids. Everything else here is a map write.
+
+W1–W3 played 2026-08-28, and that run **settled questions rather than
 finding defects**: `W2` answered `A4`, the oldest thing on the audit's *not
 verified anywhere* list. **The `W1` re-run of 2026-09-03 broke that**: at
 codelevel 1 the drone vanishes, which is `B50` — and diagnosing that produced
@@ -1547,6 +1576,69 @@ reasoned. Case 2's *one drone, not two* is **`B29`'s serial guard confirmed in
 its post-`1b991ae` form**, where what it guards is the replacement's object
 rather than its record; `D3` part 2 was the only earlier in-world evidence and it
 predates the change.
+
+### W7 · `print` sends every argument, in one line [B54]
+
+**Written 2026-09-07 with `B54`'s fix at `24842d3`, and it is the only evidence
+that fix can have.** What `print` puts in the chat is not observable from any
+spec, and that was established by experiment rather than by argument:
+`test-agent` added a probe capturing `core.chat_send_player` around a real
+`print("a", "b")` and asserted `> a b`; the probe read **`want: > a b, got:
+nil`**, because two load-time locals each shut the interception off —
+`lib/commands.lua:26` binds `chat_send_player`, `lib/sandbox.lua:36` binds
+`drone_send_message` — and there is no logged-in player to receive the line
+anyway. The probe was removed and the result kept as a comment. **The twelve
+spec cases that do exist pin the charge, not the text**: one call is one command
+however many arguments it carries.
+
+As a player at **codelevel 4**, with a block of a known colour in front of the
+drone, run these three programs and **read the chat**:
+
+```lua
+print("is: ", is_block(colors.red))
+```
+
+**Pass: one line reading `> is: true`** — one message, both arguments, one space
+between them.
+
+```lua
+print()
+```
+
+**Pass: a bare `> `**, an empty separator line, and **not** `> nil`. That is
+deliberate: `print()` in real Lua is a blank line, and refusing to send would
+make it the one API call that silently does nothing. It still costs one command,
+so it cannot be spammed free.
+
+```lua
+print("a", nil, "b")
+```
+
+**Pass: `> a nil b`** — the line does **not** truncate at the nil. That is what
+reading the varargs with `select('#', ...)` buys, and it is not theoretical:
+`get_block()` answers `nil` over map that was never generated, so a player prints
+a nil routinely, and `{...}` with `#` would have thrown away everything after it.
+
+**What separates a pass from *did not crash*, and this is the whole reason the
+entry exists: the broken build printed `> is: ` and stopped, with no error
+anywhere.** So *no error in chat* is not the check — the boolean being visibly
+present is. Writing it the other way, `print("is: " .. is_block(...))`, raised
+*attempt to concatenate a boolean value*, which is correct Lua and is not
+something the mod works around; a player was walled both ways, which is why the
+report read *"the print function in the game cannot concatenate arguments"*.
+
+**The separator is checkable nowhere else either.** The join is a **space** and
+not real Lua's tab, on the reasoning that Luanti's chat console has no tab stops
+— a tab goes through the client font as an ordinary glyph — and that the engine's
+chat wrapping breaks on spaces, so a tab-joined line would refuse to wrap on a
+narrow console. **`lua_api.md` says nothing about either**, so that is reasoned
+from the client's text path and **is not verified**. Look at a long `print` on a
+narrow console once, and say if it does not wrap.
+
+**`error` was deliberately not widened** — real Lua's `error(message, level)` is
+not variadic — so there is nothing to check there.
+
+Result: not yet run.
 
 ---
 
@@ -1989,7 +2081,11 @@ compares against. The fix would be formspec-version-4 `index event`
 (`lua_api.md` 5.17.0 line 3579), which this form cannot use while it is in
 legacy coordinates — see `F11` in `ROADMAP.md`.
 
-Result: not yet run.
+Result: pass — `8e6350f` · engine 5.17.0 · 2026-09-07 — all four cases. The selector switches
+the panel in French and in English, and ESC still saves the tabs. **So a legacy
+dropdown returns the stored item and not the displayed text**, which is the
+expensive failure this check was run first to rule out: the editor does not have
+to leave legacy coordinates.
 
 ### F11-2 · The help row's geometry [F11, F1]
 
@@ -2003,7 +2099,9 @@ are longer.
 **Pass:** `Blocks`, the selector, `API` and `Settings` sit flush on one row, the
 same height, none overlapping another, and no label clipped.
 
-Result: not yet run.
+Result: pass — `8e6350f` · engine 5.17.0 · 2026-09-07 — the row is flush in both
+languages, nothing clipped and nothing overlapping. **The 0.2-unit button offset
+was arithmetic off `guiFormSpecMenu.cpp` until this run** and is now on a screen.
 
 ### F11-3 · The mod installs into a game that ships neither `default` nor `wool` [F11, C16, C10]
 
@@ -2018,15 +2116,23 @@ ships neither `default` nor `wool`. Start a world, get the tools with
 lands. **Anything in `debug.txt` naming `codeblock` is worth reading** even on a
 pass.
 
-Result: not yet run.
+Result: pass — `8e6350f` · engine 5.17.0 · 2026-09-07 — the mod loads and builds in a
+third-party game that ships neither `default` nor `wool`. **That is the whole
+point of `F11` observed rather than reasoned about**, and nothing local could
+have shown it.
 
-### F11-4 · Superseded by `F12-1` and `F12-2` [F11, F12]
+### F11-4 · Retired 2026-09-07 — superseded by `F12-1` and `F12-2` [F11, F12]
 
-**Do not run this one.** It asked for a row of the 33 solids reading as their
-hexes and a wall showing the tile's grain. `F12` replaced the palette with 35
-colours and made the solid tile a flat pure white, so both halves moved: the
-hexes and the palette order are **`F12-1`**, the wall is **`F12-2`**. The id is
-kept so nothing that cites it dangles. Never run, so no result was lost.
+**Do not run this one, and it is no longer owed.** It asked for a row of the 33
+solids reading as their hexes and a wall showing the tile's grain. `F12` replaced
+the palette with 35 colours and made the solid tile a flat pure white, so both
+halves moved: the hexes and the palette order are **`F12-1`**, the wall is
+**`F12-2`**. The id is kept so nothing that cites it dangles. Never run, so no
+result was lost.
+
+**Both successors passed on 2026-09-07 at `8e6350f`**, which is what retires it
+rather than leaving it superseded-but-outstanding: everything this check was for
+has now been looked at, in its current form.
 
 ### F11-5 · Coloured glass and coloured lamps [F11]
 
@@ -2042,7 +2148,8 @@ defect.** Luanti's light carries no hue — a light source has a level and no
 colour — so a blue lamp gives white light. A player will test this first, so it
 is written down here rather than left to be filed.
 
-Result: not yet run.
+Result: pass — `8e6350f` · engine 5.17.0 · 2026-09-07 — the glass tints, the corner
+where two faces meet does not go opaque, and a lamp lights a dark room.
 
 ### F11-6 · The blocks are silent, deliberately [F11]
 
@@ -2054,7 +2161,9 @@ back to needing a game to provide something. **A player will read silence as
 broken**, so the point of this check is to have it seen once and recorded as
 intended.
 
-Result: not yet run.
+Result: pass — `8e6350f` · engine 5.17.0 · 2026-09-07 — silent, and read as intended
+rather than as broken. **That is the point of this check and it is now spent**:
+the silence has been seen once and recorded.
 
 ### F11-7 · Digging, in a game that is not `codecube` [F11, B48]
 
@@ -2065,7 +2174,9 @@ provides its own tools.
 Watch for the block reappearing after it looked broken — that is client-side dig
 prediction disagreeing with the server, and it is the shape `B48` was.
 
-Result: not yet run.
+Result: pass — `8e6350f` · engine 5.17.0 · 2026-09-07 — by hand and with a pick, in a
+game providing its own tools; the block drops itself and does not reappear after
+looking broken.
 
 ### F11-8 · The creative inventory [F11]
 
@@ -2081,7 +2192,8 @@ item set.
 deliberate** — the colour name is the identifier a program types, so translating
 it would show a word `place()` does not accept.
 
-Result: not yet run.
+Result: pass — `8e6350f` · engine 5.17.0 · 2026-09-07 — the descriptions read sensibly
+and 105 items do not swamp a small game's own item set.
 
 ### F11-9 · `is_ground_content = false` survives mapgen [F11]
 
@@ -2092,7 +2204,9 @@ come back. Better still, build near a cave or an ore-bearing depth.
 **Pass:** the build is intact. `is_ground_content = false` is what keeps mapgen
 from carving a player's structure away, and only a real mapgen can show it.
 
-Result: not yet run.
+Result: pass — `8e6350f` · engine 5.17.0 · 2026-09-07 — the build is intact after the
+area unloaded and came back. `is_ground_content = false` behaves, and only a real
+mapgen could have shown it.
 
 ### F11-10 · A real game mod calls `register_blocks` [F11]
 
@@ -2160,7 +2274,12 @@ grey ramp `#ffffff #c0c0c0 #808080 #404040 #101010`, chosen because the author
 named the five neutrals and gave no values. **They are the easiest thing here to
 change**, so say if they read wrong.
 
-Result: not yet run.
+Result: pass — `8e6350f` · engine 5.17.0 · 2026-09-07 — all three cases: 105 items, the
+picker in palette order rather than alphabetical, and 35 solids each reading as
+its hex and distinguishable from its neighbours. **The five neutral hexes were
+`project-manager`'s choice and are accepted as they are** — nothing was said
+against them, so the even grey ramp `#ffffff #c0c0c0 #808080 #404040 #101010`
+stands.
 
 ### F12-2 · A lamp wall shows the grid; a solid wall shows nothing [F12]
 
@@ -2187,7 +2306,13 @@ grid, ground 252 with lines at 234 every 8 px.
 Say so and the solid tile gets a grain again, at the cost of the hex no longer
 being reproduced exactly. Both options are in `ROADMAP.md` under `F12`.
 
-Result: not yet run.
+Result: pass — `8e6350f` · engine 5.17.0 · 2026-09-07 — **and it did not hand the
+decision back.** The lamp grid reads as blocks without becoming a pattern, and
+the flat solid wall reads acceptably rather than as a missing texture. **So the
+flat pure white tile stays and the question is closed**: `F11`'s grain is not
+coming back to the solids, the exact hex is kept, and `ROADMAP.md` records it
+under *other decisions* so it is not proposed again. This check had been carried
+as an open question for the author since `F12` shipped; it is not one now.
 
 ### F12-3 · `get_block` and `is_block` answer over real map [F12, F13]
 
@@ -2223,7 +2348,10 @@ everything reads as absent. That is the one failure this check exists for.
 **`nil` in (3) is permanent and correct.** `core.load_area` does not run mapgen,
 so reading never generates terrain and waiting will not turn it into a name.
 
-Result: not yet run.
+Result: pass — `8e6350f` · engine 5.17.0 · 2026-09-07 — all three cases, with `false`
+and `nil` coming back as **different** answers, which is the one failure this
+check exists for. `colors.typo` read `false` and not `true`, so the guard against
+`nil == nil` is in place.
 
 ### F12-4 · The read offsets turn with the drone and move nothing [F12, F13]
 
@@ -2251,7 +2379,19 @@ drone has not moved and, after four `turn_left()`, is facing where it started.
 That covers both calls: `is_block` reads through `get_block`'s implementation,
 so a move introduced in one would show here.
 
-Result: not yet run.
+**This check cannot be performed on a build whose `print` takes one argument**,
+and that is how `B54` was found: the recipe's own first line prints three values,
+and until `24842d3` only `i` came out. The reads themselves were never reached
+by the eye. **Re-run it in full** — the rotation half is still unobserved.
+
+Result: fail — `8e6350f` · engine 5.17.0 · 2026-09-07 — **the check could not get
+past its own first line.** `print(i, get_block(0, 0, 1), is_block(colors.red, 0,
+0, 1))` printed the loop counter and stopped, with no error, and writing it as
+one concatenated string raised *attempt to concatenate a boolean value*. That is
+**`B54`**, filed and fixed the same day at `24842d3`. **Nothing is known about
+the rotation this check exists for**: the fail is against `print`, not against
+`get_block` or `is_block`, and this entry stays owed until it is re-run on
+`24842d3` or later.
 
 ### F12-5 · A ramp reads as a gradient, and the other ramps strobe [F12]
 
@@ -2280,7 +2420,9 @@ Finally check the clamp: `ramp.hues(-5, 1, 20)` and `ramp.hues(99, 1, 20)`.
 
 **Pass:** the first and last hue, not a wrap round to the other end.
 
-Result: not yet run.
+Result: pass — `8e6350f` · engine 5.17.0 · 2026-09-07 — `ramp.hues` walks the wheel once
+and reads as a gradient; `ramp.colors` strobes, as designed; the clamp gives the
+first and last hue rather than wrapping.
 
 ### F12-6 · A game-registered category gets a ramp of its own [F12, F11]
 
@@ -2321,7 +2463,10 @@ nowhere else.
    2026-09-07, so that the program and the colours it must produce are described
    in one place.
 
-Result: not yet run.
+Result: pass — `8e6350f` · engine 5.17.0 · 2026-09-07 — `light_hues`, `dark_hues`,
+`neutrals` and `ramp.of` are all listed with their text, nothing truncated.
+`api.to_hypertext` runs only in a world, so this is the only evidence there will
+be that `F14`'s rows render.
 
 ### F14-2 · Reading past the end of a palette view is silent [F14]
 
@@ -2356,7 +2501,13 @@ fire for it, while still firing for a genuine misspelling.
    what tells a pass apart from a mere non-crash — one of the two must report and
    the other must not.
 
-Result: not yet run.
+Result: pass — `8e6350f` · engine 5.17.0 · 2026-09-07 — both cases, and this is the one
+that mattered most. `dark_hues[99]` built the default block with **no chat
+line**, and `colors.gray` in the same session **was** reported once by name.
+**So the asymmetry is observed rather than reasoned**: `test-agent` could not
+turn it into a spec, because the load-time binding shuts the interception off
+and a *nothing was raised* assertion would pass against a reporting version too.
+This is the only kind of evidence the behaviour can have, and it is in.
 
 ### F14-3 · A gradient built through a view actually lands [F14]
 
@@ -2379,7 +2530,10 @@ exists for.
    shades. Ten identical blocks, or ten plain ones, is a fail even though
    nothing crashed.
 
-Result: not yet run.
+Result: pass — `8e6350f` · engine 5.17.0 · 2026-09-07 — ten see-through glass blocks,
+`dark_pink` at the bottom to `dark_violet` at the top, visibly different from
+each other and from the same loop over `hues`. **A view crossed with a category
+lands in a world**, which is what `F14` exists for.
 
 ---
 

@@ -21,76 +21,90 @@ thinking rather than a queue position.
 
 ## Now
 
-**`B53` was found and fixed on 2026-09-07 at `de3bcbb`, and it is the reason to
-start the playtest session now rather than later.** The program a new file starts
-with named `blocks.obsidian` — a category `F11` deleted on 2026-09-04 — so
-**every file a player created with `+` or Enter for three days raised on its
-first statement**, with all five gates green over it. The template is player code
-in a string literal and nothing lints, compiles or generates it. The fix names no
-individual colour, deliberately; the grounds are under *other decisions*. It
-leaves one new check, `E17`, unrun. **`C23`, the finding it produced, is closed
-at `63c3c33`**: the shipped examples are now checked against the directory in
-both directions, each failing by name, which the author unblocked by deciding to
-**track `lib/examples/game.lua`**. What that left is a new finding, **`C24`** —
-the enumeration needs `core.get_dir_list`, CI boots no engine, so the check runs
-locally and not in CI. It does not block the tag.
+**Push.** `origin/master` is at `65b4c46` and **sixteen commits are unpushed** —
+take that number from `git rev-list --count origin/master..HEAD`, which reads
+**15** at `24842d3`, and **never from counting the hashes**, which is how it was
+recorded low four passes running. So CI has seen no part of `F11`, `F12`, `F13`,
+`F14`, `B53`'s fix, `C23`'s or `B54`'s, and the two largest changes in the
+release are among them. The new `.luacheckrc` check in `gen_docs.lua --check` is
+unseen by CI as well. After that the release list is `README.md`, the
+screenshots, `R2` and the tag.
 
-**`F14` shipped on 2026-09-07 — palette views and a generic ramp — with every
-gate green, run by `test-agent` itself.** Three ordered arrays of colour names
-beside `hues`, `ramp.of` over any array, and no change to the palette; its shape,
-its four decisions and its evidence are under `F14` below. What is outstanding
-for it is **three unrun playtest entries**, `F14-1` to `F14-3`. **`F15` was shaped the same day and deliberately not
-scheduled**: `colorhex` is feasible only as *nearest of 256*, through a
-`paramtype2 = "color"` palette node, and the investigation is written up under
-`F15` so nobody repeats it. The neutrals were **not** expanded to ten greys, for
-the same reason — see *other decisions*.
+**`F11`, `F12`, `F13` and `F14` were played in one session on 2026-09-07 at
+`8e6350f`, engine 5.17.0 — sixteen results, fifteen passes and one fail.** The
+fail is `F12-4` and its cause is **`B54`**, `print` printing only its first
+argument, fixed the same day at `24842d3`. **Three of those passes settle things
+the record was carrying:**
 
-**Play `F11`, `F12`, `F13` and `F14` in one session, starting with `F11-1`.**
-All four features are built and committed with every gate green — `d075742` and
-`6126abe` for `F11`, `01f9641` for `F12`, `4450ce1` for `F13`, `e3e2178` for
-`F14` — and what is left is the part no spec can do: **twenty `PLAYTEST.md`
-checks, none of them run** — nineteen for the four features, plus `E17` for
-`B53`. `F13` adds no entry of its own: `is_block` is `get_block`'s read path, so
-`F12-3` and `F12-4` were extended instead. Start with `F11-1`, the category
-selector on a **French** client, because
-it is the one whose failure would be expensive: if the selector works in English
-and does nothing in French, the client is returning displayed text rather than
-the stored item, and the fix is formspec-version-4 `index event`, which means
-converting the editor out of legacy coordinates.
+- **`F11-1` passed in French and in English**, so a legacy dropdown returns the
+  stored item and not the displayed text. That was the one failure that would
+  have been expensive — it would have meant converting the editor out of legacy
+  coordinates — and it is ruled out.
+- **`F12-2` passed and did not hand its decision back.** The flat pure white
+  solid tile reads acceptably in a wall, so **`F11`'s grain is not coming back to
+  the solids**, the exact hex is kept, and the question is closed rather than
+  open. It is under *other decisions* below so it is not proposed again.
+- **`F14-2` passed**, which is the check `test-agent` could not turn into a spec:
+  reading past the end of a palette view stays silent while a genuine misspelling
+  still reports. Observed rather than reasoned, and that is the only evidence it
+  can ever have.
 
-**The one that may hand a decision back is `F12-2`.** `F12` made the solid tile
-a flat pure white so `^[multiply` reproduces each hex exactly, which removed the
-grain `F11` deliberately put there — so a wall of one solid colour now has no
-node-edge definition at all. That is a judgement only a wall in a world can
-make. Everything else in both groups is appearance, digging, inventory, a game's
-own registration, a ramp and a read.
+**What is left to check is five entries and one re-run, and three of the five are
+one thing.** `F11-10`, `F11-11` and `F12-6` all need **a second mod calling
+`codeblock.register_blocks`**, so **the entire game-author path has no in-world
+evidence at all** while everything else in `F11`, `F12` and `F14` now has. The
+contract in `lib/blocks.lua`, its three refusals, the late-call seal, a
+registered category reaching `place()`, `get_block()` and player meta, and a
+registered category's own ramp are committed, gated and unseen — and `F11-11` is
+the `rev_blocks` fix's only possible evidence. Then **`E17`** for `B53` and
+**`W7`** for `B54`, and **`F12-4` re-run** on `24842d3` or later, its fail having
+been against `print` rather than against the rotation it exists for. None of the
+five blocks the tag; the game-author gap is the one worth naming out loud,
+because *a game can add its own blocks* is a claim the package page makes.
 
-**Then push.** `origin/master` is at `65b4c46`, so **CI
-has seen no part of `F11`, `F12`, `F13`, `F14` or `B53`'s fix** — **twelve
-unpushed commits**, `d075742`, `6126abe`, `7514f39`, `b752ea3`, `01f9641`,
-`6aadd16`, `4450ce1`, `84da24e`, `e3e2178`, `35f2aff`, `de3bcbb` and this
-record change. The two largest changes in
-the release are among the ones CI has not looked at. **Take that number from
-`git rev-list --count origin/master..HEAD`** — it has been recorded low three
-passes running, each time by counting a copied-forward list of hashes by hand. The new
-`.luacheckrc` check in `gen_docs.lua --check` is unseen by CI as well. After that
-the release list is `README.md`, the screenshots, `R2` and the tag.
+**`B54` is the one finding the session produced, and what is interesting about it
+is the shape of its evidence.** `print` took exactly one parameter, so
+`print("is: ", is_block(colors.red))` sent `> is: ` and stopped with no error,
+while `print("is: " .. is_block(...))` raised *attempt to concatenate a boolean
+value* — correct Lua, and not something to work around. The player was walled
+both ways. It is fixed variadic, with four decisions recorded in `AUDIT.md` and
+under *other decisions* below. **Its twelve new spec cases pin the charge and not
+the text, and all twelve would have been green before the fix**: what `print`
+sends is observable from no spec, which `test-agent` established by probe rather
+than by argument. So `W7` is not optional.
 
-**Two low findings were filed on 2026-09-05 while recording this**, both
-pre-existing and neither blocking: `A17`, three dead exports on
-`codeblock.utils` kept rather than deleted because the table is a published
-global, and `A18`, `meta.active = #meta.tabs` written as a loop twice in
-`lib/formspecs.lua`. `A17` wants the author's decision, not a cleanup.
+**`B53` was found and fixed on 2026-09-07 at `de3bcbb`**, before the session. The
+program a new file starts with named `blocks.obsidian` — a category `F11` deleted
+on 2026-09-04 — so **every file a player created with `+` or Enter for three days
+raised on its first statement**, with all five gates green over it. The template
+is player code in a string literal and nothing lints, compiles or generates it.
+The fix names no individual colour, deliberately; the grounds are under *other
+decisions*. Its check, `E17`, is still unrun. **`C23`, the finding it produced,
+is closed at `63c3c33`** — the shipped examples are checked against the directory
+in both directions, each failing by name, which the author unblocked by deciding
+to **track `lib/examples/game.lua`**. That left **`C24`**: the enumeration needs
+`core.get_dir_list`, CI boots no engine, so the check runs locally and not in CI.
+It does not block the tag.
 
-**Behind `F11` and `F12`, everything else in `Phase 8` is closed and played.** `B50` and
-`B52` were fixed at `1b991ae` and confirmed in a world on 2026-09-04 by `W1` at
-every codelevel, `W5` and `W6`; `B51` was fixed at `8de3cea` the same day and
-confirmed by `D7`; `B48`, `F10`/`C21` and `B49` were all committed and played on
-2026-09-03; `B47` and `settingtypes.txt`'s generator closed on 2026-09-02, and
-writing the second found `C20`. `AUDIT.md` holds the reasoning for each, and the
-milestone list below the phases holds the ordering. **CI run 47 is green on all
-three jobs at `65b4c46`** — which is `origin/master`, and is everything except
-`F11` and `F12`.
+**`F15` was shaped on 2026-09-07 and deliberately not scheduled**: `colorhex` is
+feasible only as *nearest of 256*, through a `paramtype2 = "color"` palette node,
+and the investigation is written up under `F15` so nobody repeats it. The
+neutrals were **not** expanded to ten greys, for the same reason — see *other
+decisions*.
+
+**Two low findings were filed on 2026-09-05**, both pre-existing and neither
+blocking: `A17`, three dead exports on `codeblock.utils` kept rather than deleted
+because the table is a published global, and `A18`, `meta.active = #meta.tabs`
+written as a loop twice in `lib/formspecs.lua`. `A17` wants the author's
+decision, not a cleanup.
+
+**Everything else in `Phase 8` is closed and played.** `B50` and `B52` were fixed
+at `1b991ae` and confirmed in a world on 2026-09-04 by `W1` at every codelevel,
+`W5` and `W6`; `B51` was fixed at `8de3cea` the same day and confirmed by `D7`;
+`B48`, `F10`/`C21` and `B49` were all committed and played on 2026-09-03; `B47`
+and `settingtypes.txt`'s generator closed on 2026-09-02, and writing the second
+found `C20`. `AUDIT.md` holds the reasoning for each. **CI run 47 is green on all
+three jobs at `65b4c46`**, which is `origin/master`.
 
 **Two things `1b991ae` changed about older findings, recorded so they are not
 re-broken.** `B29`'s serial now guards the **replacement's object** rather than
@@ -116,7 +130,10 @@ and the re-run did the same thing again at a smaller scale: the behaviour passed
 everywhere and the **words** were wrong in three more places (`F9`), plus one
 thing no spec could ever see (`B47`). **Displays are the part of this mod that
 only playing can check**, and a second playtest of a rewritten display is not a
-formality. The other four rules the phase paid for are at the bottom of this file.
+formality. **The 2026-09-07 session is the same lesson once more, in a new
+place**: four features passed almost everywhere, and what actually playing them
+found was that `print`, the tool a player debugs with, had been discarding its
+arguments. The other four rules the phase paid for are at the bottom of this file.
 
 ## Finalising v1.0.0
 
@@ -125,25 +142,36 @@ not restated here; what is below is what *this* version still needs, and
 `release-check` is the gate that says whether it got it.
 
 **The work — everything through step 4 is done, so are the two unnumbered steps
-ahead of them and `B51`; what is left is playing `F11` to `F14`, pushing, then
-the README, the screenshots, `R2` and the tag.** `F14` shipped on 2026-09-07
-with its gates green: its `CHANGELOG.md` *Added* line is written, and it leaves
-three unrun playtest entries, `F14-1` to `F14-3`, in the group below.
+ahead of them and `B51`; what is left is pushing, then the README, the
+screenshots, `R2` and the tag.** The playing of `F11` to `F14` is done as far as
+one session could take it.
 
-**Before step 5 — play `F11`, `F12`, `F13` and `F14`, and push them.** Kept
-unnumbered so the steps below keep the numbers commit messages and the release
-skill cite. All four are **built and committed**, `d075742` + `6126abe`,
-`01f9641`, `4450ce1` and `e3e2178`, gates green over all five commits; their
-entries under *The features* hold the shapes and the decisions. What is
-outstanding is **nineteen `PLAYTEST.md` checks, none run** — `F13`'s folded into
-`F12-3` and `F12-4` — plus **`E17`, `B53`'s, which makes twenty**, and **CI,
-which has seen no part of any of them**: twelve
-commits unpushed and `origin/master` at `65b4c46`. Run `F11-1` first, and
-expect `F12-2` to hand a decision back about the flat solid tile.
+**Before step 5 — push.** Kept unnumbered so the steps below keep the numbers
+commit messages and the release skill cite. **`F11` to `F14` were played on
+2026-09-07 at `8e6350f`, engine 5.17.0: fifteen passes and one fail**, the fail
+being `F12-4` and its cause `B54`, fixed the same day at `24842d3`. Their entries
+under *The features* hold the shapes and the decisions.
+
+**What checking is still outstanding is five entries and one re-run, and none of
+it blocks the tag:**
+
+- **`F11-10`, `F11-11` and `F12-6`** — all three want **a second mod calling
+  `codeblock.register_blocks`**, so **the game-author path has no in-world
+  evidence at all** while the rest of `F11`, `F12` and `F14` now does. `F11-11`
+  is the `rev_blocks` fix's only possible evidence. Cheapest run in one session.
+- **`E17`** for `B53`, and **`W7`** for `B54` — the latter written 2026-09-07,
+  the only thing that can ever see what `print` puts in the chat.
+- **`F12-4` re-run** on `24842d3` or later. Its fail was against `print` and the
+  rotation it exists for was never reached.
+
+**And CI, which has seen no part of any of it**: **sixteen** commits unpushed,
+`git rev-list --count origin/master..HEAD` reading 15 at `24842d3`, with
+`origin/master` at `65b4c46`. **`F12-2` did not hand its decision back** — the
+flat solid tile stays, and that is under *other decisions*.
 `CHANGELOG.md` took `F11`'s **Changed** and **Removed** sections on 2026-09-05,
 `F12`'s and `F13`'s on 2026-09-06, `F14`'s **Added** line and `B53`'s **Fixed**
-line on 2026-09-07, so
-step 4 is back to the heading alone. (F11, F12, F13, F14, B53)
+line on 2026-09-07, and `B54`'s **Changed** and **Fixed** lines the same day, so
+step 4 is back to the heading alone. (F11, F12, F13, F14, B53, B54)
 
 **The unnumbered step before step 0 — play `W1`, `W5` and `W6` — is done,
 2026-09-04 at `23f0227`, all three passing.** It is kept unnumbered so the steps
@@ -318,7 +346,7 @@ were fixed the same day at `1b991ae` and **confirmed in a world on 2026-09-04**,
 and `B51` was fixed at `8de3cea` on 2026-09-04 and confirmed by `D7` the same
 day. **So all fifteen fixes are played.**
 
-### 8 · Features for v1.0.0 — in progress (12 features, all twelve shipped; 29 findings, `C24` open; `F11` to `F14` unplayed, `B53` and `C23` fixed and `E17` unrun)
+### 8 · Features for v1.0.0 — in progress (12 features, all twelve shipped; 30 findings, `C24` open; `F11` to `F14` played 2026-09-07 with `B54` the only defect found; five checks unrun and `F12-4` owed a re-run)
 
 The last phase before v1.0.0 and the only one that adds rather than repairs.
 Started as seven features: `F6` moved out on 2026-08-28 (Blockly is `Phase 10`)
@@ -343,10 +371,12 @@ untagged.
 **`F13` was added and shipped on 2026-09-06 as well**: one new name,
 `is_block`, the predicate form of `F12`'s `get_block`. Adding a name breaks
 nothing, so its phase is a matter of when it was asked for rather than of the
-tag. The same commit closed `C22`. `F11` to `F14` are the four that are
-**shipped and not yet checked** — nineteen `PLAYTEST.md` entries, none run,
-`F13`'s checking folded into two of them, and no CI over any of the twelve
-commits.
+tag. The same commit closed `C22`. **`F11` to `F14` were played on 2026-09-07 at
+`8e6350f`** — fifteen passes, one fail, `B54` the only finding — and what is
+left of their checking is `F11-10`, `F11-11` and `F12-6`, all three needing a
+second mod that registers a category, plus `F12-4` re-run. `F13`'s checking is
+folded into `F12-3` and `F12-4`. **No CI over any of the sixteen unpushed
+commits.**
 
 **`F14` was added and shipped on 2026-09-07** — three ordered palette views and
 `ramp.of`, adding names and renaming none, so its phase is when it was asked for
@@ -366,14 +396,14 @@ Shipped with them: **`F10` `b23a8bc`, played and committed 2026-09-03**, with
 phase has shipped.** **The three playtest checks against `1b991ae` — `W1`, `W5`
 and `W6`, the only evidence `B50` and `B52` will ever have — all passed on
 2026-09-04 at `23f0227`.** **`B51` was fixed the same day at `8de3cea`** — a run
-cut short says *stopped* — and `D7` passed that day too, which left the phase
-with **no open finding and no unrun check** until `F11`, `F12` and `F14` added
-nineteen of the latter, and `B53` a twentieth on 2026-09-07. Left in it:
+cut short says *stopped* — and `D7` passed that day too. The twenty checks `F11`
+to `F14` and `B53` then added were cut to **five unrun plus one re-run** by the
+session of 2026-09-07, which found `B54` and nothing else. Left in it:
 `README.md`, the screenshots, `R2` on the
 release archive — the one check whose result has gone stale. **CI is outstanding
 again**: run 47 is green on all three jobs at `65b4c46`, which is
-`origin/master` and **twelve** commits behind `HEAD`, so it has seen no part of
-`F11`, `F12`, `F13`, `F14` or `B53`'s fix. `H10` passed 2026-09-02. **`F9`
+`origin/master` and **sixteen** commits behind `HEAD`, so it has seen no part of
+`F11`, `F12`, `F13`, `F14`, `B53`'s fix or `B54`'s. `H10` passed 2026-09-02. **`F9`
 passed its playtest on 2026-09-02** — all eight cases in both languages, no
 defect, and one decision reversed: the paused clock, built and re-checked the same
 day. **`B47` and `settingtypes.txt` closed the same day**, and writing the second
@@ -1030,7 +1060,7 @@ finished until the `.tr` files are written — and the only thing that will tell
 you is playing it in another language. `F10` is the first feature here to
 demonstrate it.
 
-### F11 · large · shipped `d075742` + `6126abe`, unplayed — the mod brings its own blocks
+### F11 · large · shipped `d075742` + `6126abe`, played 2026-09-07 (eight of ten pass, two unrun) — the mod brings its own blocks
 
 **`F12` replaced the palette this feature introduced.** The 33 names below are
 what `d075742` shipped and are gone; the current palette is 35 colours and 105
@@ -1039,15 +1069,26 @@ everything *except* the list: why the dependencies were dropped, the naming
 rule, the category namespacing, the tile technique, and the whole of pass 2.
 
 **Built in two passes on 2026-09-04 and 2026-09-05, with the gates green over
-both, and not yet played.** `d075742` registers the mod's own 99 nodes and drops
+both.** `d075742` registers the mod's own 99 nodes and drops
 `default` and `wool`; `6126abe` lets a game add a category of its own. It is
 in `Phase 8` rather than
 `Phase 9` for the same reason `F10` did, only more so: it renames the whole block
 palette, and a rename is free before the first tag and breaking after it.
-**Two things about it are outstanding, and neither is unfinished work:** CI has
-seen no part of it, both commits being unpushed, and **none of its `PLAYTEST.md`
-checks has been run** — ten live ones, `F11-4` having been superseded by `F12-1`
-and `F12-2`.
+**It was played on 2026-09-07 at `8e6350f`, engine 5.17.0: eight of its ten live
+checks passed and no finding was filed against it.** `F11-4` is **retired**, both
+its successors (`F12-1`, `F12-2`) having passed. **`F11-1` was run first and
+passed**, so a legacy dropdown returns the stored item and not the displayed
+text — the one failure here that would have meant converting the editor out of
+legacy coordinates. **`F11-3` passed**, which is this feature's whole purpose
+observed in a third-party game that ships neither `default` nor `wool`, and
+nothing local could show it.
+
+**What is outstanding, and neither part is unfinished work:** CI has seen no part
+of it, both commits being unpushed; and **`F11-10` and `F11-11` are unrun**, both
+needing a second mod that calls `codeblock.register_blocks`. Together with
+`F12-6` that is **the whole game-author path with no in-world evidence at all**,
+which matters because `register_blocks` is half of why `6126abe` exists, and
+`F11-11` is the `rev_blocks` fix's only possible evidence.
 
 **Why it exists: distribution.** `mod.conf` read
 `depends = default, wool, vector3` and now reads `depends = vector3`. Neither `default` nor `wool` is a ContentDB
@@ -1276,14 +1317,18 @@ If a legacy dropdown returns displayed text on one client and something else on
 another, French is where it shows. **Unlike `F10`, this feature is not waiting on
 translation; it is waiting on a French client proving the round trip.**
 
-### F12 · large · shipped `01f9641`, unplayed — a new palette, one ramp per category, and `get_block` coordinates
+### F12 · large · shipped `01f9641`, played 2026-09-07 (four pass, `F12-4` fail on `B54`, `F12-6` unrun) — a new palette, one ramp per category, and `get_block` coordinates
 
 **Shipped 2026-09-06 with every gate green and no finding filed**, in two
 commits: `b752ea3` is the author's own recolouring of the bundled examples onto
 `F11`'s palette, plus the deletion of `lib/examples/tests.lua` and
 `preprocess_spec`'s example count moving 14 → 13; `01f9641` is the feature, 24
-files. **What is outstanding is checking**: six `PLAYTEST.md` entries, `F12-1`
-to `F12-6`, none run, and CI has seen neither commit.
+files. **Played 2026-09-07 at `8e6350f`, engine 5.17.0**: `F12-1`, `F12-2`,
+`F12-3` and `F12-5` passed, **`F12-4` failed on `B54`** — `print` printing only
+its first argument, so the check could not get past its own first line, and the
+rotation it exists for is still unobserved and owed a re-run — and **`F12-6` is
+unrun**, needing a second mod that registers a category. CI has seen neither
+commit.
 
 **It went into `Phase 8` for `F11`'s reason.** Every `F11` colour name is gone
 and `color` is gone with no alias — two breaks to names a saved program writes,
@@ -1308,7 +1353,8 @@ answer `nil`, probably in unloaded chunks.
   grey_dark_grey, black"*, five neutrals read through a typo. **They gave no
   neutral hex values**, so `project-manager` chose an even grey ramp —
   `#ffffff #c0c0c0 #808080 #404040 #101010`. **Those five are the easiest thing
-  in the palette to change** and `F12-1` is where they get looked at.
+  in the palette to change**, and `F12-1` looked at them on 2026-09-07 and
+  passed: **nothing was said against them, so the even grey ramp stands.**
 - **The ramp is called `ramp`** — *"ramp colors/glass/lamps/hues"*, the author's
   own wording out of the options offered.
 - **Every category gets a ramp, including a game's** — *"for every category
@@ -1331,10 +1377,14 @@ answer `nil`, probably in unloaded chunks.
 - **The solid tile is flat pure white**, so `^[multiply` reproduces the palette
   hex exactly. Glass is unchanged; `textures/codeblock_lamp.png` is new, a faint
   grid at ground 252 with lines at 234 every 8 px, so a wall of lamps reads as
-  blocks. `scripts/gen_textures.py` writes all three. **The cost is real and is
-  not yet judged:** a wall of same-coloured solid blocks has **no node-edge
-  definition at all**, the grain having gone. That is the one `F11` decision
-  reversed here without a playtest behind it, and `F12-2` may hand it back.
+  blocks. `scripts/gen_textures.py` writes all three. **The cost was real and is
+  now judged: `F12-2` passed on 2026-09-07 at `8e6350f` and the flat tile
+  stays.** A wall of same-coloured solid blocks has **no node-edge definition at
+  all**, the grain having gone, and that reads acceptably in a build rather than
+  as a missing texture. **Do not put a grain back on the solids** — it would cost
+  the exact hex, which is the whole reason the tile is pure white. This was the
+  one `F11` decision reversed without a playtest behind it, and the playtest has
+  now been done.
 - **`ramp_over(list)` in `lib/sandbox.lua` is `color`'s body verbatim** with
   `nhues` generalised — `test-agent` diffed it against `HEAD:lib/sandbox.lua` to
   confirm the clamping semantics did not move. It had **no spec coverage at all**
@@ -1389,9 +1439,14 @@ assertion was made to fail once against ten separate deliberate breaks, with
 `md5sum` confirming `lib/` restored byte-identical, and `codeblock_run_tests`
 was confirmed gone from the real config afterwards.
 
-### F13 · small · shipped `4450ce1`, unplayed — `is_block`
+### F13 · small · shipped `4450ce1`, part-played 2026-09-07 — `is_block`
 
-**Shipped 2026-09-06 with every gate green.** One new player-facing name,
+**Shipped 2026-09-06 with every gate green.** **Its in-world checking folds into
+`F12-3` and `F12-4`, and on 2026-09-07 at `8e6350f` the first passed and the
+second failed** — the fail being `B54` rather than anything `is_block` does, the
+check's own recipe printing three values and `print` sending only the first. So
+`is_block` answering correctly over real map is observed; **`is_block`'s offsets
+turning with the drone is not**, and `F12-4` is owed a re-run. One new player-facing name,
 `is_block(block, n_right, n_up, n_forward)`, the predicate form of `F12`'s
 `get_block` and beside it in the *Choosing blocks* group. The author asked for
 it in these words: *"add is_block(block, nx, ny, nz) to check if a block at a
@@ -1441,7 +1496,7 @@ in-engine, **610 passed / 0 failed / 0 xpass / 1 known xfail**,
 `integration_spec` at **248 assertions**. The same commit closed `C22` and
 covered `ramp_over`, which is where 66 of those assertions came from.
 
-### F14 · small · shipped 2026-09-07 `e3e2178`, unplayed — palette views and a generic ramp
+### F14 · small · shipped and played 2026-09-07, `e3e2178` — palette views and a generic ramp
 
 Three ordered arrays of short colour names beside the existing `hues`, and one
 generic ramp. Across `lib/api.lua`, `lib/config.lua`, `lib/sandbox.lua`,
@@ -1525,7 +1580,8 @@ section**. So taking the index arithmetic out of `ramp_over` did not orphan the
 57 `F12` assertions, which were the only thing standing behind the per-category
 ramps.
 
-**Playtest — three entries, `F14-1` to `F14-3`, none run.** Most of `F14` is
+**Playtest — three entries, `F14-1` to `F14-3`, and all three passed on
+2026-09-07 at `8e6350f`, engine 5.17.0.** Most of `F14` is
 pure functions in the sandbox and the specs reach them, so the arrays and the
 clamping need no world. `F14-1` is the editor's API help panel, which
 `api.to_hypertext` renders only in a running world. `F14-2` and `F14-3` came out
@@ -1538,7 +1594,13 @@ view actually **lands**.
 misspelling report by replacing `core.chat_send_player` around a run, and there
 is no logged-in player to receive it. An assertion that nothing was raised would
 pass against a *reporting* version too, which makes it vacuous. That is a
-general limit on what the suite can see, not a gap in this feature.
+general limit on what the suite can see, not a gap in this feature. **It was run
+on 2026-09-07 and passed** — `dark_hues[99]` built the default block with no chat
+line, `colors.gray` in the same session was reported once by name — so the
+asymmetry is now observed rather than reasoned, and that is the only evidence it
+can ever have. **`B54` later widened the same limit to a second local**:
+`lib/commands.lua` binds `chat_send_player` too, which is the route `print`
+takes, so what `print` sends is playtest `W7` and can never be a spec either.
 
 ### F15 · large · shaped 2026-09-07, not scheduled — `colorhex`, a palette node
 
@@ -2066,11 +2128,28 @@ saved program and no existing world breaks.
   game, and calling one would put this mod back in the position `F11` took it
   out of — needing a game to provide something. A player will read silence as
   broken, so `F11-6` exists to have it seen once and recorded as intended. (F11)
-- **A wall of one solid colour has no node-edge definition.** `F12` made the
-  solid tile a flat pure white so `^[multiply` reproduces each hex exactly, which
-  cost the grain `F11` put there for exactly this reason. **Not yet judged** —
-  `F12-2` may hand the decision back, and the choice is between an exact hex and
-  a wall that reads as blocks. (F12)
+- **A wall of one solid colour has no node-edge definition, and that is
+  accepted.** `F12` made the solid tile a flat pure white so `^[multiply`
+  reproduces each hex exactly, which cost the grain `F11` had put there for
+  exactly this reason. **Judged in a world on 2026-09-07 at `8e6350f`, playtest
+  `F12-2`: the flat wall reads acceptably and the tile stays.** The choice was
+  between an exact hex and a wall that reads as blocks, and the hex won. The
+  glass keeps its frame and highlight and the lamps their faint grid, so two of
+  the three tiles still have definition. **Do not propose a grain for the solids
+  again** — it was carried as an open question from `F12` shipping until this
+  playtest, and it is now closed. (F12)
+- **`print` is variadic, space-joined, and nil-safe — four decisions from
+  `B54`.** The varargs are read with `select('#', ...)` and `select(i, ...)` and
+  **never** `{...}` with `#`, because Lua 5.1 cannot see a nil in the middle or
+  at the end of a vararg list and `get_block()` answers `nil` over ungenerated
+  map, so a player prints a nil routinely. They are joined with a **space** and
+  not real Lua's tab, because Luanti's chat console has no tab stops and the
+  engine's chat wrapping breaks on spaces — reasoned from the client's text path,
+  **not verified**, and playtest `W7` carries it. **`print()` with no arguments
+  sends a bare `> `** rather than refusing, because a blank separator line is
+  what real Lua does and refusing would make it the one API call that silently
+  does nothing; it still costs one command. And **`error` was deliberately not
+  widened**, real Lua's `error(message, level)` not being variadic. (B54)
 - **`is_block` cannot say *why* it answered false.** A node no program can
   place, ungenerated map, outside the world, a name that does not exist and a
   different block are one answer. Deliberate — it is a predicate — and
@@ -2101,15 +2180,17 @@ saved program and no existing world breaks.
 
 ---
 
-2026-09-07 · codeblock master at `63c3c33`, which is `C23`'s fix, plus this
-record change. `origin/master` is at `65b4c46` and **has seen no part of `F11`,
-`F12`, `F13`, `F14`, `B53` or `C23`** — **fourteen unpushed commits**,
-`git rev-list --count origin/master..HEAD` reading 13 at `63c3c33` and 14 with
-this record change: `d075742`, `6126abe`, `7514f39`, `b752ea3`, `01f9641`,
-`6aadd16`, `4450ce1`, `84da24e`, `e3e2178`, `35f2aff`, `de3bcbb`, `1865310`,
-`63c3c33` and this record change.
+2026-09-07 · codeblock master at `24842d3`, which is `B54`'s fix, plus this
+record change; the playtest session it records was run at `8e6350f`, the commit
+before it. `origin/master` is at `65b4c46` and **has seen no part of `F11`,
+`F12`, `F13`, `F14`, `B53`, `C23` or `B54`** — **sixteen unpushed commits**,
+from `git rev-list --count origin/master..HEAD`, which reads 15 at `24842d3`.
 
-**`F11`, `F12`, `F13` and `F14` are all shipped and all unplayed.** `F11` in two passes:
+**`F11`, `F12`, `F13` and `F14` are all shipped, and all four were played on
+2026-09-07 at `8e6350f`: fifteen passes, one fail (`F12-4`, cause `B54`), and
+five entries still unrun — `F11-10`, `F11-11`, `F12-6`, `E17` and `W7`.** The
+three `F11`/`F12` ones are one thing: **a second mod calling
+`register_blocks`**, so the game-author path has no in-world evidence. `F11` in two passes:
 `d075742` — the mod registers nodes of its own, `mod.conf` drops to
 `depends = vector3`, `blocks`/`plants`/`wools`/`iwools` become
 `colors`/`glass`/`lamps`/`hues` plus a top-level `air`, the `default` and `wool`
@@ -2163,12 +2244,14 @@ finding is open: **`B53` was filed and fixed inside 2026-09-07**, and neither
 `de3bcbb` then `63c3c33`; `C22` was filed and fixed on 2026-09-06, both inside
 `4450ce1`'s work.
 
-What is left before the tag: **play `F11` to `F14`, and push** — fourteen
-commits are unpushed, `git rev-list --count origin/master..HEAD` — then
+What is left before the tag: **push** — sixteen commits are unpushed,
+`git rev-list --count origin/master..HEAD` reading 15 at `24842d3` — then
 `README.md`'s three problems — line 10's now-false portability claim, the
 missing *For game authors* section, the pre-rename ContentDB URLs — the
 screenshots, `R2` on the release archive, then `release-check`, the heading and
-the tag. **Expect `F12-2` to hand back the flat-solid-tile decision.**
+the tag. **`F12-2` did not hand the flat-solid-tile decision back**; what the
+session left instead is `B54`, fixed, and five unrun checks, three of them the
+game-author path.
 
 **`C24` is queued after the tag, not before it.** Closing it means either a CI
 job that boots Luanti — the real fix, which would also put `forms_spec`,
@@ -2179,5 +2262,5 @@ a dependency worth adding for one case. Neither is a spec change, so neither is
 
 ---
 
-Last reviewed **2026-09-07**, describing commit **`63c3c33`** — `C23`'s fix and
-this record change together.
+Last reviewed **2026-09-07**, describing commit **`24842d3`** — `B54`'s fix, the
+`F11`–`F14` playtest session at `8e6350f`, and this record change together.

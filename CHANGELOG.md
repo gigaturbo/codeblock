@@ -49,6 +49,7 @@ writes**.
 
 ## Changed
 
+- **`print` takes any number of arguments**, joined by a space, so a label and a value go out in one line: `print("is: ", is_block(colors.red))` reads `> is: true`. It took exactly one before. `nil` is printed as `nil` wherever it falls in the list, which matters because `get_block()` answers `nil` over map that was never generated. `print()` with no arguments sends a blank line, as it does in Lua. One call still costs one command however many arguments it carries, and the separator is a space rather than Lua's tab because the chat console has no tab stops and wraps on spaces
 - `repeat ... until` now works — it was refused outright before
 - The drone advances for a time budget each server step instead of exactly one coroutine resume, so throughput follows the headroom the server has spare
 - The step budget is honoured at every drone command and before every slab of a bulk shape, rather than only between resumes
@@ -83,6 +84,7 @@ writes**.
 
 **The sandbox and the preprocessor**
 
+- **`print` printing only its first argument and dropping the rest, with no error.** `print("is: ", is_block(colors.red))` put `> is: ` in the chat and stopped there, and writing it the other way round — `print("is: " .. is_block(...))` — raised *attempt to concatenate a boolean value*, which is correct Lua. There was no way to print a label beside a boolean or a number. This one is not new — `print` had taken a single parameter for the project's whole life, so every earlier release has it; it went unnoticed until a program had a boolean to print
 - Code between two block comments being deleted; a standard `--[[ ... ]]` comment leaving its body behind as code; a `--` inside a string truncating it; any identifier containing `function` injecting a statement after the next `)`. Instrumentation now runs over a token stream instead of pattern-matched text
 - Programs could corrupt `blocks`/`plants`/`wools`/`iwools`/`vector` for every player, and the injected call counter could be disabled from player code
 - Removed `worldedit.lua()` / `worldedit.luatransform()` from the bundled fork before dropping it

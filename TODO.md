@@ -131,6 +131,24 @@ Features
       same rot cannot recur. Covered by four cases that read the template out of
       lib/formspecs.lua rather than copying it. Playtest E17 is written and
       unrun (audit B53; playtest E17)
+- [x] BUG: "the print function in the game cannot concatenate arguments" —
+      reported 2026-09-07 while you were running F12-4, the first check here
+      that made anyone want to print a boolean. `print` took exactly one
+      parameter, so `print("is: ", is_block(colors.red))` printed `> is: ` and
+      stopped with no error, and `print("is: " .. is_block(...))` raised
+      *attempt to concatenate a boolean value*, which is correct Lua and not
+      something to work around — so you were walled both ways. **Fixed the same
+      day at 24842d3**, variadic like real Lua: the varargs are read with
+      `select('#', ...)` so a nil in the middle of the list does not truncate
+      it, which matters because `get_block()` answers nil over ungenerated map;
+      they are joined with a space rather than Lua's tab, the chat console
+      having no tab stops and the engine wrapping on spaces; `print()` alone
+      sends a bare `> ` rather than nothing; and `error` was left alone, real
+      Lua's not being variadic either. Twelve new spec cases pin that one call
+      is one command however many arguments it carries — **and all twelve would
+      have been green before the fix**, because what print puts in the chat is
+      observable from no spec at all. Playtest W7 is written for it and is
+      unrun (audit B54; playtest W7, F12-4)
 - [x] DECIDE: what to do with the untracked `lib/examples/game.lua` in your
       working tree — **answered 2026-09-07: track it**, committed at 63c3c33. It
       is a shipped example now, written into every player's directory by
@@ -151,10 +169,15 @@ Features
       settled:** `air` is a plain top-level name, the tile carried a faint grain
       (since reversed for the solids by `F12`), and each family's mid-tone is
       its plain word. Gates green over both passes and no finding filed.
-      **What is left is playing it — ten live PLAYTEST.md checks, none run,
-      F11-1 first, F11-4 superseded by F12 — and pushing, since CI has seen no
-      part of it.** The shape and the decisions are in ROADMAP.md under `F11`
-      (audit F11)
+      **Played 2026-09-07: eight of its ten live checks passed and no finding
+      was filed against it.** F11-1 was run first and passed in both languages,
+      so the editor does not have to leave legacy coordinates, and F11-3 passed,
+      which is the whole point of the feature seen in a third-party game.
+      F11-4 is retired, both its successors having passed. **What is left is
+      F11-10 and F11-11, which both need a second mod calling
+      register_blocks** — with F12-6 that is the entire game-author path with no
+      in-world evidence — **and pushing, since CI has seen no part of it.** The
+      shape and the decisions are in ROADMAP.md under `F11` (audit F11)
 - [x] FEAT: a new palette, a ramp per block category, and coordinates for
       `get_block` — your five notes of 2026-09-06, shaped in one exchange and
       **shipped as `F12` at 01f9641** (with b752ea3 for your own example edits).
@@ -171,8 +194,12 @@ Features
       moves nothing, and loads the map it reads, charged as footprint as you
       asked — `nil` still means never-generated or outside the world, and that
       one is permanent. Gates green, no finding filed. **What is left is playing
-      it: six PLAYTEST.md checks, none run, and F12-2 may hand the flat-solid
-      decision back to you.** The shape is in ROADMAP.md under `F12` (audit F12)
+      it: four of its six checks passed on 2026-09-07, F12-4 failed on the
+      print defect above and is owed a re-run, and F12-6 is unrun.** **F12-2
+      passed and did not hand the flat-solid decision back** — the flat wall
+      reads acceptably, so the tile stays and the exact hex is kept; that is now
+      in ROADMAP.md's decisions log so it is not proposed again. The shape is in
+      ROADMAP.md under `F12` (audit F12)
 - [x] FEAT: `is_block(block, nx, ny, nz)` to check whether the block at a
       position is the one specified, offsets optional and defaulting to the
       drone's own block, in the *Choosing blocks* category — your words of
@@ -186,8 +213,11 @@ Features
       that warning says *"the default block is used instead"*, which is not true
       when `is_block` asked it; rewording the key would orphan the French
       translation and it is right for `place()`, so it was left. Gates green.
-      Its playtest folds into F12-3 and F12-4, neither run (audit F13)
-- [ ] FEAT: palette views and a generic ramp — `light_hues`, `dark_hues`,
+      Its playtest folds into F12-3 and F12-4: **F12-3 passed on 2026-09-07, so
+      is_block answering over real map is observed; F12-4 failed on the print
+      defect above before the reads were reached, so its offsets turning with
+      the drone is not** (audit F13)
+- [x] FEAT: palette views and a generic ramp — `light_hues`, `dark_hues`,
       `neutrals` and `ramp.of(list, v, min, max)`, settled with you on
       2026-09-07 as `F14` and **shipped the same day with every gate green**.
       The point that decided its shape: a palette view is one axis and a block
@@ -202,11 +232,13 @@ Features
       non-table answers `nil` rather than stopping the program. The palette
       itself does not change. **One thing you did not ask for and now have:**
       `light_hues`, `dark_hues` and `neutrals` are three more names a game
-      cannot use for a registered category. **Three in-world checks are owed and
-      none is run** — `F14-1` the help panel, `F14-2` that reading past the end
-      of a view stays silent, `F14-3` that a gradient through a view lands; the
-      shape, the four decisions and the gate figures are in ROADMAP.md under
-      `F14` (audit F14)
+      cannot use for a registered category. **All three in-world checks passed
+      on 2026-09-07** — F14-1 the help panel, F14-2 that reading past the end of
+      a view stays silent while a genuine misspelling still reports, F14-3 that
+      a gradient through a view lands. **F14-2 is the one worth noting**: no
+      spec can ever replace it, so that behaviour is now observed rather than
+      reasoned. The shape, the four decisions and the gate figures are in
+      ROADMAP.md under `F14` (audit F14)
 - [ ] FEAT: `place(colorhex("#F7A8E7"))` — your question of 2026-09-07,
       **shaped as `F15` and deliberately not scheduled**. It is feasible but
       **not as an arbitrary colour**: nodes can only be registered at mod load,
@@ -386,6 +418,23 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
       and B52 confirmed in a world, and it takes both off the audit's "gates
       green, unproven in a world" list, which is now B14 and S7's log half
       (audit B50, B52; playtest W1, W5, W6)
+- [x] play F11, F12, F13 and F14 in one session — done 2026-09-07 at 8e6350f,
+      engine 5.17.0: **sixteen results, fifteen passes and one fail**, the
+      largest run this project has had. The fail is F12-4 and its cause is the
+      print defect above, not anything F12 or F13 does. Three passes settled
+      questions the record was carrying: F11-1 (the selector returns the stored
+      item, so no editor conversion), F12-2 (the flat solid tile stays) and
+      F14-2 (silence past the end of a view, observed at last)
+      (audit B54; playtest F11-*, F12-*, F14-*)
+- [ ] write a small mod that calls codeblock.register_blocks and run F11-10,
+      F11-11 and F12-6 — all three want it, so they are cheapest in one
+      session, and **it is the only part of F11, F12 and F14 with no in-world
+      evidence at all** after 2026-09-07. F11-11 is the rev_blocks fix's only
+      possible evidence (audit F11, F12; playtest F11-10, F11-11, F12-6)
+- [ ] run E17 and W7, and re-run F12-4 on 24842d3 or later — E17 is B53's only
+      check, W7 is B54's and is the only thing that can see what print puts in
+      the chat, and F12-4's fail was against print rather than against the
+      rotation it exists for (audit B53, B54; playtest E17, W7, F12-4)
 - [ ] re-run R2 on the archive built from the release commit — R1 was
       re-checked at `7dbe18f` and still passes, but R2 last ran before F4 added
       lib/hud.lua and before .gitattributes changed at `60dc8dd`. Install it in
