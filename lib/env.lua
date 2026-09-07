@@ -6,6 +6,13 @@
 -- Lua 5.1 has no __pairs or __len, so a proxy would break pairs(colors) and
 -- #hues for player code.
 --
+-- **A copy is one level deep, and the caller owns the leaves.** Assigning into
+-- a snapshot is isolated; mutating a table *reached through* one is not, because
+-- the nested table is the same object every run holds. Every table this file is
+-- handed by lib/sandbox.lua holds strings or functions except vector3, whose
+-- fourteen exported constants are vectors - so that one call site copies them
+-- itself, with the constructor, before handing the module over (S8).
+--
 -- A copy may still carry an __index, and that is not the proxy above: the
 -- metamethod is consulted only for a key the copy does not have, so pairs(), #
 -- and every key that is there behave exactly as on a plain copy. That is what
@@ -40,6 +47,9 @@ end
 -- vector3 is `setmetatable(mod, {__call = ...})`, so `vector(1, 2, 3)` only
 -- works while the metatable travels with the copy. The metatable itself stays
 -- shared, which is safe because getmetatable is not in the environment.
+--
+-- Shallow like snapshot: a table-valued entry is still the original. The caller
+-- replaces the ones that matter - see snapshot_vector3 in lib/sandbox.lua.
 function env.snapshot_module(t)
     return setmetatable(env.snapshot(t), getmetatable(t))
 end

@@ -111,6 +111,33 @@ local function ramp_over(list)
     return function(v, m, M) return ramp_pick(list, v, m, M) end
 end
 
+--- The `vector` table one run gets: a copy of the vector3 module whose
+-- table-valued entries - its fourteen exported constants - are copies too.
+--
+-- snapshot_module is one level deep, so without this every run and every player
+-- shares the module's own `zero`, `one`, `x` ... and `dir = vector.one;
+-- dir.x = -dir.x` writes into a constant the whole server reads (S8). vector3
+-- 2.0 froze them, which turns that write into a raise instead, but mod.conf
+-- reads `depends = vector3` and Luanti has no version constraint, so a player
+-- may be on 1.5, where it lands. Fourteen constructions per program start.
+--
+-- Rebuilt with the constructor, never by copying the keys and reattaching
+-- getmetatable(v): a frozen constant is an empty table reading through its
+-- metatable, so pairs() over it yields nothing and the reattached metatable
+-- aliases the original - a copy that reads correctly and is not one.
+--
+-- Only what is actually a vector, by vector3's own duck test, so a release
+-- exporting a table of some other shape does not make this raise at the start
+-- of every program.
+local function snapshot_vector3()
+    local c = snapshot_module(vector3)
+    for k, v in pairs(vector3) do
+        if type(v) == 'table' and type(v.x) == 'number' and type(v.y) ==
+            'number' and type(v.z) == 'number' then c[k] = vector3(v) end
+    end
+    return c
+end
+
 local function getScriptEnv(drone)
 
     assert(drone, S("Error, drone does not exist"))
@@ -232,9 +259,10 @@ local function getScriptEnv(drone)
             local found = drone_get_block(drone, x, y, z)
             return type(block) == 'string' and found == block
         end,
-        -- vectors. snapshot_module keeps the metatable so vector(x, y, z) still
-        -- resolves through its __call.
-        ['vector'] = snapshot_module(vector3),
+        -- vectors. The copy keeps the module's metatable, so vector(x, y, z)
+        -- still resolves through its __call, and its constants are this run's
+        -- own - see snapshot_vector3 above.
+        ['vector'] = snapshot_vector3(),
         -- math
         ['random'] = math.random,
         ['round'] = round,

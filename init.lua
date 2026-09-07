@@ -36,6 +36,29 @@ if not ok then
                      tostring(why))
 end
 
+-- Name an installed vector3 that hands its method table back from every vector,
+-- because a player program can then replace a vector3 method for every mod on
+-- the server (S9). Fixed upstream in 2.0.2, which carries __index on a separate
+-- metatable; mod.conf cannot ask for a version, Luanti having no version
+-- constraint, so saying so is all this mod can do. Silent on a library without
+-- the hole: a line on every start that reports nothing is noise.
+--
+-- Read-only detection, deliberately. Probing by writing to a constant succeeds
+-- on 1.5 and changes that constant for the whole server, which would be causing
+-- the other defect in order to test for this one (S8). Which version it is
+-- follows from the same two reads: on 1.5 the constants are plain vectors, on
+-- 2.0.1 they are frozen and iterate as empty. Not translated - this is a
+-- debug.txt line for whoever runs the server, and engine logs are English.
+if vector3(1, 1, 1).__index ~= nil then
+    local guess = (type(vector3.one) == 'table' and next(vector3.one)) and
+                      'v1.5' or 'v2.0.1'
+    core.log('warning',
+             '[codeblock] the installed vector3 (looks like ' .. guess ..
+                 ') exposes its method table on every vector, so a player ' ..
+                 'program can replace a vector3 method for every mod on this ' ..
+                 'server. Install vector3 2.0.2 or newer.')
+end
+
 if not core.mkdir(codeblock.filesystem.data_path) then
     error("[editor] failed to create directory!")
 end
