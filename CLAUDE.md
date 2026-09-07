@@ -249,11 +249,13 @@ source that drifts in silence — except that here the blind spot is by design:
 the region describes chat commands and privileges, which `lib/api.lua` knows
 nothing about.
 
-### Four mirrors of the source: three generated, one checked
+### Restatements of the source: three generated, three checked, one not
 
-Four files here restate the source, are read by a human, by a linter or by
-ContentDB rather than by the code, and so **drift silently — nothing fails when
-they are wrong**.
+**Seven things here restate the source** — read by a human, by a linter, by
+ContentDB or by a player rather than by the code, and so **drifting silently:
+nothing fails when they are wrong**. Four are below, `.cdb.json` is the fifth,
+and the new-file template and the example-name list, both found on 2026-09-07,
+are the sixth and seventh; the last three are after the four.
 `doc/api.md` drifted and got `gen_docs.lua --check`. `locale/template.txt`
 drifted twelve messages one way and seventeen the other and got
 `gen_locale.lua --check` (C17). **`settingtypes.txt` was the third and got
@@ -320,6 +322,31 @@ written for someone on the package page: edit that and run the generator, never
 `.cdb.json`. What is still hand-kept is its recent-changes list against
 `CHANGELOG.md`, and nothing checks the two agree. The lesson generalises past this
 file: **a generator guarantees the output matches its input, and nothing more.**
+
+**Two more of the family were found on 2026-09-07, and one of them a player
+runs.** The first is the **new-file template** — the program `create_file` in
+`lib/formspecs.lua` writes into a file created with `+` or Enter. It is player
+code inside a Lua string literal, so nothing lints it, compiles it or generates
+it, and it said `place(blocks.obsidian)` for three days after `F11` deleted the
+`blocks` category: **every file a player created failed on its first statement,
+with all five gates green** (`B53`). It is now in the *checked* column with
+`.luacheckrc`'s std: `tests/integration_spec.lua` **reads the string out of
+`lib/formspecs.lua`** — anchored on the `write_file(name, filename,` call — and
+runs it through `get_safe_coroutine`, with the pre-`F11` text kept as a control
+that must fail. Two rules follow. **A copy of the template in the spec would be
+one more mirror**, which is why the spec reads the source. And **the template
+names no individual colour**: `for i = 1, #hues do place(hues[i]) up(1) end`,
+because `place`, `up` and `hues` change only in a major version while a colour
+name is the part of the API that moves.
+
+The second is **the list of example names in `tests/preprocess_spec.lua`**, and
+it is the one still **unchecked in the direction that matters** (`C23`, open).
+That spec is the only thing that compiles the shipped examples, and it checks
+them against a hand-written list rather than against `lib/examples/`. A listed
+name with no file now fails by name; **a file with no listed name is still
+compiled by nothing.** The real set is `codeblock.examples.examples`, built at
+load from `core.get_dir_list`, and the fix is blocked only by an untracked
+example in that directory making the check red locally and green in CI.
 
 Three rules for a string a player sees, the first two learned from C17:
 

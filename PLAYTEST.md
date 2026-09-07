@@ -10,7 +10,7 @@ This file has its own `export-ignore` line, so it never ships to a player.
 ## How to record a result
 
 ```
-Result: pass — e3e2178 · engine <version> · <YYYY-MM-DD> — <one line of detail>
+Result: pass — de3bcbb · engine <version> · <YYYY-MM-DD> — <one line of detail>
 ```
 
 `fail` and `partial` take the same shape. **Always keep the commit and the
@@ -30,12 +30,14 @@ A recipe also **names the shell it is for** — that has cost a session twice
 
 ## Where it stands
 
-**80 entries, of which `F11-4` is superseded — so 79 live checks, nineteen of
-them unrun.** The unrun nineteen are `F11-1` to `F11-11` less `F11-4`, written
+**81 entries, of which `F11-4` is superseded — so 80 live checks, twenty of
+them unrun.** The unrun twenty are `F11-1` to `F11-11` less `F11-4`, written
 2026-09-05 at `6126abe` when `F11` landed, `F12-1` to `F12-6`, written
-2026-09-06 at `01f9641`, and `F14-1` to `F14-3`, written 2026-09-07: the first
+2026-09-06 at `01f9641`, `F14-1` to `F14-3`, written 2026-09-07: the first
 while `F14` was still being built, the other two out of its coverage work, once
-it had shipped. Before them every one of the 60 older checks carried a
+it had shipped — and **`E17`**, written 2026-09-07 at `de3bcbb` for `B53`, the
+new-file template naming a category `F11` had deleted. Before them every one of
+the 60 older checks carried a
 result, which had not been true before 2026-09-04. **This is outstanding
 *checking*, not unfinished work:** `F11` to `F14` are committed with
 their gates green and no finding against any, and what these entries cover is
@@ -53,7 +55,7 @@ positions twice. Read those two before running them — both changed on
 visual half.
 
 **Run `F11-1` first**, the category selector on a French client. It is the only
-one of the nineteen whose failure would be expensive: a legacy dropdown returning
+one of the twenty whose failure would be expensive: a legacy dropdown returning
 displayed text rather than the stored item would mean converting the editor out
 of legacy coordinates. Everything else in both groups is appearance, digging,
 inventory, a game's registration or a read, and a fail there is a small fix.
@@ -81,6 +83,17 @@ in a world**, and nothing else can ever show it, no spec asserting what
 `Drone.finish` sends. The engine version was not restated by the author.
 **`H10` passed 2026-09-02 with a few presses still missing** — the residue
 `B47`'s fix leaves, accepted rather than closed.
+
+**Three check recipes could not have run at all, and were repaired on
+2026-09-07.** `F-3`, `W4` and `W5` each handed the runner a program saying
+`place(blocks.…)` — the category `F11` deleted on 2026-09-04 — so each would
+have failed on its first line for a reason that is not what it tests, and `W1`
+quotes two more in its results. They are fixed the way `B53`'s template was:
+`place(hues[1])` and `colors.notablock`, structural names rather than one that
+moves. **`W1`'s two historical programs are left exactly as they were run** and
+carry a warning instead, because a result is evidence about the program that
+produced it; the loop is restated in today's spelling in the check's own body.
+A wrong check is a defect in this document and gets no finding id.
 
 **`R1` and `R2` are stale rather than unrun, and `F11` made them more so.** Both
 describe the release archive, which now carries the mod's own textures and no
@@ -204,9 +217,11 @@ checks a real install into a foreign game, not what the archive contains.
 
 ## Editor
 
-E1–E16. Runs of 2026-08-27 and 2026-08-28, engine 5.17.0, in the author's test
+E1–E17. Runs of 2026-08-27 and 2026-08-28, engine 5.17.0, in the author's test
 game. They produced `B33` (widened to three losing paths), `B34`, `B35`, `B36`
-and `B37`.
+and `B37`. **`E17` is newer and unrun**: written 2026-09-07 for `B53`, which
+nothing in this group would have caught, because every check here opens a file
+that already exists.
 
 ### E1 · Open, save and close a program [A9, B13, B17]
 
@@ -455,6 +470,30 @@ the pristine-example case, on the tree carrying `B48`'s fix. Four bundled
 examples opened untouched and no tab but the active one marked. **`B48` is now
 confirmed in a world**, which is the one thing no spec could reach: the CRLF-vs-LF
 comparison only happens through a real client textarea.
+
+### E17 · A brand new file runs as it is [B53]
+
+**Written 2026-09-07 with `B53`'s fix.** Press `+` in the editor, type a name,
+and **run the file that appears without editing it**.
+
+**Pass:** a **ten-block vertical rainbow column** rises from the drone, and no
+error in chat.
+
+**What distinguishes a pass from *did not crash*: count the colours.** The column
+must be ten blocks of ten **different** colours, one per hue family in
+colour-wheel order. A template that resolved all its names but ramped wrongly —
+ten blocks of one colour, or the same two alternating — would still place
+something and would still print no error, and that is a fail here.
+
+`B53` was this template placing nothing at all: it said `place(blocks.obsidian)`
+and `F11` had deleted the `blocks` category three days earlier, so every file
+created with `+` or Enter died on its first statement. The fix reads
+`for i = 1, #hues do place(hues[i]) up(1) end`, which is why the pass is a
+rainbow and why the count of colours is the discriminator. `integration_spec`
+covers the template compiling and running; **what only a world can show is the
+route from the button to a program a player actually runs.**
+
+Result: not yet run.
 
 ---
 
@@ -1003,7 +1042,7 @@ came out in English. That is `C17`.
 
 ```bash
 cd .../worlds/<world>/codeblock_files/<player>
-echo 'place(blocks.stone)' > src.lua && luac5.1 -o bytecode.lua src.lua
+echo 'place(hues[1])' > src.lua && luac5.1 -o bytecode.lua src.lua
 rm src.lua && head -c 4 bytecode.lua | xxd   # 1b4c7561 - the 0x1B is the point
 ```
 
@@ -1076,7 +1115,11 @@ own**.
 `planet.lua`, `death_star.lua` and `mosely.lua` shrank so the whole set fits the
 level a server hands out. That claim was arithmetic until it was run.
 
-`/codeblock generate`, set yourself to **codelevel 2**, run all fourteen.
+`/codeblock generate`, set yourself to **codelevel 2**, run every example the
+command wrote — **thirteen** since `b752ea3` deleted `tests.lua`, and the 2026-09-02
+result below is over fourteen. Run whatever is in your directory rather than a
+count: `generate` enumerates `lib/examples/`, so an untracked file of your own
+there is written out with them (`C23`).
 
 **Pass:** every one completes. None stops with *"Maximum number of nodes
 written"*, *"Maximum running time"* or *"Memory limit exceeded"*.
@@ -1161,8 +1204,20 @@ wait!"*.
 command), so the drone is 500 nodes out immediately, and `sleep(20)` then makes
 no call, so nothing calls `load_area`; the 2.0 s deactivation sweep took it on
 its first or second pass. **After the fix it must survive the full 20 seconds and
-then finish normally.** The 50-iteration loop below is a coin flip and this is
-not, so run this one first.
+then finish normally.** The 50-iteration loop is a coin flip and this is
+not, so run this one first. The loop, in the spelling that works at `HEAD`:
+
+    -- aaa.lua
+    for i = 1, 50 do
+      place(hues[1])
+      forward(16)
+    end
+
+**The two programs quoted in the results below are pre-`F11` and will not run**
+— they say `place(blocks.obsidian)`, and `F11` deleted the `blocks` category on
+2026-09-04. They are left exactly as they were run, because that is what the
+results are evidence about; copy the loop above instead. (`B53` was the same
+rot in the editor's new-file template.)
 
 **The expectation was wrong as written, corrected 2026-09-03.** *No holes* was
 the whole of it, and it cannot be met at a paced codelevel while `B50` stands:
@@ -1372,7 +1427,7 @@ player exists.
 1. **A typo warns once and builds anyway.** Run a program that places an unknown
    name in a loop, for example:
 
-       for i = 1, 20 do place(blocks.notablock) forward(1) end
+       for i = 1, 20 do place(colors.notablock) forward(1) end
 
    Expect **exactly one** chat line, naming `notablock` and saying the default
    block was used instead, and a line of twenty default blocks rather than a
@@ -1383,7 +1438,7 @@ player exists.
    file-local and unexported, and `integration_spec` builds its own `api` table
    by hand — so this case is the only way the per-run scope is ever observed.
 3. **The accepted side effect.** A program that probes membership —
-   `if blocks[name] then ... end` with a name that is not there — also produces
+   `if colors[name] then ... end` with a name that is not there — also produces
    the one warning. That is known and accepted, not a defect; it is recorded
    under `B49`.
 
@@ -1413,9 +1468,9 @@ place a drone, and then leave it alone — do not follow it, do not stand near i
 
        forward(500)
        sleep(45)
-       place(blocks.obsidian)
+       place(hues[1])
 
-   **Pass:** after the sleep the obsidian is placed and the run announces itself
+   **Pass:** after the sleep the block is placed and the run announces itself
    normally. The drone must not disappear silently at about 29 seconds, and no
    *le drone a disparu* line may arrive.
 2. **A run left paused.** Start a long program that walks a long way out, then

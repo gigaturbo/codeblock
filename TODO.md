@@ -119,6 +119,27 @@ Features
       has never had, in either state, and it **passed 2026-09-04 at 23f0227**,
       both cases — so the fixed behaviour is observed while the defect itself
       never was (audit B52)
+- [x] BUG: "default file doesn't work anymore" — reported 2026-09-07. The
+      program a new file starts with said `place(blocks.obsidian)`, and F11 had
+      deleted the `blocks` category and every `default:` node three days
+      earlier, so **every file created with `+` or Enter since 2026-09-04 failed
+      on its first statement**. Nothing caught it because the template is player
+      code inside a Lua string: nothing lints, compiles or generates it. **Fixed
+      the same day at de3bcbb**, and not by renaming the colour — the template
+      now reads `for i = 1, #hues do place(hues[i]) up(1) end`, which names no
+      individual colour and fits itself to whatever the palette holds, so the
+      same rot cannot recur. Covered by four cases that read the template out of
+      lib/formspecs.lua rather than copying it. Playtest E17 is written and
+      unrun (audit B53; playtest E17)
+- [ ] DECIDE: what to do with the untracked `lib/examples/game.lua` in your
+      working tree. Two consequences you may not intend. **It is shipped to
+      players in every dev world**: `generate_examples` enumerates the directory,
+      so `/codeblock generate` writes it into each player's directory alongside
+      the thirteen tracked examples. **And it blocks half of C23**: the spec that
+      compiles the examples should check the directory rather than a hand-kept
+      list of names, but that check would go red locally and green in CI while
+      this file is untracked. Track it, move it out of `lib/examples/`, or say
+      that both are fine (audit C23)
 - [ ] FEAT: Make possible to change codelevel while running a program (audit F5)
 - [x] FEAT: the mod brings its own blocks and drops the `default` and `wool`
       dependencies — settled 2026-09-04 as `F11` and **shipped in two passes**,

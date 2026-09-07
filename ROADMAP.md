@@ -21,6 +21,18 @@ thinking rather than a queue position.
 
 ## Now
 
+**`B53` was found and fixed on 2026-09-07 at `de3bcbb`, and it is the reason to
+start the playtest session now rather than later.** The program a new file starts
+with named `blocks.obsidian` — a category `F11` deleted on 2026-09-04 — so
+**every file a player created with `+` or Enter for three days raised on its
+first statement**, with all five gates green over it. The template is player code
+in a string literal and nothing lints, compiles or generates it. The fix names no
+individual colour, deliberately; the grounds are under *other decisions*. It
+leaves one new check, `E17`, and one open finding, **`C23`** — the shipped
+examples are checked against a hand-kept list of names rather than the directory,
+so an example added and not listed is compiled by nothing. Half of `C23` is
+fixed and the other half is deferred, for a reason recorded in `AUDIT.md`.
+
 **`F14` shipped on 2026-09-07 — palette views and a generic ramp — with every
 gate green, run by `test-agent` itself.** Three ordered arrays of colour names
 beside `hues`, `ramp.of` over any array, and no change to the palette; its shape,
@@ -34,8 +46,9 @@ the same reason — see *other decisions*.
 **Play `F11`, `F12`, `F13` and `F14` in one session, starting with `F11-1`.**
 All four features are built and committed with every gate green — `d075742` and
 `6126abe` for `F11`, `01f9641` for `F12`, `4450ce1` for `F13`, `e3e2178` for
-`F14` — and what is left is the part no spec can do: **nineteen `PLAYTEST.md`
-checks, none of them run.** `F13` adds no entry of its own: `is_block` is `get_block`'s read path, so
+`F14` — and what is left is the part no spec can do: **twenty `PLAYTEST.md`
+checks, none of them run** — nineteen for the four features, plus `E17` for
+`B53`. `F13` adds no entry of its own: `is_block` is `get_block`'s read path, so
 `F12-3` and `F12-4` were extended instead. Start with `F11-1`, the category
 selector on a **French** client, because
 it is the one whose failure would be expensive: if the selector works in English
@@ -51,10 +64,13 @@ make. Everything else in both groups is appearance, digging, inventory, a game's
 own registration, a ramp and a read.
 
 **Then push.** `origin/master` is at `65b4c46`, so **CI
-has seen no part of `F11`, `F12`, `F13` or `F14`** — ten unpushed commits,
-`d075742`, `6126abe`, `7514f39`, `b752ea3`, `01f9641`, `6aadd16`, `4450ce1`,
-`84da24e`, `e3e2178` and this record change, and the two largest changes in
-the release are among the ones CI has not looked at. The new
+has seen no part of `F11`, `F12`, `F13`, `F14` or `B53`'s fix** — **twelve
+unpushed commits**, `d075742`, `6126abe`, `7514f39`, `b752ea3`, `01f9641`,
+`6aadd16`, `4450ce1`, `84da24e`, `e3e2178`, `35f2aff`, `de3bcbb` and this
+record change. The two largest changes in
+the release are among the ones CI has not looked at. **Take that number from
+`git rev-list --count origin/master..HEAD`** — it has been recorded low three
+passes running, each time by counting a copied-forward list of hashes by hand. The new
 `.luacheckrc` check in `gen_docs.lua --check` is unseen by CI as well. After that
 the release list is `README.md`, the screenshots, `R2` and the tag.
 
@@ -118,12 +134,14 @@ skill cite. All four are **built and committed**, `d075742` + `6126abe`,
 `01f9641`, `4450ce1` and `e3e2178`, gates green over all five commits; their
 entries under *The features* hold the shapes and the decisions. What is
 outstanding is **nineteen `PLAYTEST.md` checks, none run** — `F13`'s folded into
-`F12-3` and `F12-4` — and **CI, which has seen no part of any of them**: ten
+`F12-3` and `F12-4` — plus **`E17`, `B53`'s, which makes twenty**, and **CI,
+which has seen no part of any of them**: twelve
 commits unpushed and `origin/master` at `65b4c46`. Run `F11-1` first, and
 expect `F12-2` to hand a decision back about the flat solid tile.
 `CHANGELOG.md` took `F11`'s **Changed** and **Removed** sections on 2026-09-05,
-`F12`'s and `F13`'s on 2026-09-06 and `F14`'s **Added** line on 2026-09-07, so
-step 4 is back to the heading alone. (F11, F12, F13, F14)
+`F12`'s and `F13`'s on 2026-09-06, `F14`'s **Added** line and `B53`'s **Fixed**
+line on 2026-09-07, so
+step 4 is back to the heading alone. (F11, F12, F13, F14, B53)
 
 **The unnumbered step before step 0 — play `W1`, `W5` and `W6` — is done,
 2026-09-04 at `23f0227`, all three passing.** It is kept unnumbered so the steps
@@ -298,7 +316,7 @@ were fixed the same day at `1b991ae` and **confirmed in a world on 2026-09-04**,
 and `B51` was fixed at `8de3cea` on 2026-09-04 and confirmed by `D7` the same
 day. **So all fifteen fixes are played.**
 
-### 8 · Features for v1.0.0 — in progress (12 features, all twelve shipped; 26 findings, none open; `F11` to `F14` unplayed)
+### 8 · Features for v1.0.0 — in progress (12 features, all twelve shipped; 28 findings, `C23` open; `F11` to `F14` unplayed, `B53` fixed and `E17` unrun)
 
 The last phase before v1.0.0 and the only one that adds rather than repairs.
 Started as seven features: `F6` moved out on 2026-08-28 (Blockly is `Phase 10`)
@@ -325,7 +343,7 @@ untagged.
 nothing, so its phase is a matter of when it was asked for rather than of the
 tag. The same commit closed `C22`. `F11` to `F14` are the four that are
 **shipped and not yet checked** — nineteen `PLAYTEST.md` entries, none run,
-`F13`'s checking folded into two of them, and no CI over any of the ten
+`F13`'s checking folded into two of them, and no CI over any of the twelve
 commits.
 
 **`F14` was added and shipped on 2026-09-07** — three ordered palette views and
@@ -348,11 +366,12 @@ and `W6`, the only evidence `B50` and `B52` will ever have — all passed on
 2026-09-04 at `23f0227`.** **`B51` was fixed the same day at `8de3cea`** — a run
 cut short says *stopped* — and `D7` passed that day too, which left the phase
 with **no open finding and no unrun check** until `F11`, `F12` and `F14` added
-nineteen of the latter. Left in it: `README.md`, the screenshots, `R2` on the
+nineteen of the latter, and `B53` a twentieth on 2026-09-07. Left in it:
+`README.md`, the screenshots, `R2` on the
 release archive — the one check whose result has gone stale. **CI is outstanding
 again**: run 47 is green on all three jobs at `65b4c46`, which is
-`origin/master` and **ten** commits behind `HEAD`, so it has seen no part of
-`F11`, `F12`, `F13` or `F14`. `H10` passed 2026-09-02. **`F9`
+`origin/master` and **twelve** commits behind `HEAD`, so it has seen no part of
+`F11`, `F12`, `F13`, `F14` or `B53`'s fix. `H10` passed 2026-09-02. **`F9`
 passed its playtest on 2026-09-02** — all eight cases in both languages, no
 defect, and one decision reversed: the paused clock, built and re-checked the same
 day. **`B47` and `settingtypes.txt` closed the same day**, and writing the second
@@ -1570,6 +1589,25 @@ saved program and no existing world breaks.
 
 ## Other decisions worth not re-litigating
 
+- **The new-file template names no individual colour**, decided 2026-09-07 while
+  fixing `B53`. `code-expert` proposed `colors.orange`, a one-word change from
+  the broken `blocks.obsidian`. It was **rejected**: naming a current colour
+  rebuilds exactly the dependency that had just broken, and the template is prose
+  no check can read, so the standing lesson here — *a note about remembering does
+  not hold where a check would* — has no check to fall back on. What shipped is
+  `for i = 1, #hues do place(hues[i]) up(1) end`: `place`, `up` and `hues` are
+  structural names that change only in a major version, and `#hues` fits the loop
+  to whatever the palette holds, so a shorter palette makes a shorter tower rather
+  than an error. It also makes a better first program — a rainbow column instead
+  of ten identical blocks. **Do not shorten it back to a named colour.**
+- **`C23`'s second direction is deferred, not disputed**, decided 2026-09-07. The
+  shipped examples should be checked against the directory rather than against a
+  hand-kept list of names, and `codeblock.examples.examples` — built at load from
+  `core.get_dir_list` — is the right set to compare with. It was not forced,
+  because the author's **untracked `lib/examples/game.lua`** sits in that
+  directory: the check would go **red locally and green in CI**, which is
+  backwards, and it would have put noise into a bugfix commit about to be
+  playtested. The half that was safe — a listed name with no file — is in.
 - **The neutrals stay five, and are not expanded to ten greys**, decided
   2026-09-07. The author asked for ten shades black-to-white and for a naming
   convention or aliases, then **chose against it after seeing the `F15`
@@ -2043,11 +2081,11 @@ saved program and no existing world breaks.
 
 ---
 
-2026-09-07 · codeblock master at `e3e2178`, which is `F14`, plus this record
-change. `origin/master` is at `65b4c46` and **has seen no part of `F11`,
-`F12`, `F13` or `F14`** — ten unpushed commits, `d075742`, `6126abe`,
-`7514f39`, `b752ea3`, `01f9641`, `6aadd16`, `4450ce1`, `84da24e`,
-`e3e2178` and this record change.
+2026-09-07 · codeblock master at `de3bcbb`, which is `B53`'s fix, plus this
+record change. `origin/master` is at `65b4c46` and **has seen no part of `F11`,
+`F12`, `F13`, `F14` or `B53`** — **twelve unpushed commits**, `d075742`,
+`6126abe`, `7514f39`, `b752ea3`, `01f9641`, `6aadd16`, `4450ce1`, `84da24e`,
+`e3e2178`, `35f2aff`, `de3bcbb` and this record change.
 
 **`F11`, `F12`, `F13` and `F14` are all shipped and all unplayed.** `F11` in two passes:
 `d075742` — the mod registers nodes of its own, `mod.conf` drops to
@@ -2070,29 +2108,36 @@ one refactor — `ramp_over`'s index arithmetic out into `ramp_pick`, which
 assertions with it, which is the evidence that the older ramps were not
 orphaned.
 
-**Gates at `e3e2178`**, read from output rather than exit codes and run by
-`test-agent` itself: luacheck silent, all three `--check` generators up to date,
-`locale/*.tr` complete, six standalone specs under Lua 5.1 at **251**, nine
-in-engine with **646 passed / 0 failed / 0 xpass / 1 known `preprocess_spec`
-xfail** and `integration_spec` at **284 assertions**. At `4450ce1` the same run
-was 610 and 248; at `01f9641`, 544 and 182. `codeblock_run_tests` is confirmed
+**Gates at `de3bcbb`**, read from output rather than exit codes: luacheck
+silent, all three `--check` generators up to date, six standalone specs under
+Lua 5.1, nine in-engine with **651 passed / 0 failed / 0 xpass / 1 known
+`preprocess_spec` xfail**, none skipped and no errors, `integration_spec` at
+**288 assertions** and `preprocess_spec` at **55**. The xfail was confirmed
+still genuinely failing rather than passing vacuously. At `e3e2178` the same run
+was 646 and 284, at `4450ce1` 610 and 248, at `01f9641` 544 and 182.
+`codeblock_run_tests` is confirmed
 gone from the real config. Every gate was made to fail on purpose before it was
 read as green, and every changed or new assertion killed against a deliberate
 break.
 
-**`PLAYTEST.md` stands at 80 entries, one superseded, nineteen unrun** —
+**`PLAYTEST.md` stands at 81 entries, one superseded, twenty unrun** —
 `F11-1` to `F11-11` less `F11-4`, `F12-1` to `F12-6` written 2026-09-06 at
-`01f9641`, and `F14-1` to `F14-3`, the first written while `F14` was still being
-built and the other two out of its coverage work.
+`01f9641`, `F14-1` to `F14-3`, the first written while `F14` was still being
+built and the other two out of its coverage work, and **`E17`**, written
+2026-09-07 for `B53`.
 Outstanding *checking*, not unfinished work. Of the 60 with results,
 none has a fail as its most recent one; the one partial is `H8`. **`F11-4` is
 superseded by `F12-1` and `F12-2`** and was never run, so no result was lost.
+Three check recipes were repaired the same day: `F-3`, `W4` and `W5` still told
+the runner to `place(blocks.…)`, which `F11` retired, so they would have failed
+on their first line for a reason that is not what they test.
 
-**`AUDIT.md` stands at 86 findings, two open** — `A17` and `A18`, both low, both
-pre-existing, both filed 2026-09-05 while recording `F11`, and neither blocking
-the tag. No bug, sandbox or compliance finding is open, and neither `F12` nor
-`F14` added one. `C22` was filed and fixed on 2026-09-06, both inside
-`4450ce1`'s work.
+**`AUDIT.md` stands at 88 findings, three open** — `A17` and `A18`, both low,
+both pre-existing, both filed 2026-09-05 while recording `F11`, and **`C23`**,
+medium, filed 2026-09-07 and half fixed at `de3bcbb`. None of the three blocks
+the tag. No bug or sandbox finding is open: **`B53` was filed and fixed inside
+2026-09-07**, and neither `F12` nor `F14` added one. `C22` was filed and fixed
+on 2026-09-06, both inside `4450ce1`'s work.
 
 What is left before the tag: **play `F11` to `F14`, and push**, then
 `README.md`'s three problems — line 10's now-false portability claim, the
@@ -2102,5 +2147,5 @@ the tag. **Expect `F12-2` to hand back the flat-solid-tile decision.**
 
 ---
 
-Last reviewed **2026-09-07**, describing commit **`e3e2178`** — `F14` and this
-record change together.
+Last reviewed **2026-09-07**, describing commit **`de3bcbb`** — `B53`'s fix and
+this record change together.
