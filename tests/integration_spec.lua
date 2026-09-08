@@ -387,6 +387,33 @@ do
         'commands_before_yield', 'calls_before_yield'
     }) do if cfg[name] ~= nil then ghosts[#ghosts + 1] = name end end
     it('the limits the rewrite replaced are gone', table.concat(ghosts, ','), '')
+
+    -- check_auth_level's contract: the second return is a usable codelevel
+    -- whatever came in, so every caller can pass it straight to a limit table
+    -- without checking the first. (A17 rehomed it here from codeblock.utils.)
+    local function checked(v)
+        local ok, level = cfg.check_auth_level(v)
+        return tostring(ok) .. '|' .. tostring(level)
+    end
+
+    it('a real codelevel is accepted and returned', checked(3), 'true|3')
+    it('zero is not a codelevel',
+       checked(0), 'false|' .. tostring(cfg.default_auth_level))
+    it('one past the top is not a codelevel',
+       checked(5), 'false|' .. tostring(cfg.default_auth_level))
+    it('a numeric string is not a codelevel',
+       checked('3'), 'false|' .. tostring(cfg.default_auth_level))
+    it('nil still yields a usable level',
+       checked(nil), 'false|' .. tostring(cfg.default_auth_level))
+
+    -- The default is read at call time, not captured at load: config.lua
+    -- validates the default_auth_level setting with this same function, so a
+    -- captured default would be the pre-setting one.
+    local saved = cfg.default_auth_level
+    cfg.default_auth_level = 1
+    local late = checked(9)
+    cfg.default_auth_level = saved
+    it('the fallback default is read at call time', late, 'false|1')
 end
 
 --------------------------------------------------------------------------------
@@ -688,7 +715,7 @@ end
 --------------------------------------------------------------------------------
 
 do
-    local parse = codeblock.utils.parse_target
+    local parse = codeblock.parse_target
 
     local function both(caller, params, pat)
         local a, b = parse(caller, params, pat)
