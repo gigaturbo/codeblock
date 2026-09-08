@@ -6,8 +6,16 @@ codeblock.formspecs = {}
 
 local S = codeblock.S
 
-local scroll_max = codeblock.utils.scroll_max
-local split = codeblock.utils.split
+--- The pieces of `inputstr` between runs of `sep`, which is a character class
+-- and defaults to whitespace. Empty pieces are dropped.
+local function split(inputstr, sep)
+    if sep == nil then sep = "%s" end
+    local t = {}
+    for str in string.gmatch(inputstr, "([^" .. sep .. "]+)") do
+        table.insert(t, str)
+    end
+    return t
+end
 
 local formspec_escape = core.formspec_escape
 local chat_send_player = core.chat_send_player
@@ -330,8 +338,10 @@ local file_editor = {
             local spelled = category.spelled
             local field = 'scroll_' .. category.name
 
+            -- The scrollbar's range: 2.32 units per listed block, less the
+            -- 20.56 the container already shows.
             fs = fs .. 'scrollbaroptions[min=0;max=' ..
-                     scroll_max(category.names) ..
+                     (#category.names * 2.32 - 20.56) ..
                      ';smallstep=1;largestep=5]'
             fs = fs .. 'scrollbar[19.5, 1;0.3, 9.25;vertical;' .. field .. ';' ..
                      (meta.scroll[category.name] or 0) .. ']'
@@ -351,7 +361,7 @@ local file_editor = {
         elseif meta.help == 'commands' then
 
             fs = fs .. 'hypertext[14.5,1;5.75,10.75;commands_html;' ..
-                     codeblock.utils.html_commands .. ']'
+                     codeblock.api.html_commands .. ']'
 
         elseif meta.help == 'settings' then
 
@@ -490,7 +500,7 @@ local file_editor = {
 
         local function create_file(filename)
             if (not filename) or filename == '' then return nil end
-            local parts = codeblock.utils.split(filename, '.')
+            local parts = split(filename, '.')
             if #parts > 0 then
                 filename = parts[1]
                 filename = string.gsub(filename, '[^%w_-]', '')

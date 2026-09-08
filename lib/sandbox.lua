@@ -58,7 +58,6 @@ local hues = codeblock.config.allowed_blocks.hues
 local light_hues = codeblock.config.allowed_blocks.light_hues
 local dark_hues = codeblock.config.allowed_blocks.dark_hues
 local neutrals = codeblock.config.allowed_blocks.neutrals
-local table_randomizer = codeblock.utils.table_randomizer
 
 local snapshot = codeblock.env.snapshot
 local snapshot_module = codeblock.env.snapshot_module
@@ -109,6 +108,16 @@ end
 -- the same footing as the mod's own.
 local function ramp_over(list)
     return function(v, m, M) return ramp_pick(list, v, m, M) end
+end
+
+--- A function picking a random value of `tbl` on each call. Backs
+-- table.randomizer and the three random.* pickers. The keys are taken once, so
+-- a key added to `tbl` afterwards is never picked.
+local function table_randomizer(tbl)
+    local keys = {}
+    local random = math.random
+    for k in pairs(tbl) do table.insert(keys, k) end
+    return function() return tbl[keys[random(#keys)]] end
 end
 
 --- The `vector` table one run gets: a copy of the vector3 module whose

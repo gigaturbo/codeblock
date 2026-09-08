@@ -224,7 +224,7 @@ core.register_on_mods_loaded(function()
     if installed > 0 then
         -- The editor's API panel is rendered once from the description, so it
         -- has to be rendered again now that the description has grown.
-        codeblock.utils.html_commands = codeblock.api.to_hypertext()
+        codeblock.api.html_commands = codeblock.api.to_hypertext()
         core.log('action', ('[codeblock] the game added %d block %s'):format(
                      installed,
                      installed == 1 and 'category' or 'categories'))

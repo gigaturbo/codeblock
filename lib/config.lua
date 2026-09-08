@@ -107,6 +107,19 @@ codeblock.config.drone_hud = flag('drone_hud', true)
 
 codeblock.config.auth_levels = {1, 2, 3, 4}
 
+--- Validate a codelevel, from player meta or from a setting.
+-- Returns ok, level - the default level when it is not one of auth_levels, so
+-- the second return can be used unchecked. The default is read at call time
+-- rather than captured, because the setting that sets it is validated by this
+-- same function, just below.
+function codeblock.config.check_auth_level(auth_level)
+    if type(auth_level) == 'number' and
+        codeblock.config.auth_levels[auth_level] ~= nil then
+        return true, auth_level
+    end
+    return false, codeblock.config.default_auth_level
+end
+
 -- The codelevel a player gets on first join. Level 3 is right for singleplayer:
 -- the player is the administrator, so a paced level would only be an annoyance,
 -- but level 4 is the widest set of ceilings there is and nothing should sit
@@ -121,7 +134,7 @@ codeblock.config.auth_levels = {1, 2, 3, 4}
 local singleplayer = engine and engine.is_singleplayer()
 local wanted = singleplayer and 3 or 2
 local asked = number('default_auth_level', wanted)
-if codeblock.config.auth_levels[asked] then
+if codeblock.config.check_auth_level(asked) then
     wanted = asked
 else
     warn('default_auth_level', 'is not a codelevel from 1 to 4; ignored')

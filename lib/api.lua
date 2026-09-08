@@ -547,6 +547,10 @@ function api.to_hypertext()
     return table.concat(out, '\n')
 end
 
+-- The panel the editor draws, rendered once. lib/blocks.lua renders it again
+-- when a game's own block category has added a ramp to the description.
+api.html_commands = api.to_hypertext()
+
 --------------------------------------------------------------------------------
 -- rendering: Markdown reference
 --------------------------------------------------------------------------------

@@ -5,7 +5,7 @@ codeblock.examples = {}
 -------------------------------------------------------------------------------
 
 local get_dir_list = core.get_dir_list
-local path_join = codeblock.utils.path_join
+local path_join = codeblock.path_join
 local examples_path = path_join(codeblock.modpath, 'lib', 'examples')
 
 -------------------------------------------------------------------------------

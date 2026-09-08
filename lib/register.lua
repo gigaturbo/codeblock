@@ -18,8 +18,7 @@ local drone_panel_tick = codeblock.formspecs.drone_panel.tick
 
 local hud_tick = codeblock.hud.tick
 
-local check_auth_level = codeblock.utils.check_auth_level
-local parse_target = codeblock.utils.parse_target
+local check_auth_level = codeblock.config.check_auth_level
 
 local get_user_data = codeblock.filesystem.get_user_data
 local write_file = codeblock.filesystem.write_file
@@ -277,8 +276,34 @@ core.register_privilege("codeblock", {
     give_to_singleplayer = true
 })
 
+--- Parse "[<playername>] <rest>" from a chat command's arguments.
+--
+-- The player name is optional and defaults to `caller`. There is deliberately
+-- no singleplayer special case: the engine passes the caller's own name either
+-- way, and the previous hard-coded 'singleplayer' was wrong for a renamed
+-- player.
+--
+-- `rest_pattern` is a Lua pattern for the remaining argument, e.g. '%d+'.
+-- Returns target_name, rest - or nil, nil when the arguments do not match.
+local function parse_target(caller, params, rest_pattern)
+    -- "<name> <rest>"
+    local pname, rest = string.match(params, '^%s*([%a][%w_%-]*)%s+(' ..
+                                         rest_pattern .. ')%s*$')
+    if pname then return pname, rest end
+    -- "<rest>" alone, addressed to the caller
+    rest = string.match(params, '^%s*(' .. rest_pattern .. ')%s*$')
+    if rest then return caller, rest end
+    return nil, nil
+end
+
+-- Published rather than kept local because tests/integration_spec.lua covers
+-- it: B8 and the dead singleplayer branch both lived in this parsing, and the
+-- suite runs at mod load, before a player exists, so it cannot be driven
+-- through the chat commands.
+codeblock.parse_target = parse_target
+
 --- Parse "[<playername>]" alone: the caller when omitted, nil when malformed.
--- The sibling of utils.parse_target, which needs a second argument to parse.
+-- The sibling of parse_target, which needs a second argument to parse.
 local function target_only(caller, params)
     if params:match('^%s*$') then return caller end
     return params:match('^%s*([%a][%w_%-]*)%s*$')

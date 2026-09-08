@@ -103,4 +103,4 @@ local function pathJoin(...)
     return path
 end
 
-codeblock.utils.path_join = pathJoin
+codeblock.path_join = pathJoin

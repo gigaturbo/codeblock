@@ -38,7 +38,7 @@ local floor = math.floor
 local chat_send_player = core.chat_send_player
 local get_player_by_name = core.get_player_by_name
 
-local check_auth_level = codeblock.utils.check_auth_level
+local check_auth_level = codeblock.config.check_auth_level
 
 local get_user_data = codeblock.filesystem.get_user_data
 local exists = codeblock.filesystem.exists
