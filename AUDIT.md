@@ -17,16 +17,15 @@ and security, `C` compliance and packaging, `A` architecture and performance;
 
 | Series | Total | Resolved | Open | Won't fix |
 |---|---|---|---|---|
-| `B` bugs | 52 | 50 | `B55` | `B34` |
+| `B` bugs | 52 | 51 | — | `B34` |
 | `S` sandbox and security | 9 | 9 | — | — |
 | `C` compliance and packaging | 18 | 17 | `C24` | — |
 | `A` architecture and performance | 14 | 14 | — | — |
-| **Total** | **93** | **90** | **2** | **1** |
+| **Total** | **93** | **91** | **1** | **1** |
 
 | Id | Sev | What | Waiting on |
 |---|---|---|---|
 | `C24` | medium | CI boots no engine, so three specs and every engine-guarded case never run in CI | a CI job that boots Luanti |
-| `B55` | medium | a player whose name starts with a digit, a dash or an underscore cannot be named to any `/codeblock` subcommand | the fix, written and uncommitted at `dd98aab` |
 | `B34` | low | won't fix: a file cannot be removed without opening it first | decided — a working route exists |
 
 ## Open and won't fix
@@ -56,42 +55,6 @@ under CI for the first time. **Not by adding `lfs` to the standalone path** to
 enumerate a directory: a dependency for one case is not a trade worth making. It
 does not block the tag; the release is built from a tree a local run has
 covered.
-
-### B55 · medium · open — an engine-legal player name is unaddressable by any subcommand
-
-**Mechanism.** Both parsers in `lib/register.lua` require a leading `[%a]`. The
-engine allows more: `PLAYERNAME_ALLOWED_CHARS` is
-`abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_`
-(`src/player.h:17`, tag `5.17.0`), so a legal name may start with a digit, a
-dash or an underscore. No `/codeblock` subcommand can name such a player.
-
-```
-/codeblock tools 007      -> usage error
-/codeblock generate 007   -> usage error
-/codeblock level 007 3    -> usage error
-/codeblock level 4player  -> usage error
-```
-
-**A server carrying such a player cannot be administered through this mod at
-all**, and the answer is the usage string, which says the arguments were wrong
-and never that the name was rejected.
-
-**Not a regression. `B8`'s fix drawn too tight.** The leading-letter
-requirement was deliberate — it is what kept `level 4` and `level alice` apart.
-It stood because the charset is documented in neither `lua_api.md` nor the
-settings example. **The engine source was the only source of truth available**,
-and that is why reading it is the step this finding cost.
-
-**Scope: the committed half only.** `/codeblock level 007` answering `Invalid
-codelevel` — an answer about a level, to a question about a player — belongs to
-`F16`, which is uncommitted. A feature wrong before it ships gets no id and its
-record is the `F16` entry in `ROADMAP.md`. The boundary is settled; do not
-re-litigate it.
-
-**The fix is decided and written, uncommitted at `dd98aab`:** widen both
-parsers to the engine charset. The decision, the one-argument resolution rule
-and the rejected options are in `ROADMAP.md`. The constraints it creates are
-under *Keep*. In-world evidence is playtest `F16-8`.
 
 ### B34 · low · won't fix — a file cannot be removed without opening it first
 
@@ -576,6 +539,7 @@ a row carries a rule, it is above under *Keep*.
 | `B52` | medium | a drone standing still far from any player died at about 29 s, `load_area` never resetting the block's usage timer | closed by `B50`'s fix: such a drone loses its view, not its run | `1b991ae` |
 | `B53` | high | the new-file template said `place(blocks.obsidian)`, a category `F11` had deleted, so **every file a player created failed on its first statement** for three days, with five gates green | the template loops over `hues` and names no colour; `integration_spec` reads it out of the source | `de3bcbb` |
 | `B54` | medium | `print` took exactly one parameter, so it dropped every argument after the first with no error, while the concatenated form raised | variadic through `select`, joined with a space, still one command per call | `24842d3` |
+| `B55` | medium | both argument parsers in `lib/register.lua` required a leading `[%a]`, so a player named `007`, `4player` or `_bob` — all legal to the engine — could not be named to `tools`, `generate` or `level`, and the answer was the usage string | both parsers take `[%w_%-]+`; `parse_target` gains `rest_pattern` and `solo_pattern`, so a lone `[1-4]` is a codelevel and anything else is a name | `7c1442d` |
 
 ### S · Sandbox and security
 
@@ -669,17 +633,28 @@ rehomed symbol at file scope and would take the mod down in the wrong order.
 exercises the call-time read and needs no command. Playtest `R4` carries that
 reading at `cd13414`, before `6a4fa91`, so it has to be taken again.
 
-**`R4`'s four numbered cases are blocked, not stale.** They ask for a codelevel
-to be read back and nothing reports one. `F16` adds the read path. The block is
-in the check, not in `A17`.
+**`R4`'s four numbered cases became performable at `7c1442d`.** They ask for a
+codelevel to be read back, which `F16` added. The check is `owed`, and its
+`dd98aab` fail is superseded.
 
 **Neither runtime call site of `check_auth_level` is pinned.** The function is
-covered; `lib/drone.lua:148` and the `/codeblock level` path at
-`lib/register.lua:363` are not. Playtests `R4` and `F10-3` exercise both, and
-both last passed before this change.
+covered; `lib/drone.lua:148`, the read path at `lib/register.lua:399` and the
+set path at `lib/register.lua:414` are not. Playtests `R4`, `F16-4` and `F10-3`
+exercise them, and all last passed before this change or have never run.
 
-**Committed with gates green, unproven in a world — three:**
+**`B55`'s fix landed at `7c1442d` and is gated, not played.** `2608dc3` adds 28
+`tests/integration_spec.lua` cases over the two parsers: the engine charset on
+all three subcommands, the one-argument resolution rule, and the set-before-read
+order. Gates at `2608dc3`: luacheck silent, the three `--check` generators up to
+date, **703 in-engine assertions, 0 failed, 0 xpass, the one known `B4` xfail**,
+253 standalone. **No spec can reach a real player name**, so the finding is
+resolved on the code and owes one in-world reading — playtest `F16-8`, unrun.
 
+**Committed with gates green, unproven in a world — four:**
+
+- **`B55`** — the widened parsers, and `F16`'s whole read path with it. Chat
+  commands, a privilege and player meta are all outside what a spec sees.
+  `F16-1` to `F16-8` are unrun.
 - **`B14`** — the cold-cache save-after-rejoin path. Permanently out of reach
   from the editor while `B34` stands; the one route left is removing a file
   immediately after a rejoin, and no check has been written for it.

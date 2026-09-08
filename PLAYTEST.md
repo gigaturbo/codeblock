@@ -33,7 +33,7 @@ id. A wrong *check* is a defect in this document and gets no id.
 | State | Means |
 |---|---|
 | `unrun` | Never run. Waiting on a runner. |
-| `owed` | Carries a pass, but the code under it changed. Waiting on a re-run. |
+| `owed` | Carries a result the code under it has since changed. Waiting on a re-run. |
 | `stale` | Carries a pass whose commit or counts no longer describe the tree. |
 | `unreachable` | The remaining cases are impossible to perform on this form. Nothing is owed and no future run improves it. |
 | `blocked` | The check asks for something the code does not offer yet. It becomes runnable as written once the named work lands. |
@@ -71,7 +71,7 @@ Result: ...
 | Unreachable | 1 — `H8` |
 | Unrun | 10 — `F-6`, `R5`, `F16-1` to `F16-8` |
 | Stale | 2 — `R1`, `R2` |
-| Blocked | 1 — `R4` |
+| Owed | 1 — `R4` |
 | Fail as most recent result | 1 — `R4` |
 
 Checks needing action:
@@ -82,7 +82,7 @@ Checks needing action:
 | [`R5`](#r5--an-old-vector3-is-named-in-the-log-at-mod-load-s9) | unrun | The load-time warning about an old `vector3`. Needs the submodule swapped by hand. |
 | [`R1`](#r1--the-archive-contains-no-tests-c16-c10) | stale | Texture and example counts have changed since the last run. |
 | [`R2`](#r2--a-real-install-with-the-test-flag-set-c16) | stale | Last run at `7c5bceb`, before `F4` and two `.gitattributes` changes. |
-| [`R4`](#r4--a-brand-new-world-hands-out-the-right-codelevel-s6) | blocked | Its four cases need a command that reads a codelevel back. `F16` adds it. The log half is runnable now and is what `A17` is owed. |
+| [`R4`](#r4--a-brand-new-world-hands-out-the-right-codelevel-s6) | owed | Its four cases are runnable as written since `7c1442d`. Carries a fail against the command before `F16`. Its log half is what `A17` is owed. |
 | [`F16-1`](#f16-1--reading-your-own-codelevel-with-the-privilege-not-granted-f16-b9) | unrun | The free read path. Needs a player without `codeblock`. Same fresh world as `R4`. |
 | [`F16-2`](#f16-2--reading-another-players-codelevel-f16-b9) | unrun | The privileged read, with and without the privilege. |
 | [`F16-3`](#f16-3--an-offline-name-and-a-name-that-never-existed-f16) | unrun | Both refusals. No offline meta exists in 5.17.0. |
@@ -1317,13 +1317,12 @@ with any history proves nothing here**. Create a fresh world each time.
 Read the log once while you are there: `codeblock_default_auth_level = 9` must
 warn and fall back rather than giving a player nil limits.
 
-**State: `blocked` on `F16`.** Nothing reads a codelevel back. `/codeblock
-level` takes `[<playername>] <1-4>` and only sets, and no other surface shows
-the value. Cases 1, 2 and 4 have no route to it, and case 3 has none to the `4`
-it expects. `F16` adds the read path and makes all four runnable exactly as
-written. **The four cases as written have never been performable**, before or
-after `F10`'s rename, so this is a defect in the check and carries no finding
-id.
+**State: `owed`.** `F16` landed at `7c1442d`, so a bare `/codeblock level`
+reports the value and all four cases are performable exactly as written. **They
+never were before**, on either side of `F10`'s rename: the command was set-only
+and no other surface showed the number. That was a defect in this check and
+carried no finding id. The `fail` below is against the command as it stood at
+`dd98aab` and is superseded, not outstanding.
 
 **The `A17` contract the check has to read on.** `check_auth_level` reads
 `codeblock.config.default_auth_level` at call time rather than capturing it, and
@@ -1338,13 +1337,12 @@ read as evidence for any of them — including case 4, whose *unchanged* can onl
 be judged by reading the level, and for which the check names no indirect route.
 
 **Run it in the same fresh world as `F16-1` to `F16-4`.** Both need a world with
-no history, and `F16`'s read path is the only thing that answers this check's
-four cases. Doing them twice is two fresh worlds for one reading.
+no history, and `/codeblock level` is what answers this check's four cases.
+Doing them twice is two fresh worlds for one reading.
 
-**The log half does not wait on `F16`.** It needs no command, so setting
-`codeblock_default_auth_level = 9` and reading `debug.txt` can be re-run now.
-That is what `A17`'s call-time read is owed: the 2026-09-02 reading predates
-`6a4fa91`.
+**The log half needs no command and can be re-run on its own.** Set
+`codeblock_default_auth_level = 9` and read `debug.txt`. That is what `A17`'s
+call-time read is owed: the 2026-09-02 reading predates `6a4fa91`.
 
 **`S6` closed at `af018d0`, before this check was written on 2026-08-30.** `R4`
 is a regression guard for it and never was its closing evidence.

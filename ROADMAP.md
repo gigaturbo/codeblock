@@ -27,28 +27,28 @@ support matrix in the `run-tests` skill tracks.
 loops now assignments. `A17` finishes at `6a4fa91`: `lib/utils.lua` is deleted,
 four names rehomed and three made private. `fd219ef` pins the new home in
 `integration_spec`. Gates green there — 671 in-engine assertions, 0 failed, 0
-xpass. **Two findings are open**: `C24`, which is `Phase 9`'s, and `B55`.
+xpass. **`C24` is the one open finding**, and it is `Phase 9`'s.
 
-**`B55` is being fixed inside `F16`.** An engine-legal player name starting
-with a digit, a dash or an underscore is unaddressable by any `/codeblock`
-subcommand. The fix is written and uncommitted at `dd98aab`, and it lands with
-`F16` because both change the same two parsers in `lib/register.lua`.
+**`F16` and `B55` shipped at `7c1442d`, with `2608dc3`'s 28 spec cases over the
+two parsers.** `/codeblock level` reports a codelevel, and any engine-legal
+player name is addressable by every subcommand. Gates green at `2608dc3`:
+luacheck silent, the three `--check` generators up to date, 703 in-engine
+assertions with 0 failed, 0 xpass and the one known `B4` xfail, 253 standalone.
 
-**Twenty-nine commits are unpushed.** `origin/master` is `65b4c46`; CI has seen
-no part of `F11`, `F12`, `F13`, `F14`, `B53`, `C23`, `B54` or either `vector3`
-bump. Take the count from `git rev-list --count origin/master..HEAD`, never from
-counting hashes.
+**Thirty-two commits are unpushed.** `origin/master` is `65b4c46`; CI has seen
+no part of `F11`, `F12`, `F13`, `F14`, `F16`, `B53`, `C23`, `B54`, `B55` or
+either `vector3` bump. Take the count from
+`git rev-list --count origin/master..HEAD`, never from counting hashes.
 
-**Every feature in `Phase 8` has shipped and been played.** `PLAYTEST.md`
-carries ten unrun checks — `F-6`, `R5` and `F16-1` to `F16-8` — and one fail,
-`R4`. `E2` and
-`E3` pass at `fffdded`, which is `A18`'s in-world evidence.
+**Every feature in `Phase 8` has shipped. `F16` is the one not yet played.**
+`PLAYTEST.md` carries ten unrun checks — `F-6`, `R5` and `F16-1` to `F16-8` —
+and `R4` owed. `E2` and `E3` pass at `fffdded`, which is `A18`'s in-world
+evidence.
 
-**`R4` fails because it asks for something that has never existed.** No command
-reads a codelevel back, so its four numbered cases cannot be performed and its
-2026-09-02 pass over them is not evidence. It is blocked on `F16`, which is
-being written. `A17`'s call-time read is still owed one in-world reading, which
-the check's log half gives without waiting on `F16`.
+**`R4` is runnable as written for the first time.** Its four numbered cases ask
+for a codelevel to be read back, which `7c1442d` added, so its `dd98aab` fail is
+superseded. `A17`'s call-time read is still owed one in-world reading, which the
+check's log half gives on its own.
 
 ## Finalising v1.0.0
 
@@ -69,10 +69,11 @@ Steps 7–11 are the `release-codeblock` skill's procedure and are not restated.
 5. **Run playtests `F-6` and `R5`**, both unrun. `F-6` is the `S8` fix's only
    in-world reading. `R5` needs the submodule swapped by hand and put back.
    (`S8`, `S9`)
-6. **Re-read `R4`'s log half** — `codeblock_default_auth_level = 9` and the
-   warning in `debug.txt`. It needs no command, and it is the one in-world
-   reading `A17`'s call-time read is owed. Its four numbered cases wait on
-   `F16`. (`A17`)
+6. **Run `R4` and `F16-1` to `F16-8`.** `R4` and `F16-1` to `F16-4` share one
+   fresh world. `R4`'s log half — `codeblock_default_auth_level = 9` and the
+   warning in `debug.txt` — needs no command and is the one in-world reading
+   `A17`'s call-time read is owed. `F16-8` is `B55`'s only evidence and needs
+   three oddly named players. (`F16`, `B55`, `A17`)
 7. **Re-run `R2`** on the archive built from the release tag, not `HEAD`. Stale
    since `7c5bceb`, before `F4`, `F11`'s textures and `.gitattributes`. Install
    it in a game that is not `codecube`. (`C16`, `C10`)
@@ -104,7 +105,7 @@ answered in writing before any code.
 | 5 | Limits that track real load | done | 4/4 |
 | 6 | Limits for what the server spends | done | 3/3 |
 | 7 | Clear the way for features | done | 26/26 |
-| 8 | Features for v1.0.0 | in progress | 12/12 features; `C24` open |
+| 8 | Features for v1.0.0 | in progress | 13/13 features; `C24` open |
 | 9 | v1.x.y — after the release | not started | 0/1 |
 | 10 | v2.0.0 — the Blockly editor | not started | 0/1 |
 
@@ -122,7 +123,8 @@ and played.
 
 **Phase 8's one open finding is `C24`**, queued for `Phase 9`. `S8` closed with
 the per-constant copy, `S9` with the v2.0.2 bump, `A17` with the deletion of
-`lib/utils.lua` and `A18` with the two assignments. `B10`'s refusal is out of the phase rather than
+`lib/utils.lua`, `A18` with the two assignments and `B55` with the widened
+parsers. `B10`'s refusal is out of the phase rather than
 done — its check was removed as untestable and reaching it needs a way to
 observe the server releasing a mapblock.
 
@@ -136,7 +138,7 @@ more empty than filled in advance.
 ## The features
 
 A shipped entry is one line. What was load-bearing in it is under *Other
-decisions*. `F6`, `F15` and `F16` describe work not done and keep their shape.
+decisions*. `F6` and `F15` describe work not done and keep their shape.
 
 | Id | Size | State | What it is |
 |---|---|---|---|
@@ -155,7 +157,7 @@ decisions*. `F6`, `F15` and `F16` describe work not done and keep their shape.
 | `F13` | small | shipped `4450ce1` | `is_block(block, n_right, n_up, n_forward)`, the predicate form of `get_block`. Closed `C22` in the same commit. |
 | `F14` | small | shipped `e3e2178` | `light_hues`, `dark_hues`, `neutrals` and `ramp.of(list, v, min, max)`. |
 | `F15` | large | shaped, not scheduled | `colorhex("#F7A8E7")`. See below. |
-| `F16` | small | shaped 2026-09-08, in progress | `/codeblock level` reads a codelevel back. Unblocks playtest `R4`. See below. |
+| `F16` | small | shipped `7c1442d` | `/codeblock level` reports a codelevel; the read is free for your own. Fixed `B55` in the same commit and made `R4` runnable. Checks `F16-1` to `F16-8` unrun. |
 
 ### F6 · Phase 10 / v2.0.0 · planned — Blockly web-based editor
 
@@ -207,69 +209,6 @@ greyscale allocation, or hand-tuned. And how the value reaches `place()`, whose
 one-string contract is load-bearing; one candidate is `colorhex` returning the
 normalised hex string itself, every write path recognising a hex-shaped key
 before consulting `all`, which would make `place('#F7A8E7')` work directly.
-
-### F16 · small · shaped 2026-09-08, in progress — `/codeblock level` reads
-
-**Nothing in this mod shows a player their own codelevel.** No chat line, no HUD
-field, no formspec. The only in-world observation is indirect: a per-level
-ceiling quoted back at you, such as the timeout message naming
-`max_runtime_s[drone.auth_level]`. `F16` adds the read path to the command that
-already sets one.
-
-**The four forms.**
-
-```
-/codeblock level               -> "Your codelevel is 3"        free
-/codeblock level <name>        -> "<name>'s codelevel is 2"    needs codeblock
-/codeblock level <1-4>         -> sets yours, unchanged        needs codeblock
-/codeblock level <name> <1-4>  -> sets theirs, unchanged       needs codeblock
-```
-
-**Reading your own is free, reading someone else's needs `codeblock`.** That is
-the split `tools` and `generate` already use. Setting stays privileged in both
-forms, because a codelevel bounds what a program may spend.
-
-**Chat only.** No editor and no HUD surface. It is the smallest surface, it
-needs no formspec work, and it is what `R4` needs to be runnable.
-
-**The number alone, not the ceilings it imposes.** One `S()` key, and nothing
-that restates `lib/config.lua`.
-
-**Both parsers widen to any engine-legal name**, agreed 2026-09-08. The old
-`[%a][%w_%-]*` kept `level 4` and `level alice` apart, but it also made every
-player whose name starts with a digit, a dash or an underscore unaddressable —
-that half is `B55`, a defect in committed code. Widening and disambiguating by
-value was chosen over fixing only the message or only the two-argument form.
-
-**The two-argument form has no ambiguity.** The level is trailing, so the name
-may be anything legal.
-
-**The one-argument form resolves in favour of the level.** An argument matching
-`^[1-4]$` is a codelevel; anything else is a player name. **Only players
-actually named `1`, `2`, `3` or `4` stay unreadable**, which is irreducible on a
-one-argument form and is accepted.
-
-**`/codeblock level 5` now falls to the read path**, `5` being no codelevel and
-therefore a name. Its refusal has to serve both readings: no such player, and a
-codelevel is 1 to 4. That is a consequence of the resolution rule, not a defect.
-
-**The dispatcher's set-before-read order is now load-bearing.** The two parsers
-could not previously match the same arguments. They overlap now, so the order is
-a behaviour guarantee and a future reorder is a behaviour change.
-
-**Rejected, with grounds, so neither is proposed again.** *Not fixing only the
-refusal message* — it leaves a server with a player `007` unable to address them
-at all. *Not widening only the two-argument form* — it fixes half and leaves an
-asymmetry between the two forms that then needs explaining forever.
-
-**It exists because `R4` cannot be run.** That check asks for a codelevel to be
-read back in four cases and no command reports one.
-
-**Every part of it is spec-unreachable**, being a chat command, a privilege,
-player meta and three locale strings. `PLAYTEST.md` carries the whole feature as
-`F16-1` to `F16-8`. `F16-1` to `F16-4` need a fresh world and run in the same
-one as `R4`. `F16-8` is `B55`'s in-world evidence and needs three oddly named
-players.
 
 ## Other decisions worth not re-litigating
 
@@ -973,9 +912,8 @@ players.
 
 ---
 
-Last reviewed **2026-09-08**, describing `dd98aab`, with `F16` written in the
-working tree and not committed. `origin/master` is **`65b4c46`**, **29 commits
-behind**. `PLAYTEST.md`: 93 entries, `F11-4` retired, ten unrun (`F-6`, `R5`,
-`F16-1` to `F16-8`), two stale (`R1`, `R2`), one unreachable (`H8`), one blocked
-with a fail (`R4`). `AUDIT.md`: 93 findings, two open — `C24` and `B55`, both
-medium.
+Last reviewed **2026-09-08**, describing `a02d662`. `origin/master` is
+**`65b4c46`**, **32 commits behind**. `PLAYTEST.md`: 93 entries, `F11-4`
+retired, ten unrun (`F-6`, `R5`, `F16-1` to `F16-8`), two stale (`R1`, `R2`),
+one unreachable (`H8`), one owed carrying a superseded fail (`R4`). `AUDIT.md`:
+93 findings, one open — `C24`, medium.
