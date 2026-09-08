@@ -12,9 +12,9 @@ is v2.0.0 and holds `F6` alone**.
 
 ## Now
 
-**Answer the fixture question, then push.** What `tests/game/mods/vector3`
-should pin is the one open question left before the tag, now that a player may
-have any of three versions.
+**Answer the fixture question.** What `tests/game/mods/vector3` should pin is
+the one open question left before the tag, now that a player may have any of
+three versions.
 
 **`S8` and `S9` are both closed.** `snapshot_vector3` in `lib/sandbox.lua`
 rebuilds each `vector` constant with the constructor, so a run cannot reach the
@@ -34,16 +34,17 @@ two parsers.** `/codeblock level` reports a codelevel, and any engine-legal
 player name is addressable by every subcommand. Gates green at `2608dc3`:
 luacheck silent, the three `--check` generators up to date, 703 in-engine
 assertions with 0 failed, 0 xpass and the one known `B4` xfail, 253 standalone.
+**Both are played:** `F16-1` to `F16-8` all pass at `fb75bc8`, engine 5.17.0,
+2026-09-08, and `F16-8` is `B55`'s only possible in-world evidence.
 
-**Thirty-two commits are unpushed.** `origin/master` is `65b4c46`; CI has seen
-no part of `F11`, `F12`, `F13`, `F14`, `F16`, `B53`, `C23`, `B54`, `B55` or
-either `vector3` bump. Take the count from
+**Nothing is unpushed and CI is green on `HEAD`.** `origin/master` is `fb75bc8`,
+and its CI run — luacheck, the six standalone specs, the three generator checks
+— concluded success. Take the count from
 `git rev-list --count origin/master..HEAD`, never from counting hashes.
 
-**Every feature in `Phase 8` has shipped. `F16` is the one not yet played.**
-`PLAYTEST.md` carries ten unrun checks — `F-6`, `R5` and `F16-1` to `F16-8` —
-and `R4` owed. `E2` and `E3` pass at `fffdded`, which is `A18`'s in-world
-evidence.
+**Every feature in `Phase 8` has shipped and been played.** `PLAYTEST.md`
+carries two unrun checks — `F-6` and `R5` — and `R4` owed. `E2` and `E3` pass at
+`fffdded`, which is `A18`'s in-world evidence.
 
 **`R4` is runnable as written for the first time.** Its four numbered cases ask
 for a codelevel to be read back, which `7c1442d` added, so its `dd98aab` fail is
@@ -52,41 +53,39 @@ check's log half gives on its own.
 
 ## Finalising v1.0.0
 
-Steps 7–11 are the `release-codeblock` skill's procedure and are not restated.
+Steps 6–10 are the `release-codeblock` skill's procedure and are not restated.
 
 1. **Decide what the test fixture pins** — newest, oldest supported, or a
    documented floor. Luanti has no dependency version mechanism, and there are
    now three releases in the wild. (`S8`)
-2. **Push.** The one item that can fail rather than merely take time.
-3. **Fix `README.md`.** Line 10's *"works in any game that provides the blocks
+2. **Fix `README.md`.** Line 10's *"works in any game that provides the blocks
    it places"* is false and backwards since `d075742`; add a short **For game
    authors** section for `codeblock.register_blocks`; the ContentDB URLs are on
    the pre-rename `content.minetest.net`; line 23 reads *"ant its dependencies"*
    and there is now one. (`C19`, `F10`, `F11`)
-4. **Upload the new screenshots to the ContentDB page** — it loads them from raw
+3. **Upload the new screenshots to the ContentDB page** — it loads them from raw
    GitHub URLs on `master`, so the new names go up and the dropped 2021 file
    comes off. (`C19`)
-5. **Run playtests `F-6` and `R5`**, both unrun. `F-6` is the `S8` fix's only
-   in-world reading. `R5` needs the submodule swapped by hand and put back.
-   (`S8`, `S9`)
-6. **Run `R4` and `F16-1` to `F16-8`.** `R4` and `F16-1` to `F16-4` share one
-   fresh world. `R4`'s log half — `codeblock_default_auth_level = 9` and the
-   warning in `debug.txt` — needs no command and is the one in-world reading
-   `A17`'s call-time read is owed. `F16-8` is `B55`'s only evidence and needs
-   three oddly named players. (`F16`, `B55`, `A17`)
-7. **Re-run `R2`** on the archive built from the release tag, not `HEAD`. Stale
+4. **Run playtests `F-6` and `R5`**, both unrun. `F-6` is three lines pasted
+   into a file, run three times, and is the `S8` fix's only in-world reading.
+   `R5` needs the submodule swapped by hand and put back. (`S8`, `S9`)
+5. **Run `R4` in a fresh world.** Its log half —
+   `codeblock_default_auth_level = 9` and the warning in `debug.txt` — needs no
+   command and is the one in-world reading `A17`'s call-time read is owed.
+   (`A17`, `S6`)
+6. **Re-run `R2`** on the archive built from the release tag, not `HEAD`. Stale
    since `7c5bceb`, before `F4`, `F11`'s textures and `.gitattributes`. Install
    it in a game that is not `codecube`. (`C16`, `C10`)
-8. **`release-check`**, and do not start the tag until it says ready.
-9. **Strike what the release closed** from `ROADMAP.md` and `TODO.md`, confirm
+7. **`release-check`**, and do not start the tag until it says ready.
+8. **Strike what the release closed** from `ROADMAP.md` and `TODO.md`, confirm
    the `vector3` submodule commit is pushed, commit, push, tag `v1.0.0`.
-10. **Upload to ContentDB**, long description from the regenerated `.cdb.json`.
-11. **Configure the release webhook** — trigger **Branch or tag creation**.
+9. **Upload to ContentDB**, long description from the regenerated `.cdb.json`.
+10. **Configure the release webhook** — trigger **Branch or tag creation**.
 
 Done and not repeated here: `CHANGELOG.md` is the heading alone, `CONTENTDB.md`
 was corrected at `c2e541f`, `settingtypes.txt`'s generator landed, `B47` shipped
 mitigated, and `B48`, `B49`, `B50`, `B51`, `B52`, `B53`, `B54`, `C21`, `C22`,
-`C23` and `F10`–`F14` are all committed with their playtests run.
+`C23`, `F10`–`F14` and `F16` are all committed with their playtests run.
 
 **After the tag.** `Phase 9` opens on what comes back from players. `codecube`
 adopts the release on its own schedule and must set `codeblock_flat_sky = true`
@@ -157,7 +156,7 @@ decisions*. `F6` and `F15` describe work not done and keep their shape.
 | `F13` | small | shipped `4450ce1` | `is_block(block, n_right, n_up, n_forward)`, the predicate form of `get_block`. Closed `C22` in the same commit. |
 | `F14` | small | shipped `e3e2178` | `light_hues`, `dark_hues`, `neutrals` and `ramp.of(list, v, min, max)`. |
 | `F15` | large | shaped, not scheduled | `colorhex("#F7A8E7")`. See below. |
-| `F16` | small | shipped `7c1442d` | `/codeblock level` reports a codelevel; the read is free for your own. Fixed `B55` in the same commit and made `R4` runnable. Checks `F16-1` to `F16-8` unrun. |
+| `F16` | small | shipped `7c1442d` | `/codeblock level` reports a codelevel; the read is free for your own. Fixed `B55` in the same commit and made `R4` runnable. Checks `F16-1` to `F16-8` all pass at `fb75bc8`. |
 
 ### F6 · Phase 10 / v2.0.0 · planned — Blockly web-based editor
 
@@ -912,8 +911,8 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 
 ---
 
-Last reviewed **2026-09-08**, describing `a02d662`. `origin/master` is
-**`65b4c46`**, **32 commits behind**. `PLAYTEST.md`: 93 entries, `F11-4`
-retired, ten unrun (`F-6`, `R5`, `F16-1` to `F16-8`), two stale (`R1`, `R2`),
-one unreachable (`H8`), one owed carrying a superseded fail (`R4`). `AUDIT.md`:
-93 findings, one open — `C24`, medium.
+Last reviewed **2026-09-08**, describing `fb75bc8`. `origin/master` is
+**`fb75bc8`**, **level with `HEAD`**. `PLAYTEST.md`: 93 entries, `F11-4`
+retired, two unrun (`F-6`, `R5`), two stale (`R1`, `R2`), one unreachable
+(`H8`), one owed carrying a superseded fail (`R4`). `AUDIT.md`: 93 findings, one
+open — `C24`, medium.

@@ -67,9 +67,9 @@ Result: ...
 | Entries | 93 |
 | Retired | 1 — `F11-4` |
 | Live checks | 92 |
-| Most recent result a pass | 80 |
+| Most recent result a pass | 88 |
 | Unreachable | 1 — `H8` |
-| Unrun | 10 — `F-6`, `R5`, `F16-1` to `F16-8` |
+| Unrun | 2 — `F-6`, `R5` |
 | Stale | 2 — `R1`, `R2` |
 | Owed | 1 — `R4` |
 | Fail as most recent result | 1 — `R4` |
@@ -78,19 +78,11 @@ Checks needing action:
 
 | Check | State | Reason |
 |---|---|---|
-| [`F-6`](#f-6--gamelua-starts-in-the-same-direction-every-time-s8) | unrun | `S8`'s only in-world reading, and now the check that confirms the fix. |
+| [`F-6`](#f-6--a-runs-vectorone-is-its-own-copy-s8) | unrun | `S8`'s only in-world reading. Three lines, run three times, on a named `vector3` version. |
 | [`R5`](#r5--an-old-vector3-is-named-in-the-log-at-mod-load-s9) | unrun | The load-time warning about an old `vector3`. Needs the submodule swapped by hand. |
 | [`R1`](#r1--the-archive-contains-no-tests-c16-c10) | stale | Texture and example counts have changed since the last run. |
 | [`R2`](#r2--a-real-install-with-the-test-flag-set-c16) | stale | Last run at `7c5bceb`, before `F4` and two `.gitattributes` changes. |
 | [`R4`](#r4--a-brand-new-world-hands-out-the-right-codelevel-s6) | owed | Its four cases are runnable as written since `7c1442d`. Carries a fail against the command before `F16`. Its log half is what `A17` is owed. |
-| [`F16-1`](#f16-1--reading-your-own-codelevel-with-the-privilege-not-granted-f16-b9) | unrun | The free read path. Needs a player without `codeblock`. Same fresh world as `R4`. |
-| [`F16-2`](#f16-2--reading-another-players-codelevel-f16-b9) | unrun | The privileged read, with and without the privilege. |
-| [`F16-3`](#f16-3--an-offline-name-and-a-name-that-never-existed-f16) | unrun | Both refusals. No offline meta exists in 5.17.0. |
-| [`F16-4`](#f16-4--a-player-carrying-no-codeblockauth_level-key-f16-b5-s6) | unrun | The `get_int` trap. The pass is that it never reports `0`. |
-| [`F16-5`](#f16-5--the-four-forms-of-setting-still-behave-f16-b9) | unrun | The setting body moved into `set_level` with its privilege check. |
-| [`F16-6`](#f16-6--the-usage-strings-name-the-optional-level-f16-f10) | unrun | The usage, the help and the privilege description all changed. |
-| [`F16-7`](#f16-7--the-three-lines-on-a-french-client-f16-c17) | unrun | Two new `S()` keys and one changed usage, on a `fr` client. |
-| [`F16-8`](#f16-8--an-engine-legal-odd-name-on-all-three-subcommands-b55-f16-b8) | unrun | `B55`'s only in-world evidence. Needs three oddly named players. |
 
 ---
 
@@ -818,35 +810,17 @@ Result: pass — `cd13414` · engine 5.17.0 · 2026-09-02 — all fourteen compl
 codelevel 2, including under the same day's `max_runtime_s` cut to 60 s at that
 level.
 
-### F-6 · `game.lua` starts in the same direction every time [S8]
+### F-6 · A run's `vector.one` is its own copy [S8]
 
-**Setup, because `generate` will not overwrite.** Remove your own `game.lua` in
-the editor first, then run `/codeblock generate` for the fixed copy. Place a
-drone with the **poser** on open ground with room above it. Codelevel 2 or above;
-the program never terminates, so cut it short with the panel's **Stop**.
+**Setup: a drone, a new file, three lines.** Place a drone with the **poser**.
+Open the editor, make a file of its own, paste the program below, run it, and
+read the chat. **Do that three times**, without restarting the server in
+between. Nothing is built and no codelevel matters.
 
-**Name the `vector3` version in the result line.** v1.5, v2.0.1 and v2.0.2 are
-all installable and case 3 reads differently on v1.5; the matrix is in the
-`run-tests` skill. The submodule pins **v2.0.2**, so that is what a local world
-runs unless you swap the library by hand.
-
-**Case 1 — the example itself. Pass:** the drone builds a 40-cube of cyan glass,
-then **bounces around inside it**, leaving a trail of yellow lamps, and does not
-escape it. No error in chat on the opening statements.
-
-**Case 2 — the same run three times.** Stop it and run it again, then a third
-time. **Pass: it sets off in the same direction every time** — up and away,
-`+1 +1 +1`. **A fail reads as `1 1 1`, then `-1 -1 -1`, then `1 1 1`.** **Do not
-stop at two runs** — two runs that differ could be read as a fresh drone facing
-differently.
-
-**Case 2 is a regression guard, not `S8` evidence.** `game.lua` reads
-`dir = vector(1, 1, 1)` since `3548d58`, so it uses the constructor and never
-touches a constant. **A pass here closes nothing.** Case 3 is the one that reads
-on `S8`.
-
-**Case 3 — the `S8` reproducer.** Put this in a file of its own and run it
-**three times**:
+**Name the `vector3` version in the result line, and record what it printed.**
+v1.5, v2.0.1 and v2.0.2 are all installable and a fail reads differently on
+each; the matrix is in the `run-tests` skill. The submodule pins **v2.0.2**, so
+that is what a local world runs unless you swap the library by hand.
 
 ```lua
 dir = vector.one
@@ -862,11 +836,23 @@ after it.
 **What a fail looks like on each version.** On v1.5, `1 1 1`, then `-1 1 1`,
 then `1 1 1` — the module's own constant, shared by every player until the server
 restarts. On v2.0.1 and v2.0.2, the third line raising `read only` — the freeze
-showing through, which means the copy did not happen. **Record what it prints and
-which version you ran.**
+showing through, which means the copy did not happen.
 
 **This is `S8`'s only in-world reading.** The fix is probe-verified at the
-library level on all three versions and unproven through a real drone.
+library level on all three versions and otherwise unproven through a real drone.
+
+**Two cases were dropped 2026-09-08 on the author's call**, leaving the
+reproducer as the whole check. The first ran `game.lua` and watched the drone
+build a 40-cube of cyan glass and bounce inside it. **`F-7` already runs every
+shipped example including `game.lua`**, after any `vector3` bump and before any
+release, and it has two passes on record.
+
+**The second dropped case ran `game.lua` three times and looked for the same
+starting direction.** It closed nothing: `game.lua` reads
+`dir = vector(1, 1, 1)` and never touches a constant. **The hazard it guarded is
+gone as well.** `snapshot_vector3` gives every run its own copy of each
+constant, so an aliased `vector.one` reaches nothing outside its run even if
+`game.lua` were changed to use one. The reproducer above is what proves that.
 
 Result: not yet run.
 
@@ -1336,9 +1322,9 @@ observable at `cd13414`, where the command was set-only, so the pass must not be
 read as evidence for any of them — including case 4, whose *unchanged* can only
 be judged by reading the level, and for which the check names no indirect route.
 
-**Run it in the same fresh world as `F16-1` to `F16-4`.** Both need a world with
-no history, and `/codeblock level` is what answers this check's four cases.
-Doing them twice is two fresh worlds for one reading.
+**It needs a fresh world of its own.** `F16-1` to `F16-4` passed at `fb75bc8`
+and were the world this check could have shared; `/codeblock level` is what
+answers its four cases.
 
 **The log half needs no command and can be re-run on its own.** Set
 `codeblock_default_auth_level = 9` and read `debug.txt`. That is what `A17`'s
@@ -1965,7 +1951,7 @@ by default, which is what `F16-2` needs anyway.
 **Run this in the same fresh world as `R4`**, whose cases 1, 2 and 4 read a
 codelevel back with this command.
 
-Result: not yet run.
+Result: pass — `fb75bc8` · engine 5.17.0 · 2026-09-08 — passes as written.
 
 ### F16-2 · Reading another player's codelevel [F16, B9]
 
@@ -1986,7 +1972,7 @@ Two players in the world. As the one **without** `codeblock`, then as one
   `singleplayer` — takes the free path and answers `Your codelevel is <n>`, the
   possessive form being for somebody else.
 
-Result: not yet run.
+Result: pass — `fb75bc8` · engine 5.17.0 · 2026-09-08 — passes as written.
 
 ### F16-3 · An offline name and a name that never existed [F16]
 
@@ -2004,7 +1990,7 @@ now**. The second is a name that has never existed.
 answer** — 5.17.0 exposes no meta for a player who is not connected, so an
 offline codelevel cannot be read and is not guessed at.
 
-Result: not yet run.
+Result: pass — `fb75bc8` · engine 5.17.0 · 2026-09-08 — passes as written.
 
 ### F16-4 · A player carrying no `codeblock:auth_level` key [F16, B5, S6]
 
@@ -2026,7 +2012,7 @@ turns both into the default. A reported `0` means the fallback was skipped.
 **Confirm the number is the one in force.** Set
 `codeblock_default_auth_level = 4`, restart, and run it again: it must read `4`.
 
-Result: not yet run.
+Result: pass — `fb75bc8` · engine 5.17.0 · 2026-09-08 — passes as written.
 
 ### F16-5 · The four forms of setting still behave [F16, B9]
 
@@ -2061,7 +2047,7 @@ Then **without** the privilege:
 - Without the privilege, `level 4` is refused with *"You need the codeblock
   privilege to set a codelevel"* — **for your own level as well** (`B9`).
 
-Result: not yet run.
+Result: pass — `fb75bc8` · engine 5.17.0 · 2026-09-08 — passes as written.
 
 ### F16-6 · The usage strings name the optional level [F16, F10]
 
@@ -2088,7 +2074,7 @@ Typed in game:
 - `/help privs` describes `codeblock` as covering **reading** a codelevel as
   well as setting one.
 
-Result: not yet run.
+Result: pass — `fb75bc8` · engine 5.17.0 · 2026-09-08 — passes as written.
 
 ### F16-7 · The three lines on a French client [F16, C17]
 
@@ -2103,7 +2089,7 @@ On a **French** client, run `F16-1`, `F16-2` and `F16-6` again.
 **Also `Joueur non trouvé`** for `F16-3`, which is an existing key and only needs
 looking at while you are here.
 
-Result: not yet run.
+Result: pass — `fb75bc8` · engine 5.17.0 · 2026-09-08 — passes as written.
 
 ### F16-8 · An engine-legal odd name, on all three subcommands [B55, F16, B8]
 
@@ -2148,7 +2134,7 @@ it costs. `/codeblock level 4 2` still addresses them, so they are not
 unreachable, only unreadable on the short form. Record the outcome and file
 nothing.
 
-Result: not yet run.
+Result: pass — `fb75bc8` · engine 5.17.0 · 2026-09-08 — passes as written.
 
 ---
 

@@ -111,6 +111,11 @@ restated.
   `core.serialize` over a constant work, because the run's copy is an ordinary
   vector rather than a frozen empty table. **Mod code still holds the frozen
   originals**, so the `run-tests` support matrix still describes them.
+- **`S8` — aliasing a constant is contained to the run that does it.**
+  `getScriptEnv` builds the environment per run and calls `snapshot_vector3()`
+  there, so `dir = vector.one; dir.x = -dir.x` reaches nothing outside that run,
+  whoever writes it — a shipped example, or a player. **That is why `F-6` no
+  longer watches `game.lua`'s starting direction.**
 - **`S9` — a metatable is not a methods table.** `vector3.__index = vector3`
   made the class table an ordinary field of every instance, so a player program
   could replace `unpack`, `__add` or `__eq` for every mod using the `vector3`
@@ -642,26 +647,34 @@ covered; `lib/drone.lua:148`, the read path at `lib/register.lua:399` and the
 set path at `lib/register.lua:414` are not. Playtests `R4`, `F16-4` and `F10-3`
 exercise them, and all last passed before this change or have never run.
 
-**`B55`'s fix landed at `7c1442d` and is gated, not played.** `2608dc3` adds 28
-`tests/integration_spec.lua` cases over the two parsers: the engine charset on
-all three subcommands, the one-argument resolution rule, and the set-before-read
-order. Gates at `2608dc3`: luacheck silent, the three `--check` generators up to
-date, **703 in-engine assertions, 0 failed, 0 xpass, the one known `B4` xfail**,
-253 standalone. **No spec can reach a real player name**, so the finding is
-resolved on the code and owes one in-world reading — playtest `F16-8`, unrun.
+**`B55` is verified in a world.** Playtest `F16-8` passes at `fb75bc8`, engine
+5.17.0, 2026-09-08 — `tools`, `generate` and `level` each act on a player named
+`007`, `-bob` or `_carol`, and no usage string appears. **No spec can reach a
+real player name**, so that run is the finding's only in-world evidence. Its fix
+landed at `7c1442d`, and `2608dc3` adds 28 `tests/integration_spec.lua` cases
+over the two parsers: the engine charset on all three subcommands, the
+one-argument resolution rule, and the set-before-read order. Gates at `2608dc3`:
+luacheck silent, the three `--check` generators up to date, **703 in-engine
+assertions, 0 failed, 0 xpass, the one known `B4` xfail**, 253 standalone.
 
-**Committed with gates green, unproven in a world — four:**
+**`F16`'s read path is verified in a world.** `F16-1` to `F16-8` all pass at
+`fb75bc8`, engine 5.17.0, 2026-09-08 — the free read, the privileged read, both
+refusals, the `get_int` fallback, the four setting forms, the usage strings and
+the French client.
 
-- **`B55`** — the widened parsers, and `F16`'s whole read path with it. Chat
-  commands, a privilege and player meta are all outside what a spec sees.
-  `F16-1` to `F16-8` are unrun.
+**Committed with gates green, unproven in a world — three:**
+
 - **`B14`** — the cold-cache save-after-rejoin path. Permanently out of reach
   from the editor while `B34` stands; the one route left is removing a file
   immediately after a rejoin, and no check has been written for it.
 - **`S7`'s log half** — that the server's absolute path reaches `debug.txt` at
   `warning`. The player-facing half is confirmed by `F-3` case 2.
-- **`lib/examples/game.lua`'s constant fix (`3548d58`)** — its check `F-6` is
-  unrun. The specs compile every example and run none.
+- **`lib/examples/game.lua`'s constant fix (`3548d58`)** — that it sets off in
+  the same direction every run. **No check reads it any more.** `F-7` runs the
+  example and does not watch its direction, and `F-6`'s two `game.lua` cases
+  were dropped 2026-09-08. Nothing is at risk: `snapshot_vector3` gives every
+  run its own constants, so an aliased `vector.one` reaches nothing outside its
+  run.
 
 **`A18` is verified in a world.** `E2` and `E3` both pass at `fffdded`,
 record-only over `c089f78`, engine 5.17.0, 2026-09-08. `E3` walks `close_active`
