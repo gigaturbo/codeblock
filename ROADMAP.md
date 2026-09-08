@@ -23,19 +23,21 @@ and the submodule is bumped to `fc8a5b8`. `S9` is still live for a player on
 v1.5 or v2.0.1, which the mod now names in `debug.txt` at load and which the
 support matrix in the `run-tests` skill tracks.
 
-**`A17` and `A18` are closed at `c089f78`.** The three dead `codeblock.utils`
-exports are deleted and both `meta.active` loops are assignments. Gates are
-green and no spec count moved. **`C24` is the one open finding left**, and it is
-`Phase 9`'s.
+**`A17` and `A18` are closed.** `A18` landed at `c089f78`, both `meta.active`
+loops now assignments. `A17` finishes at `6a4fa91`: `lib/utils.lua` is deleted,
+four names rehomed and three made private. `fd219ef` pins the new home in
+`integration_spec`. Gates green there — 671 in-engine assertions, 0 failed, 0
+xpass. **`C24` is the one open finding left**, and it is `Phase 9`'s.
 
-**Twenty-six commits are unpushed.** `origin/master` is `65b4c46`; CI has seen
+**Twenty-eight commits are unpushed.** `origin/master` is `65b4c46`; CI has seen
 no part of `F11`, `F12`, `F13`, `F14`, `B53`, `C23`, `B54` or either `vector3`
 bump. Take the count from `git rev-list --count origin/master..HEAD`, never from
 counting hashes.
 
 **Every feature in `Phase 8` has shipped and been played.** `PLAYTEST.md`
-carries no fail, two unrun checks — `F-6` and `R5` — and `E2` and `E3` owed a
-re-run as `A18`'s only in-world evidence.
+carries no fail and two unrun checks — `F-6` and `R5`. `E2` and `E3` pass at
+`fffdded`, which is `A18`'s in-world evidence. `R4` is stale on `A17`'s
+call-time read and is the last check that change is waiting on.
 
 ## Finalising v1.0.0
 
@@ -104,8 +106,8 @@ done — `B36`–`B44`, `C17`, `C18`, `S7`, `B50`–`B52` — and all fifteen ar
 and played.
 
 **Phase 8's one open finding is `C24`**, queued for `Phase 9`. `S8` closed with
-the per-constant copy, `S9` with the v2.0.2 bump, `A17` with the deletion and
-`A18` with the two assignments. `B10`'s refusal is out of the phase rather than
+the per-constant copy, `S9` with the v2.0.2 bump, `A17` with the deletion of
+`lib/utils.lua` and `A18` with the two assignments. `B10`'s refusal is out of the phase rather than
 done — its check was removed as untestable and reaching it needs a way to
 observe the server releasing a mapblock.
 
@@ -749,13 +751,27 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
   again. Kept-in-case was refused: four lines each, and copying one into the mod
   that wants it is cheaper than a name this project has to keep for ever.
   (`A17`)
-- **Whether `codeblock.utils` is a public interface is still unanswered**, and
-  the deletion did not answer it. Seven entries with callers are left and the
-  group is incoherent — an auth check, two string helpers, a random picker, a
-  formspec geometry constant, a chunk of rendered hypertext, and `path_join`
-  attached from outside. It was incoherent before, so that is not a reason to
-  act. It is a `TODO.md` line, and **deciding it after the tag costs a major
-  bump.** (`A17`)
+- **`codeblock.utils` is dissolved, not declared and not narrowed.** Every other
+  lib file publishes one `codeblock.<name>` table for one topic, so `utils` was
+  not specially undeclared — it was the only one that was not a topic.
+  Declaring it public would have singled it out as the one supported table, and
+  it was the worst candidate: `scroll_max` was a scrollbar's geometry constant
+  and `html_commands` a mutable rendered string, neither of which anything
+  downstream should hold. **The only surface `CONTENTDB.md` promises a game is
+  `codeblock.register_blocks`.** Breaking a published global is free at v1.0.0
+  and a major bump afterwards, which is why it was settled before the tag.
+  (`A17`)
+- **The four survivors are rehomed to the module that owns each.**
+  `codeblock.path_join` is set by `lib/pathjoin.lua` itself, instead of a
+  vendored file reaching into another module's table.
+  `codeblock.config.check_auth_level` is in `lib/config.lua` and
+  `codeblock.api.html_commands` in `lib/api.lua`. `codeblock.parse_target` is a
+  file-local in `lib/register.lua` plus one export line, **published only
+  because a spec needs it**: `tests/integration_spec.lua` covers it — `B8` and
+  the dead singleplayer branch both lived in that parsing — and the suite runs
+  at mod load, before a player exists, so it cannot be driven through the chat
+  commands. `split`, `table_randomizer` and `scroll_max` became private; the
+  constant was inlined at its single call site. (`A17`)
 - **The last `.editorconfig` difference stays.** `align_call_args = true` fixes
   wrapped arguments but pushes a table constructor out to the paren column.
 - **Chasing the remaining `minetest` names** — what is left must stay: the
@@ -854,6 +870,8 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 
 ---
 
-Last reviewed **2026-09-08**, describing `c089f78` — the `A17` and `A18` fixes. `origin/master` is **`65b4c46`**, **26 commits
-behind**. `PLAYTEST.md`: 85 entries, `F11-4` retired, two unrun (`F-6`, `R5`),
-`E2` and `E3` owed, no fail. `AUDIT.md`: 92 findings, one open — `C24` medium.
+Last reviewed **2026-09-08**, describing `fd219ef`, where `A17` is complete.
+`origin/master` is **`65b4c46`**, **28 commits behind**. `PLAYTEST.md`: 85
+entries, `F11-4` retired, two unrun (`F-6`, `R5`), three stale (`R1`, `R2`,
+`R4`), one unreachable (`H8`), no fail. `AUDIT.md`: 92 findings, one open —
+`C24` medium.

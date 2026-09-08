@@ -440,14 +440,18 @@ restated.
   below the marker is generated; `doc/api.md`'s codelevel table and command prose
   above it are hand-written.
 - **`A16` — adding an API name is an `api_spec` edit too.**
-- **`A17` — `codeblock.utils` is a published global whose status is undeclared.**
-  Deleting the three dead exports answered *these three*, not *this table*. What
-  is left is seven entries with callers — `check_auth_level`, `split`,
-  `parse_target`, `table_randomizer`, `scroll_max`, `html_commands`, and
-  `path_join`, attached from `lib/pathjoin.lua`. The group is incoherent and was
-  incoherent before, so incoherence is not the reason to change it. **Declaring
-  it, narrowing it or making it local is breaking, so v1.0.0 is the last free
-  moment**; the open question is a `TODO.md` line.
+- **`A17` — `codeblock.config.check_auth_level` reads
+  `codeblock.config.default_auth_level` at call time and must not capture it.**
+  `config.lua`'s validation of the `default_auth_level` setting is that
+  function, so the function runs before the field it reads exists. Capturing the
+  field breaks the setting's validation.
+- **`A17` — `codeblock.api.html_commands` does not cost `A2`.** `to_hypertext`
+  reads nothing but `api.groups`: no closures, no engine, no mod. `lib/api.lua`
+  stays pure data under a bare interpreter. Neither `scripts/gen_docs.lua` nor
+  `api_spec` iterates `api`'s own keys, so the extra key is invisible to both.
+- **`A17` — `codeblock.parse_target` is published because a spec needs it.**
+  `tests/integration_spec.lua` covers it, and the suite runs at mod load before
+  a player exists, so it cannot be driven through the chat commands.
 - **`A12` — the specs run at mod load**, before a map, a player or a user
   directory exists, and every feature inherits that. **Static counting is unsafe
   here:** counting `it(` in `shapes_spec` gave 4 against a real 15.
@@ -572,7 +576,7 @@ a row carries a rule, it is above under *Keep*.
 | `A12` | low | no tests, on the component that most needs them | nine specs, six of them also standalone under Lua 5.1 | Phase 0 onward |
 | `A15` | medium | only 448 of the vendored WorldEdit fork's 2,299 lines were reachable, and the whole dependency was four functions | the fork is gone; `lib/shapes.lua` owns the geometry, covered standalone | Phase 4 |
 | `A16` | medium | `api_spec` was standalone-capable but not run by CI, so the change most likely to break every saved player program was the one CI could not see | added to the CI job | `a023ceb` |
-| `A17` | low | `table_reverse`, `table_convert_ik` and `table_convert_iv` sat on `codeblock.utils` with no caller anywhere in the tree | all three deleted, 19 lines; the half the deletion does not answer is under *Keep* | `c089f78` |
+| `A17` | low | `codeblock.utils` was a published global holding ten unrelated entries, three of them with no caller anywhere in the tree | the three dead ones deleted; `lib/utils.lua` then dissolved — four names rehomed to `codeblock.path_join`, `codeblock.parse_target`, `codeblock.config.check_auth_level` and `codeblock.api.html_commands`, three made file-local or inlined | `c089f78`, `6a4fa91`, `fd219ef` |
 | `A18` | low | `meta.active = #meta.tabs` was written as a `0` followed by a guarded `ipairs` loop assigning the index every iteration, at two sites | one assignment and a comment at each site; the `init.lua` shadow the entry misnamed as the file's last went with it | `c089f78` |
 
 ## Evidence: verified, committed, claimed
@@ -596,6 +600,27 @@ mentions in the record. A second grep for `codeblock\.utils` and `utils\[` found
 no dynamic indexing, so every reader names a field literally. No spec covered
 the three, so no count could have moved.
 
+**`A17`'s dissolution of `lib/utils.lua` landed at `6a4fa91` and is gated
+green.** At `fd219ef`: luacheck silent, `doc/api.md`, `locale/template.txt` and
+`settingtypes.txt` each up to date, the six standalone specs pass, and the
+in-engine nine report **671 assertions, 0 failed, 0 xpass, the one known `B4`
+xfail, no errors**. `fd219ef` adds six `tests/integration_spec.lua` cases
+pinning `check_auth_level` at its new home, one of them the call-time read of
+`default_auth_level`; all six were driven to failure with a stub before being
+accepted. **The load order is verified by a boot, not by inspection** —
+`lib/examples.lua`, `lib/filesystem.lua` and `lib/config.lua` each call a
+rehomed symbol at file scope and would take the mod down in the wrong order.
+
+**`A17`'s in-world reading is owed.** Playtest `R4` is stale: its pass at
+`cd13414` predates the call-time read, and it is the only check that exercises
+the codelevel a fresh world hands out.
+
+**Neither runtime call site of `check_auth_level` is pinned.** The function is
+covered; `lib/drone.lua:148` and the `/codeblock level` path at
+`lib/register.lua:363` are not. Playtests `R4` and `F10-3` exercise both, and
+`R4` case 3 exercises the call-time read through the
+`codeblock_default_auth_level` warning. Both last passed before this change.
+
 **Committed with gates green, unproven in a world — three:**
 
 - **`B14`** — the cold-cache save-after-rejoin path. Permanently out of reach
@@ -606,12 +631,11 @@ the three, so no count could have moved.
 - **`lib/examples/game.lua`'s constant fix (`3548d58`)** — its check `F-6` is
   unrun. The specs compile every example and run none.
 
-**`A18`'s only in-world evidence is stale.** `E3` walks `close_active` end to
-end — three files open, close the middle one, then the last — and covers both
-branches the assignment replaced. `E2` covers `remove_active` with one file
-open, so it reaches the empty case and not the fallback, and it is widened by
-one case. Both carry a pass predating the change and both are **owed a re-run**,
-not unrun.
+**`A18` is verified in a world.** `E2` and `E3` both pass at `fffdded`,
+record-only over `c089f78`, engine 5.17.0, 2026-09-08. `E3` walks `close_active`
+end to end — three files open, close the middle one, then the last — covering
+both branches the assignment replaced. `E2` case 2 reaches `remove_active`'s
+fallback with two files open, for the first time in a real world.
 
 **Unproven in a world — the `S9` load-time warning.** `init.lua` logs one
 `warning` when the installed `vector3` hands back its method table. No spec can
@@ -726,4 +750,4 @@ Each of these is a wrong claim that would otherwise be repeated as fact.
 
 ---
 
-Last reviewed **2026-09-08**, describing `c089f78` — the `A17` and `A18` fixes.
+Last reviewed **2026-09-08**, describing `fd219ef`, where `A17` is complete.

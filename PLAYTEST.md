@@ -28,6 +28,18 @@ the other way; leave it.
 **A `fail` is not a finding.** Report it and let `AUDIT.md` allocate or widen an
 id. A wrong *check* is a defect in this document and gets no id.
 
+**The states a check can be in**, beyond the outcome of its last result:
+
+| State | Means |
+|---|---|
+| `unrun` | Never run. Waiting on a runner. |
+| `owed` | Carries a pass, but the code under it changed. Waiting on a re-run. |
+| `stale` | Carries a pass whose commit or counts no longer describe the tree. |
+| `unreachable` | The remaining cases are impossible to perform on this form. Nothing is owed and no future run improves it. |
+
+**`unreachable` is not `partial`.** `partial` says a result could improve.
+`unreachable` says it cannot, so the check leaves *Checks needing action*.
+
 ## How a check is written
 
 **Hand the runner an actual program or command**, not a description of one.
@@ -55,8 +67,9 @@ Result: ...
 | Retired | 1 — `F11-4` |
 | Live checks | 84 |
 | Most recent result a pass | 81 |
-| Partial | 1 — `H8` |
+| Unreachable | 1 — `H8` |
 | Unrun | 2 — `F-6`, `R5` |
+| Stale | 3 — `R1`, `R2`, `R4` |
 | Fail as most recent result | 0 |
 
 Checks needing action:
@@ -65,11 +78,9 @@ Checks needing action:
 |---|---|---|
 | [`F-6`](#f-6--gamelua-starts-in-the-same-direction-every-time-s8) | unrun | `S8`'s only in-world reading, and now the check that confirms the fix. |
 | [`R5`](#r5--an-old-vector3-is-named-in-the-log-at-mod-load-s9) | unrun | The load-time warning about an old `vector3`. Needs the submodule swapped by hand. |
-| [`E2`](#e2--create-and-remove-a-file-b14-a9-a18) | owed | `A18` rewrote `remove_active`'s fallback. A case for two files open is new and unrun. |
-| [`E3`](#e3--tabs-b33-a18) | owed | `A18` rewrote `close_active`'s fallback, and this is its only in-world evidence. |
 | [`R1`](#r1--the-archive-contains-no-tests-c16-c10) | stale | Texture and example counts have changed since the last run. |
 | [`R2`](#r2--a-real-install-with-the-test-flag-set-c16) | stale | Last run at `7c5bceb`, before `F4` and two `.gitattributes` changes. |
-| [`H8`](#h8--the-panel-over-the-editor-and-a-run-that-ends-under-it-f4-f8-b33-b29) | partial | Cases 1 and 3 cannot be performed by hand. |
+| [`R4`](#r4--a-brand-new-world-hands-out-the-right-codelevel-s6) | stale | `check_auth_level` reads the default at call time since `A17`. The pass predates that contract. |
 
 ---
 
@@ -94,12 +105,16 @@ Result: pass — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27.
 **Pass:** case 1 succeeds both ways and leaves an empty editor. In case 2 the
 remaining file becomes the active tab and its content is on screen.
 
-**Owed a re-run for `A18`.** `remove_active` now sets `meta.active =
-#meta.tabs`. Case 1 reaches the empty branch and **case 2 is the fallback
-branch**, which the check did not reach before.
+**Why the two cases.** `remove_active` sets `meta.active = #meta.tabs`. Case 1
+reaches the empty branch and **case 2 is the fallback branch**.
 
 Result: pass — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27 — case 1
 only; case 2 was added later.
+
+Result: pass — `fffdded`, record-only over `c089f78` · engine 5.17.0 ·
+2026-09-08 — both cases. Case 2 is `A18`'s `remove_active` fallback reached in a
+real world for the first time: two files open, the active one removed, the
+remaining file active with its content on screen.
 
 **A second case was removed 2026-09-02 as untestable**, on the author's call. It
 asked for the removal of a file never opened this session — `B14`'s cold-cache
@@ -114,11 +129,15 @@ Open three files, switch between them, close the middle one, then the last.
 **Pass:** each tab shows its own content; the active tab is sensible after a
 close; closing the last leaves an empty editor rather than an error.
 
-**Owed a re-run for `A18`.** `close_active` now sets `meta.active =
-#meta.tabs`, and this check walks both branches of it — closing the middle one
-is the fallback, closing the last is the empty case.
+**Why both closes.** `close_active` sets `meta.active = #meta.tabs`, and this
+check walks both branches of it — closing the middle one is the fallback,
+closing the last is the empty case.
 
 Result: pass — `3293a2c` + uncommitted F1 · engine 5.17.0 · 2026-08-27.
+
+Result: pass — `fffdded`, record-only over `c089f78` · engine 5.17.0 ·
+2026-09-08 — both branches after `A18`. This is `A18`'s in-world evidence for
+`close_active`.
 
 ### E4 · Tab state survives ESC [B33]
 
@@ -617,8 +636,9 @@ Result: pass — `8f5bb2e` · engine 5.17.0 · 2026-09-02 — both cases.
 Result: partial — `8f5bb2e` · engine 5.17.0 · 2026-09-02 — **cases 2 and 4 pass;
 cases 1 and 3 cannot be performed at all.**
 
-**It stays partial**, because two of its four cases are unreachable by hand
-rather than passing. **On this form, "with the panel still open, do X with a
+**State: `unreachable`.** Cases 1 and 3 cannot be performed by hand at all and
+no future run changes that, so nothing is owed. The `partial` result line above
+stays as it was written. **On this form, "with the panel still open, do X with a
 tool" is never a check.**
 
 ### H9 · Leaving and rejoining with a program running [F4]
@@ -1286,6 +1306,16 @@ with any history proves nothing here**. Create a fresh world each time.
 
 Read the log once while you are there: `codeblock_default_auth_level = 9` must
 warn and fall back rather than giving a player nil limits.
+
+**State: `stale`.** `check_auth_level` reads
+`codeblock.config.default_auth_level` at call time rather than capturing it
+(`A17`), and `lib/config.lua:137` calls it while validating the setting that
+assigns that field at line 142. So the fallback return is `nil` on that one
+call, by design and unused there. Every case below reads on the new contract and
+the pass predates it.
+
+**This is the only in-world evidence for the `A17` behaviour change.** The
+out-of-range log line is the case that touches it directly.
 
 Result: pass — `cd13414` · engine 5.17.0 · 2026-09-02 — all four cases, and the
 out-of-range guard read in `debug.txt`:

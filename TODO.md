@@ -32,10 +32,6 @@ Features
 
 Decisions wanted from the author
 
-- [ ] DECIDE: whether `codeblock.utils` is a public interface. Seven entries
-      with callers are left after the A17 deletion. Declare it, narrow it, or
-      make it local — all three are breaking, so v1.0.0 is the last free moment
-      (audit A17, resolved)
 - [ ] DECIDE: what `tests/game/mods/vector3` should pin, now that three releases
       are in the wild and the submodule is at v2.0.2. Pin the newest, the oldest
       supported, or document a floor (audit S8)

@@ -175,6 +175,19 @@ stripped, whatever the quoting, and runs `tests/_spec.lua` six times — six
 *cannot open* lines, no spec output, and nothing that reads as a gate failing.
 Name each spec explicitly, or put the loop in a file and run that.
 
+**An edit into a CRLF file can leave the inserted lines LF**, and it does so
+only sometimes, so the file ends up mixed and nothing lints it. Half the `lib/`
+tree is CRLF. Check the file you edited and repair it in place:
+
+```bash
+python -c "d=open('lib/config.lua','rb').read(); print(d.count(b'\r\n'), d.count(b'\n'))"
+unix2dos -q lib/config.lua   # converts lone LF only, so the diff stays your lines
+```
+
+The two counts must be equal for a CRLF file and the first zero for an LF one.
+**`cat -A` cannot answer this**: `sed` in this machine's Git Bash strips the CR
+on read, so a piped `cat -A` shows a clean `$` on every line of a CRLF file.
+
 Then say plainly, in the reply: which gates ran and what they printed, what a
 spec cannot reach and therefore needs a `PLAYTEST.md` entry, and any defect found
 in code you did not write, so it can get a finding id.
