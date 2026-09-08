@@ -707,35 +707,128 @@ do
 end
 
 --------------------------------------------------------------------------------
--- chat command argument parsing (B8, B9)
+-- chat command argument parsing (B8, B9, B55)
 --
 -- Both commands mishandled their optional player name: /codegenerate parsed one
 -- and then ignored it, always acting on the caller, and /codelevel carried a
 -- dead singleplayer branch. Parsing is where they went wrong, so it is tested.
+--
+-- Three things are pinned here, and the last two need the chat command itself:
+-- what each parser matches, that /codeblock level runs parse_target before
+-- target_only, and that the solo pattern is narrower than the rest pattern.
 --------------------------------------------------------------------------------
 
 do
     local parse = codeblock.parse_target
+    local only = codeblock.target_only
 
-    local function both(caller, params, pat)
-        local a, b = parse(caller, params, pat)
+    -- The two patterns /codeblock level uses. solo_pattern is deliberately
+    -- narrower than rest_pattern; the cases below say what that buys.
+    local function both(caller, params)
+        local a, b = parse(caller, params, '%d+', '[1-4]')
         return tostring(a) .. '|' .. tostring(b)
     end
 
-    it('level only, addressed to the caller', both('bob', '3', '%d+'), 'bob|3')
-    it('name and level', both('bob', 'alice 2', '%d+'), 'alice|2')
-    it('tolerates surrounding space', both('bob', '  alice   2  ', '%d+'),
-       'alice|2')
-    it('rejects empty arguments', both('bob', '', '%d+'), 'nil|nil')
-    it('rejects a name with no level', both('bob', 'alice', '%d+'), 'nil|nil')
-    it('rejects a non-numeric level', both('bob', 'alice x', '%d+'), 'nil|nil')
-    it('rejects trailing junk', both('bob', 'alice 2 3', '%d+'), 'nil|nil')
-    it('accepts names with underscore and dash',
-       both('bob', 'a_player-1 4', '%d+'), 'a_player-1|4')
+    it('level only, addressed to the caller', both('bob', '3'), 'bob|3')
+    it('name and level', both('bob', 'alice 2'), 'alice|2')
+    it('tolerates surrounding space', both('bob', '  alice   2  '), 'alice|2')
+    it('rejects empty arguments', both('bob', ''), 'nil|nil')
+    it('rejects a name with no level', both('bob', 'alice'), 'nil|nil')
+    it('rejects a non-numeric level', both('bob', 'alice x'), 'nil|nil')
+    it('rejects trailing junk', both('bob', 'alice 2 3'), 'nil|nil')
+    it('accepts names with underscore and dash', both('bob', 'a_player-1 4'),
+       'a_player-1|4')
     -- A digit-led token is a level, not a name: this is the case the old
     -- `([%w_-]*)%s*([%d]*)` pattern got wrong, since %w matches digits.
-    it('does not read a bare number as a player name', both('bob', '4', '%d+'),
+    it('does not read a bare number as a player name', both('bob', '4'),
        'bob|4')
+
+    -- The name is PLAYERNAME_ALLOWED_CHARS - letters, digits, '-' and '_' -
+    -- so it may begin with any of them. Demanding a letter first made every
+    -- such name unaddressable. (B55)
+    it('a digit-led name takes a level', both('bob', '007 3'), '007|3')
+    it('a name that is only digits takes a level', both('bob', '1 2'), '1|2')
+    it('a digits-then-letters name takes a level', both('bob', '4player 2'),
+       '4player|2')
+    it('a dash-led name takes a level', both('bob', '-x 3'), '-x|3')
+    it('an underscore-led name takes a level', both('bob', '_y 3'), '_y|3')
+
+    -- Alone, only solo_pattern decides, and it is '[1-4]'. Widening it back
+    -- towards '%d+' is what misrouted "level 007", and every case below flips
+    -- when it is: %d+ matches "007", "12" and "5" as well as "4".
+    it('a lone 007 is not a level', both('bob', '007'), 'nil|nil')
+    it('a lone 12 is not a level', both('bob', '12'), 'nil|nil')
+    it('a lone 5 is not a level', both('bob', '5'), 'nil|nil')
+    it('a lone 4player is not a level', both('bob', '4player'), 'nil|nil')
+    it('a lone -x is not a level', both('bob', '-x'), 'nil|nil')
+    it('a lone _y is not a level', both('bob', '_y'), 'nil|nil')
+
+    -- target_only is the sole parser for tools, generate and reading a
+    -- codelevel, and takes the same character set. (B55)
+    it('target_only defaults to the caller', tostring(only('bob', '')), 'bob')
+    it('target_only defaults on space alone', tostring(only('bob', '   ')),
+       'bob')
+    it('target_only tolerates surrounding space',
+       tostring(only('bob', '  alice  ')), 'alice')
+    it('target_only reads a digit-led name', tostring(only('bob', '007')),
+       '007')
+    it('target_only reads an all-digit name', tostring(only('bob', '12')), '12')
+    it('target_only reads a dash-led name', tostring(only('bob', '-x')), '-x')
+    it('target_only reads an underscore-led name', tostring(only('bob', '_y')),
+       '_y')
+    it('target_only refuses two words', tostring(only('bob', 'alice bob')),
+       'nil')
+    it('target_only refuses a character the engine does not allow',
+       tostring(only('bob', 'a.b')), 'nil')
+
+    ----------------------------------------------------------------------
+    -- which branch /codeblock level took
+    --
+    -- The two parsers overlap now, so the order in subcommands.level is the
+    -- rule and not an incidental consequence of disjoint patterns: a lone "4"
+    -- matches both, and parse_target running first is what makes it your own
+    -- codelevel rather than a player of that name. Neither the order nor the
+    -- '[1-4]' at that call site is reachable from parse_target directly - a
+    -- spec passing its own patterns would only pin its own arguments - so
+    -- these go through the registered command.
+    --
+    -- No player exists at mod load, so every branch ends in a refusal. Which
+    -- refusal is the observation: the set branch and the read branch have
+    -- disjoint messages, whether or not the caller holds the privilege.
+    ----------------------------------------------------------------------
+
+    local cmd = core.registered_chatcommands['codeblock'].func
+
+    local branch_of = {
+        -- set_level: refused for want of the privilege, or reached and
+        -- stopped on the level or the absent player
+        {'to set a codelevel', 'set'}, {'Invalid codelevel', 'set'},
+        {'Player not found', 'set'}, {'codelevel set to', 'set'},
+        -- report_level, whose absent-player message is a different one
+        {'for another player', 'read'}, {'No player named', 'read'},
+        {'codelevel is', 'read'},
+        {'Usage:', 'usage'}
+    }
+
+    local function route(params)
+        local ok, _, msg = pcall(cmd, 'bob', 'level ' .. params)
+        if not ok then return 'raised' end
+        msg = tostring(msg)
+        for _, m in ipairs(branch_of) do
+            if msg:find(m[1], 1, true) then return m[2] end
+        end
+        return 'unclassified'
+    end
+
+    it('a lone 4 is read as your own level, not as a player named 4',
+       route('4'), 'set')
+    it('a lone 007 is a player name, not a level', route('007'), 'read')
+    it('a lone 12 is a player name', route('12'), 'read')
+    it('a lone 5 is a player name', route('5'), 'read')
+    it('no argument reads your own codelevel', route(''), 'read')
+    it('a name and a level sets', route('alice 2'), 'set')
+    it('a digit-led name and a level sets', route('007 3'), 'set')
+    it('neither form is a usage error', route('alice x'), 'usage')
 end
 
 --------------------------------------------------------------------------------
