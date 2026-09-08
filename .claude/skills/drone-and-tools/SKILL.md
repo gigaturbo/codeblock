@@ -89,6 +89,34 @@ runs, silently.
 that embeds it, where a player carries nothing but the two tools and has no
 reason to aim at the sky.
 
+# The `/codeblock` subcommand parsers
+
+**A player name is `[%w_%-]+` and nothing narrower.** The engine's
+`PLAYERNAME_ALLOWED_CHARS` (`src/player.h:17` at 5.17.0) is letters, digits, `-`
+and `_`, with **no rule about the first character**, so `007`, `4player` and `-x`
+are all names a player can log in under. Both parsers in `lib/register.lua`
+demanded `[%a]` first and made every such player unaddressable by every
+subcommand (`B55`). `lua_api.md` states the set nowhere.
+
+**`parse_target` and `target_only` now match overlapping arguments**, which they
+did not when a name had to start with a letter. Each is published on `codeblock`
+for `tests/integration_spec.lua`, because the overlap is only pinnable if both
+are reachable.
+
+**The overlap is broken by `parse_target`'s fourth argument and by the call
+order in `subcommands.level`, and both are load-bearing.** `rest_pattern` (`%d+`)
+matches the trailing argument, where a name before it is unambiguous;
+`solo_pattern` (`[1-4]`) matches a lone argument that is to be read as the rest
+rather than as a name, and must be no wider. `parse_target` before `target_only`
+is what makes `/codeblock level 4` set your own codelevel; reversing them hands
+it to a player named `4`. Players actually named `1`–`4` are unreadable in
+exchange — irreducible, so `doc/api.md` says it.
+
+**A refusal on the one-argument read path serves both readings.**
+`/codeblock level 5` is a player name by that rule, so the message names the
+missing player *and* the 1-to-4 range; answering only `Player not found` answers
+the reading the player did not mean.
+
 ## Related
 
 - **`program-pipeline`** — the stepper the globalstep drives, and the budget it

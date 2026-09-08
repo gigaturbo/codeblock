@@ -36,6 +36,7 @@ id. A wrong *check* is a defect in this document and gets no id.
 | `owed` | Carries a pass, but the code under it changed. Waiting on a re-run. |
 | `stale` | Carries a pass whose commit or counts no longer describe the tree. |
 | `unreachable` | The remaining cases are impossible to perform on this form. Nothing is owed and no future run improves it. |
+| `blocked` | The check asks for something the code does not offer yet. It becomes runnable as written once the named work lands. |
 
 **`unreachable` is not `partial`.** `partial` says a result could improve.
 `unreachable` says it cannot, so the check leaves *Checks needing action*.
@@ -63,14 +64,15 @@ Result: ...
 
 | | Count |
 |---|---|
-| Entries | 85 |
+| Entries | 93 |
 | Retired | 1 — `F11-4` |
-| Live checks | 84 |
-| Most recent result a pass | 81 |
+| Live checks | 92 |
+| Most recent result a pass | 80 |
 | Unreachable | 1 — `H8` |
-| Unrun | 2 — `F-6`, `R5` |
-| Stale | 3 — `R1`, `R2`, `R4` |
-| Fail as most recent result | 0 |
+| Unrun | 10 — `F-6`, `R5`, `F16-1` to `F16-8` |
+| Stale | 2 — `R1`, `R2` |
+| Blocked | 1 — `R4` |
+| Fail as most recent result | 1 — `R4` |
 
 Checks needing action:
 
@@ -80,7 +82,15 @@ Checks needing action:
 | [`R5`](#r5--an-old-vector3-is-named-in-the-log-at-mod-load-s9) | unrun | The load-time warning about an old `vector3`. Needs the submodule swapped by hand. |
 | [`R1`](#r1--the-archive-contains-no-tests-c16-c10) | stale | Texture and example counts have changed since the last run. |
 | [`R2`](#r2--a-real-install-with-the-test-flag-set-c16) | stale | Last run at `7c5bceb`, before `F4` and two `.gitattributes` changes. |
-| [`R4`](#r4--a-brand-new-world-hands-out-the-right-codelevel-s6) | stale | `check_auth_level` reads the default at call time since `A17`. The pass predates that contract. |
+| [`R4`](#r4--a-brand-new-world-hands-out-the-right-codelevel-s6) | blocked | Its four cases need a command that reads a codelevel back. `F16` adds it. The log half is runnable now and is what `A17` is owed. |
+| [`F16-1`](#f16-1--reading-your-own-codelevel-with-the-privilege-not-granted-f16-b9) | unrun | The free read path. Needs a player without `codeblock`. Same fresh world as `R4`. |
+| [`F16-2`](#f16-2--reading-another-players-codelevel-f16-b9) | unrun | The privileged read, with and without the privilege. |
+| [`F16-3`](#f16-3--an-offline-name-and-a-name-that-never-existed-f16) | unrun | Both refusals. No offline meta exists in 5.17.0. |
+| [`F16-4`](#f16-4--a-player-carrying-no-codeblockauth_level-key-f16-b5-s6) | unrun | The `get_int` trap. The pass is that it never reports `0`. |
+| [`F16-5`](#f16-5--the-four-forms-of-setting-still-behave-f16-b9) | unrun | The setting body moved into `set_level` with its privilege check. |
+| [`F16-6`](#f16-6--the-usage-strings-name-the-optional-level-f16-f10) | unrun | The usage, the help and the privilege description all changed. |
+| [`F16-7`](#f16-7--the-three-lines-on-a-french-client-f16-c17) | unrun | Two new `S()` keys and one changed usage, on a `fr` client. |
+| [`F16-8`](#f16-8--an-engine-legal-odd-name-on-all-three-subcommands-b55-f16-b8) | unrun | `B55`'s only in-world evidence. Needs three oddly named players. |
 
 ---
 
@@ -1307,23 +1317,48 @@ with any history proves nothing here**. Create a fresh world each time.
 Read the log once while you are there: `codeblock_default_auth_level = 9` must
 warn and fall back rather than giving a player nil limits.
 
-**State: `stale`.** `check_auth_level` reads
-`codeblock.config.default_auth_level` at call time rather than capturing it
-(`A17`), and `lib/config.lua:137` calls it while validating the setting that
-assigns that field at line 142. So the fallback return is `nil` on that one
-call, by design and unused there. Every case below reads on the new contract and
-the pass predates it.
+**State: `blocked` on `F16`.** Nothing reads a codelevel back. `/codeblock
+level` takes `[<playername>] <1-4>` and only sets, and no other surface shows
+the value. Cases 1, 2 and 4 have no route to it, and case 3 has none to the `4`
+it expects. `F16` adds the read path and makes all four runnable exactly as
+written. **The four cases as written have never been performable**, before or
+after `F10`'s rename, so this is a defect in the check and carries no finding
+id.
 
-**This is the only in-world evidence for the `A17` behaviour change.** The
-out-of-range log line is the case that touches it directly.
+**The `A17` contract the check has to read on.** `check_auth_level` reads
+`codeblock.config.default_auth_level` at call time rather than capturing it, and
+`lib/config.lua:137` calls it while validating the setting that assigns that
+field at line 142. So the fallback return is `nil` on that one call, by design
+and unused there.
 
-Result: pass — `cd13414` · engine 5.17.0 · 2026-09-02 — all four cases, and the
-out-of-range guard read in `debug.txt`:
+**The 2026-09-02 pass stands for the log half only.** The out-of-range warning
+below was observed and is evidence. The four numbered cases were not
+observable at `cd13414`, where the command was set-only, so the pass must not be
+read as evidence for any of them — including case 4, whose *unchanged* can only
+be judged by reading the level, and for which the check names no indirect route.
+
+**Run it in the same fresh world as `F16-1` to `F16-4`.** Both need a world with
+no history, and `F16`'s read path is the only thing that answers this check's
+four cases. Doing them twice is two fresh worlds for one reading.
+
+**The log half does not wait on `F16`.** It needs no command, so setting
+`codeblock_default_auth_level = 9` and reading `debug.txt` can be re-run now.
+That is what `A17`'s call-time read is owed: the 2026-09-02 reading predates
+`6a4fa91`.
+
+**`S6` closed at `af018d0`, before this check was written on 2026-08-30.** `R4`
+is a regression guard for it and never was its closing evidence.
+
+Result: pass — `cd13414` · engine 5.17.0 · 2026-09-02 — recorded as all four
+cases; only the out-of-range guard read in `debug.txt` stands:
 
 ```
 2026-09-02 11:50:08: WARNING[ServerStart]: [codeblock] setting
 codeblock_default_auth_level is not a codelevel from 1 to 4; ignored
 ```
+
+Result: fail — `dd98aab` · engine 5.17.0 · 2026-09-08 — `/codeblock level`
+answers with its usage, `<playername> <1-4>`. It does not report the codelevel.
 
 ### R5 · An old `vector3` is named in the log at mod load [S9]
 
@@ -1901,6 +1936,221 @@ the same session was reported once by name.
 Result: pass — `8e6350f` · engine 5.17.0 · 2026-09-07 — ten see-through glass
 blocks, `dark_pink` to `dark_violet`, visibly different from each other and from
 the same loop over `hues`.
+
+### F16-1 · Reading your own codelevel with the privilege not granted [F16, B9]
+
+**This is the check that proves the free path.** It needs a player who does
+**not** hold `codeblock`, and `give_to_singleplayer = true`, so plain
+singleplayer grants it and hides the case.
+
+Two routes to an unprivileged player. In singleplayer, revoke it from yourself
+and put it back afterwards — typed in game:
+
+```
+/revoke singleplayer codeblock
+/codeblock level
+/grant singleplayer codeblock
+/codeblock level
+```
+
+`singleplayer` is the value of the `name` setting; use your own name if you
+changed it. The other route is a **second player on a server**, granted nothing
+by default, which is what `F16-2` needs anyway.
+
+**Pass:**
+
+- Without the privilege, `Your codelevel is <n>`. **No refusal**, and not the
+  usage string.
+- With the privilege, the same line and the same number.
+- `<n>` is the level the player actually has. **It is never `0`.**
+
+**Run this in the same fresh world as `R4`**, whose cases 1, 2 and 4 read a
+codelevel back with this command.
+
+Result: not yet run.
+
+### F16-2 · Reading another player's codelevel [F16, B9]
+
+Two players in the world. As the one **without** `codeblock`, then as one
+**with** it — typed in game:
+
+```
+/codeblock level alice
+```
+
+**Pass:**
+
+- Without the privilege, refused with *"You need the codeblock privilege for
+  another player"*. **Nothing is reported and nothing is changed.**
+- With the privilege, `alice's codelevel is <n>`, naming `alice` and not the
+  caller.
+- Reading your **own** name explicitly — `/codeblock level singleplayer` as
+  `singleplayer` — takes the free path and answers `Your codelevel is <n>`, the
+  possessive form being for somebody else.
+
+Result: not yet run.
+
+### F16-3 · An offline name and a name that never existed [F16]
+
+With the `codeblock` privilege, typed in game:
+
+```
+/codeblock level someonewhoquit
+/codeblock level zzzznobody
+```
+
+The first is a player who has joined this world before and is **not connected
+now**. The second is a name that has never existed.
+
+**Pass:** both answer `Player not found`. **The two are deliberately one
+answer** — 5.17.0 exposes no meta for a player who is not connected, so an
+offline codelevel cannot be read and is not guessed at.
+
+Result: not yet run.
+
+### F16-4 · A player carrying no `codeblock:auth_level` key [F16, B5, S6]
+
+**Join a world before the mod is installed**, so `register_on_newplayer` never
+fires for this player and no key is ever written:
+
+1. Take a world **without** this mod. Join it, then quit.
+2. Add the mod to that world and join again.
+3. `/codeblock level`.
+
+**Pass:** it reports `codeblock_default_auth_level` — the level the next run
+will actually use, because `Drone.new` falls back to the same value. **It never
+says `0`.**
+
+**`0` is the whole point of the check.** `get_int` cannot tell an absent key
+from a stored `0` (`B5`), so the read goes through `check_auth_level`, which
+turns both into the default. A reported `0` means the fallback was skipped.
+
+**Confirm the number is the one in force.** Set
+`codeblock_default_auth_level = 4`, restart, and run it again: it must read `4`.
+
+Result: not yet run.
+
+### F16-5 · The four forms of setting still behave [F16, B9]
+
+The old body moved inside `set_level` and the privilege check moved with it, so
+all four setting forms are re-checked. With `codeblock`, typed in game:
+
+```
+/codeblock level 4
+/codeblock level
+/codeblock level alice 2
+/codeblock level alice
+/codeblock level alice 9
+```
+
+Then **without** the privilege:
+
+```
+/codeblock level 4
+```
+
+**Pass:**
+
+- `level 4` answers `<you> codelevel set to 4`, and the bare `level` after it
+  reads `Your codelevel is 4`. **The read confirms the set** — that pairing is
+  new and is the cheapest evidence either half works.
+- `level alice 2` sets `alice` and not the caller, and `level alice` reads back
+  `alice's codelevel is 2`.
+- `level alice 9` is refused with `Invalid codelevel` and changes nothing. **The
+  two-argument form is the one that still gives that answer.** Bare
+  `level 9` is a one-argument form and now reaches the read path — `F16-8`
+  owns it.
+- Without the privilege, `level 4` is refused with *"You need the codeblock
+  privilege to set a codelevel"* — **for your own level as well** (`B9`).
+
+Result: not yet run.
+
+### F16-6 · The usage strings name the optional level [F16, F10]
+
+Typed in game:
+
+```
+/codeblock
+/codeblock nonsense
+/codeblock level oops oops
+/help codeblock
+/help privs
+```
+
+**Pass:**
+
+- Bare `/codeblock` and an unknown subcommand each print the **three** usage
+  lines, the middle one reading
+  `Usage: /codeblock level [<playername>] [<1-4>]` — **square brackets on the
+  level**, not `<1-4>`.
+- Arguments matching neither parser print that same one line.
+- `/help codeblock` shows
+  `tools [<playername>] | level [<playername>] [<1-4>] | generate [<playername>]`
+  and a description reading *read or set a codelevel*.
+- `/help privs` describes `codeblock` as covering **reading** a codelevel as
+  well as setting one.
+
+Result: not yet run.
+
+### F16-7 · The three lines on a French client [F16, C17]
+
+On a **French** client, run `F16-1`, `F16-2` and `F16-6` again.
+
+**Pass**, the three strings exactly:
+
+- `Votre codelevel est @1`
+- `Le codelevel de @1 est @2`
+- `Usage : /codeblock level [<joueur>] [<1-4>]`
+
+**Also `Joueur non trouvé`** for `F16-3`, which is an existing key and only needs
+looking at while you are here.
+
+Result: not yet run.
+
+### F16-8 · An engine-legal odd name, on all three subcommands [B55, F16, B8]
+
+**This is `B55`'s only in-world evidence, and it is one entry rather than cases
+spread over `F10-2`, `F-2` and `F16-2`.** All three subcommands share one
+parser and one setup — three players with awkward names — and splitting it would
+repeat that setup three times and scatter the result lines.
+
+**Setup.** A server with three extra players joined at least once, named `007`,
+`-bob` and `_carol`. All three are legal: the engine's
+`PLAYERNAME_ALLOWED_CHARS` is `[A-Za-z0-9_-]`. Have them connected, and hold the
+`codeblock` privilege yourself.
+
+1. **Each subcommand, each name** — typed in game:
+
+```
+/codeblock tools 007
+/codeblock generate -bob
+/codeblock level _carol
+/codeblock level 007 3
+/codeblock level 007
+```
+
+**Pass:** every line acts on the named player. `tools` fills `007`'s inventory,
+`generate` writes `-bob`'s examples, `level _carol` reads a number, `level 007 3`
+sets and `level 007` reads back `3`. **No usage string appears for any of
+them.**
+
+2. **`/codeblock level 5`**, with no such player in the world.
+
+**Pass:** one refusal that serves both readings — there is no player `5`, and a
+codelevel is 1 to 4. A message naming only the missing player, or only the level
+range, is a fail: the argument is genuinely ambiguous and the answer has to say
+so.
+
+3. **A player actually named `4`**, if you can make one.
+
+**Pass:** `/codeblock level 4` sets your own codelevel to 4 and does **not**
+read player `4`'s. **That is the documented limit, not a defect** — a single
+argument resolves in favour of the codelevel, and `1` to `4` are the four names
+it costs. `/codeblock level 4 2` still addresses them, so they are not
+unreachable, only unreadable on the short form. Record the outcome and file
+nothing.
+
+Result: not yet run.
 
 ---
 

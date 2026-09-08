@@ -47,6 +47,9 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
       Put the pin back afterwards (audit S9; playtest R5)
 - [ ] re-run R2 on the archive built from the release commit. Install it in a
       game that is not codecube (audit C16, C10)
+- [ ] run F16-1 to F16-8 once F16 is committed. F16-8 needs three players named
+      `007`, `-bob` and `_carol`, and is the only in-world evidence B55 can have
+      (audit B55; playtest F16-1 to F16-8)
 
 
 # After 1.0.0

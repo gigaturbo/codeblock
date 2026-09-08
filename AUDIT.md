@@ -17,15 +17,16 @@ and security, `C` compliance and packaging, `A` architecture and performance;
 
 | Series | Total | Resolved | Open | Won't fix |
 |---|---|---|---|---|
-| `B` bugs | 51 | 50 | — | `B34` |
+| `B` bugs | 52 | 50 | `B55` | `B34` |
 | `S` sandbox and security | 9 | 9 | — | — |
 | `C` compliance and packaging | 18 | 17 | `C24` | — |
 | `A` architecture and performance | 14 | 14 | — | — |
-| **Total** | **92** | **90** | **1** | **1** |
+| **Total** | **93** | **90** | **2** | **1** |
 
 | Id | Sev | What | Waiting on |
 |---|---|---|---|
 | `C24` | medium | CI boots no engine, so three specs and every engine-guarded case never run in CI | a CI job that boots Luanti |
+| `B55` | medium | a player whose name starts with a digit, a dash or an underscore cannot be named to any `/codeblock` subcommand | the fix, written and uncommitted at `dd98aab` |
 | `B34` | low | won't fix: a file cannot be removed without opening it first | decided — a working route exists |
 
 ## Open and won't fix
@@ -55,6 +56,42 @@ under CI for the first time. **Not by adding `lfs` to the standalone path** to
 enumerate a directory: a dependency for one case is not a trade worth making. It
 does not block the tag; the release is built from a tree a local run has
 covered.
+
+### B55 · medium · open — an engine-legal player name is unaddressable by any subcommand
+
+**Mechanism.** Both parsers in `lib/register.lua` require a leading `[%a]`. The
+engine allows more: `PLAYERNAME_ALLOWED_CHARS` is
+`abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_`
+(`src/player.h:17`, tag `5.17.0`), so a legal name may start with a digit, a
+dash or an underscore. No `/codeblock` subcommand can name such a player.
+
+```
+/codeblock tools 007      -> usage error
+/codeblock generate 007   -> usage error
+/codeblock level 007 3    -> usage error
+/codeblock level 4player  -> usage error
+```
+
+**A server carrying such a player cannot be administered through this mod at
+all**, and the answer is the usage string, which says the arguments were wrong
+and never that the name was rejected.
+
+**Not a regression. `B8`'s fix drawn too tight.** The leading-letter
+requirement was deliberate — it is what kept `level 4` and `level alice` apart.
+It stood because the charset is documented in neither `lua_api.md` nor the
+settings example. **The engine source was the only source of truth available**,
+and that is why reading it is the step this finding cost.
+
+**Scope: the committed half only.** `/codeblock level 007` answering `Invalid
+codelevel` — an answer about a level, to a question about a player — belongs to
+`F16`, which is uncommitted. A feature wrong before it ships gets no id and its
+record is the `F16` entry in `ROADMAP.md`. The boundary is settled; do not
+re-litigate it.
+
+**The fix is decided and written, uncommitted at `dd98aab`:** widen both
+parsers to the engine charset. The decision, the one-argument resolution rule
+and the rejected options are in `ROADMAP.md`. The constraints it creates are
+under *Keep*. In-world evidence is playtest `F16-8`.
 
 ### B34 · low · won't fix — a file cannot be removed without opening it first
 
@@ -349,6 +386,22 @@ restated.
   not spell the `S()` call out, or it is reported as a non-literal key.
 - **`B8` — parse the target player name and use it.** A bare number is a legal
   name, because `%w` matches digits.
+- **`B55` — the engine's player-name charset is written in the engine source and
+  nowhere else.** `PLAYERNAME_ALLOWED_CHARS` in `src/player.h` is
+  `[A-Za-z0-9_-]`. Neither `lua_api.md` nor the settings example mentions it. A
+  parser anchored on `[%a]` rejects legal players; check the source before
+  narrowing one again.
+- **`B55` — a single argument resolves in favour of the codelevel.** `^[1-4]$`
+  is a level, anything else is a player name. **Players actually named `1`, `2`,
+  `3` or `4` cannot have their codelevel read.** That is irreducible on a
+  one-argument form, it is accepted, and it is not a defect to file.
+- **`B55` — the dispatcher's set-before-read order is load-bearing.** The two
+  parsers used to be mutually exclusive and now overlap. Reordering them is a
+  behaviour change, not a refactor.
+- **`B55` — `/codeblock level 5` reaches the read path**, because `5` is not a
+  codelevel and is therefore taken as a name. Its refusal has to serve both
+  readings: no such player, and a codelevel is 1 to 4. A message naming only one
+  of them is wrong for the other.
 - **`B9` — codelevel is the bound on resource use, so letting players set their
   own is privilege escalation.** The bug was that the privilege was
   unobtainable, not that it existed.
@@ -611,15 +664,19 @@ accepted. **The load order is verified by a boot, not by inspection** —
 `lib/examples.lua`, `lib/filesystem.lua` and `lib/config.lua` each call a
 rehomed symbol at file scope and would take the mod down in the wrong order.
 
-**`A17`'s in-world reading is owed.** Playtest `R4` is stale: its pass at
-`cd13414` predates the call-time read, and it is the only check that exercises
-the codelevel a fresh world hands out.
+**`A17`'s in-world reading is owed, and one route to it is open.** Setting
+`codeblock_default_auth_level = 9` and reading the warning in `debug.txt`
+exercises the call-time read and needs no command. Playtest `R4` carries that
+reading at `cd13414`, before `6a4fa91`, so it has to be taken again.
+
+**`R4`'s four numbered cases are blocked, not stale.** They ask for a codelevel
+to be read back and nothing reports one. `F16` adds the read path. The block is
+in the check, not in `A17`.
 
 **Neither runtime call site of `check_auth_level` is pinned.** The function is
 covered; `lib/drone.lua:148` and the `/codeblock level` path at
 `lib/register.lua:363` are not. Playtests `R4` and `F10-3` exercise both, and
-`R4` case 3 exercises the call-time read through the
-`codeblock_default_auth_level` warning. Both last passed before this change.
+both last passed before this change.
 
 **Committed with gates green, unproven in a world — three:**
 
@@ -724,8 +781,12 @@ Each of these is a wrong claim that would otherwise be repeated as fact.
   `git rev-list --count origin/master..HEAD`, never by counting a copied-forward
   list of hashes.** That went wrong four passes running, always low.
 - **An id is for a defect in committed code.** A wrong *check* is a defect in the
-  record and is fixed in `PLAYTEST.md`: playtests `D3` and `F-3` got no ids, and
-  `E12`'s symptom got none after three fails and a disproof.
+  record and is fixed in `PLAYTEST.md`: playtests `D3`, `F-3` and `R4` got no
+  ids, and `E12`'s symptom got none after three fails and a disproof.
+- **A pass can record cases that were never observable.** `R4`'s 2026-09-02 pass
+  claimed four codelevel readings from a command that has only ever set one. A
+  result line says what the runner saw; a check that asks for the unobservable
+  will still collect a pass.
 - **`A18` was filed as *the last `LUACHECK_STRICT=1` `W421` in that file*, and
   that reads as the last in the tree.** It was not. `init.lua`'s doc-generation
   block held a second — `local wanted, why` shadowing `strguard.install()`'s

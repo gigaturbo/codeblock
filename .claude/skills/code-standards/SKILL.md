@@ -117,6 +117,7 @@ row is about.
 | A dropdown is always-sent, and its two exceptions | `B37`, `F11` | `editor-formspecs` |
 | Every legacy element's `W` is its own unit | `F11` | `editor-formspecs` |
 | Branch on a value matching what you drew, never on it differing | `B37` | `editor-formspecs` |
+| A player name is `[%w_%-]+`; `parse_target` before `target_only`, and its `solo_pattern` no wider than its `rest_pattern` | `B55` | `drone-and-tools` |
 
 ## What a change drags with it
 
@@ -175,18 +176,23 @@ stripped, whatever the quoting, and runs `tests/_spec.lua` six times — six
 *cannot open* lines, no spec output, and nothing that reads as a gate failing.
 Name each spec explicitly, or put the loop in a file and run that.
 
-**An edit into a CRLF file can leave the inserted lines LF**, and it does so
-only sometimes, so the file ends up mixed and nothing lints it. Half the `lib/`
-tree is CRLF. Check the file you edited and repair it in place:
+**Line endings are not something an edit here has to preserve or repair.**
+`core.autocrlf` is `true` and every text blob in the repository is LF, so git
+converts on checkout and normalises back on commit. A working copy that is CRLF,
+LF or mixed all commit identically, `git diff` shows the lines you changed and
+not the whole file, and there is nothing for a linter to catch. A mixed working
+copy is normal and means a generator wrote LF into a file checked out CRLF.
+Verified 2026-09-08 across every tracked `.lua`, `.md` and `.txt` outside the
+`vector3` submodule.
+
+To satisfy yourself of that, rather than as a step to run after an edit:
 
 ```bash
 python -c "d=open('lib/config.lua','rb').read(); print(d.count(b'\r\n'), d.count(b'\n'))"
-unix2dos -q lib/config.lua   # converts lone LF only, so the diff stays your lines
 ```
 
-The two counts must be equal for a CRLF file and the first zero for an LF one.
-**`cat -A` cannot answer this**: `sed` in this machine's Git Bash strips the CR
-on read, so a piped `cat -A` shows a clean `$` on every line of a CRLF file.
+**`cat -A` cannot answer it**: `sed` in this machine's Git Bash strips the CR on
+read, so a piped `cat -A` shows a clean `$` on every line of a CRLF file.
 
 Then say plainly, in the reply: which gates ran and what they printed, what a
 spec cannot reach and therefore needs a `PLAYTEST.md` entry, and any defect found
