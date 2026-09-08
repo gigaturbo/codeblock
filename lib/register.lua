@@ -271,8 +271,8 @@ end)
 -- administrator: with it false the privileged subcommands were unusable in
 -- exactly the setting this mod is mostly played in.
 core.register_privilege("codeblock", {
-    description = "Player can set a codelevel, and give the drone tools or " ..
-        "generate the example programs for another player",
+    description = "Player can set a codelevel, and read a codelevel, give " ..
+        "the drone tools or generate the example programs for another player",
     give_to_singleplayer = true
 })
 
@@ -283,40 +283,57 @@ core.register_privilege("codeblock", {
 -- way, and the previous hard-coded 'singleplayer' was wrong for a renamed
 -- player.
 --
--- `rest_pattern` is a Lua pattern for the remaining argument, e.g. '%d+'.
+-- A name is any run of the characters the engine allows in one -
+-- PLAYERNAME_ALLOWED_CHARS in src/player.h is letters, digits, '-' and '_' -
+-- so it may begin with a digit, a dash or an underscore. Demanding a letter
+-- first made every such name unaddressable. (B8, B55)
+--
+-- `rest_pattern` matches the trailing argument, e.g. '%d+'. `solo_pattern`
+-- matches a lone argument that is to be read as that argument rather than as a
+-- name, and must be no wider: where one token could be either, matching
+-- solo_pattern makes it the rest. That narrowing is the whole of the ambiguity
+-- rule, and with '%d+' and '[1-4]' it reads "007" as a player and "4" as a
+-- level.
+--
 -- Returns target_name, rest - or nil, nil when the arguments do not match.
-local function parse_target(caller, params, rest_pattern)
-    -- "<name> <rest>"
-    local pname, rest = string.match(params, '^%s*([%a][%w_%-]*)%s+(' ..
+local function parse_target(caller, params, rest_pattern, solo_pattern)
+    -- "<name> <rest>", where the rest is trailing and so unambiguous
+    local pname, rest = string.match(params, '^%s*([%w_%-]+)%s+(' ..
                                          rest_pattern .. ')%s*$')
     if pname then return pname, rest end
     -- "<rest>" alone, addressed to the caller
-    rest = string.match(params, '^%s*(' .. rest_pattern .. ')%s*$')
+    rest = string.match(params, '^%s*(' .. solo_pattern .. ')%s*$')
     if rest then return caller, rest end
     return nil, nil
 end
 
--- Published rather than kept local because tests/integration_spec.lua covers
--- it: B8 and the dead singleplayer branch both lived in this parsing, and the
--- suite runs at mod load, before a player exists, so it cannot be driven
--- through the chat commands.
+-- Both parsers are published rather than kept local because
+-- tests/integration_spec.lua covers them: B8, B55 and the dead singleplayer
+-- branch all lived in this parsing, the two now match overlapping arguments,
+-- and the suite runs at mod load, before a player exists, so none of it can be
+-- driven through the chat commands.
 codeblock.parse_target = parse_target
 
 --- Parse "[<playername>]" alone: the caller when omitted, nil when malformed.
--- The sibling of parse_target, which needs a second argument to parse.
+-- The sibling of parse_target, which needs a second argument to parse, and the
+-- sole parser for `tools`, `generate` and reading a codelevel. Same character
+-- set, so every name the engine allows is addressable. (B55)
 local function target_only(caller, params)
     if params:match('^%s*$') then return caller end
-    return params:match('^%s*([%a][%w_%-]*)%s*$')
+    return params:match('^%s*([%w_%-]+)%s*$')
 end
+
+codeblock.target_only = target_only
 
 -- One entry per subcommand, each taking the caller's name and the arguments
 -- after the subcommand word, and answering as a chatcommand func does.
 --
--- Two privilege rules, and they differ on purpose. `tools` and `generate` act
--- on things that are the player's own, so they are free for yourself and need
--- the privilege for somebody else. `level` needs it either way: codelevel is
--- the knob that bounds what a program may spend, so a player able to raise
--- their own would be lifting their own ceilings.
+-- Two privilege rules, and they differ on purpose. `tools`, `generate` and
+-- reading a codelevel act on things that are the player's own, so they are free
+-- for yourself and need the privilege for somebody else. *Setting* a codelevel
+-- needs it either way: codelevel is the knob that bounds what a program may
+-- spend, so a player able to raise their own would be lifting their own
+-- ceilings.
 local subcommands = {}
 
 subcommands.tools = function(caller, params)
@@ -349,25 +366,85 @@ subcommands.tools = function(caller, params)
 
 end
 
-subcommands.level = function(caller, params)
+--- /codeblock level [<playername>] - report a codelevel, changing nothing.
+--
+-- Free for your own and privileged for anybody else's, which is the split
+-- `tools` and `generate` use. The number alone: the ceilings it buys are in
+-- lib/config.lua and doc/api.md, and quoting them here would be a third copy.
+local function report_level(caller, target)
+
+    if target ~= caller and not core.check_player_privs(caller, {
+        codeblock = true
+    }) then
+        return false, S('You need the codeblock privilege for another player')
+    end
+
+    -- A codelevel lives in player meta, which the engine hands out only for a
+    -- player who is here, so offline and never-joined are one clean refusal
+    -- rather than an invented zero. There is no offline meta in 5.17.0.
+    --
+    -- The refusal names the range as well, because this is where a mistyped
+    -- level lands: "/codeblock level 5" is a player name by the rule above, and
+    -- answering only "Player not found" would answer the reading the player did
+    -- not mean. Serving both costs a clause. (B55)
+    local player = get_player_by_name(target)
+    if not player then
+        return false, S('No player named @1, and a codelevel is 1 to 4', target)
+    end
+
+    -- Read through check_auth_level so an absent or out-of-range stored value
+    -- reports the codelevel the next run would actually use: Drone.new falls
+    -- back to the same default, and a player who joined a world before the mod
+    -- was installed carries no key at all.
+    local _, level = check_auth_level(
+                         player:get_meta():get_int('codeblock:auth_level'))
+
+    if target == caller then return true, S('Your codelevel is @1', level) end
+    return true, S("@1's codelevel is @2", target, level)
+
+end
+
+--- /codeblock level [<playername>] <1-4> - set a codelevel.
+local function set_level(caller, target, level)
 
     if not core.check_player_privs(caller, {codeblock = true}) then
         return false, S('You need the codeblock privilege to set a codelevel')
     end
 
-    local pname, level = parse_target(caller, params, '%d+')
-    if not pname then
-        return false, S('Usage: /codeblock level [<playername>] <1-4>')
-    end
-
     local valid, al = check_auth_level(tonumber(level))
     if not valid then return false, S('Invalid codelevel') end
 
-    local player = get_player_by_name(pname)
+    local player = get_player_by_name(target)
     if not player then return false, S('Player not found') end
 
     player:get_meta():set_int('codeblock:auth_level', al)
-    return true, S('@1 codelevel set to @2', pname, al)
+    return true, S('@1 codelevel set to @2', target, al)
+
+end
+
+-- Which of the four forms this is has to be settled before the privilege is
+-- decided, because reading your own is the one that is free.
+--
+-- The two parsers overlap, so the order below is the rule and not an accident:
+-- a lone "4" is both a codelevel and a legal player name, and parse_target
+-- running first is what makes it your own codelevel. Anything else alone falls
+-- to target_only and names a player, "007" and "5" included. Swapping the two
+-- would take the bare "level 4" form away and hand it to a player of that
+-- name. Players actually named 1, 2, 3 or 4 are unreadable here in exchange;
+-- that is irreducible, and doc/api.md says so. (B55)
+--
+-- Two halves rather than one handler: a single function would take seven
+-- decisions, and the split lets each state its own privilege rule beside the
+-- work it guards.
+subcommands.level = function(caller, params)
+
+    local pname, level = parse_target(caller, params, '%d+', '[1-4]')
+    if pname then return set_level(caller, pname, level) end
+
+    local target = target_only(caller, params)
+    if target then return report_level(caller, target) end
+
+    return false, S('Usage: /codeblock level [<playername>] [<1-4>]')
 
 end
 
@@ -400,10 +477,10 @@ subcommands.generate = function(caller, params)
 end
 
 core.register_chatcommand("codeblock", {
-    params = "tools [<playername>] | level [<playername>] <1-4> | " ..
+    params = "tools [<playername>] | level [<playername>] [<1-4>] | " ..
         "generate [<playername>]",
-    description = "Give the drone tools, set a codelevel, or write the " ..
-        "example programs",
+    description = "Give the drone tools, read or set a codelevel, or write " ..
+        "the example programs",
     -- No command-level privs: two of the three subcommands are free for
     -- yourself, so each one asks for what it needs.
     func = function(name, params)
@@ -413,7 +490,7 @@ core.register_chatcommand("codeblock", {
 
         if not handler then
             return false, S('Usage: /codeblock tools [<playername>]') .. '\n' ..
-                       S('Usage: /codeblock level [<playername>] <1-4>') ..
+                       S('Usage: /codeblock level [<playername>] [<1-4>]') ..
                        '\n' .. S('Usage: /codeblock generate [<playername>]')
         end
 

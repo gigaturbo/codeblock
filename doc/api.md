@@ -104,6 +104,9 @@ In every one, `<playername>` defaults to the caller. Acting on **another** playe
 requires the `codeblock` privilege (`/grant <user> codeblock`); in singleplayer it
 is granted automatically, since the player is the administrator.
 
+A name may be any of the characters the engine allows in one — letters, digits,
+`-` and `_` — in any order, so `007`, `4player` and `-x` are all addressable.
+
 ## `/codeblock tools [<playername>]`
 
 Puts the **Drone placer** and the **Drone setter** in a player's main inventory.
@@ -119,13 +122,26 @@ says so rather than making room.
 
 Both tools can be dropped and thrown away; this command is how you get them back.
 
-## `/codeblock level [<playername>] <1-4>`
+## `/codeblock level [<playername>] [<1-4>]`
 
-Sets a player's codelevel.
+With a number, sets a player's codelevel. Without one, reports it.
 
-Requires the `codeblock` privilege **including for your own codelevel** — codelevel
-is what bounds how much work a program may do, so being able to raise your own
-would defeat the limits.
+Given two arguments the reading is exact: the level is trailing, so the name may
+be anything legal and `/codeblock level 007 3` sets `007`'s codelevel. Given
+**one** argument, a `1`, `2`, `3` or `4` is that codelevel for yourself and
+anything else is a player name to report on — so `/codeblock level 5` asks about
+a player called `5`, and the refusal names both readings. The one cost of that
+rule: a player actually named `1`, `2`, `3` or `4` cannot be reported on here.
+
+Setting requires the `codeblock` privilege **including for your own codelevel**
+— codelevel is what bounds how much work a program may do, so being able to
+raise your own would defeat the limits. Reading your own is free; reading
+another player's needs the privilege, like the two commands above.
+
+The reply is the number and not the ceilings it buys: those are in the table at
+the top of this page. A codelevel is stored in player meta, which the engine
+hands out only for a player who is connected, so an offline or unknown name is
+refused.
 
 ## `/codeblock generate [<playername>]`
 
