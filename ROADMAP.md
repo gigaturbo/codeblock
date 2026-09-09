@@ -990,8 +990,7 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 
 ---
 
-Last reviewed **2026-09-09**, describing **`<pending — the commit that lands
-this record edit>`**, over `6440ca0`. `origin/master` is **`fb75bc8`**, **six
+Last reviewed **2026-09-09**, describing **`0e9b81d`**, over `6440ca0`. `origin/master` is **`fb75bc8`**, **six
 commits behind `HEAD`**. `PLAYTEST.md`: 97 entries, `F11-4` retired, one unrun
 (`R5`), two stale (`R1`, `R2`), one unreachable (`H8`), two owed (`R3`, whose
 guard is gone, and `R4`, carrying a superseded fail). `AUDIT.md`: 93 findings,
