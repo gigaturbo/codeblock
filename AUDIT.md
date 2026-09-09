@@ -683,10 +683,13 @@ usual green run and is recorded as such.
 **No defect was found in `F17`'s implementation, so it carries no finding id.**
 A feature wrong before it ships is its `ROADMAP.md` entry's business.
 
-**`F17` is unproven in a world.** `F17-1` to `F17-4` are unrun and `F12-6` is
-owed. The API help panel is the surface no spec reaches: `api.to_hypertext` runs
-only in a running world, and `F17-4` is the only reading of the reduced
-*Choosing blocks* group and the absent `table.randomizer` row.
+**`F17` is verified in a world.** `F17-1` to `F17-4` and `F12-6` all pass at
+`6440ca0`, record-only over `3fa9d0c`, engine 5.17.0, 2026-09-09. `F17-4` is the
+only reading of the reduced *Choosing blocks* group and the absent
+`table.randomizer` row, `api.to_hypertext` running only in a running world. Its
+case 4 was **measured, not assumed**: the error for the missing `table` global
+names `table`. `F12-6` is `ramp.of` over a game-registered category walking
+alphabetical order, on the post-`F17` form of the check.
 
 **Committed with gates green, unproven in a world — three:**
 
@@ -717,6 +720,13 @@ not taken. Its check is `R5`, unrun.
 second case aimed at it twice and was removed as untestable; producing it needs
 a server-side way to observe that a mapblock has been let go.
 
+**`S8` has in-world evidence.** `F-6` passes at `6440ca0`, record-only over
+`3fa9d0c`, engine 5.17.0, 2026-09-09 — the three-line reproducer run three times
+in one session, no raise. **Two qualifications the result line carries.** The
+`vector3` version is read from the submodule pin, v2.0.2, not restated by the
+runner, so v1.5 and v2.0.1 stay probe-verified only. What the three runs printed
+was not restated either, so the pass reads as *no raise and no complaint*.
+
 **Weaker than a playtest, and said so: `S8` and `S9` are probe-verified at the
 library level**, under plain Lua 5.1 against the real `lib/env.lua` and the real
 `vector3.lua`, and neither was run through a real drone. **`S8`'s fix was read
@@ -724,9 +734,8 @@ independently of the agent that wrote it**: `snapshot_vector3` was lifted out of
 `lib/sandbox.lua` by source and run against v1.5, v2.0.1 and v2.0.2. On each,
 zero constants are shared with the module, `local d = r.one; d.x = -d.x`
 succeeds on two successive runs, the module's own `one.x` stays `1`, the run's
-copy holds `-1`, and `vector(1,2,3)` still resolves through `__call`. Its
-in-world reading is `F-6`, unrun. `S9`'s close-out is the
-same kind of reading: at `fc8a5b8`, `v.__index`, `v.__add`, `v.__eq` and
+copy holds `-1`, and `vector(1,2,3)` still resolves through `__call`. `S9`'s
+close-out is the same kind of reading: at `fc8a5b8`, `v.__index`, `v.__add`, `v.__eq` and
 `vector.one.__index` all read nil, `getmetatable(v) == vector3` is false, the
 finding's own poisoning line raises, and `v:unpack()`, `v + v`, `==` and
 `tostring` are unchanged. **No playtest was added for it** — a player program
@@ -825,4 +834,5 @@ Each of these is a wrong claim that would otherwise be repeated as fact.
 
 ---
 
-Last reviewed **2026-09-09**, describing `be3155f`, where `F17` is complete.
+Last reviewed **2026-09-09**, describing `6440ca0`, record-only over `3fa9d0c`.
+`F17` is complete and played.

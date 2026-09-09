@@ -67,28 +67,25 @@ Result: ...
 | Entries | 97 |
 | Retired | 1 — `F11-4` |
 | Live checks | 96 |
-| Most recent result a pass | 88 |
+| Most recent result a pass | 93 |
 | Unreachable | 1 — `H8` |
-| Unrun | 6 — `F-6`, `R5`, `F17-1` to `F17-4` |
+| Unrun | 1 — `R5` |
 | Stale | 2 — `R1`, `R2` |
-| Owed | 3 — `R3`, `R4`, `F12-6` |
+| Owed | 2 — `R3`, `R4` |
 | Fail as most recent result | 1 — `R4` |
+
+**Every check needing action is in the `R` group.** All of `Phase 8`'s feature
+checks are played.
 
 Checks needing action:
 
 | Check | State | Reason |
 |---|---|---|
-| [`F-6`](#f-6--a-runs-vectorone-is-its-own-copy-s8) | unrun | `S8`'s only in-world reading. Three lines, run three times, on a named `vector3` version. |
 | [`R5`](#r5--an-old-vector3-is-named-in-the-log-at-mod-load-s9) | unrun | The load-time warning about an old `vector3`. Needs the submodule swapped by hand. |
 | [`R1`](#r1--the-archive-contains-no-tests-c16-c10) | stale | Texture and example counts have changed since the last run. |
 | [`R2`](#r2--a-real-install-with-the-test-flag-set-c16) | stale | Last run at `7c5bceb`, before `F4` and two `.gitattributes` changes. |
 | [`R3`](#r3--the-sky-belongs-to-the-game-c18) | owed | Rewritten to one case. Its pass is against the `flat_sky` guard, which is gone with the five overrides. |
 | [`R4`](#r4--a-brand-new-world-hands-out-the-right-codelevel-s6) | owed | Its four cases are runnable as written since `7c1442d`. Carries a fail against the command before `F16`. Its log half is what `A17` is owed. |
-| [`F12-6`](#f12-6--a-game-registered-category-is-rampable-through-rampof-f12-f11) | owed | Rewritten at `F17`. Its pass is against the deleted `ramp.wool` and the deleted help row. |
-| [`F17-1`](#f17-1--randomof-draws-from-a-category-and-from-a-list-f17) | unrun | `random.of` over a category, over a palette order and over a plain list. |
-| [`F17-2`](#f17-2--randomhues-answers-a-colour-name-not-a-block-f17) | unrun | That `random.hues()` answers a name, so `lamps[random.hues()]` resolves. |
-| [`F17-3`](#f17-3--rampof-over-a-category-walks-that-categorys-own-order-f17-f12-f11) | unrun | Palette order against alphabetical. Needs the `F11-10` mod. |
-| [`F17-4`](#f17-4--the-help-panel-after-the-deletions-f17) | unrun | The reduced *Choosing blocks* group and no `table.randomizer` in *Misc*. |
 
 ---
 
@@ -860,7 +857,10 @@ gone as well.** `snapshot_vector3` gives every run its own copy of each
 constant, so an aliased `vector.one` reaches nothing outside its run even if
 `game.lua` were changed to use one. The reproducer above is what proves that.
 
-Result: not yet run.
+Result: pass — `6440ca0`, record-only over `3fa9d0c` · engine 5.17.0 ·
+2026-09-09 — three runs, no raise. **`vector3` v2.0.2, read from the submodule
+pin rather than restated by the runner**, and what the three runs printed was
+not restated either. This is `S8`'s first in-world reading.
 
 ### F-7 · every shipped example still runs, after a dependency bump [C23, C24, S8]
 
@@ -1868,12 +1868,15 @@ Its category is `wool` with three entries.
    category, and `ramp.of`'s own text says a category a game registered is walked
    alphabetically and is therefore a lookup rather than a gradient.
 
-**State: owed.** The check was rewritten at `F17` and the result below is against
-the form before it. Case 1 asserted the same order through the deleted
-`ramp.wool`; case 2 asserted the row that `F17` removed.
-
 Result: pass — `2feadb1`, record-only over `24842d3` · engine 5.17.0 ·
-2026-09-07 — both cases of the pre-`F17` form.
+2026-09-07 — both cases of the **pre-`F17` form**. Case 1 asserted the same
+order through the deleted `ramp.wool`; case 2 asserted the row `F17` removed.
+That form no longer describes the code, so this result carries nothing forward.
+
+Result: pass — `6440ca0`, record-only over `3fa9d0c` · engine 5.17.0 ·
+2026-09-09 — both cases of the current form. First result since the `F17`
+rewrite, and the in-world reading that `ramp.of` over a game-registered category
+walks alphabetical order.
 
 ### F14-1 · The API help panel lists the new views and `ramp.of` [F14]
 
@@ -2177,6 +2180,9 @@ place(random.of(glass))
   column repeats one value six times, run it again before calling it a fail.
 - The `place()` builds a **see-through** block.
 
+Result: pass — `6440ca0`, record-only over `3fa9d0c` · engine 5.17.0 ·
+2026-09-09.
+
 ### F17-2 · `random.hues()` answers a colour name, not a block [F17]
 
 ```lua
@@ -2193,6 +2199,9 @@ builds a solid block, and the second builds a **lamp** above it that glows.
 **The lamp is the half that matters.** `lamps[random.hues()]` resolves only
 because the answer is a name and every category is indexed by the same names. A
 `random.hues` that answered a block would still pass the first `place`.
+
+Result: pass — `6440ca0`, record-only over `3fa9d0c` · engine 5.17.0 ·
+2026-09-09 — including the lamp, so `lamps[random.hues()]` resolves.
 
 ### F17-3 · `ramp.of` over a category walks that category's own order [F17, F12, F11]
 
@@ -2216,6 +2225,9 @@ because the answer is a name and every category is indexed by the same names. A
    different rules. Palette order for a category the mod registered, alphabetical
    for one a game registered.
 
+Result: pass — `6440ca0`, record-only over `3fa9d0c` · engine 5.17.0 ·
+2026-09-09 — all three cases, with the `F11-10` mod installed.
+
 ### F17-4 · The help panel after the deletions [F17]
 
 `api.to_hypertext` runs **only** in a running world, so the panel is the one
@@ -2236,6 +2248,10 @@ surface no spec reaches.
    named-refusal list `os` and `io` are on, and it does not need to be — Lua
    names the missing global itself. An error that names the symbol is the pass;
    an anonymous one is a fail.
+
+Result: pass — `6440ca0`, record-only over `3fa9d0c` · engine 5.17.0 ·
+2026-09-09 — all four cases. Case 4's message **names `table`**, which was
+measured here rather than assumed.
 
 ---
 

@@ -38,19 +38,14 @@ Decisions wanted from the author
 
 Checks left in a running world — the checklist is `PLAYTEST.md`
 
-- [ ] run F-6 — three lines pasted into a file of their own, run three times,
-      the only in-world reading the `S8` fix can have. It must print `1 1 1`
-      three times on every version. **Name which vector3 you are running**
-      (audit S8; playtest F-6)
 - [ ] run R5 — swap the vector3 submodule to v1.5 and v2.0.1 by hand, start a
       world on each, and read `debug.txt` for the one warning naming the version.
       Put the pin back afterwards (audit S9; playtest R5)
 - [ ] re-run R2 on the archive built from the release commit. Install it in a
       game that is not codecube (audit C16, C10)
-- [ ] run F17-1 to F17-4 and re-run F12-6 — `random.of`, `random.hues()`,
-      `ramp.of` over a category, and the help panel with the deleted rows gone.
-      F17-3 and F12-6 both want the codeblock-test-mod installed, so they are one
-      session (audit F17; playtest F17-1 to F17-4, F12-6)
+- [ ] re-run R3 in a game with an ordinary day/night cycle — its pass is against
+      the `codeblock_flat_sky` guard, gone at 3fa9d0c with the five overrides
+      (audit C18; playtest R3)
 - [ ] run R4 in a fresh world — its four cases are performable for the first
       time now that `/codeblock level` reads (audit A17; playtest R4)
 

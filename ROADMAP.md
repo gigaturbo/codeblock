@@ -16,9 +16,9 @@ is v2.0.0 and holds `F6` alone**.
 Seven player-facing names left the API, two arrived, and the `table` namespace
 left player code with `table.randomizer`. Gates green there: luacheck silent,
 the three `--check` generators up to date, **725 in-engine assertions with 0
-failed and 0 xpass**, 254 standalone. **Its four in-world checks are unrun** —
-`F17-1` to `F17-4` — and `F12-6` is owed. What is left before the tag is
-*Finalising v1.0.0* below.
+failed and 0 xpass**, 254 standalone. **It is played too:** `F17-1` to `F17-4`
+and `F12-6` all pass at `6440ca0`, record-only over `3fa9d0c`, engine 5.17.0,
+2026-09-09. What is left before the tag is *Finalising v1.0.0* below.
 
 **Answer the fixture question.** What `tests/game/mods/vector3` should pin is
 the one open question left before the tag, now that a player may have any of
@@ -27,7 +27,9 @@ three versions.
 **`S8` and `S9` are both closed.** `snapshot_vector3` in `lib/sandbox.lua`
 rebuilds each `vector` constant with the constructor, so a run cannot reach the
 module's own; `vector3` v2.0.2 separates the metatable from the methods table
-and the submodule is bumped to `fc8a5b8`. `S9` is still live for a player on
+and the submodule is bumped to `fc8a5b8`. **`S8` now has its in-world reading**
+— `F-6` passes at `6440ca0` on the pinned v2.0.2 — and `S9`'s is `R5`, unrun.
+`S9` is still live for a player on
 v1.5 or v2.0.1, which the mod now names in `debug.txt` at load and which the
 support matrix in the `run-tests` skill tracks.
 
@@ -45,16 +47,16 @@ assertions with 0 failed, 0 xpass and the one known `B4` xfail, 253 standalone.
 **Both are played:** `F16-1` to `F16-8` all pass at `fb75bc8`, engine 5.17.0,
 2026-09-08, and `F16-8` is `B55`'s only possible in-world evidence.
 
-**Four commits are unpushed over `origin/master` at `fb75bc8`**, the last two
-record-only. `fb75bc8`'s CI run — luacheck, the six standalone specs, the
-three generator checks — concluded success. **`F17` has therefore not been
-through CI.** Take the count from `git rev-list --count origin/master..HEAD`,
-never from counting hashes.
+**Six commits are unpushed over `origin/master` at `fb75bc8`.** `fb75bc8`'s CI
+run — luacheck, the six standalone specs, the three generator checks —
+concluded success. **`F17` and `C18`'s `flat_sky` removal have therefore not
+been through CI.** Take the count from
+`git rev-list --count origin/master..HEAD`, never from counting hashes.
 
-**Every `Phase 8` feature has shipped; `F17` alone is unplayed.** `PLAYTEST.md`
-carries six unrun checks — `F-6`, `R5` and `F17-1` to `F17-4` — with `R4` and
-`F12-6` owed. `E2` and `E3` pass at `fffdded`, which is `A18`'s in-world
-evidence.
+**Every `Phase 8` feature has shipped and every feature check is played.**
+`PLAYTEST.md`'s remaining action is the `R` group alone: `R5` unrun, `R1` and
+`R2` stale, `R3` and `R4` owed. `E2` and `E3` pass at `fffdded`, which is
+`A18`'s in-world evidence.
 
 **`R4` is runnable as written for the first time.** Its four numbered cases ask
 for a codelevel to be read back, which `7c1442d` added, so its `dd98aab` fail is
@@ -65,10 +67,10 @@ check's log half gives on its own.
 
 Steps 6–10 are the `release-codeblock` skill's procedure and are not restated.
 
-**`F17`'s in-world checks are outstanding and the numbers do not move.**
-`F17-1` to `F17-4` are unrun and `F12-6` is owed; `F12-5` kept its pass on the
-half `F17` did not touch. All of it is read by step 7's `release-check`, which
-reads `PLAYTEST.md`.
+**`F17`'s in-world checks are done and the numbers do not move.** `F17-1` to
+`F17-4` and `F12-6` all pass at `6440ca0`; `F12-5` kept its pass on the half
+`F17` did not touch. What step 7's `release-check` still reads as outstanding is
+the `R` group.
 
 **`CONTENTDB.md`'s description was corrected at ship, not deferred.** It was
 naming `ramp.colors`, `ramp.glass`, `ramp.lamps` and a ramp per registered
@@ -89,12 +91,9 @@ the page says what a player writes now, `CHANGELOG.md` says what stops working.
 3. **Upload the new screenshots to the ContentDB page** — it loads them from raw
    GitHub URLs on `master`, so the new names go up and the dropped 2021 file
    comes off. (`C19`)
-4. **Run the unrun playtests — `F-6`, `R5` and `F17-1` to `F17-4` — and re-run
-   `F12-6`.** `F-6` is three lines pasted into a file, run three times, and is
-   the `S8` fix's only in-world reading. `R5` needs the submodule swapped by
-   hand and put back. `F17-3` and `F12-6` both want the `F11-10` mod installed
-   and are cheapest in one session; `F17-4` is the only reading of the help
-   panel after the deletions. (`S8`, `S9`, `F17`)
+4. **Run `R5`**, the one unrun check left. It needs the `vector3` submodule
+   swapped to v1.5 and to v2.0.1 by hand, a world started on each, and the pin
+   put back before the suite runs. It is `S9`'s only in-world reading. (`S9`)
 5. **Run `R4` in a fresh world.** Its log half —
    `codeblock_default_auth_level = 9` and the warning in `debug.txt` — needs no
    command and is the one in-world reading `A17`'s call-time read is owed.
@@ -182,7 +181,7 @@ decisions*. `F6` and `F15` describe work not done and keep their shape.
 | `F14` | small | shipped `e3e2178` | `light_hues`, `dark_hues`, `neutrals` and `ramp.of(list, v, min, max)`. |
 | `F15` | large | shaped, not scheduled | `colorhex("#F7A8E7")`. See below. |
 | `F16` | small | shipped `7c1442d` | `/codeblock level` reports a codelevel; the read is free for your own. Fixed `B55` in the same commit and made `R4` runnable. Checks `F16-1` to `F16-8` all pass at `fb75bc8`. |
-| `F17` | small | shipped `be3155f` | Seven names left the API and two arrived: `random.of(list)` and `random.hues()`. `ramp.of` also takes a block category. The `table` namespace left player code with `table.randomizer`. Checks `F17-1` to `F17-4` unrun. |
+| `F17` | small | shipped `be3155f` | Seven names left the API and two arrived: `random.of(list)` and `random.hues()`. `ramp.of` also takes a block category. The `table` namespace left player code with `table.randomizer`. Played at `6440ca0`. |
 
 ### F6 · Phase 10 / v2.0.0 · planned — Blockly web-based editor
 
@@ -991,9 +990,9 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 
 ---
 
-Last reviewed **2026-09-09**, describing `c775b56`. `origin/master` is
-**`fb75bc8`**, **four commits behind `HEAD`**. `PLAYTEST.md`: 97 entries, `F11-4`
-retired, six unrun (`F-6`, `R5`, `F17-1` to `F17-4`), two stale (`R1`, `R2`),
-one unreachable (`H8`), three owed (`R3`, whose guard is gone, `R4`, carrying a
-superseded fail, and `F12-6`, rewritten at `F17`). `AUDIT.md`: 93 findings, one
-open — `C24`, medium. The `flat_sky` removal is `3fa9d0c`.
+Last reviewed **2026-09-09**, describing **`<pending — the commit that lands
+this record edit>`**, over `6440ca0`. `origin/master` is **`fb75bc8`**, **six
+commits behind `HEAD`**. `PLAYTEST.md`: 97 entries, `F11-4` retired, one unrun
+(`R5`), two stale (`R1`, `R2`), one unreachable (`H8`), two owed (`R3`, whose
+guard is gone, and `R4`, carrying a superseded fail). `AUDIT.md`: 93 findings,
+one open — `C24`, medium. The `flat_sky` removal is `3fa9d0c`.
