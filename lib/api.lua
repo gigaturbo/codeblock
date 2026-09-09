@@ -215,7 +215,7 @@ api.groups = {
                     '`glass[hues[1]]` is glass and `lamps[dark_hues[1]]` is ' ..
                     'a lamp. A name out of one of them is a solid block ' ..
                     'already, so `place(hues[1])` needs nothing around it. ' ..
-                    'Use them with `ramp.of`.'
+                    'Use them with `ramp.of` and `random.of`.'
             }, {
                 name = 'light_hues',
                 kind = 'value',
@@ -236,58 +236,61 @@ api.groups = {
         }
     }, {
         title = 'Choosing blocks',
-        -- Named, because lib/blocks.lua appends a ramp here for every category
-        -- a game registers and matching on the title would break on a
-        -- rewording. The other group that grows at run time. (F11)
-        id = 'choosing',
-        intro = 'A `ramp` maps a number onto one table of blocks, so a shape ' ..
-            'can be coloured by height, distance or anything else that is a ' ..
-            'number. Values at or below `min` give the first block and those ' ..
-            'at or above `max` the last; anything outside the range is ' ..
-            'clamped rather than wrapped. `min` and `max` default to 1 and ' ..
-            'the number of blocks in the table.',
+        intro = 'Two ways of picking a block out of many: `ramp` maps a ' ..
+            'number onto a list, so a shape can be coloured by height, ' ..
+            'distance or anything else that is a number, and `random.of` ' ..
+            'picks one without an order at all. For a ramp, values at or ' ..
+            'below `min` give the first block and those at or above `max` ' ..
+            'the last; anything outside the range is clamped rather than ' ..
+            'wrapped. `min` and `max` default to 1 and the number of blocks ' ..
+            'in the list.',
         entries = {
             {
-                name = 'random.color',
+                name = 'random.of',
+                params = {'list'},
+                doc = 'One value of a list or a block table, at random.',
+                note = 'Takes anything holding values: a palette order, a ' ..
+                    'block table such as `colors` or `glass`, or a list you ' ..
+                    'built. It takes a block table as it stands where ' ..
+                    '`ramp.of` has to put one in order first, because a ' ..
+                    'random pick has no order to respect. Prefer ' ..
+                    '`random.of(hues)`: a pick across a whole table draws ' ..
+                    'light, plain and dark shades of unrelated families in a ' ..
+                    'row and looks muddled, where the hues are ten clean ' ..
+                    'families.'
+            }, {
+                name = 'random.hues',
                 params = {},
-                doc = 'A random solid colour.'
-            },
-            {name = 'random.glass', params = {}, doc = 'A random glass block.'},
-            {name = 'random.lamp', params = {}, doc = 'A random lamp.'}, {
+                doc = 'A random hue; short for random.of(hues).',
+                note = 'A colour name, so `place(random.hues())` is a solid ' ..
+                    'block and `lamps[random.hues()]` the matching lamp.'
+            }, {
                 name = 'ramp.hues',
                 params = {'v', 'min', 'max'},
                 doc = 'Map a number onto the hues: a smooth rainbow.',
-                note = 'The one ramp over a whole table that reads as a ' ..
-                    'gradient, because `hues` is one name per family in ' ..
-                    'colour-wheel order. `ramp.colors`, `ramp.glass` and ' ..
-                    '`ramp.lamps` walk light, plain and dark inside each ' ..
-                    'family in turn, so a gradient across one of them ' ..
-                    'strobes; `ramp.of` over a palette order does not.'
-            }, {
-                name = 'ramp.colors',
-                params = {'v', 'min', 'max'},
-                doc = 'Map a number onto the solid colours, in palette order.'
-            }, {
-                name = 'ramp.glass',
-                params = {'v', 'min', 'max'},
-                doc = 'Map a number onto the glass blocks, in palette order.'
-            }, {
-                name = 'ramp.lamps',
-                params = {'v', 'min', 'max'},
-                doc = 'Map a number onto the lamps, in palette order.'
+                note = 'Short for `ramp.of(hues, v, min, max)`. It reads as a ' ..
+                    'gradient because `hues` is one name per family in ' ..
+                    'colour-wheel order.'
             }, {
                 name = 'ramp.of',
                 params = {'list', 'v', 'min', 'max'},
-                doc = 'Map a number onto any array: one of the palette ' ..
-                    'orders, or a list you built.',
-                note = 'The same mapping as the ramps above, with the list ' ..
-                    'given rather than fixed. `ramp.of(hues, i, 1, n)` walks ' ..
-                    'the colour wheel; the material is whatever you index ' ..
-                    'with the answer, so `glass[ramp.of(dark_hues, i, 1, n)]` ' ..
-                    'is the dark shades in glass. It returns whatever the ' ..
-                    'list holds, so a list of your own works too, and a ' ..
-                    'value that is not a list at all reads as nothing rather ' ..
-                    'than stopping the program.'
+                doc = 'Map a number onto any list: a palette order, a block ' ..
+                    'table, or a list you built.',
+                note = 'The material is whatever you index with the answer, ' ..
+                    'so `glass[ramp.of(dark_hues, i, 1, n)]` is the dark ' ..
+                    'shades in glass, and a name out of a palette order is a ' ..
+                    'solid block already. A block table is a map and has no ' ..
+                    'order of its own, so it is walked in the only order ' ..
+                    'there is: palette order for `colors`, `glass` and ' ..
+                    '`lamps`, and alphabetical for a table the game added. ' ..
+                    'Neither reads as a gradient - `ramp.of(colors, i, 1, ' ..
+                    'n)` runs light, plain and dark through one family ' ..
+                    'before reaching the next, so it strobes, and an ' ..
+                    'alphabetical one is a lookup. `ramp.of(hues, ...)` is ' ..
+                    'the smooth one. It returns whatever the list holds, so ' ..
+                    'a list of your own works too, and a value that is ' ..
+                    'neither a list nor a block table reads as nothing ' ..
+                    'rather than stopping the program.'
             }, {
                 name = 'get_block',
                 params = {'n_right', 'n_up', 'n_forward'},
@@ -388,11 +391,7 @@ api.groups = {
                 params = {'message'},
                 doc = 'Stop the program and print a message.'
             }, {name = 'ipairs', params = {'table'}, doc = 'Standard ipairs.'},
-            {name = 'pairs', params = {'table'}, doc = 'Standard pairs.'}, {
-                name = 'table.randomizer',
-                params = {'t'},
-                doc = 'Return a function that picks a random value from t.'
-            }
+            {name = 'pairs', params = {'table'}, doc = 'Standard pairs.'}
         }
     }
 }
@@ -434,7 +433,7 @@ end
 --
 -- Names are dotted, so 'centered.vertical.cylinder' becomes a nested table. A
 -- name that is both a leaf and a parent - `random` is callable and also carries
--- random.color - gets a __call metamethod.
+-- random.of - gets a __call metamethod.
 --
 -- Raises if the two sets differ in either direction, so a missing or an
 -- undocumented implementation stops the mod loading rather than shipping a
@@ -498,7 +497,7 @@ function api.build(impls)
         local key, value, node = leaf[1], leaf[2], leaf[3]
         local existing = node[key]
         if type(existing) == 'table' and type(value) == 'function' then
-            -- both a callable and a namespace: random() and random.color()
+            -- both a callable and a namespace: random() and random.of()
             node[key] = setmetatable(existing, {
                 __call = function(_, ...) return value(...) end
             })
@@ -548,7 +547,7 @@ function api.to_hypertext()
 end
 
 -- The panel the editor draws, rendered once. lib/blocks.lua renders it again
--- when a game's own block category has added a ramp to the description.
+-- when a game's own block category has been added to the description.
 api.html_commands = api.to_hypertext()
 
 --------------------------------------------------------------------------------

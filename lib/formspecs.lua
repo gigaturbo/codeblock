@@ -333,7 +333,7 @@ local file_editor = {
             -- categories differ only in which names they list and which key
             -- their scroll position is kept under. In palette order, not
             -- sorted, so the colours run round the wheel the way
-            -- ramp.<category>() maps them.
+            -- ramp.of(<category>, ...) maps them.
             local category = help_categories[meta.help]
             local spelled = category.spelled
             local field = 'scroll_' .. category.name

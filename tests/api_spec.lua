@@ -167,7 +167,7 @@ do
 
     -- `random` is callable AND a namespace; that combination is easy to break
     it('random is a table', type(built.random), 'table')
-    it('random.color resolves', type(built.random.color), 'function')
+    it('random.of resolves', type(built.random.of), 'function')
     it('random is also callable', built.random(), 'random')
 end
 
@@ -225,12 +225,18 @@ do
         'colors', 'glass', 'lamps', 'hues', 'light_hues', 'dark_hues',
         'neutrals', 'air', 'vector', 'get_block',
         'is_block',
-        'print', 'ipairs', 'pairs', 'random', 'random.color', 'random.glass',
-        'random.lamp', 'table.randomizer',
-        -- One ramp per block table, and a game that registers a category of its
-        -- own gets one too - that one is lib/blocks.lua's and is asserted in
-        -- integration_spec, because it does not exist until a game has loaded.
-        'ramp.hues', 'ramp.colors', 'ramp.glass', 'ramp.lamps', 'ramp.of',
+        'print', 'ipairs', 'pairs', 'random', 'random.of', 'random.hues',
+        -- Two ramps and no more, whatever the palette holds: ramp.of takes a
+        -- block table as well as an array now, so a category - the mod's three
+        -- or one a game registered - is one name and not two. That a game's
+        -- category adds no ramp.<name> is asserted in integration_spec, where
+        -- one can be registered. (F17)
+        --
+        -- `table` is deliberately absent, in every spelling. It was in the
+        -- environment only as the parent of table.randomizer, so the namespace
+        -- went with it; the both-ways check below is what says so, and
+        -- integration_spec reads `table == nil` from inside a real program.
+        'ramp.hues', 'ramp.of',
         'floor', 'ceil', 'round', 'round0', 'deg', 'rad', 'exp', 'log', 'max',
         'min', 'pow', 'sqrt', 'abs', 'sin', 'sinh', 'asin', 'cos', 'cosh',
         'acos', 'tan', 'tanh', 'atan', 'atan2', 'pi', 'e', 'error'
@@ -251,6 +257,21 @@ do
     it('no described name has been dropped', table.concat(lost, ', '), '')
     it('no name is exposed that this list does not know about',
        table.concat(unlisted, ', '), '')
+
+    -- The whole `table` namespace, separately from the list above. The list
+    -- catches a name added on one side only; this catches one added on both,
+    -- which is how the namespace would come back. Nothing in the environment
+    -- may be called `table` or live under it: it was there only to carry
+    -- table.randomizer, and .luacheckrc's sandbox std dropped it too, so a
+    -- program using it lints clean and then dies at run time. (F17)
+    local tabled = {}
+    for _, n in ipairs(api.names()) do
+        if n == 'table' or n:sub(1, 6) == 'table.' then
+            tabled[#tabled + 1] = n
+        end
+    end
+    it('the table namespace is described nowhere', table.concat(tabled, ', '),
+       '')
 end
 
 --------------------------------------------------------------------------------

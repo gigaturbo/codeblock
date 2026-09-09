@@ -91,11 +91,15 @@ disagree. Two rules follow:
   the bare `_` the examples pass for *use the default for this argument* — goes in
   `files["lib/examples/**"].read_globals`, which luacheck adds to the std.
 - **A bare string entry is a silent escape hatch.** luacheck accepts *every*
-  field of a bare-string name, which is what `table` and `vector` need, so
-  replacing `ramp = {fields = {...}}` with a plain `"ramp"` passes the check and
-  switches off typo-catching for `ramp.*` with nothing going red. Spell out the
-  fields of a name whose fields are all described —
-  `random = {fields = {"color", "glass", "lamp"}}`.
+  field of a bare-string name, which is what `vector` needs, so replacing
+  `ramp = {fields = {...}}` with a plain `"ramp"` passes the check and switches
+  off typo-catching for `ramp.*` with nothing going red. Spell out the fields of
+  a name whose fields are all described — `random = {fields = {"of", "hues"}}`.
+- **Deleting the last dotted name under a prefix deletes the prefix.** The
+  comparison runs both ways, so `table` had to come out of the std the moment
+  `table.randomizer` came out of `lib/api.lua` (`F17`) — otherwise
+  `stds.codeblock_sandbox lists what lib/api.lua does not describe: table`.
+  Check no example uses the prefix before removing it; none did.
 
 ## The new-file template
 

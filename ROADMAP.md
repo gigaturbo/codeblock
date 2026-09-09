@@ -4,13 +4,18 @@ What to do next, and **what has been agreed**. The decisions below are recorded
 nowhere else. Findings are in `AUDIT.md`, manual checks in `PLAYTEST.md`,
 unscheduled intentions in `TODO.md`.
 
-Ids: phases `Phase 0`–`Phase 10`, features `F1`–`F16`, findings `B`/`S`/`C`/`A`.
+Ids: phases `Phase 0`–`Phase 10`, features `F1`–`F17`, findings `B`/`S`/`C`/`A`.
 **Nothing is ever renumbered.**
 
 Three releases: **`Phase 8` is v1.0.0**, **`Phase 9` is v1.x.y**, **`Phase 10`
 is v2.0.0 and holds `F6` alone**.
 
 ## Now
+
+**`F17` is shaped and being written.** It is the one unshipped feature in
+`Phase 8` and it comes before every step of *Finalising v1.0.0*. It removes
+seven player-facing names and adds two, so it is breaking and it must land
+before the tag or never. See its entry below.
 
 **Answer the fixture question.** What `tests/game/mods/vector3` should pin is
 the one open question left before the tag, now that a player may have any of
@@ -37,12 +42,12 @@ assertions with 0 failed, 0 xpass and the one known `B4` xfail, 253 standalone.
 **Both are played:** `F16-1` to `F16-8` all pass at `fb75bc8`, engine 5.17.0,
 2026-09-08, and `F16-8` is `B55`'s only possible in-world evidence.
 
-**Nothing is unpushed and CI is green on `HEAD`.** `origin/master` is `fb75bc8`,
-and its CI run — luacheck, the six standalone specs, the three generator checks
-— concluded success. Take the count from
+**One commit is unpushed.** `HEAD` is `8ee55e3`, record-only, over
+`origin/master` at `fb75bc8`, whose CI run — luacheck, the six standalone specs,
+the three generator checks — concluded success. Take the count from
 `git rev-list --count origin/master..HEAD`, never from counting hashes.
 
-**Every feature in `Phase 8` has shipped and been played.** `PLAYTEST.md`
+**Every `Phase 8` feature but `F17` has shipped and been played.** `PLAYTEST.md`
 carries two unrun checks — `F-6` and `R5` — and `R4` owed. `E2` and `E3` pass at
 `fffdded`, which is `A18`'s in-world evidence.
 
@@ -54,6 +59,19 @@ check's log half gives on its own.
 ## Finalising v1.0.0
 
 Steps 6–10 are the `release-codeblock` skill's procedure and are not restated.
+
+**`F17` comes before step 1 and the numbers do not move.** It is a feature, not
+a release step: it is done when it is committed with gates green and its
+in-world checks run. What it adds to the list is the re-run of `F12-5` and
+`F12-6`, both falsified by it, and the entries for the two new names — all
+inside step 7's `release-check`, which reads `PLAYTEST.md`.
+
+**`CONTENTDB.md` gets a line for `F17`, written in the `C19` reconciliation
+pass, not before.** Its *Features* text describes the per-category ramps at
+length and is wrong either way. **The page and the changelog address different
+readers**: the ContentDB line says what a player writes now, `CHANGELOG.md` says
+what stops working. Seven names out of the player-facing API is what someone
+deciding whether to upgrade a server needs to see.
 
 1. **Decide what the test fixture pins** — newest, oldest supported, or a
    documented floor. Luanti has no dependency version mechanism, and there are
@@ -104,7 +122,7 @@ answered in writing before any code.
 | 5 | Limits that track real load | done | 4/4 |
 | 6 | Limits for what the server spends | done | 3/3 |
 | 7 | Clear the way for features | done | 26/26 |
-| 8 | Features for v1.0.0 | in progress | 13/13 features; `C24` open |
+| 8 | Features for v1.0.0 | in progress | 13/14 features; `C24` open |
 | 9 | v1.x.y — after the release | not started | 0/1 |
 | 10 | v2.0.0 — the Blockly editor | not started | 0/1 |
 
@@ -157,6 +175,7 @@ decisions*. `F6` and `F15` describe work not done and keep their shape.
 | `F14` | small | shipped `e3e2178` | `light_hues`, `dark_hues`, `neutrals` and `ramp.of(list, v, min, max)`. |
 | `F15` | large | shaped, not scheduled | `colorhex("#F7A8E7")`. See below. |
 | `F16` | small | shipped `7c1442d` | `/codeblock level` reports a codelevel; the read is free for your own. Fixed `B55` in the same commit and made `R4` runnable. Checks `F16-1` to `F16-8` all pass at `fb75bc8`. |
+| `F17` | small | shaped 2026-09-09, being written | Seven names leave the API and two arrive: `random.of(list)` and `random.hues()`. `ramp.of` also takes a category table. See below. |
 
 ### F6 · Phase 10 / v2.0.0 · planned — Blockly web-based editor
 
@@ -208,6 +227,100 @@ greyscale allocation, or hand-tuned. And how the value reaches `place()`, whose
 one-string contract is load-bearing; one candidate is `colorhex` returning the
 normalised hex string itself, every write path recognising a hex-shaped key
 before consulting `all`, which would make `place('#F7A8E7')` work directly.
+
+### F17 · small · shaped 2026-09-09, being written — fewer pickers, better ones
+
+**The API keeps the pickers that look right and loses the ones that do not.**
+Seven names go, two arrive, two stay.
+
+| Name | State after `F17` |
+|---|---|
+| `ramp.hues(v, min, max)` | kept |
+| `ramp.of(list, v, min, max)` | kept, and takes a category table too |
+| `ramp.colors`, `ramp.glass`, `ramp.lamps` | removed |
+| `ramp.<category>`, including a game's | removed |
+| `random.color`, `random.glass`, `random.lamp` | removed |
+| `table.randomizer` | removed |
+| `random.of(list)` | added |
+| `random.hues()` | added |
+
+**`ramp.of` accepts a category table and resolves it to that category's `keys`
+array.** The lookup is weak-keyed and built module level in `lib/sandbox.lua`'s
+category loop, so a game's category is rampable with the one name and nothing is
+retained.
+
+**The order is the category's own.** Palette order for `colors`, `glass` and
+`lamps`, from the variant loop in `lib/config.lua`. **Alphabetical for a
+category a game registered**, because `lib/blocks.lua` sorts the entries before
+`add_category` sees them: a Lua table with string keys has no order and an
+arbitrary one would change between runs.
+
+**So `ramp.of` over a game's category is a lookup, not a gradient.** That caveat
+is on the `ramp.<category>` help entry `F17` deletes, and it **must survive the
+deletion** — in `ramp.of`'s own text, since `ramp.of` is now the only way to
+reach a registered category in order.
+
+**`random.of` accepts anything**, a category table or a plain array, because
+`pairs` walks a name-indexed category and an array alike.
+
+**The deleted names are ones the mod's own help already disparages.**
+`lib/api.lua` documents `ramp.colors`, `ramp.glass` and `ramp.lamps` as
+strobing, and `lib/blocks.lua` documents the per-category ramp as a lookup
+rather than a gradient. **A name whose own help text says it looks wrong is a
+name to delete, not to warn about.**
+
+**`random.color()` had the same defect one level down.** It picks uniformly
+across 35 names, so it draws light, plain and dark shades of unrelated families
+in a row. `random.of(hues)` picks across the ten clean families. That is the
+author's stated motivation: *"Random function on glass or colors can be awkward
+because of different shades."*
+
+**The palette views are what make the deletions free.** `F14` gave the mod
+`hues`, `light_hues`, `dark_hues` and `neutrals`, and every category is indexed
+by the same names, so `glass[ramp.of(dark_hues, v, 1, n)]` does what
+`ramp.glass` did. It separates *which colours in what order* from *which
+material*, which was `F14`'s point; the fixed ramps were working against it.
+
+**Now or never.** v1.0.0 is untagged. Same argument as removing `color(v, min,
+max)` with no alias. After the tag the change costs a major version.
+
+**`random.of` is named for the rhyme with `ramp.of`**, not for how it reads
+alone. The two take the same first argument and mean the same thing over it, so
+learning one teaches the other. `random.from` was the author's first sketch and
+was set aside on that ground.
+
+**`table.randomizer` was dropped as a second name for one idea.** It sat in
+*Misc* rather than *Choosing blocks*, and it carried a documented trap: the keys
+are taken once, so a key added afterwards is never picked. A player wanting a
+reusable picker writes `function() return random.of(t) end`.
+
+**`random.hues()` is a weak convenience and is kept only for the symmetry with
+`ramp.hues`.** It saves five characters over `random.of(hues)` and has no
+existing users, where `ramp.hues` has four in the bundled examples. Recorded so
+it is not re-proposed as a saving.
+
+**Four things argued out, none to be re-proposed.**
+
+- **Making a category both a map and an array**, so `#glass` works and `ramp.of`
+  needs no lookup. It doubles every `pairs` walk, and `snapshot`'s misspelling
+  reporter would fire on `glass[1]`.
+- **Leaving `ramp.<category>` as the only ordered reach a game's category has.**
+  A coherent rule — a fixed ramp where there is no array to hand to `ramp.of` —
+  but the author chose the version where one name covers everything and **a
+  category is one name again, not two**.
+- **Dropping `ramp.<category>` with nothing in its place.** A real capability
+  loss for `F11`: a registered category would be randomisable but not rampable.
+- **An alias or a deprecation period for any of the seven.** Same ground as
+  `color(v, min, max)` and the `/codelevel` aliases: a name kept for
+  compatibility with a version never released is a name kept for ever.
+
+**What it drags.** `lib/api.lua`, `impls` in `lib/sandbox.lua`, the per-category
+ramp in `lib/blocks.lua`, a regenerated `doc/api.md`, `.luacheckrc`'s sandbox
+std, the name list in `tests/api_spec.lua`, and any `S()` text that goes with a
+removed row. `F12-5` and `F12-6` are both falsified and are rewritten when the
+code lands; the new names need checks of their own. `F12`'s table row says *one
+`ramp` per category* and is corrected at ship. The bundled examples and the
+`CHANGELOG.md` breaking list are the rest.
 
 ## Other decisions worth not re-litigating
 
@@ -359,15 +472,19 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 - **`color(v, min, max)` was removed with no alias.** v1.0.0 is untagged and the
   same release already renames every block name a program writes; a name kept
   for compatibility with a version never released is a name kept for ever.
-- **Every block category gets a ramp, and only `ramp.hues` is a gradient.**
-  `ramp.colors`, `ramp.glass` and `ramp.lamps` walk light, plain and dark inside
-  each family and therefore **strobe**. That follows from the author's own
-  answer and is said in the help text. **Do not re-order `colors` by lightness
-  to fix it** — the picker and the creative inventory read by family.
-- **One ramp mapping, not two.** `ramp_pick(list, v, m, M)` is the whole of it;
-  `ramp_over(list)` binds it to one list and **`ramp.of` is `ramp_pick`
-  itself**, so the generic and per-category ramps cannot drift. Clamps, never
-  wraps; a non-number `v` or a zero-width range gives the first entry.
+- **Every block category gets a ramp — superseded by `F17`, which deletes the
+  fixed ramps rather than documenting them as strobing.** The half that is still
+  live: `ramp.colors`, `ramp.glass` and `ramp.lamps` walked light, plain and
+  dark inside each family and therefore **strobed**, and **`colors` must still
+  not be re-ordered by lightness** — the picker and the creative inventory read
+  by family.
+- **One ramp mapping, not two, and `F17` makes it stronger.**
+  `ramp_pick(list, v, m, M)` is the whole of it and **`ramp.of` is `ramp_pick`
+  itself**. The category-to-`keys` lookup `ramp.of` resolves through is **module
+  level, not per-run**, precisely so that stays true. `ramp_over(list)` bound
+  `ramp_pick` to one list for the fixed ramps and goes with them. Clamps, never
+  wraps; a
+  non-number `v` or a zero-width range gives the first entry.
 - **`ramp.of` does not validate its list.** A player may ramp a list of their
   own; a non-table or an empty list answers `nil` rather than raising. **An
   arithmetic accident should not stop a program.**
@@ -911,8 +1028,9 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 
 ---
 
-Last reviewed **2026-09-08**, describing `fb75bc8`. `origin/master` is
-**`fb75bc8`**, **level with `HEAD`**. `PLAYTEST.md`: 93 entries, `F11-4`
+Last reviewed **2026-09-09**, describing `8ee55e3`. `origin/master` is
+**`fb75bc8`**, **one commit behind `HEAD`**. `PLAYTEST.md`: 93 entries, `F11-4`
 retired, two unrun (`F-6`, `R5`), two stale (`R1`, `R2`), one unreachable
-(`H8`), one owed carrying a superseded fail (`R4`). `AUDIT.md`: 93 findings, one
-open — `C24`, medium.
+(`H8`), one owed carrying a superseded fail (`R4`); `F12-5` and `F12-6` are
+falsified by `F17` and rewritten when its code lands. `AUDIT.md`: 93 findings,
+one open — `C24`, medium.

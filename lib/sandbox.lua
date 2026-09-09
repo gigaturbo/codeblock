@@ -43,14 +43,8 @@ local drone_get_block = codeblock.commands.drone_get_block
 local sleep = codeblock.cost.sleep
 
 -- The categories as a list, because a game may register one of its own and the
--- environment names them all the same way. The mod's own three are also read by
--- name, for random.color, random.glass and random.lamp, which are ours: a
--- registered category is reached with table.randomizer instead. (F11)
+-- environment names them all the same way. (F11)
 local categories = codeblock.config.allowed_blocks.categories
-local by_name = codeblock.config.allowed_blocks.by_name
-local colors = by_name.colors.spelled
-local glass = by_name.glass.spelled
-local lamps = by_name.lamps.spelled
 -- The palette views: ordered arrays of short colour names. A category is
 -- indexed by the same short name, so glass[h] turns any of them into a glass
 -- gradient without a fourth set of names existing. (F14)
@@ -77,9 +71,22 @@ end
 
 local function round0(num) return floor(num + 0.5) end
 
+--- A block category's snapshot -> that category's keys as an array. What lets
+-- ramp.of take a category table where it otherwise takes an array: a category
+-- is name-indexed, so `#category` is 0 and there is no order to walk without
+-- this. The order is the category's own - palette order for the mod's three,
+-- alphabetical for one a game registered - because a map has none. Filled in
+-- getScriptEnv, where the snapshot and the category are both in scope, so a
+-- game's category resolves on the same terms as the mod's own.
+--
+-- Weak-keyed, and the weakness is what stops it growing without bound: a
+-- snapshot is built per run, so a strong table would retain one dead snapshot
+-- per category per run for the life of the server.
+local category_keys = setmetatable({}, {__mode = 'k'})
+
 --- One entry of `list` for a number `v` in [m, M]. The whole of the ramp
--- mapping: every ramp in the environment goes through here, so ramp.of and the
--- per-category ramps cannot drift apart.
+-- mapping: ramp.of is this function itself and ramp.hues is it bound to one
+-- list, so the two cannot drift apart.
 --
 -- Out of range clamps to the end entries rather than wrapping, so a value at or
 -- below `m` gives the first entry and one at or above `M` the last. The default
@@ -89,6 +96,10 @@ local function round0(num) return floor(num + 0.5) end
 -- arithmetic accident. A `list` that is not a table, or is empty, answers nil
 -- for the same reason: ramp.of takes a list a program may have built itself.
 local function ramp_pick(list, v, m, M)
+    -- A block category resolves to its keys as an array; anything else is
+    -- taken as it stands, and a table that is neither an array nor a category
+    -- still answers nil below.
+    list = category_keys[list] or list
     if type(list) ~= 'table' then return nil end
     local n = #list
     if n == 0 then return nil end
@@ -103,21 +114,26 @@ local function ramp_pick(list, v, m, M)
     return list[i]
 end
 
---- One ramp bound to `list`, an ordered array of the flat block keys place()
--- takes. Called once per category per run, so a game's category gets a ramp on
--- the same footing as the mod's own.
-local function ramp_over(list)
-    return function(v, m, M) return ramp_pick(list, v, m, M) end
-end
-
---- A function picking a random value of `tbl` on each call. Backs
--- table.randomizer and the three random.* pickers. The keys are taken once, so
--- a key added to `tbl` afterwards is never picked.
-local function table_randomizer(tbl)
-    local keys = {}
-    local random = math.random
-    for k in pairs(tbl) do table.insert(keys, k) end
-    return function() return tbl[keys[random(#keys)]] end
+--- One value of `list` at random, or nil when it holds none.
+--
+-- pairs walks a name-indexed category and an array alike, and a random pick has
+-- no order to respect, so `list` may be either as it stands - where ramp.of has
+-- to resolve a category to an order first. That is the reason for the asymmetry
+-- between the two `of` functions, and it is not an oversight.
+--
+-- Counted and then walked, rather than collecting the keys into an array, so a
+-- call inside a loop allocates nothing. The two passes need not agree on an
+-- order: it is enough that each visits every entry once.
+local function random_of(list)
+    if type(list) ~= 'table' then return nil end
+    local n = 0
+    for _ in pairs(list) do n = n + 1 end
+    if n == 0 then return nil end
+    local i = math.random(n)
+    for _, value in pairs(list) do
+        i = i - 1
+        if i == 0 then return value end
+    end
 end
 
 --- The `vector` table one run gets: a copy of the vector3 module whose
@@ -242,18 +258,19 @@ local function getScriptEnv(drone)
         ['neutrals'] = snapshot(neutrals),
         ['air'] = 'air',
         -- choosing blocks
-        ['random.color'] = table_randomizer(colors),
-        ['random.glass'] = table_randomizer(glass),
-        ['random.lamp'] = table_randomizer(lamps),
-        -- The one ramp not built from a category: hues is already an array of
-        -- colors keys, one per family, so it is the only one that reads as a
-        -- gradient. The per-category ramps are added below with the categories.
-        ['ramp.hues'] = ramp_over(hues),
-        -- The generic ramp, over any array: the palette views above, or a list
-        -- the program built. It is ramp_pick itself, so its mapping is the
-        -- other ramps' by construction rather than by resemblance. What it
-        -- returns is whatever the list holds - it does not check that an entry
-        -- is a block name, because a program may ramp anything.
+        ['random.of'] = random_of,
+        -- Bound to hues for the same reason ramp.hues is: the ten plain family
+        -- shades are unrelated colours, where a pick across a whole category
+        -- draws light, plain and dark shades of unrelated families in a row and
+        -- looks muddled.
+        ['random.hues'] = function() return random_of(hues) end,
+        ['ramp.hues'] = function(v, m, M) return ramp_pick(hues, v, m, M) end,
+        -- The one ramp, over any array or any block category: the palette views
+        -- above, a category table, or a list the program built. It is ramp_pick
+        -- itself, so ramp.hues' mapping is this one by construction rather than
+        -- by resemblance. What it returns is whatever the list holds - it does
+        -- not check that an entry is a block name, because a program may ramp
+        -- anything.
         ['ramp.of'] = ramp_pick,
         ['get_block'] = function(x, y, z)
             return drone_get_block(drone, x, y, z)
@@ -317,8 +334,7 @@ local function getScriptEnv(drone)
         end,
         ['error'] = error,
         ['ipairs'] = ipairs,
-        ['pairs'] = pairs,
-        ['table.randomizer'] = table_randomizer
+        ['pairs'] = pairs
     }
 
     -- Every block category, the mod's own three and any the game registered.
@@ -329,11 +345,11 @@ local function getScriptEnv(drone)
     -- described each one in lib/api.lua - which is what stops build_api below
     -- refusing an implementation nothing describes. (F11)
     for _, category in ipairs(categories) do
-        impls[category.name] = snapshot(category.spelled, unknown_block)
-        -- One ramp per category, over the keys in the order the category was
-        -- declared in. Not a snapshot: a closure over the list is already
-        -- private to this run, and the list itself is never handed out.
-        impls['ramp.' .. category.name] = ramp_over(category.keys)
+        local spelled = snapshot(category.spelled, unknown_block)
+        impls[category.name] = spelled
+        -- What ramp.of resolves this table to, since a name-indexed one has no
+        -- order of its own. See category_keys above for why it is weak.
+        category_keys[spelled] = category.keys
     end
 
     local api = build_api(impls)

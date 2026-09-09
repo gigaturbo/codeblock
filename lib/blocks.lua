@@ -127,7 +127,10 @@ local function install_one(request, taken, refusals)
 
     -- The sandbox pairs every name with an implementation and lib/api.lua
     -- refuses a run where the two disagree, so the description has to grow with
-    -- the palette: a category is two names, the table itself and its ramp.
+    -- the palette: a category is one name, the table itself. It needs no ramp
+    -- of its own - ramp.of takes a category table and walks it in the order
+    -- sorted above, which is alphabetical and so a lookup rather than a
+    -- gradient. lib/api.lua's note on ramp.of says so.
     -- Matched by group id and not by title, which is a wording and may change.
     -- This text reaches doc/api.md and nothing else: that file is generated
     -- with no game loaded, and deliberately describes the built-in palette
@@ -138,16 +141,6 @@ local function install_one(request, taken, refusals)
                 name = name,
                 kind = 'value',
                 doc = ('Blocks the %s mod added, indexed by name.'):format(who)
-            }
-        elseif group.id == 'choosing' then
-            group.entries[#group.entries + 1] = {
-                name = 'ramp.' .. name,
-                params = {'v', 'min', 'max'},
-                doc = ('Map a number onto the blocks the %s mod added.'):format(
-                    who),
-                note = 'The names are in alphabetical order, which is the ' ..
-                    'only order a registered category has, so this is a ' ..
-                    'lookup rather than a gradient.'
             }
         end
     end

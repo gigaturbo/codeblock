@@ -377,8 +377,11 @@ local blocks = {
 -- takes, and `itemstring` is what lands in the world.
 --
 -- The record carries `names`, the shorts in that order, `spelled`, short -> key,
--- and `keys`, the same keys as an array - what ramp.<category>() indexes, so the
--- ramp reads in whatever order the category was declared in.
+-- and `keys`, the same keys as an array - the order ramp.of resolves a category
+-- table to, a map having none of its own. Whatever order `entries` arrived in:
+-- palette order for the mod's own three, and alphabetical for a category a game
+-- registered, which lib/blocks.lua sorts because a Lua map has no order to
+-- preserve.
 --
 -- Deriving the views here rather than in each reader is what keeps a late
 -- registration visible: a list built once at load time by lib/commands.lua or

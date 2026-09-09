@@ -1124,19 +1124,25 @@ do
 end
 
 --------------------------------------------------------------------------------
--- the ramps, through the real environment (F12)
+-- the ramps, through the real environment (F12, ported at F17)
 --
--- ramp_over is one closure in lib/sandbox.lua, built once per ramp per run, and
--- it is what colours a shape by height or distance. Six things it promises: at
--- or below `min` the first entry, at or above `max` the last, clamping rather
--- than wrapping outside the range, `min` and `max` defaulting to 1 and the
--- list's length, the first entry for a `v` that is not a number, and the first
--- entry for a range of zero width.
+-- ramp_pick is one function in lib/sandbox.lua and it is what colours a shape
+-- by height or distance. Six things it promises: at or below `min` the first
+-- entry, at or above `max` the last, clamping rather than wrapping outside the
+-- range, `min` and `max` defaulting to 1 and the list's length, the first entry
+-- for a `v` that is not a number, and the first entry for a range of zero
+-- width.
 --
--- All four built-in ramps are covered, not one. ramp.hues walks ten plain
--- shades and the other three walk a whole 35-entry category, so the last entry
--- differs between them: a ramp wired to the wrong list would still satisfy a
--- spec pinned to one of them.
+-- Two ways in, and both are covered here: ramp.hues, bound to one array, and
+-- ramp.of over each of the three block tables. F17 deleted ramp.colors,
+-- ramp.glass and ramp.lamps, and ramp.of over the same category is where that
+-- mapping lives now - so these cases moved rather than went. What they pin is
+-- unchanged: a category is name-indexed, so walking one at all means resolving
+-- it to its keys in palette order, and the entries below are literals.
+--
+-- All four lists are covered, not one. hues is ten plain shades and each
+-- category is a whole 35-entry palette, so the last entry differs between them:
+-- a ramp wired to the wrong list would still satisfy a spec pinned to one.
 --
 -- Each program reports by setting the drone's default block, which is the one
 -- command that writes a value onto the record a spec can read. It also refuses
@@ -1168,58 +1174,75 @@ do
     it('hues is one name per family', #blocks.hues, 10)
     it('a colour category is the whole palette', #blocks.by_name.colors.keys, 35)
 
-    -- {name, length, first entry, last entry, a value mid-list and its answer}.
-    -- The first and last are literals rather than reads of the same tables the
+    -- {label, call prefix, bare call, length, first entry, last entry, a value
+    -- mid-list and its answer}. The prefix is everything up to the first
+    -- argument, so the bound ramp and the generic one over a block table go
+    -- through the same thirteen cases; the bare call is spelled out because
+    -- ramp.of still needs its list when it is given no value. The first and
+    -- last entries are literals rather than reads of the same tables the
     -- implementation indexes, so a ramp built over the wrong list is caught by
     -- what it answers and not merely by its length.
     local ramps = {
-        {'hues', 10, 'pink', 'violet', 5, 'olive'},
-        {'colors', 35, 'white', 'dark_violet', 18, 'light_olive'},
-        {'glass', 35, 'white_glass', 'dark_violet_glass', 18, 'light_olive_glass'},
-        {'lamps', 35, 'white_lamp', 'dark_violet_lamp', 18, 'light_olive_lamp'}
+        {
+            'ramp.hues', 'ramp.hues(', 'ramp.hues()', 10, 'pink', 'violet', 5,
+            'olive'
+        }, {
+            'ramp.of over colors', 'ramp.of(colors, ', 'ramp.of(colors)', 35,
+            'white', 'dark_violet', 18, 'light_olive'
+        }, {
+            'ramp.of over glass', 'ramp.of(glass, ', 'ramp.of(glass)', 35,
+            'white_glass', 'dark_violet_glass', 18, 'light_olive_glass'
+        }, {
+            'ramp.of over lamps', 'ramp.of(lamps, ', 'ramp.of(lamps)', 35,
+            'white_lamp', 'dark_violet_lamp', 18, 'light_olive_lamp'
+        }
     }
 
     for _, r in ipairs(ramps) do
-        local name, n, first, last, mid, mid_answer = r[1], r[2], r[3], r[4],
-                                                      r[5], r[6]
-        local call = 'ramp.' .. name
+        local call, pre, bare, n = r[1], r[2], r[3], r[4]
+        local first, last, mid, mid_answer = r[5], r[6], r[7], r[8]
 
-        it(call .. '(1) is the first entry', answer(call .. '(1)'), first)
+        it(call .. '(1) is the first entry', answer(pre .. '1)'), first)
         -- max defaulting to anything but the list length moves this one.
-        it(call .. '(#list) is the last entry', answer(call .. '(' .. n .. ')'),
-           last)
+        it(call .. '(#list) is the last entry', answer(pre .. n .. ')'), last)
         it(call .. ' maps the middle of the range onto the middle of the list',
-           answer(('%s(%d)'):format(call, mid)), mid_answer)
+           answer(('%s%d)'):format(pre, mid)), mid_answer)
 
         -- Below the range. An unclamped index reads list[0] and the program
         -- dies on a nil block; a wrapped one lands at the far end.
-        it(call .. ' below min clamps to the first entry',
-           answer(call .. '(0)'), first)
-        it(call .. ' far below min still clamps', answer(call .. '(-1000)'),
+        it(call .. ' below min clamps to the first entry', answer(pre .. '0)'),
+           first)
+        it(call .. ' far below min still clamps', answer(pre .. '-1000)'),
            first)
         -- Above the range. Wrapping would answer an early entry here, and an
         -- unclamped index runs off the end of the list.
         it(call .. ' above max clamps to the last entry',
-           answer(('%s(%d)'):format(call, n + 5)), last)
-        it(call .. ' far above max still clamps', answer(call .. '(1000)'), last)
+           answer(('%s%d)'):format(pre, n + 5)), last)
+        it(call .. ' far above max still clamps', answer(pre .. '1000)'), last)
 
         -- An explicit range, which is the whole point of min and max: the same
         -- two ends, reached from numbers that have nothing to do with the
         -- list's length.
-        it(call .. ' honours an explicit min',
-           answer(call .. '(-50, -50, 50)'), first)
-        it(call .. ' honours an explicit max', answer(call .. '(50, -50, 50)'),
+        it(call .. ' honours an explicit min', answer(pre .. '-50, -50, 50)'),
+           first)
+        it(call .. ' honours an explicit max', answer(pre .. '50, -50, 50)'),
            last)
         it(call .. ' clamps inside an explicit range too',
-           answer(call .. '(500, -50, 50)'), last)
+           answer(pre .. '500, -50, 50)'), last)
 
         it(call .. ' answers the first entry for a range of zero width',
-           answer(call .. '(3, 3, 3)'), first)
+           answer(pre .. '3, 3, 3)'), first)
         it(call .. ' answers the first entry for a value that is not a number',
-           answer(call .. '("middle")'), first)
-        it(call .. ' answers the first entry for no value at all',
-           answer(call .. '()'), first)
+           answer(pre .. '"middle")'), first)
+        it(call .. ' answers the first entry for no value at all', answer(bare),
+           first)
     end
+
+    -- The three category cases above are also what pins *palette* order, which
+    -- is half of a pair: alphabetically the 35 colour keys run black, blue,
+    -- cyan ... and end at yellow, so white, light_olive and dark_violet are
+    -- nowhere a sorted category would put them. The other half is the section
+    -- on a game's own category, which ramp.of walks alphabetically. (F17)
 
     ----------------------------------------------------------------------------
     -- What ramp.hues exists for
@@ -1599,8 +1622,8 @@ do
     it('every spelled name resolves through the flat namespace',
        table.concat(unresolved, ', '), '')
 
-    -- `keys` is the array form of the same thing, and it is what ramp.colors,
-    -- ramp.glass and ramp.lamps index: a ramp is a position in this list, so a
+    -- `keys` is the array form of the same thing, and it is what ramp.of
+    -- resolves a category table to: a ramp is a position in this list, so a
     -- keys that disagreed with names in order or in length would colour a
     -- gradient with the wrong blocks and nothing would raise. Compared against
     -- names through spelled rather than listed, so it holds for a category a
@@ -1747,9 +1770,9 @@ do
     -- The derived view a late registration is most likely to lose. F11 found
     -- three palette snapshots taken at load time, one of them a live defect,
     -- and all three were invisible here; `keys` is the same shape of thing, and
-    -- add_category building it is the only reason a game's ramp indexes
-    -- anything at all.
-    it("the category carries its keys, so it can have a ramp",
+    -- add_category building it is the only reason ramp.of over a game's
+    -- category answers anything at all.
+    it("the category carries its keys, so ramp.of can walk it",
        table.concat(category.keys or {}, ','), 'agame.mud')
     it('the flat key carries the category, so it cannot shadow ours',
        category.spelled.mud, 'agame.mud')
@@ -1773,16 +1796,18 @@ do
     it('lib/api.lua describes it, so the sandbox may implement it', described,
        true)
 
-    -- A category is two names now, the table and its ramp, and api.build
-    -- refuses a run where the description and the implementations disagree in
-    -- either direction. So a missing description here is not a thinner help
-    -- panel - it is every program failing to start once a game has registered
-    -- anything.
+    -- And describes nothing else. A category was two names until F17, the table
+    -- and a ramp of its own; ramp.of takes the table itself now, so lib/blocks.lua
+    -- appends no second entry and lib/sandbox.lua implements no second name.
+    -- api.build refuses a run where the description and the implementations
+    -- disagree in either direction, so a ramp.agame left behind in the
+    -- description is not a stale help line - it is every program failing to
+    -- start once a game has registered anything.
     local ramped = false
     for _, name in ipairs(codeblock.api.names()) do
         if name == 'ramp.agame' then ramped = true end
     end
-    it('and describes its ramp as well', ramped, true)
+    it('and adds no ramp of its own to the description', ramped, false)
 
     it('the in-game help lists it',
        codeblock.api.to_hypertext():find('agame', 1, true) ~= nil, true)
@@ -2105,6 +2130,233 @@ do
     local _, dead = sandboxed('place(blocks.obsidian)\nup(1)\n', origin)
     it('a template naming a category that no longer exists does not run',
        (dead ~= nil), true)
+
+    codeblock.filesystem.remove_file('test_player', program_file)
+    codeblock.filesystem.remove_user_data('test_player')
+end
+
+--------------------------------------------------------------------------------
+-- picking without a name per table: ramp.of over a category, random.of,
+-- random.hues (F17)
+--
+-- F17 deleted ramp.<category>, random.color, random.glass, random.lamp and
+-- table.randomizer, and replaced them with two functions that take the table
+-- rather than being bound to one. The deleted ramps were the only cases that
+-- walked a category, so this section is what keeps that reachable at all.
+--
+-- It registers a second category of its own, `wool`, and it does so **last in
+-- the file on purpose**: a category is visible to every later run and to
+-- #blocks.categories, and the editor's selector cases above count them. It
+-- cannot live in tests/game/mods either - that directory is all-enabled, so a
+-- mod registering a category there would move api.names() and the palette
+-- underneath every spec in the suite. Its three entries are the same three
+-- PLAYTEST F11-10's out-of-tree mod offers, for the same reason: three is
+-- enough for a ramp to have a middle.
+--
+-- The order is the point. red, green, blue arrive in a name-indexed table, so
+-- they arrive in no order at all; lib/blocks.lua sorts them, and ramp.of
+-- therefore walks blue, green, red. That is alphabetical and not palette order,
+-- which is why lib/api.lua calls ramp.of over a game's category a lookup rather
+-- than a gradient - and the colors, glass and lamps cases higher up are the
+-- other half of the pair.
+--
+-- Same readback channel as the ramp sections: default_block, which refuses
+-- anything that is not a real block, so an answer that is not a block name
+-- fails here as an error rather than as a wrong string.
+--------------------------------------------------------------------------------
+
+do
+    local blocks = codeblock.config.allowed_blocks
+
+    local function answer(expr)
+        local drone, err = sandboxed('default_block(' .. expr .. ')\n')
+        if err then return 'error: ' .. err end
+        return drone.default_block
+    end
+
+    local function holds(cond)
+        local drone, err = sandboxed(
+                               ('if %s then default_block(colors.white) else default_block(colors.black) end\n')
+                                   :format(cond))
+        if err then return 'error: ' .. err end
+        return drone.default_block == 'white'
+    end
+
+    local installed = codeblock.blocks.install({
+        {
+            mod = 'agame',
+            category = 'wool',
+            entries = {
+                red = 'codeblock:red',
+                green = 'codeblock:green',
+                blue = 'codeblock:blue'
+            }
+        }
+    })
+    it('a second category installs', installed, 1)
+    local wool = blocks.by_name.wool or {keys = {}}
+    it('and it is sorted, whatever order the game handed it in',
+       table.concat(wool.keys, ','), 'wool.blue,wool.green,wool.red')
+
+    ----------------------------------------------------------------------------
+    -- ramp.of over a category a game registered
+    --
+    -- Alphabetical, which is a different order from the palette order the
+    -- mod's own three walk. Written as literals: reading the answer back out of
+    -- wool.keys would pass whatever order the sort had produced.
+    ----------------------------------------------------------------------------
+
+    it('ramp.of over a game category answers its alphabetical first',
+       answer('ramp.of(wool, 1, 1, 3)'), 'wool.blue')
+    it('its middle', answer('ramp.of(wool, 2, 1, 3)'), 'wool.green')
+    it('and its alphabetical last', answer('ramp.of(wool, 3, 1, 3)'), 'wool.red')
+    -- The default range follows the category's length, as it does for an array.
+    it('with min and max defaulting to the size of the category',
+       answer('ramp.of(wool, 3)'), 'wool.red')
+    it('and it clamps past the end rather than wrapping',
+       answer('ramp.of(wool, 1000, 1, 3)'), 'wool.red')
+
+    -- The category path and the array path are one function, and the whole
+    -- reason ramp.of resolves a category rather than ramping one its own way.
+    -- Half-integers, because rounding is where two paths part company first,
+    -- and past both ends, because clamping is the other half of the arithmetic.
+    local agreed, agree_err = sandboxed([[
+local names = {'wool.blue', 'wool.green', 'wool.red'}
+local bad = 0
+for k = -8, 16 do
+    local v = k / 2
+    if ramp.of(wool, v, 1, 3) ~= ramp.of(names, v, 1, 3) then bad = bad + 1 end
+    if ramp.of(wool, v) ~= ramp.of(names, v) then bad = bad + 1 end
+end
+if ramp.of(wool, 'x') ~= ramp.of(names, 'x') then bad = bad + 1 end
+if bad == 0 then default_block(colors.white) else default_block(colors.black) end
+]])
+    it('the category-against-array sweep runs', agree_err, nil)
+    it('ramp.of over a category answers what it answers over the same array',
+       agreed.default_block, 'white')
+
+    ----------------------------------------------------------------------------
+    -- and an array is never routed through the category lookup
+    --
+    -- The lookup is keyed on the exact table the environment publishes. A copy
+    -- of a category is a map with no array part and no entry in it, so it
+    -- answers nil - the same answer a non-table gets, and for the same recorded
+    -- reason: an arithmetic accident must not stop a program.
+    ----------------------------------------------------------------------------
+
+    it('a copy of a category is not a category, and answers nothing', holds(
+           '(function() local t = {} for k, v in pairs(colors) do t[k] = v end return ramp.of(t, 1, 1, 35) == nil end)()'),
+       true)
+    it('a map that was never a category answers nothing',
+       holds("ramp.of({a = 1, b = 2}, 1, 1, 2) == nil"), true)
+    -- The array path is untouched by the widening: hues is published by the
+    -- environment too, and must still walk itself rather than be looked up.
+    it('a palette view still walks itself', answer('ramp.of(hues, 3, 1, 10)'),
+       'orange')
+
+    ----------------------------------------------------------------------------
+    -- random.of
+    --
+    -- pairs walks a name-indexed category and an array alike, so it takes
+    -- either as it stands. Two properties, one case each: every answer is a
+    -- member, and the answers are not all the same one. The second is the case
+    -- that matters - an implementation always returning the first key would
+    -- satisfy a membership check and nothing else here.
+    --
+    -- Sixty draws. Over a ten-entry list the chance of a correct
+    -- implementation returning one value sixty times is 10^-59, so this is not
+    -- a flaky case; over the 35-entry category it is smaller still.
+    ----------------------------------------------------------------------------
+
+    it('every random.of draw over a category is one of its blocks', holds([[
+(function()
+    local member = {}
+    for _, key in pairs(colors) do member[key] = true end
+    for _ = 1, 60 do if not member[random.of(colors)] then return false end end
+    return true
+end)()]]), true)
+
+    it('and the draws are not all the same one', holds([[
+(function()
+    local first = random.of(colors)
+    for _ = 1, 60 do if random.of(colors) ~= first then return true end end
+    return false
+end)()]]), true)
+
+    it('every random.of draw over an array is one of its entries', holds([[
+(function()
+    local member = {}
+    for _, name in ipairs(hues) do member[name] = true end
+    for _ = 1, 60 do if not member[random.of(hues)] then return false end end
+    return true
+end)()]]), true)
+
+    it('and those draws are not all the same one either', holds([[
+(function()
+    local first = random.of(hues)
+    for _ = 1, 60 do if random.of(hues) ~= first then return true end end
+    return false
+end)()]]), true)
+
+    -- The edges answer rather than raise, for the reason ramp.of's do.
+    it('random.of over an empty table answers nothing',
+       holds('random.of({}) == nil'), true)
+    it('random.of over something that is not a table answers nothing',
+       holds('random.of(42) == nil'), true)
+    it('random.of with no argument at all answers nothing',
+       holds('random.of() == nil'), true)
+
+    ----------------------------------------------------------------------------
+    -- random.hues
+    --
+    -- It answers a colour *name*, the same shape ramp.hues answers, and that is
+    -- the whole point of it: the name indexes a category, and for colors the
+    -- short name is the flat key, so it is a solid block with nothing around
+    -- it. A random.hues that answered a block out of a category instead would
+    -- pass a bare non-nil check and break glass[random.hues()].
+    ----------------------------------------------------------------------------
+
+    it('every random.hues answer is a hue', holds([[
+(function()
+    local member = {}
+    for _, name in ipairs(hues) do member[name] = true end
+    for _ = 1, 60 do if not member[random.hues()] then return false end end
+    return true
+end)()]]), true)
+
+    it('and the answers are not all the same hue', holds([[
+(function()
+    local first = random.hues()
+    for _ = 1, 60 do if random.hues() ~= first then return true end end
+    return false
+end)()]]), true)
+
+    -- Placed, not merely named. default_block refuses anything that is not a
+    -- block, so an answer reaching the record at all is one, and it has to be a
+    -- hue rather than any block the palette holds.
+    local drawn = answer('random.hues()')
+    local placed = false
+    for _, name in ipairs(blocks.hues) do
+        if name == drawn then placed = true end
+    end
+    it('and a drawn hue is placeable as a solid with nothing around it', placed,
+       true)
+    it('and indexes a category as a hue does',
+       answer('glass[random.hues()]'):find('_glass', 1, true) ~= nil, true)
+
+    ----------------------------------------------------------------------------
+    -- the table namespace went with table.randomizer (F17)
+    --
+    -- `table` was in the environment only as its parent, so removing the one
+    -- removed the other. It is not a forbidden name in lib/preprocess.lua, so a
+    -- program mentioning it compiles and runs and simply reads nil - which is
+    -- why this is asserted from inside a run rather than from the name list
+    -- alone.
+    ----------------------------------------------------------------------------
+
+    it('table is not in the environment', holds('table == nil'), true)
+    it('and neither is what it used to carry',
+       holds('random.color == nil and random.glass == nil'), true)
 
     codeblock.filesystem.remove_file('test_player', program_file)
     codeblock.filesystem.remove_user_data('test_player')

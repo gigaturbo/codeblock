@@ -127,8 +127,8 @@ end
 -- The config is Lua, so it is loaded with its own environment and read, rather
 -- than pattern-matched: a nested entry such as ramp = {fields = {...}} then
 -- costs nothing. A bare string entry lets luacheck accept every field of that
--- name, so `table` covers table.randomizer; that leniency is luacheck's own and
--- is mirrored here rather than worked around.
+-- name, so `vector` covers vector.fromPolar; that leniency is luacheck's own
+-- and is mirrored here rather than worked around.
 --------------------------------------------------------------------------------
 
 do

@@ -101,7 +101,7 @@ row is about.
 | Guard | Finding | Where it is written |
 |---|---|---|
 | `load_area` before a single-node write, and the per-resume mapblock memo | `S5` | `program-pipeline` |
-| One ramp implementation, `ramp_pick`, behind every ramp | `F12`, `F14` | `blocks-and-palette` |
+| One ramp implementation, `ramp_pick`, behind every ramp, and its category lookup weak-keyed at module level | `F12`, `F14`, `F17` | `blocks-and-palette` |
 | `register_blocks` queued at the call, validated at `register_on_mods_loaded` | `F11` | `blocks-and-palette` |
 | The serial guard, and clearing the record before `obj:remove()` | `B29` | `drone-and-tools` |
 | No `on_step` on the drone entity; the globalstep drives the run | `B50`, `B52` | `drone-and-tools` |

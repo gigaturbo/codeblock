@@ -255,28 +255,28 @@ neutrals   -- The neutrals as an array, white to black.
 air        -- Empty space. Place it to carve rather than to build.
 ```
 
-**`hues`** &mdash; `hues`, `light_hues`, `dark_hues` and `neutrals` are the four ways of walking the palette: which colours, in what order. They hold colour names rather than blocks, and every table above is indexed by the same names, so `glass[hues[1]]` is glass and `lamps[dark_hues[1]]` is a lamp. A name out of one of them is a solid block already, so `place(hues[1])` needs nothing around it. Use them with `ramp.of`.
+**`hues`** &mdash; `hues`, `light_hues`, `dark_hues` and `neutrals` are the four ways of walking the palette: which colours, in what order. They hold colour names rather than blocks, and every table above is indexed by the same names, so `glass[hues[1]]` is glass and `lamps[dark_hues[1]]` is a lamp. A name out of one of them is a solid block already, so `place(hues[1])` needs nothing around it. Use them with `ramp.of` and `random.of`.
 
 ## Choosing blocks
 
-A `ramp` maps a number onto one table of blocks, so a shape can be coloured by height, distance or anything else that is a number. Values at or below `min` give the first block and those at or above `max` the last; anything outside the range is clamped rather than wrapped. `min` and `max` default to 1 and the number of blocks in the table.
+Two ways of picking a block out of many: `ramp` maps a number onto a list, so a shape can be coloured by height, distance or anything else that is a number, and `random.of` picks one without an order at all. For a ramp, values at or below `min` give the first block and those at or above `max` the last; anything outside the range is clamped rather than wrapped. `min` and `max` default to 1 and the number of blocks in the list.
 
 ```lua
-random.color()                            -- A random solid colour.
-random.glass()                            -- A random glass block.
-random.lamp()                             -- A random lamp.
+random.of(list)                           -- One value of a list or a block table, at random.
+random.hues()                             -- A random hue; short for random.of(hues).
 ramp.hues(v, min, max)                    -- Map a number onto the hues: a smooth rainbow.
-ramp.colors(v, min, max)                  -- Map a number onto the solid colours, in palette order.
-ramp.glass(v, min, max)                   -- Map a number onto the glass blocks, in palette order.
-ramp.lamps(v, min, max)                   -- Map a number onto the lamps, in palette order.
-ramp.of(list, v, min, max)                -- Map a number onto any array: one of the palette orders, or a list you built.
+ramp.of(list, v, min, max)                -- Map a number onto any list: a palette order, a block table, or a list you built.
 get_block(n_right, n_up, n_forward)       -- The block at an offset from the drone, without moving it.
 is_block(block, n_right, n_up, n_forward) -- Whether the block at an offset from the drone is the one named.
 ```
 
-**`ramp.hues`** &mdash; The one ramp over a whole table that reads as a gradient, because `hues` is one name per family in colour-wheel order. `ramp.colors`, `ramp.glass` and `ramp.lamps` walk light, plain and dark inside each family in turn, so a gradient across one of them strobes; `ramp.of` over a palette order does not.
+**`random.of`** &mdash; Takes anything holding values: a palette order, a block table such as `colors` or `glass`, or a list you built. It takes a block table as it stands where `ramp.of` has to put one in order first, because a random pick has no order to respect. Prefer `random.of(hues)`: a pick across a whole table draws light, plain and dark shades of unrelated families in a row and looks muddled, where the hues are ten clean families.
 
-**`ramp.of`** &mdash; The same mapping as the ramps above, with the list given rather than fixed. `ramp.of(hues, i, 1, n)` walks the colour wheel; the material is whatever you index with the answer, so `glass[ramp.of(dark_hues, i, 1, n)]` is the dark shades in glass. It returns whatever the list holds, so a list of your own works too, and a value that is not a list at all reads as nothing rather than stopping the program.
+**`random.hues`** &mdash; A colour name, so `place(random.hues())` is a solid block and `lamps[random.hues()]` the matching lamp.
+
+**`ramp.hues`** &mdash; Short for `ramp.of(hues, v, min, max)`. It reads as a gradient because `hues` is one name per family in colour-wheel order.
+
+**`ramp.of`** &mdash; The material is whatever you index with the answer, so `glass[ramp.of(dark_hues, i, 1, n)]` is the dark shades in glass, and a name out of a palette order is a solid block already. A block table is a map and has no order of its own, so it is walked in the only order there is: palette order for `colors`, `glass` and `lamps`, and alphabetical for a table the game added. Neither reads as a gradient - `ramp.of(colors, i, 1, n)` runs light, plain and dark through one family before reaching the next, so it strobes, and an alphabetical one is a lookup. `ramp.of(hues, ...)` is the smooth one. It returns whatever the list holds, so a list of your own works too, and a value that is neither a list nor a block table reads as nothing rather than stopping the program.
 
 **`get_block`** &mdash; Each offset defaults to zero, so `get_block()` reads where the drone is and `get_block(0, 0, 1)` reads one step ahead of it. The offsets turn with the drone, the same way `place_relative` does. Three answers: the name of a block the drone could place, `false` for a node it could not, and `nil` where there is no answer at all - map that has never been generated, or a position outside the world.
 
@@ -330,7 +330,6 @@ print(message, ...) -- Print every argument in the chat, joined by a space.
 error(message)      -- Stop the program and print a message.
 ipairs(table)       -- Standard ipairs.
 pairs(table)        -- Standard pairs.
-table.randomizer(t) -- Return a function that picks a random value from t.
 ```
 
 # Block types

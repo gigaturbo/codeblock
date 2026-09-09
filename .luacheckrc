@@ -117,17 +117,13 @@ stds.codeblock_sandbox = {
         -- The four palette views: arrays of colour names, one axis of the
         -- palette against the category's material.
         "hues", "light_hues", "dark_hues", "neutrals",
-        -- One ramp per block category, plus the generic one over any array.
-        -- Spelled out rather than left open, so a typo in an example is caught;
-        -- a category a game registers gets a ramp too, but no example can name
-        -- one.
-        ramp = {fields = {"hues", "colors", "glass", "lamps", "of"}},
-        -- utilities. `table` and `vector` are left open: a program sees the
-        -- whole standard library and the whole vector3 module through them,
-        -- and only table.randomizer is an API name of ours.
-        "get_block", "is_block", "print", "ipairs", "pairs", "table", "vector",
-        "error",
-        random = {fields = {"color", "glass", "lamp"}},
+        -- The ramp over any list, and the one bound to hues. Spelled out
+        -- rather than left open, so a typo in an example is caught.
+        ramp = {fields = {"hues", "of"}},
+        -- utilities. `vector` is left open: a program sees the whole vector3
+        -- module through it, and the std holds API names only.
+        "get_block", "is_block", "print", "ipairs", "pairs", "vector", "error",
+        random = {fields = {"of", "hues"}},
         -- math
         "floor", "ceil", "round", "round0", "deg", "rad", "exp", "log", "max",
         "min", "pow", "sqrt", "abs", "sin", "sinh", "asin", "cos", "cosh",

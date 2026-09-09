@@ -89,30 +89,58 @@ outside this repository and unversioned at `../codeblock-test-mod`;
 `PLAYTEST.md` `F11-10` describes what it registers in enough detail to rebuild
 it.
 
-# The ramps
+# The ramps and the random pickers
 
-**One ramp per category, `ramp.hues`, and `ramp.of` over any array** (`F12`,
-`F14`).
+**Four names, and no per-category anything** (`F12`, `F14`, `F17`):
+`ramp.of(list, v, min, max)`, `ramp.hues(v, min, max)`, `random.of(list)` and
+`random.hues()`. `ramp.<category>`, `random.color`, `random.glass`,
+`random.lamp`, `color(v, min, max)` and `table.randomizer` are all gone, none
+with an alias.
 
-**`ramp_pick(list, v, m, M)` in `lib/sandbox.lua` is the whole of the mapping.**
-`ramp_over(list)` binds it to one list, and **`ramp.of` is `ramp_pick` itself**,
-so the generic ramp and the per-category ones cannot drift apart. Do not
-reimplement either against the other.
+**`ramp_pick(list, v, m, M)` in `lib/sandbox.lua` is the whole of the mapping**,
+and **`ramp.of` is `ramp_pick` itself**, so the generic path and the category
+path cannot drift apart. `ramp.hues` is a closure over it. Do not reimplement
+either against the other.
 
-**A per-category ramp is built once per category per run** from `add_category`'s
-`keys` view, so a game's category gets one on the same terms as the mod's own. It
-is appended to `lib/api.lua`'s *Choosing blocks* group by `lib/blocks.lua`, which
-is why that group carries an `id`.
+**A category resolves to an array through a weak-keyed module-level lookup.**
+A category is name-indexed, so `#category` is 0 and `ramp_pick` would answer
+`nil` for one. `category_keys[snapshot] = category.keys` is filled in the loop at
+the end of the `impls` construction — the one place both are in scope — and
+`ramp_pick` resolves in one line before its `type(list) ~= 'table'` guard. Two
+things about it are load-bearing:
+
+- **`setmetatable({}, {__mode = 'k'})`, and the weakness is what bounds it.** A
+  snapshot is built per run, so a strong table would retain one dead snapshot per
+  category per run for the life of the server.
+- **Module level, not per run**, because that is what keeps `ramp.of` equal to
+  `ramp_pick` rather than a per-run closure that could diverge from it.
+
+**`t[nil]`, `t[1]` and `t["s"]` are all legal *reads* on that table** — only
+assigning `t[nil]` raises in Lua 5.1 — so resolving before the type guard is
+safe for every argument a program can pass. Verified under `lua5.1`.
+
+**`random.of` needs no lookup**, and the asymmetry is deliberate: `pairs` walks a
+name-indexed category and an array alike, and a random pick has no order to
+respect. It counts and then walks rather than collecting the keys, so a call in a
+loop allocates nothing; the two passes need not agree on an order, only to visit
+every entry once.
 
 **Out of range clamps, never wraps.** A non-number `v` or a zero-width range
-gives the first entry; a non-table or empty list answers `nil`. An arithmetic
-accident must not stop a program.
+gives the first entry; a non-table or empty list answers `nil`, and so does a
+table that is neither an array nor a known category. An arithmetic accident must
+not stop a program.
 
-**`color(v, min, max)` is gone with no alias.**
+**Only `ramp.hues` and `ramp.of` over a palette view are gradients.** A block
+table is a map with no order of its own, so `ramp.of` walks it in the only order
+there is: **palette order for `colors`, `glass` and `lamps`, alphabetical for a
+category a game registered**, which `lib/blocks.lua` sorts at `install_one`
+because a Lua map has no order to preserve. The first strobes light/plain/dark
+through each family, the second is a lookup. Say so wherever the behaviour is
+described — "declared order" is wrong for a registered category.
 
-**Only `ramp.hues` and `ramp.of` over a palette view are gradients.**
-`ramp.colors`, `ramp.glass` and `ramp.lamps` walk light/plain/dark inside each
-family and strobe. That is a consequence of one ramp per category, not a defect.
+**Nothing appends to the *Choosing blocks* group any more**, so it carries no
+`id`. Only *Block tables* does, and only `lib/blocks.lua`'s `group.id ==
+'blocks'` branch reads it.
 
 # `get_block`
 

@@ -15,7 +15,7 @@ for x = -R, R do
 
             if (pow(x, 2) + pow(z, 2) < pow(R, 2)) then
                 if random() < density(y) then
-                    place_relative(x, y, z, random.lamp(), 'o')
+                    place_relative(x, y, z, lamps[random.hues()], 'o')
                 end
             end
 
