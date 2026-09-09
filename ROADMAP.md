@@ -996,5 +996,4 @@ Last reviewed **2026-09-09**, describing `c775b56`. `origin/master` is
 retired, six unrun (`F-6`, `R5`, `F17-1` to `F17-4`), two stale (`R1`, `R2`),
 one unreachable (`H8`), three owed (`R3`, whose guard is gone, `R4`, carrying a
 superseded fail, and `F12-6`, rewritten at `F17`). `AUDIT.md`: 93 findings, one
-open — `C24`, medium. The `flat_sky` removal is in the working tree and not yet
-committed.
+open — `C24`, medium. The `flat_sky` removal is `3fa9d0c`.
