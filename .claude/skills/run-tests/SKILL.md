@@ -233,10 +233,13 @@ Concretely, in this suite:
   **The rule is about vacuity, not about the filesystem**, and the distinction
   was nearly lost on 2026-09-06. The sandbox implementations live in a closure
   inside the local `getScriptEnv`, whose only door is `get_safe_coroutine`, which
-  reads a program out of the player's directory — so `ramp_over`'s 57 assertions
-  reach it by **writing a file into the throwaway world** and running it. That is
-  legitimate: it was driven to failure eight ways, against eight mutations of
-  `lib/sandbox.lua`. **Exporting `getScriptEnv` to avoid the write was offered
+  reads a program out of the player's directory — so `integration_spec`'s `F17`
+  section reaches `ramp.of` over a game's category, `random.of` and `random.hues`
+  by **writing a file into the throwaway world** and running it. That is
+  legitimate: every assertion in it was driven to failure, against three
+  mutations of `lib/sandbox.lua` and `lib/blocks.lua`. **It shows both halves of
+  why the world is the only door**: the section must also *register* a category
+  before the run can see one. **Exporting `getScriptEnv` to avoid the write was offered
   and refused**, because pinning a spec to a private closure factory is pinning
   to the implementation. So: a spec may use the world it is booted in when that
   is the only real door to the behaviour and the spec has been made to fail —

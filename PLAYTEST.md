@@ -64,14 +64,14 @@ Result: ...
 
 | | Count |
 |---|---|
-| Entries | 93 |
+| Entries | 97 |
 | Retired | 1 — `F11-4` |
-| Live checks | 92 |
+| Live checks | 96 |
 | Most recent result a pass | 88 |
 | Unreachable | 1 — `H8` |
-| Unrun | 2 — `F-6`, `R5` |
+| Unrun | 6 — `F-6`, `R5`, `F17-1` to `F17-4` |
 | Stale | 2 — `R1`, `R2` |
-| Owed | 1 — `R4` |
+| Owed | 2 — `R4`, `F12-6` |
 | Fail as most recent result | 1 — `R4` |
 
 Checks needing action:
@@ -83,6 +83,11 @@ Checks needing action:
 | [`R1`](#r1--the-archive-contains-no-tests-c16-c10) | stale | Texture and example counts have changed since the last run. |
 | [`R2`](#r2--a-real-install-with-the-test-flag-set-c16) | stale | Last run at `7c5bceb`, before `F4` and two `.gitattributes` changes. |
 | [`R4`](#r4--a-brand-new-world-hands-out-the-right-codelevel-s6) | owed | Its four cases are runnable as written since `7c1442d`. Carries a fail against the command before `F16`. Its log half is what `A17` is owed. |
+| [`F12-6`](#f12-6--a-game-registered-category-is-rampable-through-rampof-f12-f11) | owed | Rewritten at `F17`. Its pass is against the deleted `ramp.wool` and the deleted help row. |
+| [`F17-1`](#f17-1--randomof-draws-from-a-category-and-from-a-list-f17) | unrun | `random.of` over a category, over a palette order and over a plain list. |
+| [`F17-2`](#f17-2--randomhues-answers-a-colour-name-not-a-block-f17) | unrun | That `random.hues()` answers a name, so `lamps[random.hues()]` resolves. |
+| [`F17-3`](#f17-3--rampof-over-a-category-walks-that-categorys-own-order-f17-f12-f11) | unrun | Palette order against alphabetical. Needs the `F11-10` mod. |
+| [`F17-4`](#f17-4--the-help-panel-after-the-deletions-f17) | unrun | The reduced *Choosing blocks* group and no `table.randomizer` in *Misc*. |
 
 ---
 
@@ -1680,7 +1685,7 @@ five calls below. `README.md` is the install and pass note. The bad and late
 calls sit behind `codeblock_test_bad_calls`, default true.
 
 1. **A good call.** `register_blocks('wool', {red = …, green = …, blue = …})`,
-   three entries so `ramp.wool(v, 1, 3)` in `F12-6` walks all of them.
+   three entries so `ramp.of(wool, v, 1, 3)` in `F12-6` walks all of them.
    **Pass:** `debug.txt` says `[codeblock] the game added 1 block category`, and
    the category appears in the sandbox, in the editor's block picker and in the
    help panel's selector, showing its **raw** name.
@@ -1822,7 +1827,7 @@ Result: pass — `2feadb1`, record-only over `24842d3` · engine 5.17.0 ·
 2026-09-07 — the re-run, in full: the wall reported at exactly one facing with
 `is_block` `true` there, and the `place()` landing where it would have before.
 
-### F12-5 · A ramp reads as a gradient, and the other ramps strobe [F12]
+### F12-5 · `ramp.hues` reads as a gradient, and clamps [F12]
 
 ```lua
 for i = 1, 20 do place(ramp.hues(i, 1, 20)); up(1) end
@@ -1831,32 +1836,37 @@ for i = 1, 20 do place(ramp.hues(i, 1, 20)); up(1) end
 **Pass:** the column walks the colour wheel once, smoothly, and the first and
 last blocks are visibly different colours.
 
-Then the same loop with `ramp.colors`. **Pass:** it **strobes** — light, plain,
-dark inside each family in turn. That is correct: `colors` is ordered by family
-rather than by lightness, and `ramp.hues` is the one that reads as a rainbow.
-
-Finally the clamp: `ramp.hues(-5, 1, 20)` and `ramp.hues(99, 1, 20)`.
+Then the clamp: `ramp.hues(-5, 1, 20)` and `ramp.hues(99, 1, 20)`.
 **Pass:** the first and last hue, not a wrap round to the other end.
 
-Result: pass — `8e6350f` · engine 5.17.0 · 2026-09-07 — `ramp.hues` reads as a
-gradient, `ramp.colors` strobes as designed, and the clamp does not wrap.
+**A second half was retired, not failed.** It ran the same loop over
+`ramp.colors` and passed on the strobe being visible. `F17` deleted
+`ramp.colors`, so there is nothing left to look at. `F17-3` reads the strobe
+through `ramp.of(colors, ...)` instead.
 
-### F12-6 · A game-registered category gets a ramp of its own [F12, F11]
+Result: pass — `8e6350f` · engine 5.17.0 · 2026-09-07 — `ramp.hues` reads as a
+gradient and the clamp does not wrap. The retired half passed in the same run.
+
+### F12-6 · A game-registered category is rampable through `ramp.of` [F12, F11]
 
 With the mod from `F11-10` installed, so it is cheapest run in the same session.
 Its category is `wool` with three entries.
 
-1. `print(ramp.wool(1, 1, 3))`, then `2` and `3`.
+1. `print(ramp.of(wool, 1, 1, 3))`, then `2` and `3`.
    **Pass:** `wool.blue`, `wool.green`, `wool.red` in that order — the flat keys
    `place()` takes, alphabetical, because that is the only order a registered
    category has.
 2. **Open the help panel's *Choosing blocks* group.**
-   **Pass:** `ramp.<name>` is listed beside `ramp.hues`, `ramp.colors`,
-   `ramp.glass` and `ramp.lamps`, and its text says the order is alphabetical and
-   therefore a lookup rather than a gradient.
+   **Pass:** there is **no** `ramp.<name>` row and no ramp named after the
+   category, and `ramp.of`'s own text says a category a game registered is walked
+   alphabetically and is therefore a lookup rather than a gradient.
+
+**State: owed.** The check was rewritten at `F17` and the result below is against
+the form before it. Case 1 asserted the same order through the deleted
+`ramp.wool`; case 2 asserted the row that `F17` removed.
 
 Result: pass — `2feadb1`, record-only over `24842d3` · engine 5.17.0 ·
-2026-09-07 — both cases.
+2026-09-07 — both cases of the pre-`F17` form.
 
 ### F14-1 · The API help panel lists the new views and `ramp.of` [F14]
 
@@ -1865,11 +1875,13 @@ observable nowhere else.
 
 1. **Open the editor's API help panel and find the *Choosing blocks* group.**
    **Pass:** `light_hues`, `dark_hues` and `neutrals` are listed beside `hues`,
-   each with its text, and `ramp.of` is listed beside `ramp.hues`, `ramp.colors`,
-   `ramp.glass` and `ramp.lamps`. Nothing is truncated, and the group scrolls to
-   the bottom with the new rows in it.
+   each with its text, and `ramp.of` is listed beside `ramp.hues`. Nothing is
+   truncated, and the group scrolls to the bottom with the new rows in it.
 2. **Read `ramp.of`'s description.** **Pass:** it says it takes a list.
 3. **Then run `F14-3`.**
+
+**Case 1 named three more ramps before `F17` deleted them.** What the group holds
+now is `F17-4`'s business; this check reads only the `F14` rows.
 
 Result: pass — `8e6350f` · engine 5.17.0 · 2026-09-07 — all rows listed with
 their text, nothing truncated.
@@ -2135,6 +2147,86 @@ unreachable, only unreadable on the short form. Record the outcome and file
 nothing.
 
 Result: pass — `fb75bc8` · engine 5.17.0 · 2026-09-08 — passes as written.
+
+### F17-1 · `random.of` draws from a category and from a list [F17]
+
+```lua
+for i = 1, 6 do
+    print(random.of(glass), random.of(hues), random.of({"a", "b", "c"}))
+end
+place(random.of(glass))
+```
+
+**Pass:**
+
+- Six lines, three values each.
+- The first column always ends in `_glass`. It is a block key, because a
+  category holds blocks.
+- The second column is always one of the ten plain family names — `pink red
+  orange yellow olive lime green cyan blue violet`. Never a `light_` or `dark_`
+  shade, never a neutral.
+- The third column is always `a`, `b` or `c`.
+- Each column shows **more than one distinct value** over the six lines. If a
+  column repeats one value six times, run it again before calling it a fail.
+- The `place()` builds a **see-through** block.
+
+### F17-2 · `random.hues()` answers a colour name, not a block [F17]
+
+```lua
+for i = 1, 6 do print(random.hues()) end
+place(random.hues())
+up(1)
+place(lamps[random.hues()])
+```
+
+**Pass:** each printed value is one of the ten plain family names, with no
+`light_` or `dark_` prefix and no `_glass` or `_lamp` suffix. The first `place`
+builds a solid block, and the second builds a **lamp** above it that glows.
+
+**The lamp is the half that matters.** `lamps[random.hues()]` resolves only
+because the answer is a name and every category is indexed by the same names. A
+`random.hues` that answered a block would still pass the first `place`.
+
+### F17-3 · `ramp.of` over a category walks that category's own order [F17, F12, F11]
+
+**Cheapest run in the same session as `F12-6`**, which needs the `F11-10` mod.
+
+1. The mod's own category:
+
+   ```lua
+   for i = 1, 35 do place(ramp.of(colors, i, 1, 35)); up(1) end
+   ```
+
+   **Pass:** a column of 35 that **strobes** — light, plain, dark inside each
+   family in turn — rather than reading as a gradient. That is correct and is
+   why there is no `ramp.colors`. Compare it with `F12-5`'s `ramp.hues` column,
+   which is the smooth one.
+2. A game's category, with the `F11-10` mod installed:
+   `print(ramp.of(wool, 1, 1, 3))`, then `2` and `3`.
+   **Pass:** `wool.blue`, `wool.green`, `wool.red` — **alphabetical**, which is
+   the only order a registered category has.
+3. **Read the two orders against each other.** **Pass:** they are visibly
+   different rules. Palette order for a category the mod registered, alphabetical
+   for one a game registered.
+
+### F17-4 · The help panel after the deletions [F17]
+
+`api.to_hypertext` runs **only** in a running world, so the panel is the one
+surface no spec reaches.
+
+1. **Open the editor's API help panel and find the *Choosing blocks* group.**
+   **Pass:** exactly four rows — `random.of`, `random.hues`, `ramp.hues` and
+   `ramp.of`. **No `ramp.colors`, `ramp.glass`, `ramp.lamps` or `ramp.<name>`,
+   and no `random.color`, `random.glass` or `random.lamp`.** Nothing is
+   truncated.
+2. **Read `ramp.of`'s text.** **Pass:** it says a category a game registered is
+   walked alphabetically and is therefore a lookup rather than a gradient. That
+   caveat used to live on the deleted per-category ramp and had to survive it.
+3. **Find the *Misc* group.** **Pass:** there is **no `table.randomizer` row**.
+4. Run `print(table.randomizer(colors))`.
+   **Pass:** the program stops with an *attempt to index a nil value* error on
+   that line. **The message does not name `table`** — it is not on the
+   named-refusal list `os` and `io` are on, and that is expected, not a fail.
 
 ---
 

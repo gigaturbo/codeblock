@@ -47,6 +47,10 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
       Put the pin back afterwards (audit S9; playtest R5)
 - [ ] re-run R2 on the archive built from the release commit. Install it in a
       game that is not codecube (audit C16, C10)
+- [ ] run F17-1 to F17-4 and re-run F12-6 — `random.of`, `random.hues()`,
+      `ramp.of` over a category, and the help panel with the deleted rows gone.
+      F17-3 and F12-6 both want the codeblock-test-mod installed, so they are one
+      session (audit F17; playtest F17-1 to F17-4, F12-6)
 - [ ] run R4 in a fresh world — its four cases are performable for the first
       time now that `/codeblock level` reads (audit A17; playtest R4)
 

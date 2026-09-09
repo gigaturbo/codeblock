@@ -63,16 +63,19 @@ Experiment and discover with the other examples, or write your own!
   can add a block category of its own with `codeblock.register_blocks`, and it
   shows up in the editor beside the built-in ones.
 - **Colour ramps** `ramp.hues(v, min, max)` maps a number onto the colour wheel,
-  so a shape can be coloured by height or distance. There is one ramp per block
-  category — `ramp.colors`, `ramp.glass`, `ramp.lamps` and one for a category a
-  game has registered. It replaces `color(v, min, max)`, which is gone.
+  so a shape can be coloured by height or distance. `ramp.of(list, v, min, max)`
+  maps a number onto any other list — one of the palette orders below, a block
+  category, or a list you built yourself. The two of them replace
+  `color(v, min, max)`, which is gone.
+- **Picking at random** `random.of(list)` takes one value out of a block
+  category, a palette order or a list of your own. `random.hues()` answers a
+  colour name, so `place(random.hues())` builds a solid block and
+  `lamps[random.hues()]` the matching lamp.
 - **Four ways of walking the palette** `hues`, `light_hues`, `dark_hues` and
   `neutrals` are ordered arrays of colour names — which colours, in what order.
   Every block table is indexed by those same names, so one array becomes a
   gradient in whatever material you index with it: `place(dark_hues[i])` builds
   a solid, `glass[dark_hues[i]]` its glass, `lamps[dark_hues[i]]` its lamp.
-  `ramp.of(list, v, min, max)` maps a number onto any array — one of these, or
-  a list you built yourself.
 - **`get_block(right, up, forward)`** Read the block at an offset from the drone
   without moving it. The offsets turn with the drone, the same way
   `place_relative` does. **`is_block(block, right, up, forward)`** asks the same

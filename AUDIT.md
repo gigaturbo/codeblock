@@ -662,6 +662,29 @@ assertions, 0 failed, 0 xpass, the one known `B4` xfail**, 253 standalone.
 refusals, the `get_int` fallback, the four setting forms, the usage strings and
 the French client.
 
+**`F17` landed at `be3155f` and is gated green.** luacheck silent, `doc/api.md`,
+`locale/template.txt` and `settingtypes.txt` each up to date, **725 in-engine
+assertions, 0 failed, 0 xpass, the one known `B4` xfail, errors `none`**, and 254
+standalone under Lua 5.1 with one legitimate skip. `integration_spec` carries 359
+of them, up from 294. No `S()` key was added or removed, and
+`codeblock_run_tests` was confirmed out of the real `minetest.conf` afterwards.
+
+**`F17`'s coverage is mutation-verified, and the pre-port failures were read
+rather than taken on trust.** Deleting seven names failed 43 existing
+assertions; `test-agent` read all 43 and confirmed each was a deleted-name
+failure rather than accepting that account from the agent that wrote the change.
+**Every new assertion was then driven to failure against three separate
+mutations** of `lib/sandbox.lua` and `lib/blocks.lua`. That is stronger than the
+usual green run and is recorded as such.
+
+**No defect was found in `F17`'s implementation, so it carries no finding id.**
+A feature wrong before it ships is its `ROADMAP.md` entry's business.
+
+**`F17` is unproven in a world.** `F17-1` to `F17-4` are unrun and `F12-6` is
+owed. The API help panel is the surface no spec reaches: `api.to_hypertext` runs
+only in a running world, and `F17-4` is the only reading of the reduced
+*Choosing blocks* group and the absent `table.randomizer` row.
+
 **Committed with gates green, unproven in a world — three:**
 
 - **`B14`** — the cold-cache save-after-rejoin path. Permanently out of reach
@@ -799,4 +822,4 @@ Each of these is a wrong claim that would otherwise be repeated as fact.
 
 ---
 
-Last reviewed **2026-09-08**, describing `fd219ef`, where `A17` is complete.
+Last reviewed **2026-09-09**, describing `be3155f`, where `F17` is complete.
