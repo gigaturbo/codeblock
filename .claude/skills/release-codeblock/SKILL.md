@@ -34,9 +34,12 @@ v1.0.0 is major for several of these at once.
 
 ## 2. The release
 
-- `CHANGELOG.md` — add the version heading, in the existing `- [x]` style.
-  **Lead with what breaks**, then additions, then fixes, then known limitations
-  as `- [ ]`. Someone upgrading reads the first section and stops.
+- `CHANGELOG.md` — add the version heading. **Lead with what breaks**, then
+  additions, then fixes, then known limitations. Someone upgrading reads the
+  first section and stops. **The style changed at v1.0.0:** the current entry
+  uses `## Breaking`, `## Added`, `## Changed`, `## Removed`, `## Fixed`,
+  `## Known limitations` with plain bullets. The `- [x]` and `- [ ]` form
+  belongs to `v0.7.0` and below, which are a record and are not edited (`C11`).
 - `mod.conf` — confirm `min_minetest_version` still matches what the code needs.
   Only raise it when something actually requires it; an honest floor widens the
   audience. Do not add `max_minetest_version`: the engine ignores it and
@@ -45,7 +48,9 @@ v1.0.0 is major for several of these at once.
 - Regenerate the reference if anything in `lib/api.lua` changed:
   `lua scripts/gen_docs.lua`, or boot with `codeblock_gen_docs = true` and copy
   the result out of the world directory (mod security blocks writing into the mod
-  directory). `lua scripts/gen_docs.lua --check` must then exit 0.
+  directory). `lua scripts/gen_docs.lua --check` must then say *up to date* —
+  **read what it prints, never `$?`**, which does not survive this machine's WSL
+  layer.
 - Regenerate `locale/template.txt` if any message text changed:
   `lua scripts/gen_locale.lua`. `lua scripts/gen_locale.lua --check` must then
   say *up to date*, and its `.tr` report names any message a translation is
@@ -68,12 +73,20 @@ v1.0.0 is major for several of these at once.
 
 ## 3. Verify
 
-- CI green on the tagged commit itself: `luacheck`, the six standalone specs and
-  `docs are generated from the code`, which now checks `doc/api.md` **and**
-  `locale/template.txt`. Check `head_sha`; a green run on an earlier commit tells
-  you nothing.
+- CI green on the tagged commit itself, and **all four jobs**: `luacheck`,
+  `preprocessor spec` (the six standalone), **`the nine specs in Luanti`**, and
+  `docs are generated from the code`, which checks `doc/api.md`,
+  `locale/template.txt` and `settingtypes.txt`. Check `head_sha`; a green run on
+  an earlier commit tells you nothing. **Require the engine job by name** — a run
+  with only three jobs predates `C24`, boots no engine, and its green says
+  nothing about `forms_spec`, `stepper_spec`, `integration_spec` or any
+  engine-guarded case.
 - The in-engine suite via `run-tests`, which boots the fixture game in
-  `tests/game`. All nine specs reported, none skipped, `0 failed`, `0 xpass`.
+  `tests/game`. **Read the one verdict line**, which carries every criterion:
+  `9/9 specs`, `0 failed`, `0 xpass`, `0 skipped`. **The spec count and the
+  skipped count fail independently on purpose** — a release is the last place to
+  check one and not the other, because a spec that stopped asserting entirely
+  reads as `9/9` if the two are conflated (`C24`).
 - A fresh clone, which is how a standalone install gets it — and then the suite
   from that clone, because a release that cannot test itself from a clean
   checkout is not ready:
@@ -130,11 +143,13 @@ The README's *Quick start* uses the two tool icons *inline in its instructions* 
 loses its object three times over. An image carrying meaning has to become words,
 not simply be deleted.
 
-**`README.md` is a good README and a bad long description, and today it is
-both.** That is `C19` in `AUDIT.md`, open: the generator is faithful, the source
-is wrong. Fixing it means `long_description` stops being the README — a separate
-file, or a marked section of it — and the replacement text is player-facing copy,
-so it is the author's to write. Do not quietly rewrite it as part of a release.
+**`README.md` was a good README and a bad long description, and for the
+project's life it was both.** That is `C19`, **resolved**: `CONTENTDB.md` is now
+the long description's own source and `gen_cdb_json.sh` embeds it. The README is
+no longer involved. **What is left of `C19` is one unchecked mirror** —
+`CONTENTDB.md`'s *Recent changes* list against `CHANGELOG.md`, hand-kept, above.
+The text is player-facing copy and is the author's to write: do not quietly
+rewrite it as part of a release.
 
 ### The release webhook
 

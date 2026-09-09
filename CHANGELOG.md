@@ -50,7 +50,7 @@ version of the `vector3` package you have installed decides what `vector` does.
 - `settingtypes.txt`: every codelevel limit is settable from the settings menu under Mods, or in `minetest.conf`. Read at load, so a change needs a restart; a malformed value warns and falls back. It is **generated from the code and checked in CI**, so the numbers the menu offers cannot disagree with the mod's real defaults, and a setting the mod reads cannot be missing from the menu
 - `server_step_budget_us`: all running drones share one slice of each server step instead of each having its own, so sixteen drones no longer cost sixteen budgets. `step_budget_us` became a per-drone cap on that share, and a waiting drone takes no share at all
 - `heap_mb` against runaway accumulation, checked where the drone yields, and `max_string_mb` bounding `("x"):rep(1e9)` and amplifying `gsub`
-- A test suite (`tests/`): six specs run standalone under Lua 5.1, all nine in-engine via `codeblock_run_tests`. Plus luacheck and CI, which this repository had none of
+- A test suite (`tests/`): six specs run standalone under Lua 5.1, all nine in-engine via `codeblock_run_tests`. Plus luacheck and CI, which this repository had none of. **CI runs all nine inside a real Luanti server** as well as the six standalone, so the three specs that need the mod loaded are covered by every push rather than only by a run on the author's machine
 - `ROADMAP.md` alongside `TODO.md` and `CHANGELOG.md`: this mod is now versioned and released on its own cadence, and the Codecube game adopts a tagged release rather than following every commit
 
 ## Changed

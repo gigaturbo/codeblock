@@ -127,8 +127,53 @@ if core.settings:get_bool("codeblock_run_tests") then
                      'build ships no tests/ directory')
     else
         first:close()
+
+        -- One verdict line, so a reader and a CI job apply the same pass
+        -- criteria instead of each restating them. Every spec returns its own
+        -- counts, and a spec that returned nothing is missing from the tally -
+        -- which is what catches a spec that did not run at all, the failure a
+        -- per-spec eyeball misses. It carries the word `passed`, so
+        -- run_tests.ps1's report filter keeps it.
+        --
+        -- `skipped` is counted apart from `ran`, and both are reported. The
+        -- three in-engine specs answer their can't-run branch with a table as
+        -- well, so counting every table as a spec that ran let one of them
+        -- stop asserting entirely and still report 9/9: breaking the guard
+        -- forms_spec exists to hold lost 66 assertions and stayed green.
+        local ran, skipped = 0, 0
+        local pass, fail, xfail, xpass = 0, 0, 0, 0
+
         for _, spec in ipairs(specs) do
-            dofile(codeblock.modpath .. '/tests/' .. spec .. '_spec.lua')
+            local r = dofile(codeblock.modpath .. '/tests/' .. spec ..
+                                 '_spec.lua')
+            if type(r) == 'table' then
+                if r.skipped then
+                    skipped = skipped + 1
+                else
+                    ran = ran + 1
+                    pass = pass + (r.passed or 0)
+                    fail = fail + (r.failed or 0)
+                    xfail = xfail + (r.xfail or 0)
+                    xpass = xpass + (r.xpass or 0)
+                end
+            end
+        end
+
+        local verdict =
+            '  suite: %d/%d specs   %d passed   %d failed   %d xfail   ' ..
+                '%d xpass   %d skipped'
+        print(verdict:format(ran, #specs, pass, fail, xfail, xpass, skipped))
+
+        -- Let the run end itself, so no caller has to guess how long the suite
+        -- takes: the local script waited a fixed 25 seconds for a suite that
+        -- finishes in one. Its own setting, because the fixture game enables
+        -- the suite for every boot of it (tests/game/minetest.conf) and
+        -- booting that game to look around has to stay possible.
+        --
+        -- core.after and not a call here: the shutdown belongs on the first
+        -- step, not in the middle of mod load.
+        if core.settings:get_bool('codeblock_run_tests_exit') then
+            core.after(0, function() core.request_shutdown('', false, 0) end)
         end
     end
 

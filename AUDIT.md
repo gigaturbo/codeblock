@@ -17,44 +17,19 @@ and security, `C` compliance and packaging, `A` architecture and performance;
 
 | Series | Total | Resolved | Open | Won't fix |
 |---|---|---|---|---|
-| `B` bugs | 52 | 51 | — | `B34` |
+| `B` bugs | 53 | 52 | — | `B34` |
 | `S` sandbox and security | 9 | 9 | — | — |
-| `C` compliance and packaging | 18 | 17 | `C24` | — |
+| `C` compliance and packaging | 18 | 18 | — | — |
 | `A` architecture and performance | 14 | 14 | — | — |
-| **Total** | **93** | **91** | **1** | **1** |
+| **Total** | **94** | **93** | **—** | **1** |
 
 | Id | Sev | What | Waiting on |
 |---|---|---|---|
-| `C24` | medium | CI boots no engine, so three specs and every engine-guarded case never run in CI | a CI job that boots Luanti |
 | `B34` | low | won't fix: a file cannot be removed without opening it first | decided — a working route exists |
 
 ## Open and won't fix
 
-### C24 · medium · open — CI boots no engine, so an in-engine-only check never runs in CI
-
-**Mechanism.** `.github/workflows/ci.yml` has three jobs: luacheck, the six
-standalone specs under plain Lua 5.1, and the three `--check` generators. **No
-job boots Luanti.** So `forms_spec`, `stepper_spec` and `integration_spec` never
-run in CI, and neither does any case guarded on an engine global inside the six
-that do.
-
-**What made it its own id** is `C23`'s close-out. The cases that check the
-shipped examples against the directory need `core.get_dir_list`, so an example
-added to `lib/examples/` and left off the list is caught by a local
-`run_tests.ps1` run and not by CI, which sees a `skipped:` line and goes green.
-
-**Keep — this is not `C20`'s failure mode.** `C20` was a check that could not
-fail and said nothing about it. This one fails correctly wherever it runs and
-**announces its own absence**: `run_tests.ps1`'s report filter keeps only lines
-matching `passed|failed|FAIL|want|got|skipped|xfail`, so **a spec note about an
-environment it cannot run in must begin with one of those words**.
-
-**Closing it needs a CI job that boots the engine** — the real fix, and the
-larger piece of work, which would also put `integration_spec`'s 300 assertions
-under CI for the first time. **Not by adding `lfs` to the standalone path** to
-enumerate a directory: a dependency for one case is not a trade worth making. It
-does not block the tag; the release is built from a tree a local run has
-covered.
+Nothing is open.
 
 ### B34 · low · won't fix — a file cannot be removed without opening it first
 
@@ -378,9 +353,12 @@ restated.
   are a decision about new worlds only. Singleplayer is **3**, not 4 — level 4 is
   every ceiling at its widest at once, and nothing sits there without someone
   asking.
-- **`B31` — in Windows PowerShell 5.1 `-Encoding utf8` means UTF-8 *with* a
-  BOM**, and Luanti's config parser trims whitespace but not a BOM. Both writes
-  in `run_tests.ps1` go through `[IO.File]` with `UTF8Encoding $false`.
+- **`B31`, `B32` — in Windows PowerShell 5.1 `-Encoding utf8` means UTF-8 *with*
+  a BOM**, and Luanti's config parser trims whitespace but not a BOM;
+  `Add-Content` joins onto a file with no trailing newline. Write a config
+  through `[IO.File]` with `UTF8Encoding $false`. **`run_tests.ps1` no longer
+  writes a config at all** — `C24` removed the code both findings were about —
+  so this is a machine fact for the next script, not a description of that one.
 - **`B21` — `README.md:14`'s trailing spaces are a Markdown hard break.**
   Stripping them joins two lines on the ContentDB page. And in Git Bash
   `grep '[ \t]$'` also matches every line ending in `t`: use
@@ -394,6 +372,74 @@ restated.
   passes.** Make a new one fail once before trusting it. Lua's `%w` excludes the
   underscore every limit name contains, so `[%w_]+` is the fix wherever an
   identifier is matched.
+- **`C24` — the suite is enabled by `tests/game/minetest.conf`, a game default,
+  and by nothing else.** A `minetest.conf` at a game's root supplies defaults
+  when that game is run, and `core.settings` reads that layer. **Nothing writes
+  the player's real config any more**, so there is nothing to strip. A game
+  default cannot reach the player's own game, and `tests export-ignore` keeps
+  the file out of the release archive. Whether `--config` is honoured for the
+  setting is moot.
+- **`C24` — `codeblock_run_tests_exit` is its own setting, not an unconditional
+  shutdown.** The fixture game enables the suite on every boot of it, and
+  booting that game to look around has to stay possible: override
+  `codeblock_run_tests_exit = false` in a user config. The shutdown goes through
+  `core.after(0, ...)`, so it lands on the first step rather than in the middle
+  of mod load.
+- **`C24` — `init.lua` prints one verdict line and every reader applies it.**
+  `suite: 9/9 specs   N passed   0 failed   N xfail   0 xpass   0 skipped`,
+  built from the counts table each spec already returned. The line carries the
+  word `passed`, so `run_tests.ps1`'s report filter keeps it. Do not have a
+  reader restate the criteria instead.
+- **`C24` — `skipped` is counted apart from `ran`, and collapsing the two
+  reopens a path where every assertion vanishes and the run stays green.** The
+  three in-engine specs answer their can't-run branch with a table too —
+  `return {skipped = true}` at `tests/forms_spec.lua:14`,
+  `tests/stepper_spec.lua:12` and `tests/integration_spec.lua:14` — so counting
+  every table as a spec that ran made a skipped spec indistinguishable from one
+  that asserted. **Demonstrated, not argued:** mutating `forms_spec`'s guard to
+  read `codeblock.forms_MISSING`, the exact shape of the regression that guard
+  exists to catch, reported `9/9 specs   659 passed   0 failed   0 xpass` —
+  66 assertions gone and the CI pattern green. All nine skipping printed
+  `9/9 specs   0 passed`, also green, because `[0-9]+ passed` puts no floor
+  under the count. The two counts now fail independently: that same mutation
+  reads `8/9 specs   659 passed   …   1 skipped`. **`0 skipped` beside `9/9` is
+  not redundant.**
+- **`C24` — CI's engine job matches the verdict line anchored on the whole
+  line.** `*0 failed*` also matches `10 failed`. The pattern is
+  `^suite: 9/9 specs +[0-9]+ passed +0 failed +[0-9]+ xfail +0 xpass +0 skipped$`,
+  driven red six ways — 1 failure, 10 failures, 1 xpass, 10 xpass, 8/9 specs,
+  and an absent verdict — before being trusted. That is `C20`'s rule applied.
+- **`C24` — the standalone six stay in CI.** The engine job is added, not
+  substituted: plain Lua 5.1 diverging from the engine's LuaJIT is caught by
+  nothing else.
+- **`C24` — four engine facts the CI job depends on**, each read from the source
+  at tag 5.17.0 rather than assumed. **`--server` must not be passed** to a
+  server-only build: `src/main.cpp:427` registers that flag inside
+  `#if CHECK_CLIENT_BUILD()`, so it would be unrecognised. The local script
+  still needs it, being a client build. **`LUANTI_GAME_PATH` appends to the game
+  search path** (`src/content/subgames.cpp:141`), so `--gameid` finds the
+  fixture without depending on where the image puts `path_user`. **The image
+  runs as uid 30000**, home `/var/lib/minetest`, entrypoint
+  `/usr/local/bin/luantiserver` — hence `chmod -R a+rX` and a world under that
+  home. **`checkout` needs `submodules: recursive`** or the boot fails on
+  `vector3`.
+- **`C24` — the game is assembled outside the workspace and mounted read-only.**
+  A symlink would point at a host path the container cannot see, and
+  `git archive` would obey `tests export-ignore` and drop the very specs the job
+  exists to run.
+- **`C24` — a spec note about an environment it cannot run in must carry
+  `passed`, `failed`, `FAIL`, `want`, `got`, `skipped` or `xfail`**, or
+  `run_tests.ps1`'s report filter drops it. That was `C24`'s own mitigation
+  while it was open and it survives the fix, because `preprocess_spec` still
+  skips its directory enumeration in a standalone run. **Wording alone is not
+  enough — see `B56`.**
+- **`B56` — a spec's can't-run note is `print`, never `io.write`.** In-engine the
+  C stdio buffer behind `io.write` is **discarded when the server exits**, so
+  such a note reached no captured output at all, while every `print` line
+  survived. **This is necessary alongside `C24`'s wording rule, not instead of
+  it:** a note must both open with the token the filter matches and be sent with
+  `print`. The three notes now read `skipped: needs the mod loaded`, and each
+  carries a comment saying why it is `print`.
 - **`B43` — the same rule for a spec number:** the four changed assertions were
   run against the old bounds and failed there with exactly the old numbers, so
   none passes vacuously.
@@ -548,6 +594,7 @@ a row carries a rule, it is above under *Keep*.
 | `B53` | high | the new-file template said `place(blocks.obsidian)`, a category `F11` had deleted, so **every file a player created failed on its first statement** for three days, with five gates green | the template loops over `hues` and names no colour; `integration_spec` reads it out of the source | `de3bcbb` |
 | `B54` | medium | `print` took exactly one parameter, so it dropped every argument after the first with no error, while the concatenated form raised | variadic through `select`, joined with a space, still one command per call | `24842d3` |
 | `B55` | medium | both argument parsers in `lib/register.lua` required a leading `[%a]`, so a player named `007`, `4player` or `_bob` — all legal to the engine — could not be named to `tools`, `generate` or `level`, and the answer was the usage string | both parsers take `[%w_%-]+`; `parse_target` gains `rest_pattern` and `solo_pattern`, so a lone `[1-4]` is a codelevel and anything else is a name | `7c1442d` |
+| `B56` | low | the three in-engine specs wrote their can't-run note with `io.write`, whose buffer the engine discards at exit, so a skipped spec said nothing in any captured output — and `C24`'s wording rule could not help, the filter never receiving the line | all three switched to `print` and reworded to `skipped: needs the mod loaded`, so the note opens with the token the filter matches; driven to appear with two guards broken at once, in the raw capture and under standalone `lua5.1` | working tree |
 
 ### S · Sandbox and security
 
@@ -584,6 +631,7 @@ a row carries a rule, it is above under *Keep*.
 | `C21` | medium | `register_on_newplayer` granted `fly`, `fast` and `noclip` to every new player, in any game that installed the mod | removed outright | `b23a8bc` |
 | `C22` | low | `.luacheckrc`'s sandbox std had drifted: `sleep` and `default_block` were missing, so a correct example would have been reported as a typo | `gen_docs.lua --check` compares the std with `api.names()` in both directions | `4450ce1` |
 | `C23` | medium | the shipped examples were checked against a hand-kept list of names, not against the directory, and the count agreed only by a dead entry | both directions checked against `codeblock.examples.examples`, each failing by name | `de3bcbb`, `63c3c33` |
+| `C24` | medium | CI booted no engine, so `forms_spec`, `stepper_spec`, `integration_spec` and every engine-guarded case never ran in CI | a fourth job runs all nine specs in upstream's `ghcr.io/luanti-org/luanti:5.17.0` server image, reading one verdict line `init.lua` now prints; `tests/game/minetest.conf` enables the suite as a game default and asks for the shutdown, so `run_tests.ps1` writes no user config and waits on the process instead of sleeping | working tree |
 
 ### A · Architecture and performance
 
@@ -612,6 +660,47 @@ blurred.
 
 **Claimed only: nothing.**
 
+**`C24`'s local half is verified; its container half is not.** In the working
+tree: `run_tests.ps1` reports nine summaries and
+`suite: 9/9 specs   725 passed   0 failed   1 xfail   0 xpass   0 skipped`, errors `none`,
+in **2 seconds** against about 27 before; the standalone six report 31, 56, 34,
+31, 29, 73 with the one legitimate `skipped:` line; luacheck is silent and
+`gen_docs`, `gen_locale` and `gen_settingtypes` each say up to date. The
+game-conf mechanism was **verified by experiment before anything was written** —
+the fixture booted with that conf, the real user config untouched, and all nine
+specs ran. The assemble step was run for real in WSL: the game root holds
+`game.conf`, `minetest.conf` and `mods`, `mods/` holds `cbfixture`, `codeblock`
+and `vector3`, and the mod copy carries the nine specs and no `.git`.
+
+**What is unproven is the container.** This machine has no docker, so the
+`engine` job has never executed. **Its first CI run is its first execution**, and
+until that run concludes `C24`'s close rests on the local half plus a read of
+the workflow. The verdict-line pattern is the part that was made to fail
+deliberately; the docker invocation around it is not.
+
+**`C24`'s verdict line was wrong once and carries no id for it.** The first form
+counted every returned table as a spec that ran, so a skipped spec reported as
+one that asserted. It was **found and fixed inside the same uncommitted change**
+and existed at no commit, so it is not a defect in committed code: the
+constraint it produced is under *Keep* and that is its whole record. **What
+found it was a mutation, not a reading** — `forms_spec`'s guard rewritten to
+`codeblock.forms_MISSING` and the run's own report read back.
+
+**`B56` is verified by making the note appear, not by reading the change.** With
+two guards broken at once the report prints two `skipped: needs the mod loaded`
+lines between the `limits` and `integration` summaries, and
+`suite: 7/9 specs   614 passed   0 failed   1 xfail   0 xpass   2 skipped`. The
+same lines were confirmed in the raw capture — where the earlier grep for the
+`io.write` form found nothing at all — and the block still prints under a
+standalone `lua5.1`. Six lines added and three removed across the three specs,
+nothing else touched, and all three stayed fully CRLF.
+
+**Final gates over the whole uncommitted change:**
+`suite: 9/9 specs   725 passed   0 failed   1 xfail   0 xpass   0 skipped`,
+errors `none`; the standalone six at 254 with only `preprocess_spec`'s
+legitimate note; luacheck silent; `gen_docs`, `gen_locale` and
+`gen_settingtypes` each up to date.
+
 **`A17` and `A18` landed at `c089f78`**, touching `init.lua`,
 `lib/formspecs.lua` and `lib/utils.lua`. Gates over it: luacheck baseline
 silent, `LUACHECK_STRICT=1` reporting **no `W421` in the tree**, the three
@@ -636,19 +725,24 @@ accepted. **The load order is verified by a boot, not by inspection** —
 `lib/examples.lua`, `lib/filesystem.lua` and `lib/config.lua` each call a
 rehomed symbol at file scope and would take the mod down in the wrong order.
 
-**`A17`'s in-world reading is owed, and one route to it is open.** Setting
-`codeblock_default_auth_level = 9` and reading the warning in `debug.txt`
-exercises the call-time read and needs no command. Playtest `R4` carries that
-reading at `cd13414`, before `6a4fa91`, so it has to be taken again.
+**`A17`'s in-world reading is taken.** Playtest `R4` passes at `f700410`,
+record-only over `3fa9d0c`, engine 5.17.0, 2026-09-09, with the log half re-read
+at that commit: `codeblock_default_auth_level = 9` warns and falls back. That
+exercises the call-time read of `default_auth_level` after `6a4fa91`, which the
+earlier `cd13414` reading could not.
 
-**`R4`'s four numbered cases became performable at `7c1442d`.** They ask for a
-codelevel to be read back, which `F16` added. The check is `owed`, and its
+**`R4` is played in full.** All four numbered cases were performed in fresh
+worlds and read back with `/codeblock level`, the reading `F16` made possible at
+`7c1442d`; case 2 was a real server with a joiner who had never connected. Its
 `dd98aab` fail is superseded.
 
-**Neither runtime call site of `check_auth_level` is pinned.** The function is
-covered; `lib/drone.lua:148`, the read path at `lib/register.lua:399` and the
-set path at `lib/register.lua:414` are not. Playtests `R4`, `F16-4` and `F10-3`
-exercise them, and all last passed before this change or have never run.
+**Both `lib/register.lua` call sites of `check_auth_level` are exercised after
+`A17`.** The read path at `lib/register.lua:387` is covered by `R4` at
+`f700410` and by `F16-4` at `fb75bc8`; the set path at `lib/register.lua:402` by
+`F16-5` at `fb75bc8`. **The third site, `lib/drone.lua:148`, is run by every
+in-world program at `6440ca0` and later, and no check reads the level it
+returns.** `F10-3` last passed at `b23a8bc`, before the change, and its case 3
+reads the privilege refusal rather than this function.
 
 **`B55` is verified in a world.** Playtest `F16-8` passes at `fb75bc8`, engine
 5.17.0, 2026-09-08 — `tools`, `generate` and `level` each act on a player named
@@ -711,10 +805,22 @@ end to end — three files open, close the middle one, then the last — coverin
 both branches the assignment replaced. `E2` case 2 reaches `remove_active`'s
 fallback with two files open, for the first time in a real world.
 
-**Unproven in a world — the `S9` load-time warning.** `init.lua` logs one
-`warning` when the installed `vector3` hands back its method table. No spec can
-reach it: it fires at mod load, and the fixture pins v2.0.2, where the branch is
-not taken. Its check is `R5`, unrun.
+**`S9`'s load-time warning is verified in a world.** `R5` passes at `f700410`,
+record-only over `3fa9d0c`, engine 5.17.0, 2026-09-09 — all three `vector3`
+versions swapped by hand, v1.5 and v2.0.1 each logging exactly one `[codeblock]`
+warning naming the right guessed version, v2.0.2 silent, and the pin back at
+`fc8a5b8`. **No spec can reach that branch**: it fires at mod load, and the
+fixture pins v2.0.2, where it is not taken. So this run is its only evidence.
+
+**`C10`, `C16` and `C18` are re-confirmed at `f700410`.** `R1` reads the archive
+at that commit: eleven top-level entries, no `tests/`, `screenshot.png` present,
+`textures/` seven PNGs with both `.svg` sources excluded, `lib/examples/`
+fourteen files including `game.lua`. `R2` extracts the same archive into
+`minetest_game`'s `mods/` beside `vector3` with `codeblock_run_tests = true`: the
+mod loads and logs that the build ships no `tests/` directory — the first such
+run after `F4` and both `.gitattributes` changes. `R3` reads the game's own sky
+**against the absence of the five overrides**, where its 2026-08-28 pass read
+against the `codeblock_flat_sky` guard.
 
 **Not verified anywhere, with no route left: `B10`'s refusal.** Playtest `D2`'s
 second case aimed at it twice and was removed as untestable; producing it needs
@@ -834,5 +940,7 @@ Each of these is a wrong claim that would otherwise be repeated as fact.
 
 ---
 
-Last reviewed **2026-09-09**, describing `6440ca0`, record-only over `3fa9d0c`.
-`F17` is complete and played.
+Last reviewed **2026-09-09**, describing the working tree over `f700410`. **94
+findings, none open, one won't fix (`B34`).** `F17` is complete and played, the
+`R` group is played whole, and `C24` and `B56` both close in the same uncommitted
+change — `C24` with its container half unproven until the first CI run.

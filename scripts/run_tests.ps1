@@ -1,19 +1,23 @@
 # Run the nine specs inside Luanti, against the fixture game in tests/game.
 #
-# Six of them also run under a bare Lua 5.1 in CI; forms_spec, stepper_spec and
-# integration_spec need the mod loaded and only run here.
+# Six of them also run under a bare Lua 5.1 in CI, and CI runs all nine in
+# upstream's server container. This is the same run on the engine the mod is
+# actually developed against.
 #
-# The one rule that must not be broken: enabling the suite means writing
-# codeblock_run_tests into the user's real minetest.conf, because Luanti's
-# --config flag is silently ignored for it. The setting is stripped in a finally
-# block, on the failure path too. Left behind, it runs the suite on every launch.
+# The suite is enabled by tests/game/minetest.conf, a game default, so this
+# script writes nothing into the player's real minetest.conf and has nothing to
+# strip afterwards - which is what the whole shape of this file used to be built
+# around. That same game conf asks the server to shut itself down once the suite
+# has reported, so there is no fixed sleep here either. (C24)
 #
 #   powershell -File scripts/run_tests.ps1 [-KeepWorld] [-Exe <path>]
 
 [CmdletBinding()]
 param(
     [string]$Exe = "$env:LOCALAPPDATA\luanti\5.17.0\bin\luanti.exe",
-    [int]$Seconds = 25,
+    # Only a ceiling on a run that ends itself in about a second. Reaching it
+    # means the suite never reported, and the report below then says so.
+    [int]$TimeoutSeconds = 120,
     [switch]$KeepWorld
 )
 
@@ -22,15 +26,13 @@ $ErrorActionPreference = "Stop"
 $repo  = Split-Path -Parent $PSScriptRoot
 $game  = Join-Path $env:APPDATA "Minetest\games\cbtest"
 $link  = Join-Path $game "mods\codeblock"
-$uconf = Join-Path $env:APPDATA "Minetest\minetest.conf"
 
-if (-not (Test-Path $Exe))   { throw "engine not found: $Exe" }
-if (-not (Test-Path $uconf)) { throw "user config not found: $uconf" }
+if (-not (Test-Path $Exe)) { throw "engine not found: $Exe" }
 
 # --- assemble the fixture game ------------------------------------------------
 # The game cannot live in the repository, because it has to contain the
 # repository as one of its mods. So it is assembled here: tests/game copied for
-# game.conf and the stubs, and a junction for the mod itself.
+# game.conf, minetest.conf and cbfixture, and a junction for the mod itself.
 #
 # The junction is removed with rmdir and never with Remove-Item -Recurse, which
 # follows a junction and would delete the repository behind it.
@@ -43,37 +45,22 @@ if (-not (Test-Path (Join-Path $link "mod.conf"))) {
     throw "junction did not take: $link"
 }
 
-# --- boot, capture, kill ------------------------------------------------------
+# --- boot and capture ---------------------------------------------------------
 $world = Join-Path $env:TEMP ("cb_test_" + [guid]::NewGuid().ToString("N").Substring(0, 8))
 $out   = "$world.out"
 $err   = "$world.err"
 
-# Both edits to the user's config go through .NET rather than the PowerShell
-# cmdlets. In Windows PowerShell 5.1 `-Encoding utf8` means UTF-8 *with* a BOM,
-# and Luanti's parser trims whitespace but not a BOM, so Set-Content silently
-# kills whatever setting is on the first line - which it did to a real config
-# here. Reading with ReadAllText also strips a BOM already present. (B31)
-#
-# Add-Content would join the setting onto the last line when the file does not
-# end in a newline, making it part of another setting's value. (B32)
-$utf8 = New-Object System.Text.UTF8Encoding $false
+$p = Start-Process -FilePath $Exe -PassThru -NoNewWindow `
+    -ArgumentList @("--server", "--gameid", "cbtest", "--world", $world) `
+    -RedirectStandardOutput $out -RedirectStandardError $err
 
-$before = [IO.File]::ReadAllText($uconf)
-if ($before.Length -gt 0 -and -not $before.EndsWith("`n")) { $before += "`r`n" }
-[IO.File]::WriteAllText($uconf, $before + "codeblock_run_tests = true`r`n", $utf8)
-
-try {
-    $p = Start-Process -FilePath $Exe -PassThru -NoNewWindow `
-        -ArgumentList @("--server", "--gameid", "cbtest", "--world", $world) `
-        -RedirectStandardOutput $out -RedirectStandardError $err
-    Start-Sleep -Seconds $Seconds
-    if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
+# The game conf asks for a shutdown once the suite has reported, so waiting for
+# the process is waiting for the suite. Kill only if it overruns, which means
+# something other than the suite is holding the server up.
+if (-not $p.WaitForExit($TimeoutSeconds * 1000)) {
+    "the server did not exit within $TimeoutSeconds s - killing it"
+    Stop-Process -Id $p.Id -Force
     Start-Sleep -Seconds 2
-}
-finally {
-    $kept = @([IO.File]::ReadAllLines($uconf) |
-        Where-Object { $_ -notmatch '^codeblock_run_tests' })
-    [IO.File]::WriteAllLines($uconf, $kept, $utf8)
 }
 
 # --- report -------------------------------------------------------------------

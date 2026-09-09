@@ -7,8 +7,12 @@
 -- it is given". That is only checkable with control of the clock, which is why
 -- the stepping logic was pulled out of the entity callback in the first place.
 
+-- print and not io.write: in-engine the C stdio buffer is discarded when the
+-- server exits, so an io.write note reached no captured output at all, while
+-- every print line survived. The note begins with `skipped:` so
+-- run_tests.ps1's report filter keeps it. (B56)
 if not (rawget(_G, 'codeblock') and codeblock.stepper) then
-    io.write('\n  stepper_spec\n  skipped (needs the mod loaded)\n\n')
+    print('\n  stepper_spec\n  skipped: needs the mod loaded\n')
     return {skipped = true}
 end
 

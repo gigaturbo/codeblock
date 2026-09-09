@@ -64,8 +64,10 @@ powershell -ExecutionPolicy Bypass -File scripts/run_tests.ps1   # the nine spec
 
 **Read the output, not the exit code.** `$?` does not survive this machine's WSL
 layer, so a gate is green when it *says* so: luacheck silent, `doc/api.md`,
-`locale/template.txt` and `settingtypes.txt` each *up to date*, and `failed` and
-`xpass` both 0 in the spec run. The `run-tests` skill owns the suite's procedure.
+`locale/template.txt` and `settingtypes.txt` each *up to date*, and the spec
+run's one verdict line reading `9/9 specs`, `0 failed`, `0 xpass`, `0 skipped`.
+**The spec count and the skipped count fail independently** — check both. The
+`run-tests` skill owns the suite's procedure.
 
 If the feature adds or changes a player-facing name, the edit spans `lib/api.lua`,
 the `impls` table in `lib/sandbox.lua`, regenerated `doc/api.md` and

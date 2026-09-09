@@ -27,9 +27,9 @@ three versions.
 **`S8` and `S9` are both closed.** `snapshot_vector3` in `lib/sandbox.lua`
 rebuilds each `vector` constant with the constructor, so a run cannot reach the
 module's own; `vector3` v2.0.2 separates the metatable from the methods table
-and the submodule is bumped to `fc8a5b8`. **`S8` now has its in-world reading**
-— `F-6` passes at `6440ca0` on the pinned v2.0.2 — and `S9`'s is `R5`, unrun.
-`S9` is still live for a player on
+and the submodule is bumped to `fc8a5b8`. **Both now have their in-world
+reading** — `F-6` passes at `6440ca0` on the pinned v2.0.2, and `R5` passes at
+`f700410` on all three versions. `S9` is still live for a player on
 v1.5 or v2.0.1, which the mod now names in `debug.txt` at load and which the
 support matrix in the `run-tests` skill tracks.
 
@@ -37,7 +37,23 @@ support matrix in the `run-tests` skill tracks.
 loops now assignments. `A17` finishes at `6a4fa91`: `lib/utils.lua` is deleted,
 four names rehomed and three made private. `fd219ef` pins the new home in
 `integration_spec`. Gates green there — 671 in-engine assertions, 0 failed, 0
-xpass. **`C24` is the one open finding**, and it is `Phase 9`'s.
+xpass.
+
+**`C24` is closed.** CI has a fourth job, *the nine
+specs in Luanti*, running the whole suite in upstream's
+`ghcr.io/luanti-org/luanti:5.17.0` server image. The three in-engine-only specs
+and every engine-guarded case are now run by something other than a local
+`run_tests.ps1`, and this is also the first CI job to run the mod on LuaJIT.
+**The container half is unproven** — this machine has no docker, so the first CI
+run is the job's first execution. The local half is verified: 2 seconds instead
+of 27, and
+`suite: 9/9 specs   725 passed   0 failed   1 xfail   0 xpass   0 skipped`.
+
+**`B56` closes in the same change, and no finding is open.** The three in-engine
+specs wrote their can't-run note with `io.write`, whose buffer the engine
+discards at exit, so a skipped spec said nothing in any captured output. All
+three now use `print` and read `skipped: needs the mod loaded`. Verified by
+breaking two guards at once and watching both notes appear.
 
 **`F16` and `B55` shipped at `7c1442d`, with `2608dc3`'s 28 spec cases over the
 two parsers.** `/codeblock level` reports a codelevel, and any engine-legal
@@ -47,30 +63,50 @@ assertions with 0 failed, 0 xpass and the one known `B4` xfail, 253 standalone.
 **Both are played:** `F16-1` to `F16-8` all pass at `fb75bc8`, engine 5.17.0,
 2026-09-08, and `F16-8` is `B55`'s only possible in-world evidence.
 
-**Six commits are unpushed over `origin/master` at `fb75bc8`.** `fb75bc8`'s CI
-run — luacheck, the six standalone specs, the three generator checks —
-concluded success. **`F17` and `C18`'s `flat_sky` removal have therefore not
-been through CI.** Take the count from
-`git rev-list --count origin/master..HEAD`, never from counting hashes.
+**`C24`'s and `B56`'s work is uncommitted — seven files.**
+`.github/workflows/ci.yml`, `init.lua`, `scripts/run_tests.ps1`, a new
+`tests/game/minetest.conf`, and the three in-engine specs. Nothing is unpushed
+because nothing is committed yet; the engine job cannot report until it is.
 
-**Every `Phase 8` feature has shipped and every feature check is played.**
-`PLAYTEST.md`'s remaining action is the `R` group alone: `R5` unrun, `R1` and
-`R2` stale, `R3` and `R4` owed. `E2` and `E3` pass at `fffdded`, which is
-`A18`'s in-world evidence.
+**`origin/master` is `f700410`**, and that commit's CI run concluded success on
+the three jobs it then had — luacheck, the six standalone specs, the three
+generator checks — so `F17` and `C18`'s `flat_sky` removal have both been
+through CI. **It booted no engine**; `C24`'s fourth job does not exist at that
+commit. Take
+the count from `git rev-list --count origin/master..HEAD`, never from counting
+hashes.
 
-**`R4` is runnable as written for the first time.** Its four numbered cases ask
-for a codelevel to be read back, which `7c1442d` added, so its `dd98aab` fail is
-superseded. `A17`'s call-time read is still owed one in-world reading, which the
-check's log half gives on its own.
+**`PLAYTEST.md` has nothing owed, stale or unrun, for the first time.** The `R`
+group was played whole on 2026-09-09 at `f700410`, record-only over `3fa9d0c`,
+engine 5.17.0: `R1` to `R5` all pass. Every live check now carries a current
+pass except `H8`, which is `unreachable`. **That holds at `f700410` and `C24`'s
+commit ends it for `R1` and `R2`.**
+
+**What that run closed.** `R4`'s four numbered cases were played in fresh
+worlds and read back with `/codeblock level`, which is also `A17`'s owed
+in-world reading of the call-time `default_auth_level`. `R5` is `S9`'s only
+possible in-world evidence. `R1` and `R2` re-confirm `C10` and `C16` at the
+current tree, and `R3` reads on the absence of the `flat_sky` guard rather than
+on the guard.
 
 ## Finalising v1.0.0
 
-Steps 6–10 are the `release-codeblock` skill's procedure and are not restated.
+Steps 4–7 are the `release-codeblock` skill's procedure and are not restated.
 
-**`F17`'s in-world checks are done and the numbers do not move.** `F17-1` to
-`F17-4` and `F12-6` all pass at `6440ca0`; `F12-5` kept its pass on the half
-`F17` did not touch. What step 7's `release-check` still reads as outstanding is
-the `R` group.
+**No playtest is outstanding.** `F17-1` to `F17-4` and `F12-6` all pass at
+`6440ca0`, `F12-5` kept its pass on the half `F17` did not touch, and the `R`
+group passes whole at `f700410`. Step 4's `release-check` reads nothing
+outstanding in `PLAYTEST.md`. **`C24` adds no in-world check** — what it changed
+is the harness and CI, neither of which a player meets. What it does owe is one
+CI run, which is not a playtest.
+
+**`R1` and `R2` are owed against the tag.** Both were run against `f700410`,
+which is still `HEAD`, so neither is stale yet — they go stale the moment
+`C24` commits, and the release archive is built from the tag. **`R2` is the one
+that has something new to read**: `C24` changes `init.lua`, which ships, and
+`R2` boots the extracted archive with `codeblock_run_tests = true` on a build
+that has no `tests/`. `R1` reads top-level entries only, and `C24` adds no file
+outside the already-ignored `tests` and `.github`.
 
 **`CONTENTDB.md`'s description was corrected at ship, not deferred.** It was
 naming `ramp.colors`, `ramp.glass`, `ramp.lamps` and a ramp per registered
@@ -91,26 +127,17 @@ the page says what a player writes now, `CHANGELOG.md` says what stops working.
 3. **Upload the new screenshots to the ContentDB page** — it loads them from raw
    GitHub URLs on `master`, so the new names go up and the dropped 2021 file
    comes off. (`C19`)
-4. **Run `R5`**, the one unrun check left. It needs the `vector3` submodule
-   swapped to v1.5 and to v2.0.1 by hand, a world started on each, and the pin
-   put back before the suite runs. It is `S9`'s only in-world reading. (`S9`)
-5. **Run `R4` in a fresh world.** Its log half —
-   `codeblock_default_auth_level = 9` and the warning in `debug.txt` — needs no
-   command and is the one in-world reading `A17`'s call-time read is owed.
-   (`A17`, `S6`)
-6. **Re-run `R2`** on the archive built from the release tag, not `HEAD`. Stale
-   since `7c5bceb`, before `F4`, `F11`'s textures and `.gitattributes`. Install
-   it in a game that is not `codecube`. (`C16`, `C10`)
-7. **`release-check`**, and do not start the tag until it says ready.
-8. **Strike what the release closed** from `ROADMAP.md` and `TODO.md`, confirm
+4. **`release-check`**, and do not start the tag until it says ready.
+5. **Strike what the release closed** from `ROADMAP.md` and `TODO.md`, confirm
    the `vector3` submodule commit is pushed, commit, push, tag `v1.0.0`.
-9. **Upload to ContentDB**, long description from the regenerated `.cdb.json`.
-10. **Configure the release webhook** — trigger **Branch or tag creation**.
+6. **Upload to ContentDB**, long description from the regenerated `.cdb.json`.
+7. **Configure the release webhook** — trigger **Branch or tag creation**.
 
 Done and not repeated here: `CHANGELOG.md` is the heading alone, `CONTENTDB.md`
 was corrected at `c2e541f`, `settingtypes.txt`'s generator landed, `B47` shipped
 mitigated, and `B48`, `B49`, `B50`, `B51`, `B52`, `B53`, `B54`, `C21`, `C22`,
-`C23`, `F10`–`F14` and `F16` are all committed with their playtests run.
+`C23`, `F10`–`F14`, `F16` and `F17` are all committed with their playtests run,
+and the `R` group is played whole.
 
 **After the tag.** `Phase 9` opens on what comes back from players. `codecube`
 adopts the release on its own schedule. `Phase 10` needs `F6`'s four obstacles
@@ -128,15 +155,15 @@ answered in writing before any code.
 | 5 | Limits that track real load | done | 4/4 |
 | 6 | Limits for what the server spends | done | 3/3 |
 | 7 | Clear the way for features | done | 26/26 |
-| 8 | Features for v1.0.0 | in progress | 14/14 features shipped; `C24` open |
-| 9 | v1.x.y — after the release | not started | 0/1 |
+| 8 | Features for v1.0.0 | done | 14/14 features shipped, no finding open |
+| 9 | v1.x.y — after the release | its one queued item is closed early | 1/1 |
 | 10 | v2.0.0 — the Blockly editor | not started | 0/1 |
 
 Findings by phase: 0 (`C8`, `A12`); 1 (`C1`, `B5`, `B8`, `B9`); 2 (`B1`–`B4`,
 `B6`, `B23`, `S1`–`S4`, `A10`); 3 (`A1`, `A2`, `B22`); 4 (`A5`, `B12`, `A4`,
 `A15`); 5 (`S5`, `S6`, `C7`, `C13`, at `43e95a8`); 6 (`B25`, `B26`, `C14`, at
 `2647228`); 7 (`A3`, `A6`, `A9`, `A11`, `A16`, `C6`, `C10`–`C12`, `B7`, `B10`,
-`B11`, `B13`–`B18`, `B21`, `B27`–`B32`, `C16`, `742a1ca`–`191b533`); 9 (`C24`);
+`B11`, `B13`–`B18`, `B21`, `B27`–`B32`, `C16`, `742a1ca`–`191b533`); 9 (`C24`, `B56`);
 10 (`F6`).
 
 **Done through Phase 7 means findings closed and gates green, not played.**
@@ -144,19 +171,19 @@ Phase 8's playtests have since found fifteen defects in code those phases called
 done — `B36`–`B44`, `C17`, `C18`, `S7`, `B50`–`B52` — and all fifteen are fixed
 and played.
 
-**Phase 8's one open finding is `C24`**, queued for `Phase 9`. `S8` closed with
-the per-constant copy, `S9` with the v2.0.2 bump, `A17` with the deletion of
-`lib/utils.lua`, `A18` with the two assignments and `B55` with the widened
-parsers. `B10`'s refusal is out of the phase rather than
-done — its check was removed as untestable and reaching it needs a way to
-observe the server releasing a mapblock.
+**Phase 8 has no open finding, and neither does anything else.** `S8` closed
+with the per-constant copy, `S9`
+with the v2.0.2 bump, `A17` with the deletion of `lib/utils.lua`, `A18` with the
+two assignments and `B55` with the widened parsers. `B10`'s refusal is out of the
+phase rather than done — its check was removed as untestable and reaching it
+needs a way to observe the server releasing a mapblock.
 
-**Phase 9 holds one item:** give CI a job that boots the engine, so the three
-in-engine-only specs and every engine-guarded case are run by something other
-than a local `run_tests.ps1` (`C24`). Closing it means a CI job that starts
-Luanti, or `lfs` for one directory enumeration — not a dependency worth adding.
-Otherwise deliberately empty: a phase for what comes back from players is worth
-more empty than filled in advance.
+**Phase 9's one queued item is done before the phase opened.** `C24` was to give
+CI a job that boots the engine; it landed in the working tree above `f700410`
+rather than after the tag, because the tag is what it protects. `lfs` for one
+directory enumeration was refused again — not a dependency worth adding. The
+phase is otherwise deliberately empty: a phase for what comes back from players
+is worth more empty than filled in advance.
 
 ## The features
 
@@ -799,6 +826,37 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 - **A check that would be red locally and green in CI is backwards.** Settle the
   local anomaly rather than weaken the check — `C23`'s second direction was
   deferred for hours on exactly that, and the answer was to track the file.
+- **The suite is enabled by a game default, and that mechanism was found by
+  experiment.** `tests/game/minetest.conf` sets `codeblock_run_tests` and
+  `codeblock_run_tests_exit`; `lua_api.md` says a `minetest.conf` at a game's
+  root supplies defaults when that game is run, and the fixture was booted
+  against it with the real user config untouched before a line was written.
+  **Do not re-derive this from `--config`**, which was believed to be silently
+  ignored for the setting and is now moot. Nothing writes the player's real
+  config, so nothing has to strip it. (`C24`)
+- **`codeblock_run_tests_exit` is a setting rather than an unconditional
+  shutdown.** The fixture game now enables the suite on every boot of it, and
+  booting that game to look around has to stay possible. (`C24`)
+- **One verdict line, and every reader applies it.**
+  `suite: 9/9 specs   N passed   0 failed   N xfail   0 xpass   0 skipped`, so a
+  human and a CI job do not each restate the pass criteria. **Do not add a second
+  set of criteria beside it.** (`C24`)
+- **`skipped` is counted apart from the spec count, and the two must not be
+  collapsed.** A skipped spec returns a table like any other, so one count could
+  not tell *asserted* from *could not run*: breaking the guard `forms_spec`
+  exists to hold lost 66 assertions and reported `9/9 specs` green. Two counts
+  fail independently. **A pass criterion with no floor under it —
+  `[0-9]+ passed` — is not a criterion**; nine specs all skipping printed
+  `0 passed` and matched. (`C24`)
+- **A can't-run note is `print`, never `io.write`.** Luanti flushes `print` per
+  line and discards the C stdio buffer behind `io.write` at exit, so wording a
+  note to survive the report filter is necessary and not sufficient — both are
+  required. Detection belongs to the verdict line's `skipped` field, never to
+  the note. (`C24`, `B56`)
+- **CI's engine job is added, not substituted.** The six standalone specs under
+  plain Lua 5.1 stay, because they are the only thing catching plain 5.1
+  diverging from the engine's LuaJIT. Upstream's own `luanti:5.17.0` server
+  image is used, so there is no build step and no third party's binary. (`C24`)
 - **A generator guarantees the output matches its input, and nothing more.**
   `.cdb.json` never drifted; it was faithfully generated from the wrong source
   for the project's whole life (`C19`).
@@ -990,8 +1048,8 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 
 ---
 
-Last reviewed **2026-09-09**, describing **`0e9b81d`**, over `6440ca0`. `origin/master` is **`fb75bc8`**, **six
-commits behind `HEAD`**. `PLAYTEST.md`: 97 entries, `F11-4` retired, one unrun
-(`R5`), two stale (`R1`, `R2`), one unreachable (`H8`), two owed (`R3`, whose
-guard is gone, and `R4`, carrying a superseded fail). `AUDIT.md`: 93 findings,
-one open — `C24`, medium. The `flat_sky` removal is `3fa9d0c`.
+Last reviewed **2026-09-09**, describing the working tree over **`f700410`**,
+which holds `C24`'s and `B56`'s seven files uncommitted. `origin/master` is **`f700410`**, CI
+green there. `PLAYTEST.md`: 97 entries, `F11-4` retired, one unreachable (`H8`),
+`R1` and `R2` due to go stale the moment `C24` commits. `AUDIT.md`: 94 findings,
+**none open**, one won't fix (`B34`). The `flat_sky` removal is `3fa9d0c`.

@@ -60,9 +60,10 @@ Two exceptions, both read-only in effect and both necessary:
   and report. Check `git status`
   afterwards to prove the tree is clean.
 
-Never run either generator without `--check`; both write. `run_tests.ps1`
-writes `codeblock_run_tests` into the user's real config and strips it in a
-`finally` block — confirm afterwards that it is gone.
+Never run either generator without `--check`; both write. `run_tests.ps1` writes
+nothing outside a throwaway world: the suite is enabled by
+`tests/game/minetest.conf`, a game default, so the user's real config is never
+touched and there is nothing to confirm gone afterwards.
 
 ## The gates
 
@@ -78,13 +79,15 @@ every result — someone fixing one thing wants to know what else is waiting.
 
 ### 2. Tests pass
 
-Use the `run-tests` skill. Required: **all nine specs reported**, none skipped,
-`0 failed`, **`0 xpass`**.
+Use the `run-tests` skill. Required, and all four are on one verdict line:
+**`9/9 specs`**, `0 failed`, **`0 xpass`**, **`0 skipped`**.
 
-None skipped is now a real requirement, not an aspiration: the fixture game in
+`0 skipped` is a real requirement, not an aspiration: the fixture game in
 `tests/game` means `forms_spec`, `stepper_spec` and `integration_spec` run here
-too. A "skipped (needs the mod loaded)" line means the fixture failed to boot —
-investigate rather than accept it.
+too. A non-zero `skipped`, or a `skipped: needs the mod loaded` line, means the
+fixture failed to boot or a module stopped being exported — investigate rather
+than accept it. **`9/9` and `0 skipped` fail independently on purpose**; a
+reader who checks only one can miss a spec that stopped asserting entirely.
 
 An `xpass` is not good news to be waved through. It means a test asserting a
 known defect now passes — either the defect was fixed and the test should be
@@ -100,13 +103,17 @@ passing this gate.
   `https://api.github.com/repos/gigaturbo/codeblock/actions/runs?per_page=5`,
   then `/actions/runs/<id>/jobs`. Check the run's `head_sha` matches — a green run
   on an older commit tells you nothing.
-- Every job, not just the first: `luacheck`, `preprocessor spec`, and
-  `docs are generated from the code`.
+- Every job, not just the first: `luacheck`, `preprocessor spec`,
+  **`the nine specs in Luanti`**, and `docs are generated from the code`.
 
-**A green CI is narrower than it looks.** It boots no engine, so `forms_spec`,
-`stepper_spec`, `integration_spec` and every engine-guarded case inside the other
-six are unproven by it — that is `C24`, open. Only the local `run_tests.ps1` of
-gate 2 covers them, so do not let a green CI stand in for it.
+**CI boots the engine since `C24`**, so `forms_spec`, `stepper_spec`,
+`integration_spec` and every engine-guarded case are covered there as well as by
+gate 2. **Require the `the nine specs in Luanti` job explicitly** — a run that
+predates `C24` has only three jobs and its green says nothing about them.
+
+**What a green CI still does not cover** is anything in a running world: the
+suite runs at mod load, before a map, a player or a user directory exists. That
+is gate 2's local run plus `PLAYTEST.md`, and neither is replaced.
 
 ### 4. The API reference matches the code
 

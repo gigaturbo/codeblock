@@ -67,25 +67,20 @@ Result: ...
 | Entries | 97 |
 | Retired | 1 — `F11-4` |
 | Live checks | 96 |
-| Most recent result a pass | 93 |
+| Most recent result a pass | 95 |
 | Unreachable | 1 — `H8` |
-| Unrun | 1 — `R5` |
-| Stale | 2 — `R1`, `R2` |
-| Owed | 2 — `R3`, `R4` |
-| Fail as most recent result | 1 — `R4` |
+| Unrun | 0 |
+| Stale | 0 |
+| Owed | 0 |
+| Fail as most recent result | 0 |
 
-**Every check needing action is in the `R` group.** All of `Phase 8`'s feature
-checks are played.
+**Nothing is owed.** Every live check carries a current pass except `H8`, which
+is `unreachable` and cannot improve. The `R` group was played whole on
+2026-09-09, which closed the last `unrun` entry the file ever had.
 
-Checks needing action:
-
-| Check | State | Reason |
-|---|---|---|
-| [`R5`](#r5--an-old-vector3-is-named-in-the-log-at-mod-load-s9) | unrun | The load-time warning about an old `vector3`. Needs the submodule swapped by hand. |
-| [`R1`](#r1--the-archive-contains-no-tests-c16-c10) | stale | Texture and example counts have changed since the last run. |
-| [`R2`](#r2--a-real-install-with-the-test-flag-set-c16) | stale | Last run at `7c5bceb`, before `F4` and two `.gitattributes` changes. |
-| [`R3`](#r3--the-sky-belongs-to-the-game-c18) | owed | Rewritten to one case. Its pass is against the `flat_sky` guard, which is gone with the five overrides. |
-| [`R4`](#r4--a-brand-new-world-hands-out-the-right-codelevel-s6) | owed | Its four cases are runnable as written since `7c1442d`. Carries a fail against the command before `F16`. Its log half is what `A17` is owed. |
+**A pass is current, not permanent.** A check goes `owed` again the moment the
+code under it changes, and `stale` when a count it names stops describing the
+tree.
 
 ---
 
@@ -1244,11 +1239,11 @@ Result: pass — `7dbe18f` · engine n/a · 2026-09-02 — re-checked after
 shipped four PNGs with the two `.svg` sources excluded. No engine is needed: this
 reads `git archive`, not an install. Whether the archive *loads* is `R2`.
 
-**Both results are stale on the counts.** `textures/` now holds **seven PNGs and
-two `.svg` sources** (`F11` and `F12`), and `lib/examples/` holds **fourteen**
-(`tests.lua` deleted, `game.lua` tracked at `63c3c33`). The next run says whether
-the new PNGs ship, whether `game.lua` ships with the other examples, and whether
-the `.svg` pair still does not.
+Result: pass — `f700410`, record-only over `3fa9d0c` · engine n/a · 2026-09-09 —
+the same eleven top-level entries. The counts the two earlier results left stale
+are answered from the same archive: `textures/` ships **seven PNGs** with both
+`.svg` sources excluded, and `lib/examples/` ships **fourteen** including
+`game.lua`. No engine is needed.
 
 ### R2 · A real install with the test flag set [C16]
 
@@ -1275,11 +1270,21 @@ archive.
 build ships no tests/ directory"*. **Fail is the mod refusing to load** — bare
 `dofile`s of files the archive does not contain.
 
+**Set only `codeblock_run_tests`.** `codeblock_run_tests_exit` is read inside the
+block, after the probe, so on a build with no `tests/` it is never reached and
+cannot shut the server down. A server that quits on join is a different failure
+(`C24`).
+
 **Do it in a game that is not `codecube`.** `B38`, `B39` and `C18` were each
 invisible there.
 
 Result: pass — `7c5bceb` · engine 5.17.0 · 2026-08-28 — extracted into a game's
 `mods/` beside `vector3`; loaded and warned. **`C16` confirmed.**
+
+Result: pass — `f700410`, record-only over `3fa9d0c` · engine 5.17.0 ·
+2026-09-09 — in `minetest_game`, after `F4` and both `.gitattributes` changes.
+The mod loaded and logged *"codeblock_run_tests is set, but this build ships no
+tests/ directory"*.
 
 ### R3 · The sky belongs to the game [C18]
 
@@ -1290,14 +1295,16 @@ and join.
 stars and clouds are all where the game put them. There is no setting: the five
 overrides are gone, so nothing can turn them back on.
 
-**State: `owed`.** The observable behaviour is unchanged but the code under it
-is not. The pass below proved that the `codeblock_flat_sky` guard held the
-overrides off; there is no guard now, and the second half it also covered no
-longer exists. The removal of `flat_sky` was a wrong *check*, not a defect, so
+**The first pass below is against the guard, the second against its absence.**
+`codeblock_flat_sky` held the overrides off; there is no guard now and nothing
+to turn back on. The removal of `flat_sky` was a wrong *check*, not a defect, so
 it carries no finding id.
 
 Result: pass — `326f739` + uncommitted fixes · engine 5.17.0 · 2026-08-28 — both
 positions of the `codeblock_flat_sky` guard.
+
+Result: pass — `f700410`, record-only over `3fa9d0c` · engine 5.17.0 ·
+2026-09-09 — the game's own sky, with the five overrides gone.
 
 ### R4 · A brand new world hands out the right codelevel [S6]
 
@@ -1315,12 +1322,11 @@ with any history proves nothing here**. Create a fresh world each time.
 Read the log once while you are there: `codeblock_default_auth_level = 9` must
 warn and fall back rather than giving a player nil limits.
 
-**State: `owed`.** `F16` landed at `7c1442d`, so a bare `/codeblock level`
-reports the value and all four cases are performable exactly as written. **They
-never were before**, on either side of `F10`'s rename: the command was set-only
-and no other surface showed the number. That was a defect in this check and
-carried no finding id. The `fail` below is against the command as it stood at
-`dd98aab` and is superseded, not outstanding.
+**The four cases became performable at `7c1442d`, where `F16` made a bare
+`/codeblock level` report the value.** They never were before, on either side of
+`F10`'s rename: the command was set-only and no other surface showed the number.
+That was a defect in this check and carried no finding id. The `fail` below is
+against the command as it stood at `dd98aab` and is superseded.
 
 **The `A17` contract the check has to read on.** `check_auth_level` reads
 `codeblock.config.default_auth_level` at call time rather than capturing it, and
@@ -1333,14 +1339,6 @@ below was observed and is evidence. The four numbered cases were not
 observable at `cd13414`, where the command was set-only, so the pass must not be
 read as evidence for any of them — including case 4, whose *unchanged* can only
 be judged by reading the level, and for which the check names no indirect route.
-
-**It needs a fresh world of its own.** `F16-1` to `F16-4` passed at `fb75bc8`
-and were the world this check could have shared; `/codeblock level` is what
-answers its four cases.
-
-**The log half needs no command and can be re-run on its own.** Set
-`codeblock_default_auth_level = 9` and read `debug.txt`. That is what `A17`'s
-call-time read is owed: the 2026-09-02 reading predates `6a4fa91`.
 
 **`S6` closed at `af018d0`, before this check was written on 2026-08-30.** `R4`
 is a regression guard for it and never was its closing evidence.
@@ -1355,6 +1353,12 @@ codeblock_default_auth_level is not a codelevel from 1 to 4; ignored
 
 Result: fail — `dd98aab` · engine 5.17.0 · 2026-09-08 — `/codeblock level`
 answers with its usage, `<playername> <1-4>`. It does not report the codelevel.
+
+Result: pass — `f700410`, record-only over `3fa9d0c` · engine 5.17.0 ·
+2026-09-09 — **all four cases in fresh worlds, read back with `/codeblock
+level`**, plus the log half re-read. Case 2 was a real server and a joiner who
+had never connected. This is the first run where the four cases were observable,
+and it is `A17`'s in-world reading of the call-time `default_auth_level`.
 
 ### R5 · An old `vector3` is named in the log at mod load [S9]
 
@@ -1382,7 +1386,11 @@ silence — a line on every start that reports nothing is noise.
 **Read the version it guessed.** v1.5 and v2.0.1 are told apart by whether the
 constants iterate, so a wrong name means the guess is wrong, not the detection.
 
-Result: not yet run.
+Result: pass — `f700410`, record-only over `3fa9d0c` · engine 5.17.0 ·
+2026-09-09 — all three versions. v1.5 and v2.0.1 each logged exactly one
+`[codeblock]` warning naming the right version; v2.0.2 was silent. The pin is
+back at `fc8a5b8`. **`S9` has its only in-world evidence here** — no spec can
+reach the branch.
 
 ---
 

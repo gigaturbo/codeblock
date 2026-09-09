@@ -9,8 +9,12 @@
 -- events reach a handler, whether state survives a redraw, and whether sessions
 -- are cleaned up.
 
+-- print and not io.write: in-engine the C stdio buffer is discarded when the
+-- server exits, so an io.write note reached no captured output at all, while
+-- every print line survived. The note begins with `skipped:` so
+-- run_tests.ps1's report filter keeps it. (B56)
 if not (rawget(_G, 'codeblock') and codeblock.forms) then
-    io.write('\n  forms_spec\n  skipped (needs the mod loaded)\n\n')
+    print('\n  forms_spec\n  skipped: needs the mod loaded\n')
     return {skipped = true}
 end
 

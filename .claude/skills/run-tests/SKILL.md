@@ -1,6 +1,6 @@
 ---
 name: run-tests
-description: Run the mod's full test suite in-engine, by booting Luanti headless against the fixture game in tests/game with codeblock_run_tests enabled, and reading the results. Runs all nine specs including the three that need the mod loaded. Handles assembling the fixture, launching, parsing the output and — critically — removing the setting afterwards.
+description: Run the mod's full test suite in-engine, by booting Luanti headless against the fixture game in tests/game, and reading the results. Runs all nine specs including the three that need the mod loaded. Handles assembling the fixture, launching, and reading the one verdict line the run prints. The fixture game enables the suite itself and shuts the server down when it has reported, so nothing touches the player's own config.
 when_to_use: After changing anything in this repository, before committing, when asked to run or verify the tests, or when checking whether the mod still loads cleanly on the installed engine.
 argument-hint: "[--keep-world]"
 allowed-tools: Bash, PowerShell, Read, Glob, Grep
@@ -11,12 +11,17 @@ allowed-tools: Bash, PowerShell, Read, Glob, Grep
 The specs run inside Luanti, not under a standalone interpreter, because three of
 them need the mod loaded — `integration_spec` drives the real command budget,
 `forms_spec` needs the registered callbacks, `stepper_spec` needs the real
-config. A headless server boots, the specs print, and the server is killed.
+config. A headless server boots, the specs print, and the server shuts itself
+down.
 
 Six of the nine also run standalone under Lua 5.1 in CI. That is not redundant:
 it is the only thing that catches behaviour differing between plain 5.1 and the
 LuaJIT the engine runs. A bug in the `string.rep` separator was found exactly this
 way.
+
+**CI runs all nine in-engine too**, in upstream's server container. The local run
+and the CI run are the same suite on the same engine version; see *What CI does
+and does not prove*.
 
 ## The fixture game
 
@@ -26,6 +31,20 @@ whose whole purpose is to satisfy that: `game.conf` on singlenode, `vector3` as 
 submodule, and **`tests/game/mods/cbfixture`**, which registers nothing but the
 three mapgen aliases the engine validates at startup.
 
+**`tests/game/minetest.conf` is what enables the suite**, and it is the reason
+nothing has to touch the player's own config. A `minetest.conf` at a game's root
+supplies defaults when that game is run (`lua_api.md`, *Game directory
+structure*) and `core.settings` reads that layer. It sets two things:
+
+| Setting | Effect |
+|---|---|
+| `codeblock_run_tests = true` | the suite runs on every boot of this game, and of nothing else |
+| `codeblock_run_tests_exit = true` | the server shuts itself down once the suite has reported |
+
+**To boot the fixture and stay in it**, override `codeblock_run_tests_exit =
+false` in a user config; a user config beats a game default. **The file ships to
+nobody** — `tests export-ignore` keeps it out of the release archive.
+
 **It used to hold empty `default` and `wool` stubs as well.** `F11` dropped both
 dependencies — the mod registers its own 105 nodes now — and the two stubs went
 with them, `cbfixture` taking over the mapgen aliases. If a spec needs a node the
@@ -33,8 +52,8 @@ mod does not provide, register that one node in `cbfixture` and no more.
 
 The game cannot live in the repository, because it has to contain the repository
 as one of its mods. `scripts/run_tests.ps1` assembles it in
-`%APPDATA%\Minetest\games\cbtest`: `tests/game` copied for `game.conf` and
-`cbfixture`, plus a junction for the mod itself.
+`%APPDATA%\Minetest\games\cbtest`: `tests/game` copied for `game.conf`,
+`minetest.conf` and `cbfixture`, plus a junction for the mod itself.
 
 If a submodule was never initialised, the boot fails on `vector3`:
 
@@ -83,26 +102,37 @@ a player program can still reach the class table through any vector.
 says nothing about the bumped library. That is correct — it is another package
 with its own gates — but it is not coverage.
 
-## What CI does not prove
+## What CI does and does not prove
 
-**CI boots no engine** (`C24`). The `test` job installs plain Lua 5.1 and runs
-the six standalone specs; nothing starts Luanti. So `forms_spec`, `stepper_spec`
-and `integration_spec` never run in a pull request, and neither does any
-engine-guarded case inside the other six — `preprocess_spec`'s enumeration of
-`lib/examples/` needs `core.get_dir_list` and runs only in a local
-`run_tests.ps1`. A pull request sees the standalone line and goes green.
+**CI boots the engine, since `C24`.** Four jobs: `luacheck`, `preprocessor spec`
+(plain Lua 5.1, the six standalone), **`the nine specs in Luanti`**, and `docs
+are generated from the code`.
 
-## The one thing that must not be skipped
+**The engine job runs the whole suite in `ghcr.io/luanti-org/luanti:5.17.0`** —
+upstream's own server-only build of the version this mod is developed against,
+so there is no build step and no third party's binary. It is a **LuaJIT** build,
+so it is also the only CI job running the mod on the interpreter the engine
+actually uses. `forms_spec`, `stepper_spec`, `integration_spec` and every
+engine-guarded case are covered by it, including `preprocess_spec`'s enumeration
+of `lib/examples/`, which needs `core.get_dir_list`.
 
-Enabling the suite means writing `codeblock_run_tests = true` into the **real
-user config** at `%APPDATA%\Minetest\minetest.conf`. Luanti's `--config` flag
-does not work for this — it is silently ignored, verified by setting `port` in a
-file passed that way and watching the server bind the default anyway.
+**Four facts that job depends on, read from the engine source at tag 5.17.0.**
+Each would otherwise cost a CI cycle to discover.
 
-So the setting goes into the config the player actually uses, and **must be
-removed afterwards**, or every ordinary launch runs the test suite and prints to
-their console. `run_tests.ps1` strips it in a `finally` block, so it is removed on
-the failure path too — but check, do not assume.
+| Fact | Where | Consequence |
+|---|---|---|
+| `--server` exists only in a client build | `src/main.cpp:427`, inside `#if CHECK_CLIENT_BUILD()` | do **not** pass it to the container; the local script still needs it |
+| `LUANTI_GAME_PATH` appends to the game search path | `src/content/subgames.cpp:141` | `--gameid` finds the fixture without depending on `path_user` |
+| the image runs as uid 30000, home `/var/lib/minetest` | the 5.17.0 Dockerfile | `chmod -R a+rX` on the assembled game, and a world under that home |
+| `git archive` obeys `tests export-ignore` | `.gitattributes` | assemble the game with `rsync`, not `git archive`, or the specs are dropped |
+
+`actions/checkout` needs `submodules: recursive` there, or the boot fails on
+`vector3` and nothing reports.
+
+**What CI still does not prove.** Nothing in a running world: the suite runs at
+mod load, before a map, a player or a user directory exists, and that is
+`PLAYTEST.md`'s business. And a green suite proves the mod against the pinned
+`vector3` only — see the version table above.
 
 ## Procedure
 
@@ -112,15 +142,18 @@ From the repository root:
 powershell -ExecutionPolicy Bypass -File scripts/run_tests.ps1
 ```
 
+**A full run takes about 2 seconds.** The game conf asks for the shutdown, so the
+script waits on the process instead of sleeping a fixed span.
+
 `-KeepWorld` leaves the world directory for inspection; otherwise it is a
 throwaway under `%TEMP%`. `-Exe <path>` overrides the engine location, which
-defaults to `%LOCALAPPDATA%\luanti\5.17.0\bin\luanti.exe`. `-Seconds <n>` extends
-the wait if a slower machine has not finished booting in 25.
+defaults to `%LOCALAPPDATA%\luanti\5.17.0\bin\luanti.exe`.
+**`-TimeoutSeconds <n>`** is a ceiling, not a duration, and defaults to 120.
+Reaching it means the suite never reported, and the report says so.
 
-Two things the script does that are worth knowing before editing it. It removes
-the junction with `rmdir` and never with `Remove-Item -Recurse`, which follows a
-junction and would delete the repository behind it. And it strips the setting in a
-`finally`, so an exception between boot and kill still cleans up.
+One thing the script does that is worth knowing before editing it: it removes the
+junction with `rmdir` and never with `Remove-Item -Recurse`, which follows a
+junction and would delete the repository behind it.
 
 Running a single spec in-engine means editing the `specs` list at the bottom of
 `init.lua`. That block probes for `tests/api_spec.lua` first and only warns if it
@@ -134,9 +167,28 @@ wsl bash -lc 'cd /mnt/c/Users/lacba/PRogrammation/codeblock && for s in api prep
 
 ## Reading the result
 
-A healthy run prints one summary per spec, and `none` under errors. As of
-2026-09-03, at the commit that decoupled the drone record from its entity
-(B50, B52):
+**Read the verdict line.** `init.lua` prints one line carrying every pass
+criterion, so a reader and the CI job apply the same one instead of each
+restating it:
+
+```
+  suite: 9/9 specs   725 passed   0 failed   1 xfail   0 xpass   0 skipped
+```
+
+**`9/9` and `0 skipped` are two independent counts, and both matter.** A spec
+that skipped is counted under `skipped` and not under `9/9`, so a spec which
+stopped asserting shows up twice over. **They were one count for part of a day
+and that was a hole**: the three in-engine specs answer their can't-run branch
+with `return {skipped = true}`, a table, so a skipped spec counted as one that
+ran. Breaking the guard `forms_spec` exists to hold reported
+`9/9 specs   659 passed   0 failed   0 xpass` — 66 assertions gone, green
+everywhere. **Do not collapse them back into one.** The line carries the word
+`passed`, so the script's report filter keeps it.
+
+The per-spec summaries are still printed and still worth reading when the verdict
+is red, because they say which spec. A healthy run prints one per spec and `none`
+under errors. As of 2026-09-03, at the commit that decoupled the drone record
+from its entity (B50, B52):
 
 ```
   api_spec              30 passed   0 failed
@@ -163,6 +215,13 @@ still 0 failed, 0 xpass, 1 known xfail, none skipped. At `dc73e1e` with the
 the standalone six total **253** (`preprocess_spec` 56, one case engine-guarded).
 **The v2.0.2 bump moved no count in either direction.**
 
+**The current shape is 725 across the nine** — `api_spec` **31**,
+`integration_spec` **359**, `preprocess_spec` 56 in a standalone run — with 0
+failed, 0 xpass and the one known `B4` xfail. The standalone six total **254**:
+31, 56, 34, 31, 29, 73, with the one legitimate `skipped:` line. **These are the
+shape of a healthy run, not a checksum**; every number here rose when a spec
+gained a case, and the verdict line is what to compare against.
+
 **The script's report filter drops the spec-name lines**, keeping only the lines
 matching `passed|failed|FAIL|want|got|skipped|xfail`, so
 `run_tests.ps1` prints the nine summaries in the order of the `specs` list in
@@ -181,9 +240,11 @@ What each column means:
   also mean the test is passing vacuously because the thing it exercises stopped
   running at all. That second case has happened here: instrumentation was
   silently disabled and the `xfail` cases passed trivially. Always check which.
-- **skipped** — a spec that needs the mod and did not find it. In the in-engine
-  run, with the fixture in place, this should never appear: it means the mod
-  failed to load, so investigate rather than accept it. **In a standalone run it
+- **skipped** — a spec that needs the mod and did not find it. **It is a field on
+  the verdict line as well as a per-spec note**, and the field is the reliable
+  half (`B56`). In the in-engine run, with the fixture in place, this should
+  never appear: it means the mod failed to load or a module stopped being
+  exported, so investigate rather than accept it. **In a standalone run it
   can be legitimate**, and one case is: `preprocess_spec` prints
   `skipped: the shipped examples match the list, both ways - not checked here:
   needs core.get_dir_list, in-engine only`, because the directory enumeration
@@ -191,10 +252,29 @@ What each column means:
   standalone against 57 in-engine** — the guarded case counts once instead of
   twice, and it is not a discrepancy.
 
-**Write a spec's can't-run note to survive the filter.** It keeps only lines
-matching `passed|failed|FAIL|want|got|skipped|xfail`, so a note worded any other
-way vanishes from the report — the exact silence a can't-run note exists to
-break. Start it with `skipped:`.
+**A can't-run note needs both halves: the right wording *and* `print`.** Neither
+alone works, and getting only the first was `B56`.
+
+- **Wording.** The report filter keeps only lines matching
+  `passed|failed|FAIL|want|got|skipped|xfail`, so start the note with
+  `skipped:` — anything else vanishes from the report, which is the exact
+  silence the note exists to break.
+- **`print`, never `io.write`.** Luanti flushes `print` per line; the C stdio
+  buffer behind `io.write` is **discarded when the server exits**, so an
+  `io.write` note reaches no captured output at all however well it is worded.
+  The three in-engine specs each carry a comment saying why it is `print`.
+
+**Detection does not depend on the note.** The verdict line's `skipped` field is
+what catches a spec that could not run. The note only says which and why. With
+two guards broken at once the report reads:
+
+```
+  73 passed   0 failed
+  skipped: needs the mod loaded
+  skipped: needs the mod loaded
+  359 passed   0 failed
+  suite: 7/9 specs   614 passed   0 failed   1 xfail   0 xpass   2 skipped
+```
 
 If nothing prints at all, the mod did not load. Look in the error output for
 `ModError` and read the traceback — a syntax error in any `lib/*.lua` stops the
@@ -202,19 +282,19 @@ whole mod.
 
 ## Before concluding it passes
 
+- **The verdict line reads `9/9 specs`, `0 failed`, `0 xpass` and `0 skipped`.**
+  That is the whole criterion. An absent verdict line means the mod did not
+  load; `9/9` with a non-zero `skipped` is impossible and means the counts were
+  collapsed.
 - No `ModError` in the error stream, and the errors section says `none`.
-- All nine specs reported, none skipped.
-- `0 failed` and `0 xpass` everywhere.
-- The setting is gone from `minetest.conf` — check, do not assume:
-  `grep -n codeblock_run_tests "$APPDATA/Minetest/minetest.conf"`.
-The script used to damage that file in two ways the grep could not see: it wrote
-a UTF-8 BOM, killing the config's first setting, and it appended the enable line
-with no separator on a file lacking a trailing newline. Both are fixed (audit
-B31, B32) — the writes go through `[IO.File]` with an explicit no-BOM encoding,
-and reading with `ReadAllText` strips a mark already there, so a damaged config
-is repaired by the next run. Worth knowing if an old config still looks wrong:
-`head -c 3 "$APPDATA/Minetest/minetest.conf" | od -An -tx1` should not be
-`ef bb bf`.
+- No spec skipped in the in-engine run.
+
+**There is nothing to clean up afterwards.** The suite is enabled by
+`tests/game/minetest.conf`, so the player's real `%APPDATA%\Minetest\minetest.conf`
+is never written and never has to be checked. The old routine — write the
+setting, strip it in a `finally`, then grep to be sure — is gone with `C24`, and
+so is the class of defect it produced twice (`B31`'s UTF-8 BOM, `B32`'s glued
+append). **Do not reinstate a config write** to enable the suite.
 
 ## What a good spec looks like here
 

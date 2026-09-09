@@ -112,7 +112,8 @@ All nine specs run this way:
 powershell -ExecutionPolicy Bypass -File scripts/run_tests.ps1
 ```
 
-Six of them also run standalone under Lua 5.1, which is how CI runs them:
+**CI runs all nine this way too**, in upstream's `luanti:5.17.0` server
+container. Six of them also run standalone under Lua 5.1 in a separate CI job:
 
 ```bash
 wsl bash -lc 'cd /mnt/c/Users/lacba/PRogrammation/codeblock && for s in api preprocess env shapes strguard limits; do lua5.1 tests/${s}_spec.lua; done'
@@ -133,14 +134,14 @@ bash scripts/gen_cdb_json.sh             # regenerate after a CONTENTDB.md edit
 
 **Read the output, not the exit code.** `$?` does not survive this machine's WSL
 layer, so a gate is green when it *says* so — `doc/api.md is up to date`,
-`locale/template.txt is up to date`, luacheck silent, and `failed` and `xpass`
-both 0 in the spec run.
+`locale/template.txt is up to date`, luacheck silent, and the spec run's one
+verdict line reading `9/9 specs`, `0 failed`, `0 xpass`, `0 skipped`.
 
 **The `run-tests` skill owns everything else about the suite**: the fixture
-game, the three `vector3` versions and what a green run does not prove, which
-specs are in-engine only, what CI does not boot, how to read a result, and the
-`codeblock_run_tests` setting that must be stripped from the player's real config
-afterwards.
+game and the `tests/game/minetest.conf` that enables the suite, the three
+`vector3` versions and what a green run does not prove, which specs are
+in-engine only, what CI's four jobs do and do not prove, and how to read the
+verdict line.
 
 ## Environment notes
 

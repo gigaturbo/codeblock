@@ -102,6 +102,96 @@ jobs:
       - name: Run limits spec
         run: lua tests/limits_spec.lua
 
+  engine:
+    name: the nine specs in Luanti
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # mod.conf reads `depends = vector3`, and the engine will not load a
+          # mod whose depends are unmet. Without the submodule the boot fails
+          # and nothing reports.
+          submodules: recursive
+
+      # Upstream's own server-only build of the exact version this mod is
+      # developed against - no build step here, and no third party's binary.
+      # It is a LuaJIT build, so this is also the first CI job to run the mod
+      # on the interpreter the engine actually uses rather than plain 5.1.
+      - name: Pull the engine
+        run: docker pull ghcr.io/luanti-org/luanti:5.17.0
+
+      # The game has to contain this repository as one of its mods, so it is
+      # assembled outside the workspace and handed over as one mount. A symlink
+      # would point at a host path the container cannot see, and `git archive`
+      # would obey `tests export-ignore` and drop the specs it is here to run.
+      #
+      # tests/game is excluded from the mod copy: the fixture's own mods are
+      # already in place above it, and copying them twice copies vector3 twice.
+      - name: Assemble the fixture game
+        run: |
+          mkdir -p /tmp/cb/games/cbtest/mods/codeblock
+          cp -r tests/game/. /tmp/cb/games/cbtest/
+          rsync -a --exclude .git --exclude tests/game \
+            ./ /tmp/cb/games/cbtest/mods/codeblock/
+          # The image runs as uid 30000, which owns none of this.
+          chmod -R a+rX /tmp/cb
+          test -f /tmp/cb/games/cbtest/mods/codeblock/mod.conf
+          test -f /tmp/cb/games/cbtest/mods/vector3/init.lua
+
+      # tests/game/minetest.conf enables the suite and asks for a shutdown once
+      # it has reported, so this returns on its own; the timeout is only a
+      # ceiling. LUANTI_GAME_PATH appends to the game search path, so --gameid
+      # finds the fixture without depending on where the image puts path_user.
+      # No --server: that flag exists only in a client build, and this is not
+      # one, so passing it would be an unrecognised option.
+      #
+      # HOME is set explicitly. The image declares none, relying on Docker
+      # deriving it from /etc/passwd; without it the engine cannot build
+      # path_user and dies on `Required environment variable HOME is not set`.
+      - name: Run the suite
+        run: |
+          timeout 180 docker run --rm \
+            -e LUANTI_GAME_PATH=/cb/games \
+            -e HOME=/var/lib/minetest \
+            -v /tmp/cb/games:/cb/games:ro \
+            ghcr.io/luanti-org/luanti:5.17.0 \
+            --gameid cbtest --world /var/lib/minetest/cbworld \
+            > engine.log 2>&1 || true
+          cat engine.log
+
+      # init.lua prints one verdict line covering every criterion, so this job
+      # restates none of them. `0 skipped` is not redundant beside `9/9`: a spec
+      # that declares itself unable to run is the failure a per-spec eyeball
+      # misses, and breaking the guard forms_spec exists to hold once lost 66
+      # assertions while the run still reported nine specs.
+      #
+      # The `grep -o` is load-bearing: init.lua prints the line indented, and
+      # the anchored pattern rejects it with the leading spaces intact.
+      - name: Read the result
+        run: |
+          verdict=$(grep -o 'suite: .*' engine.log || true)
+          if [ -z "$verdict" ]; then
+            # Every way this job can fail before the suite reports arrives here
+            # - no HOME, the game not found, the fixture conf missing, an
+            # unwritable world - so name none of them and print the log instead.
+            echo "::error::the suite did not report; the tail of the engine log follows"
+            tail -40 engine.log
+            exit 1
+          fi
+          echo "$verdict"
+          # Anchored on the whole line, not on substrings: `*0 failed*` would
+          # also match `10 failed`.
+          if ! printf '%s\n' "$verdict" | grep -qE \
+            '^suite: 9/9 specs +[0-9]+ passed +0 failed +[0-9]+ xfail +0 xpass +0 skipped$'
+          then
+            echo "::error::$verdict"
+            exit 1
+          fi
+          if grep -q ModError engine.log; then
+            echo "::error::the suite reported, but a mod raised: $(grep -m1 ModError engine.log)"
+            exit 1
+          fi
+
   docs:
     name: docs are generated from the code
     runs-on: ubuntu-latest
