@@ -89,7 +89,7 @@ their own.
 
 **Every one of those tables is overridable** from the settings menu or
 `minetest.conf`, as four comma-separated numbers, plus the scalars
-`default_auth_level`, `server_step_budget_us`, `max_file_kb` and `flat_sky`.
+`default_auth_level`, `server_step_budget_us`, `max_file_kb` and `drone_hud`.
 `max_file_kb` bounds a file read out of a player's directory rather than a
 running program, so it is not a codelevel limit (`B40`). `map_window_s` is not a
 codeblock setting at all: it is read from the engine's
@@ -114,14 +114,18 @@ at load and names its replacement, from the `replaced` table.
 **Do not edit `settingtypes.txt`.** It only draws the menu; the engine reads no
 defaults from it. It is generated — see the **`generated-files`** skill.
 
-**Every setting here is this mod's.** A game that embeds it contributes its own —
-mapgen, daylight, build restrictions — and the two do not mix. The one exception
-is `config.flat_sky`, **off by default**: `register_on_joinplayer` in
-`lib/register.lua` used to call `override_day_night_ratio(1)` and hide the sun,
-moon, stars and clouds for every player of every game, unguarded (`C18`). Read it
-through `flag`, the boolean sibling of `number` and `per_level`. Do not add
-anything else of that kind; the next piece of a game's presentation belongs in
-that game.
+**Every setting here is this mod's, and none of them is presentation.** A game
+that embeds it contributes its own — mapgen, daylight, build restrictions — and
+the two do not mix. `register_on_joinplayer` in `lib/register.lua` once called
+`override_day_night_ratio(1)` and hid the sun, moon, stars and clouds for every
+player of every game, unguarded (`C18`); putting it behind a `flat_sky` setting
+bought a consumer that no longer exists, and a setting no code path here depends
+on is maintained for nobody (`C21`), so both the setting and the five overrides
+are gone. **The join callback applies no sky, sound or camera override, and must
+not gain one** — a game that wants the look writes those calls in a mod of its
+own. `drone_hud` is not a counter-example: it is on screen only while that
+player's own program runs, and it is the only place a run's budget is visible.
+Read a boolean setting through `flag`, the sibling of `number` and `per_level`.
 
 # Writing to the world
 

@@ -118,6 +118,7 @@ row is about.
 | Every legacy element's `W` is its own unit | `F11` | `editor-formspecs` |
 | Branch on a value matching what you drew, never on it differing | `B37` | `editor-formspecs` |
 | A player name is `[%w_%-]+`; `parse_target` before `target_only`, and its `solo_pattern` no wider than its `rest_pattern` | `B55` | `drone-and-tools` |
+| `register_on_joinplayer` applies no presentation override — no sky, no camera, no sound | `C18`, `C21` | `program-pipeline` |
 
 ## What a change drags with it
 

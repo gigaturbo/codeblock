@@ -114,8 +114,7 @@ mitigated, and `B48`, `B49`, `B50`, `B51`, `B52`, `B53`, `B54`, `C21`, `C22`,
 `C23`, `F10`–`F14` and `F16` are all committed with their playtests run.
 
 **After the tag.** `Phase 9` opens on what comes back from players. `codecube`
-adopts the release on its own schedule and must set `codeblock_flat_sky = true`
-in its own `minetest.conf` (`C18`). `Phase 10` needs `F6`'s four obstacles
+adopts the release on its own schedule. `Phase 10` needs `F6`'s four obstacles
 answered in writing before any code.
 
 ## Milestones
@@ -747,12 +746,13 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
   first element is a number, so a computed value switches both checks off
   without failing. (`C7`, `C14`)
 - **The settings are all this mod's and do not move to the game.** It is its own
-  ContentDB package. `C18`'s `flat_sky` is the one exception and its own entry
-  says so; **do not read it as a precedent.**
-- **A setting to keep the `fly`/`fast`/`noclip` grant was declined.** Nothing
-  here needs creative flight to be reachable, and a game that wants it sets it
-  in its own config. **A setting no code path here depends on is a setting
-  maintained for nobody.**
+  ContentDB package. There is **no exception**: `C18`'s `flat_sky` was one and is
+  gone with the five sky overrides it gated.
+- **A setting to keep the `fly`/`fast`/`noclip` grant was declined**, and
+  `flat_sky` was later removed on the same ground. Nothing here needs creative
+  flight or a rewritten sky, and a game that wants either sets it in its own
+  config. **A setting no code path here depends on is a setting maintained for
+  nobody.** A presentation choice belongs to the game, not to this mod.
 - **`/codeblock tools`, not `/codetools`.** A subcommand namespace over a fourth
   top-level `/code*` name, with the two existing commands folded in rather than
   the family left split.
@@ -954,9 +954,6 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 - Cancelling the file chooser removes the drone it placed; removing a file takes
   the drone holding it. Both deliberate, and the two had to agree. (`B41`,
   `B44`)
-- **`codecube` must set `codeblock_flat_sky = true`** in its own `minetest.conf`
-  when it adopts a release, or its world gets an ordinary day/night cycle. This
-  repository does not track whether it was added. (`C18`)
 - A panel button misses a few presses in twenty at a deliberate rapid pace,
   measured by `H10` and accepted. A dropped click is silent. (`B47`)
 - `scripts/gen_cdb_json.sh` is verified by nothing and escapes neither `"` nor a
@@ -994,8 +991,10 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 
 ---
 
-Last reviewed **2026-09-09**, describing `be3155f`. `origin/master` is
+Last reviewed **2026-09-09**, describing `c775b56`. `origin/master` is
 **`fb75bc8`**, **four commits behind `HEAD`**. `PLAYTEST.md`: 97 entries, `F11-4`
 retired, six unrun (`F-6`, `R5`, `F17-1` to `F17-4`), two stale (`R1`, `R2`),
-one unreachable (`H8`), two owed (`R4`, carrying a superseded fail, and `F12-6`,
-rewritten at `F17`). `AUDIT.md`: 93 findings, one open — `C24`, medium.
+one unreachable (`H8`), three owed (`R3`, whose guard is gone, `R4`, carrying a
+superseded fail, and `F12-6`, rewritten at `F17`). `AUDIT.md`: 93 findings, one
+open — `C24`, medium. The `flat_sky` removal is in the working tree and not yet
+committed.

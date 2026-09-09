@@ -85,13 +85,6 @@ codeblock_max_string_mb (Maximum string size) string 1,8,16,64
 
 [Appearance]
 
-#    Hold daylight at noon and hide the sun, moon, stars and clouds, for every
-#    player who joins. Nothing this mod does needs it - a drone builds the same
-#    at midnight - so it is off, and a game that wants a flat, sunless sky asks
-#    for it here. Per-player and re-applied on join, so turning it off takes
-#    effect on the next one.
-codeblock_flat_sky (Flat sky) bool false
-
 #    Whether a player who has set no preference of their own sees the drone HUD
 #    while their program runs: the file, whether it is running or paused, and
 #    what the run has spent of each of the three limits that can stop it. On,

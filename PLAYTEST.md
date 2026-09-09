@@ -71,7 +71,7 @@ Result: ...
 | Unreachable | 1 — `H8` |
 | Unrun | 6 — `F-6`, `R5`, `F17-1` to `F17-4` |
 | Stale | 2 — `R1`, `R2` |
-| Owed | 2 — `R4`, `F12-6` |
+| Owed | 3 — `R3`, `R4`, `F12-6` |
 | Fail as most recent result | 1 — `R4` |
 
 Checks needing action:
@@ -82,6 +82,7 @@ Checks needing action:
 | [`R5`](#r5--an-old-vector3-is-named-in-the-log-at-mod-load-s9) | unrun | The load-time warning about an old `vector3`. Needs the submodule swapped by hand. |
 | [`R1`](#r1--the-archive-contains-no-tests-c16-c10) | stale | Texture and example counts have changed since the last run. |
 | [`R2`](#r2--a-real-install-with-the-test-flag-set-c16) | stale | Last run at `7c5bceb`, before `F4` and two `.gitattributes` changes. |
+| [`R3`](#r3--the-sky-belongs-to-the-game-c18) | owed | Rewritten to one case. Its pass is against the `flat_sky` guard, which is gone with the five overrides. |
 | [`R4`](#r4--a-brand-new-world-hands-out-the-right-codelevel-s6) | owed | Its four cases are runnable as written since `7c1442d`. Carries a fail against the command before `F16`. Its log half is what `A17` is owed. |
 | [`F12-6`](#f12-6--a-game-registered-category-is-rampable-through-rampof-f12-f11) | owed | Rewritten at `F17`. Its pass is against the deleted `ramp.wool` and the deleted help row. |
 | [`F17-1`](#f17-1--randomof-draws-from-a-category-and-from-a-list-f17) | unrun | `random.of` over a category, over a palette order and over a plain list. |
@@ -1283,14 +1284,20 @@ Result: pass — `7c5bceb` · engine 5.17.0 · 2026-08-28 — extracted into a g
 ### R3 · The sky belongs to the game [C18]
 
 Install into a game with an ordinary day/night cycle — anything but `codecube` —
-and join. Then set `codeblock_flat_sky = true`, restart, join again.
+and join.
 
-**Pass:** the first join leaves the sky alone; the second holds daylight at noon
-with sun, moon, stars and clouds gone. The setting is read once at mod load, so
-**a restart is part of the check**.
+**Pass:** the sky is the game's. The day/night cycle runs, and the sun, moon,
+stars and clouds are all where the game put them. There is no setting: the five
+overrides are gone, so nothing can turn them back on.
+
+**State: `owed`.** The observable behaviour is unchanged but the code under it
+is not. The pass below proved that the `codeblock_flat_sky` guard held the
+overrides off; there is no guard now, and the second half it also covered no
+longer exists. The removal of `flat_sky` was a wrong *check*, not a defect, so
+it carries no finding id.
 
 Result: pass — `326f739` + uncommitted fixes · engine 5.17.0 · 2026-08-28 — both
-positions.
+positions of the `codeblock_flat_sky` guard.
 
 ### R4 · A brand new world hands out the right codelevel [S6]
 

@@ -205,19 +205,6 @@ local SETTINGS = {
 
     {'Appearance', {
         {
-            name = 'flat_sky',
-            label = 'Flat sky',
-            kind = 'bool',
-            text = {
-                'Hold daylight at noon and hide the sun, moon, stars and ' ..
-                'clouds, for every player who joins. Nothing this mod does ' ..
-                'needs it - a drone builds the same at midnight - so it is off, ' ..
-                'and a game that wants a flat, sunless sky asks for it here. ' ..
-                'Per-player and re-applied on join, so turning it off takes ' ..
-                'effect on the next one.'
-            }
-        },
-        {
             name = 'drone_hud',
             label = 'Drone HUD',
             kind = 'bool',

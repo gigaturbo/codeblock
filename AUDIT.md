@@ -441,9 +441,12 @@ restated.
   reads (`main` *or* `craft`) must stay** (`drone-and-tools`). A guard that fires only
   in the worst case is worse than one that fires always, because it also stops
   anyone noticing.
-- **`C21` — removed rather than put behind a flag.** A setting no code path here
-  depends on is a setting maintained for nobody; `flat_sky` is the exception this
-  project allows itself, not a precedent.
+- **`C21` and `C18` — removed rather than put behind a flag.** A setting no code
+  path here depends on is a setting maintained for nobody. The principle carries
+  no exception: `C18`'s `flat_sky` was the one this project allowed itself, its
+  single beneficiary was a downstream game, and that game now sets its own sky,
+  so the setting and the five overrides went the same way as `C21`'s grant. A
+  presentation setting this mod's own code never reads belongs to the game.
 - **`B38` — an empty callback is a decision and should carry a comment saying
   what the empty means.** `lua_api.md` documents `on_secondary_use`; the cost was
   not reading it.
@@ -575,7 +578,7 @@ a row carries a rule, it is above under *Keep*.
 | `C14` | medium | `gen_docs.lua`'s documented-limit check matched by name prefix, so three limits were invisible to it | matches by table shape, the rule `config.lua`'s override loop uses | Phase 6 |
 | `C16` | medium | `codeblock_run_tests` aborted mod load on a ContentDB install, `tests` being export-ignored | `init.lua` probes for `tests/api_spec.lua` and, absent, logs and loads normally | `7d9ca47` |
 | `C17` | medium | `locale/template.txt` had drifted 12 messages one way and 17 the other, one key was built with `..`, and three translations were orphaned by a one-character edit | all three layers fixed, with `gen_locale.lua --check` added to CI | `b5d2e40` |
-| `C18` | medium | five sky overrides were forced on every joining player, unguarded, under a `TODO: TEMP fix` comment | behind `config.flat_sky`, off by default | `6fea453` |
+| `C18` | medium | five sky overrides were forced on every joining player, unguarded, under a `TODO: TEMP fix` comment | the five overrides and `flat_sky` are gone; the sky is the game's | `6fea453`, removal not yet committed |
 | `C19` | medium | the ContentDB long description was `README.md` verbatim, breaking six of ContentDB's *do not include* rules, five of its nine images load-bearing in the instructions | its own source, `CONTENTDB.md`, embedded by `gen_cdb_json.sh` | `7c5bceb`, `9e04990` |
 | `C20` | medium | `gen_docs.lua`'s limit check matched nothing and had matched nothing since it was written: Lua's `%w` excludes the underscore every limit name contains | `[%w_]+` in both generators, each then made to fail against a fake limit | `d8d44cd` |
 | `C21` | medium | `register_on_newplayer` granted `fly`, `fast` and `noclip` to every new player, in any game that installed the mod | removed outright | `b23a8bc` |
