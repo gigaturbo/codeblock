@@ -38,13 +38,13 @@ Decisions wanted from the author
 
 Checks left in a running world — the checklist is `PLAYTEST.md`
 
-- [ ] re-run R1 and R2 against the release tag — both passed against f700410,
-      and C24 puts commits above it, so both go stale. R2 is the one with
-      something new to read: C24 changes init.lua, which ships (audit C16, C10;
-      playtest R1, R2)
-- [ ] watch the first CI run of the new "the nine specs in Luanti" job — it has
-      never executed, this machine having no docker, so its container half is
-      unverified (audit C24)
+- [ ] re-run R1 and R2 against the release tag — both are stale, having been
+      read at f700410 which 8da8cab now follows. R2 is the one with something
+      new to read: C24 changed init.lua, which ships (audit C16, C10; playtest
+      R1, R2)
+- [ ] watch the next CI run for the action bump off Node 20 — checkout v5,
+      gh-actions-lua v13, gh-actions-luarocks v6, none of which has executed
+      (audit C24)
 
 
 # After 1.0.0

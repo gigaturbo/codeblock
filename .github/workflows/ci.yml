@@ -15,13 +15,13 @@ jobs:
     name: luacheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: leafo/gh-actions-lua@v10
+      - uses: leafo/gh-actions-lua@v13
         with:
           luaVersion: "5.1"
 
-      - uses: leafo/gh-actions-luarocks@v4
+      - uses: leafo/gh-actions-luarocks@v6
 
       - name: Install luacheck
         run: luarocks install luacheck
@@ -61,15 +61,16 @@ jobs:
     name: preprocessor spec
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: leafo/gh-actions-lua@v10
+      - uses: leafo/gh-actions-lua@v13
         with:
-          # Plain 5.1 rather than a luajit-* value: every LuaJIT variant fails
-          # to build in this action on ubuntu-latest. Luanti runs Lua 5.1
-          # semantics either way, which is what these string-handling specs
-          # exercise. They also run in-engine under Luanti's real LuaJIT when
-          # the game is started with codeblock_run_tests = true.
+          # Plain 5.1 rather than a luajit-* value, and deliberately so: this
+          # job exists to catch plain 5.1 differing from the engine's LuaJIT,
+          # which the `nine specs in Luanti` job now covers for real. Every
+          # luajit-* variant also failed to build here, observed on this
+          # action's v10; untested since the bump to v13, and there is no
+          # longer a reason to want one.
           luaVersion: "5.1"
 
       # api_spec pins every name the sandbox environment exposes. It is the
@@ -106,7 +107,7 @@ jobs:
     name: the nine specs in Luanti
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # mod.conf reads `depends = vector3`, and the engine will not load a
           # mod whose depends are unmet. Without the submodule the boot fails
@@ -179,6 +180,12 @@ jobs:
             exit 1
           fi
           echo "$verdict"
+          # Also as a notice and on the run's front page. Without these the
+          # verdict is readable only by expanding a step body, so the annotation
+          # list and the run summary - the two places anyone actually looks -
+          # said nothing about how the suite went.
+          echo "::notice::$verdict"
+          echo "$verdict" >> "$GITHUB_STEP_SUMMARY"
           # Anchored on the whole line, not on substrings: `*0 failed*` would
           # also match `10 failed`.
           if ! printf '%s\n' "$verdict" | grep -qE \
@@ -187,8 +194,20 @@ jobs:
             echo "::error::$verdict"
             exit 1
           fi
-          if grep -q ModError engine.log; then
-            echo "::error::the suite reported, but a mod raised: $(grep -m1 ModError engine.log)"
+          # Every engine or mod error, minus the one the suite provokes on
+          # purpose: integration_spec asserts register_blocks refuses a late
+          # call, and lib/blocks.lua logs the refusal. An allowlist rather than
+          # a loose grep -v, because it fails in both directions - a genuine
+          # error is red at once, and a *new* deliberate one is red until
+          # someone acknowledges it here. `ModError` stays beside `ERROR[`:
+          # it is redundant today and costs nothing if a path ever logs it
+          # without that prefix.
+          unexpected=$(grep -aE 'ERROR\[|ModError' engine.log \
+            | grep -vF "register_blocks('late') came after every mod had loaded" \
+            || true)
+          if [ -n "$unexpected" ]; then
+            echo "::error::the suite reported, but the log carries an error"
+            printf '%s\n' "$unexpected"
             exit 1
           fi
 
@@ -196,9 +215,9 @@ jobs:
     name: docs are generated from the code
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: leafo/gh-actions-lua@v10
+      - uses: leafo/gh-actions-lua@v13
         with:
           luaVersion: "5.1"
 

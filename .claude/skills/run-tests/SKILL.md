@@ -186,8 +186,23 @@ everywhere. **Do not collapse them back into one.** The line carries the word
 `passed`, so the script's report filter keeps it.
 
 The per-spec summaries are still printed and still worth reading when the verdict
-is red, because they say which spec. A healthy run prints one per spec and `none`
-under errors. As of 2026-09-03, at the commit that decoupled the drone record
+is red, because they say which spec. A healthy run prints one per spec.
+
+**Under `--- errors ---` a healthy run prints exactly one line, not `none`.**
+
+```
+ERROR[Main]: [codeblock] mod codeblock: register_blocks('late') came after every mod had loaded, and was ignored
+```
+
+`integration_spec` asserts `register_blocks('late', …)` returns `false` and
+`lib/blocks.lua` logs the refusal, so the line is provoked on purpose. **Any
+other `ERROR[` line is real, and no `ERROR[` at all means that case stopped
+running.** The filter said `none` on every run for as long as that case has
+existed, because none of its six patterns matched a `core.log('error', ...)` —
+that is `C25`, and the counts quoted below with `errors none` were read before
+it was found.
+
+As of 2026-09-03, at the commit that decoupled the drone record
 from its entity (B50, B52):
 
 ```
@@ -215,12 +230,19 @@ still 0 failed, 0 xpass, 1 known xfail, none skipped. At `dc73e1e` with the
 the standalone six total **253** (`preprocess_spec` 56, one case engine-guarded).
 **The v2.0.2 bump moved no count in either direction.**
 
-**The current shape is 725 across the nine** — `api_spec` **31**,
-`integration_spec` **359**, `preprocess_spec` 56 in a standalone run — with 0
-failed, 0 xpass and the one known `B4` xfail. The standalone six total **254**:
-31, 56, 34, 31, 29, 73, with the one legitimate `skipped:` line. **These are the
-shape of a healthy run, not a checksum**; every number here rose when a spec
-gained a case, and the verdict line is what to compare against.
+**The current shape is 725 across the nine** — 31, 57, 34, 31, 29, 73, 66, 45,
+359 — with 0 failed, 0 xpass and the one known `B4` xfail. The standalone six
+total **254**: 31, 56, 34, 31, 29, 73, with the one legitimate `skipped:` line.
+**These are the shape of a healthy run, not a checksum**; every number here rose
+when a spec gained a case, and the verdict line is what to compare against.
+
+**The container and the Windows client agree spec for spec.** CI run
+`34391577229` on `8da8cab` reported the same nine numbers and the same 725, one
+xfail, no xpass, nothing skipped, in **10 seconds**. So musl LuaJIT in
+`luanti:5.17.0` and the local Windows build behave identically here. **Keep both
+readings, because that agreement is what makes the standalone six honest** — they
+exist to catch plain 5.1 diverging from the engine's LuaJIT, and if the two
+engine runs ever disagree, the standalone job is the one with something to say.
 
 **The script's report filter drops the spec-name lines**, keeping only the lines
 matching `passed|failed|FAIL|want|got|skipped|xfail`, so
@@ -286,7 +308,10 @@ whole mod.
   That is the whole criterion. An absent verdict line means the mod did not
   load; `9/9` with a non-zero `skipped` is impossible and means the counts were
   collapsed.
-- No `ModError` in the error stream, and the errors section says `none`.
+- **Under `--- errors ---`, exactly one line: the deliberate
+  `register_blocks('late')` refusal.** Any other `ERROR[` or `ModError` is real,
+  and an empty section means that spec case stopped running. `none` is **not**
+  the healthy state, and was printed untruthfully until `C25`.
 - No spec skipped in the in-engine run.
 
 **There is nothing to clean up afterwards.** The suite is enabled by
@@ -306,6 +331,14 @@ Concretely, in this suite:
   edited to match — which is how a suite stops testing anything.
 - **One reason to fail per case.** A case asserting four things reports the first
   and hides the rest.
+- **The engine says this out loud, twenty times, and that is evidence rather
+  than noise.** An in-engine run logs about twenty
+  `Calling this function during script init is disallowed` warnings, resolving to
+  `get_player_by_name`, `load_area` and `set_node` — each already behind a guard.
+  They are the engine confirming that the suite runs before a map or a player
+  exists. **Do not silence them by stubbing those calls**: that is precisely how
+  a spec starts passing vacuously. They are not `ERROR[` lines and do not affect
+  the errors section.
 - **Nothing that needs a map, a player or a user directory.** The suite runs at
   mod load, before any of those exist. A test that appears to cover a formspec, a
   file read or a node write is passing vacuously — the honest move is a

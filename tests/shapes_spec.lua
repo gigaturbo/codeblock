@@ -102,7 +102,11 @@ do
     if existing and existing.modpath then
         candidates[#candidates + 1] = existing.modpath .. '/lib/shapes.lua'
     end
-    local here = arg and arg[0] and arg[0]:match('^(.*)[/\\][^/\\]*$')
+    -- rawget, as for codeblock above: `arg` exists under a standalone
+    -- interpreter and not in-engine, where a bare read of it made Luanti warn
+    -- about an undeclared global on every run.
+    local argv = rawget(_G, 'arg')
+    local here = argv and argv[0] and argv[0]:match('^(.*)[/\\][^/\\]*$')
     if here then candidates[#candidates + 1] = here .. '/../lib/shapes.lua' end
     candidates[#candidates + 1] = 'mods/codeblock/lib/shapes.lua'
     candidates[#candidates + 1] = '../lib/shapes.lua'

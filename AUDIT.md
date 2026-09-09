@@ -19,9 +19,9 @@ and security, `C` compliance and packaging, `A` architecture and performance;
 |---|---|---|---|---|
 | `B` bugs | 53 | 52 | — | `B34` |
 | `S` sandbox and security | 9 | 9 | — | — |
-| `C` compliance and packaging | 18 | 18 | — | — |
+| `C` compliance and packaging | 19 | 19 | — | — |
 | `A` architecture and performance | 14 | 14 | — | — |
-| **Total** | **94** | **93** | **—** | **1** |
+| **Total** | **95** | **94** | **—** | **1** |
 
 | Id | Sev | What | Waiting on |
 |---|---|---|---|
@@ -372,6 +372,32 @@ restated.
   passes.** Make a new one fail once before trusting it. Lua's `%w` excludes the
   underscore every limit name contains, so `[%w_]+` is the fix wherever an
   identifier is matched.
+- **`C25` — `ERROR[` is the pattern that catches a mod's own error, and the six
+  beside it do not.** `ModError|attempt to|traceback|invalid|Blocked|Failed to
+  load` match nothing a `core.log('error', ...)` emits, so a report built from
+  them says `none` untruthfully unless the message happens to contain the word
+  *invalid*. **This is `C20`'s class**: a guard read as catching something it
+  cannot catch.
+- **`C25` — exactly one `ERROR[` line is the healthy state, not zero.**
+  `integration_spec` asserts `register_blocks('late', …)` returns `false` and
+  `lib/blocks.lua` logs the refusal, so every run carries
+  *"register_blocks('late') came after every mod had loaded, and was ignored"*.
+  **A run with no `ERROR[` at all means that case stopped running.**
+- **`C25` — the two gates are for different readers and are deliberately
+  asymmetric.** `run_tests.ps1` **shows everything and suppresses nothing**: it
+  is a report a person reads, and a line they recognise beats a `none` that is
+  false, so there is no allowlist to maintain. **CI allowlists the one
+  deliberate message** and fails on any other `ERROR[` or `ModError`, which
+  fails in both directions — a genuine error is red at once, and a *new*
+  deliberate one is red until someone acknowledges it in the gate. Do not
+  reconcile them onto one policy.
+- **`C25` — `ModError` stays beside `ERROR[`** in the CI pattern. It is
+  redundant today and costs nothing if a path ever logs without that prefix.
+- **`C25` — do not have the spec intercept `core.log` to stop provoking the
+  line.** Offered and refused: it pins the spec to *how* the refusal is
+  reported, and the day someone aliases the logger to a load-time local the
+  interception silently stops working and nothing notices. **What the spec
+  asserts is the `false` return**, which it already does.
 - **`C24` — the suite is enabled by `tests/game/minetest.conf`, a game default,
   and by nothing else.** A `minetest.conf` at a game's root supplies defaults
   when that game is run, and `core.settings` reads that layer. **Nothing writes
@@ -594,7 +620,7 @@ a row carries a rule, it is above under *Keep*.
 | `B53` | high | the new-file template said `place(blocks.obsidian)`, a category `F11` had deleted, so **every file a player created failed on its first statement** for three days, with five gates green | the template loops over `hues` and names no colour; `integration_spec` reads it out of the source | `de3bcbb` |
 | `B54` | medium | `print` took exactly one parameter, so it dropped every argument after the first with no error, while the concatenated form raised | variadic through `select`, joined with a space, still one command per call | `24842d3` |
 | `B55` | medium | both argument parsers in `lib/register.lua` required a leading `[%a]`, so a player named `007`, `4player` or `_bob` — all legal to the engine — could not be named to `tools`, `generate` or `level`, and the answer was the usage string | both parsers take `[%w_%-]+`; `parse_target` gains `rest_pattern` and `solo_pattern`, so a lone `[1-4]` is a codelevel and anything else is a name | `7c1442d` |
-| `B56` | low | the three in-engine specs wrote their can't-run note with `io.write`, whose buffer the engine discards at exit, so a skipped spec said nothing in any captured output — and `C24`'s wording rule could not help, the filter never receiving the line | all three switched to `print` and reworded to `skipped: needs the mod loaded`, so the note opens with the token the filter matches; driven to appear with two guards broken at once, in the raw capture and under standalone `lua5.1` | working tree |
+| `B56` | low | the three in-engine specs wrote their can't-run note with `io.write`, whose buffer the engine discards at exit, so a skipped spec said nothing in any captured output — and `C24`'s wording rule could not help, the filter never receiving the line | all three switched to `print` and reworded to `skipped: needs the mod loaded`, so the note opens with the token the filter matches; driven to appear with two guards broken at once, in the raw capture and under standalone `lua5.1` | `8da8cab` |
 
 ### S · Sandbox and security
 
@@ -631,7 +657,8 @@ a row carries a rule, it is above under *Keep*.
 | `C21` | medium | `register_on_newplayer` granted `fly`, `fast` and `noclip` to every new player, in any game that installed the mod | removed outright | `b23a8bc` |
 | `C22` | low | `.luacheckrc`'s sandbox std had drifted: `sleep` and `default_block` were missing, so a correct example would have been reported as a typo | `gen_docs.lua --check` compares the std with `api.names()` in both directions | `4450ce1` |
 | `C23` | medium | the shipped examples were checked against a hand-kept list of names, not against the directory, and the count agreed only by a dead entry | both directions checked against `codeblock.examples.examples`, each failing by name | `de3bcbb`, `63c3c33` |
-| `C24` | medium | CI booted no engine, so `forms_spec`, `stepper_spec`, `integration_spec` and every engine-guarded case never ran in CI | a fourth job runs all nine specs in upstream's `ghcr.io/luanti-org/luanti:5.17.0` server image, reading one verdict line `init.lua` now prints; `tests/game/minetest.conf` enables the suite as a game default and asks for the shutdown, so `run_tests.ps1` writes no user config and waits on the process instead of sleeping | working tree |
+| `C24` | medium | CI booted no engine, so `forms_spec`, `stepper_spec`, `integration_spec` and every engine-guarded case never ran in CI | a fourth job runs all nine specs in upstream's `ghcr.io/luanti-org/luanti:5.17.0` server image, reading one verdict line `init.lua` now prints; `tests/game/minetest.conf` enables the suite as a game default and asks for the shutdown, so `run_tests.ps1` writes no user config and waits on the process instead of sleeping | `8da8cab` |
+| `C25` | medium | `run_tests.ps1`'s error filter matched no `core.log('error', ...)` the mod emits, so the report printed `errors: none` on every run whose log carried one — and it had carried one for as long as `integration_spec`'s late-`register_blocks` case has existed | `ERROR\[` added to the filter and nothing suppressed, the report being for a person; CI allowlists the one deliberate message and fails on any other `ERROR[` or `ModError`, so a genuine error is red at once and a new deliberate one is red until acknowledged | working tree |
 
 ### A · Architecture and performance
 
@@ -660,8 +687,8 @@ blurred.
 
 **Claimed only: nothing.**
 
-**`C24`'s local half is verified; its container half is not.** In the working
-tree: `run_tests.ps1` reports nine summaries and
+**`C24`'s local half was verified before any CI run.** In the tree that became
+`8da8cab`: `run_tests.ps1` reports nine summaries and
 `suite: 9/9 specs   725 passed   0 failed   1 xfail   0 xpass   0 skipped`, errors `none`,
 in **2 seconds** against about 27 before; the standalone six report 31, 56, 34,
 31, 29, 73 with the one legitimate `skipped:` line; luacheck is silent and
@@ -672,11 +699,17 @@ specs ran. The assemble step was run for real in WSL: the game root holds
 `game.conf`, `minetest.conf` and `mods`, `mods/` holds `cbfixture`, `codeblock`
 and `vector3`, and the mod copy carries the nine specs and no `.git`.
 
-**What is unproven is the container.** This machine has no docker, so the
-`engine` job has never executed. **Its first CI run is its first execution**, and
-until that run concludes `C24`'s close rests on the local half plus a read of
-the workflow. The verdict-line pattern is the part that was made to fail
-deliberately; the docker invocation around it is not.
+**The container is proven, and the qualification this entry carried is
+withdrawn.** CI run `34391577229` on `8da8cab` concluded success on all four
+jobs, the `engine` job in **10 seconds**. **The container matches the Windows
+run spec for spec** — 31, 57, 34, 31, 29, 73, 66, 45, 359 = **725**, one xfail,
+no xpass, nothing skipped, `Server: Shutting down`. So musl LuaJIT in the image
+and the Windows client build agree exactly.
+
+**Keep the two readings side by side, because that agreement is what makes the
+standalone six honest.** They exist to catch plain 5.1 diverging from the
+engine's LuaJIT, and nothing else about the engine is now taken on trust: if the
+two ever disagree, the standalone job is the one with something to say.
 
 **`C24`'s verdict line was wrong once and carries no id for it.** The first form
 counted every returned table as a spec that ran, so a skipped spec reported as
@@ -695,11 +728,33 @@ same lines were confirmed in the raw capture — where the earlier grep for the
 standalone `lua5.1`. Six lines added and three removed across the three specs,
 nothing else touched, and all three stayed fully CRLF.
 
-**Final gates over the whole uncommitted change:**
+**`C24` and `B56` landed at `8da8cab`, pushed.** Gates there:
+`suite: 9/9 specs   725 passed   0 failed   1 xfail   0 xpass   0 skipped`; the
+standalone six at 254 with only `preprocess_spec`'s legitimate note; luacheck
+silent; `gen_docs`, `gen_locale` and `gen_settingtypes` each up to date. **The
+`errors none` in that reading was the false one `C25` is about.**
+
+**`C25`'s fix was driven to failure five ways before being trusted:** green on
+the real log and on a clean log; red on a genuine `ERROR[` alongside the
+deliberate one, on a genuine `ERROR[` alone, and on a `ModError` with no
+`ERROR[` prefix. Gates on the tree carrying it, all five green:
 `suite: 9/9 specs   725 passed   0 failed   1 xfail   0 xpass   0 skipped`,
-errors `none`; the standalone six at 254 with only `preprocess_spec`'s
-legitimate note; luacheck silent; `gen_docs`, `gen_locale` and
-`gen_settingtypes` each up to date.
+standalone six 254, luacheck silent, the three generators up to date. **The
+`errors` section now prints the one expected line rather than `none`.**
+
+**`tests/shapes_spec.lua:105` read `arg` as a bare global and carries no id.**
+It made Luanti warn about an undeclared global on every in-engine run; it is now
+`rawget(_G, 'arg')`, the warning is gone from a captured run, and the standalone
+branch was proved still load-bearing with a negative control. **A warning in a
+spec is not a defect in what ships**, so it gets a line and not an id.
+
+**The three CI actions are bumped off Node 20 and that is unverified.**
+`actions/checkout` v4→v5, `leafo/gh-actions-lua` v10→v13,
+`leafo/gh-actions-luarocks` v4→v6, in the same uncommitted change as `C25`. **No
+CI run has executed them.** The `luaVersion: "5.1"` comment was corrected at the
+same time: every `luajit-*` variant failing to build was observed on **v10** and
+is untested since, and the `engine` job now covers LuaJIT for real, so there is
+no longer a reason to want one.
 
 **`A17` and `A18` landed at `c089f78`**, touching `init.lua`,
 `lib/formspecs.lua` and `lib/utils.lua`. Gates over it: luacheck baseline
@@ -940,7 +995,8 @@ Each of these is a wrong claim that would otherwise be repeated as fact.
 
 ---
 
-Last reviewed **2026-09-09**, describing the working tree over `f700410`. **94
-findings, none open, one won't fix (`B34`).** `F17` is complete and played, the
-`R` group is played whole, and `C24` and `B56` both close in the same uncommitted
-change — `C24` with its container half unproven until the first CI run.
+Last reviewed **2026-09-09**, describing the working tree over `8da8cab`. **95
+findings, none open, one won't fix (`B34`).** `F17` is complete and played, and
+the `R` group is played whole. `C24` and `B56` landed at `8da8cab` and its CI run
+`34391577229` proves the container. `C25`'s fix is uncommitted, and the CI action
+bump beside it is unverified.

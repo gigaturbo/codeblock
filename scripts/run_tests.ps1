@@ -66,8 +66,16 @@ if (-not $p.WaitForExit($TimeoutSeconds * 1000)) {
 # --- report -------------------------------------------------------------------
 Get-Content $out | Select-String "passed|failed|FAIL|want|got|skipped|xfail"
 
+# `ERROR\[` matters and was missing: the six patterns beside it match no
+# core.log('error', ...) the mod itself emits, so this said `none` on a run whose
+# log carried one. Nothing is suppressed here on purpose - this is a report a
+# person reads, and a line they recognise beats a `none` that is false.
+#
+# One ERROR is expected on a healthy run, and only one: integration_spec asserts
+# that register_blocks refuses a late call, and lib/blocks.lua logs the refusal.
+# Any other ERROR line is real.
 "--- errors ---"
-$e = Get-Content $err | Select-String "ModError|attempt to|traceback|invalid|Blocked|Failed to load"
+$e = Get-Content $err | Select-String "ERROR\[|ModError|attempt to|traceback|invalid|Blocked|Failed to load"
 if ($e) { $e | Select-Object -First 10 } else { "none" }
 
 if (-not $KeepWorld) {

@@ -39,21 +39,28 @@ four names rehomed and three made private. `fd219ef` pins the new home in
 `integration_spec`. Gates green there — 671 in-engine assertions, 0 failed, 0
 xpass.
 
-**`C24` is closed.** CI has a fourth job, *the nine
-specs in Luanti*, running the whole suite in upstream's
+**`C24` is closed at `8da8cab`, and the container is proven.** CI has a fourth
+job, *the nine specs in Luanti*, running the whole suite in upstream's
 `ghcr.io/luanti-org/luanti:5.17.0` server image. The three in-engine-only specs
 and every engine-guarded case are now run by something other than a local
-`run_tests.ps1`, and this is also the first CI job to run the mod on LuaJIT.
-**The container half is unproven** — this machine has no docker, so the first CI
-run is the job's first execution. The local half is verified: 2 seconds instead
-of 27, and
-`suite: 9/9 specs   725 passed   0 failed   1 xfail   0 xpass   0 skipped`.
+`run_tests.ps1`, and this is the first CI job to run the mod on LuaJIT. **Run
+`34391577229` concluded success on all four jobs, the engine job in 10 seconds,
+and matched the Windows run spec for spec** — 31, 57, 34, 31, 29, 73, 66, 45,
+359 = 725. A local run is 2 seconds instead of 27.
 
-**`B56` closes in the same change, and no finding is open.** The three in-engine
-specs wrote their can't-run note with `io.write`, whose buffer the engine
-discards at exit, so a skipped spec said nothing in any captured output. All
-three now use `print` and read `skipped: needs the mod loaded`. Verified by
-breaking two guards at once and watching both notes appear.
+**`B56` closed at `8da8cab` too.** The three in-engine specs wrote their can't-run
+note with `io.write`, whose buffer the engine discards at exit, so a skipped spec
+said nothing in any captured output. All three now use `print` and read
+`skipped: needs the mod loaded`. Verified by breaking two guards at once and
+watching both notes appear.
+
+**`C25` is fixed and uncommitted.** `run_tests.ps1`'s error filter matched no
+`core.log('error', ...)` the mod emits, so it printed `errors: none` on every run
+whose log carried one — and it had carried one for as long as
+`integration_spec`'s late-`register_blocks` case has existed. **Exactly one
+`ERROR[` line is now the healthy state**, not zero. Alongside it in the same
+uncommitted change: `shapes_spec`'s bare `arg` read, and a **CI action bump off
+Node 20 which no run has executed**.
 
 **`F16` and `B55` shipped at `7c1442d`, with `2608dc3`'s 28 spec cases over the
 two parsers.** `/codeblock level` reports a codelevel, and any engine-legal
@@ -63,24 +70,22 @@ assertions with 0 failed, 0 xpass and the one known `B4` xfail, 253 standalone.
 **Both are played:** `F16-1` to `F16-8` all pass at `fb75bc8`, engine 5.17.0,
 2026-09-08, and `F16-8` is `B55`'s only possible in-world evidence.
 
-**`C24`'s and `B56`'s work is uncommitted — seven files.**
-`.github/workflows/ci.yml`, `init.lua`, `scripts/run_tests.ps1`, a new
-`tests/game/minetest.conf`, and the three in-engine specs. Nothing is unpushed
-because nothing is committed yet; the engine job cannot report until it is.
+**`origin/master` is `8da8cab`, nothing unpushed, and its CI run is green on all
+four jobs.** `f700410`'s earlier run concluded success on the three jobs it then
+had — luacheck, the six standalone specs, the three generator checks — so `F17`
+and `C18`'s `flat_sky` removal went through CI, but **it booted no engine**;
+`C24`'s fourth job does not exist at that commit. Take the count from
+`git rev-list --count origin/master..HEAD`, never from counting hashes.
 
-**`origin/master` is `f700410`**, and that commit's CI run concluded success on
-the three jobs it then had — luacheck, the six standalone specs, the three
-generator checks — so `F17` and `C18`'s `flat_sky` removal have both been
-through CI. **It booted no engine**; `C24`'s fourth job does not exist at that
-commit. Take
-the count from `git rev-list --count origin/master..HEAD`, never from counting
-hashes.
+**Three files are uncommitted:** `.github/workflows/ci.yml`,
+`scripts/run_tests.ps1` and `tests/shapes_spec.lua` — `C25`, the `arg` read and
+the action bump. **The action bump is unverified until the next CI run.**
 
-**`PLAYTEST.md` has nothing owed, stale or unrun, for the first time.** The `R`
+**`PLAYTEST.md` had nothing owed, stale or unrun, for the first time.** The `R`
 group was played whole on 2026-09-09 at `f700410`, record-only over `3fa9d0c`,
 engine 5.17.0: `R1` to `R5` all pass. Every live check now carries a current
-pass except `H8`, which is `unreachable`. **That holds at `f700410` and `C24`'s
-commit ends it for `R1` and `R2`.**
+pass except `H8`, which is `unreachable`. **That held at `f700410`. `8da8cab`
+ended it for `R1` and `R2`, which are now stale.**
 
 **What that run closed.** `R4`'s four numbered cases were played in fresh
 worlds and read back with `/codeblock level`, which is also `A17`'s owed
@@ -100,13 +105,13 @@ outstanding in `PLAYTEST.md`. **`C24` adds no in-world check** — what it chang
 is the harness and CI, neither of which a player meets. What it does owe is one
 CI run, which is not a playtest.
 
-**`R1` and `R2` are owed against the tag.** Both were run against `f700410`,
-which is still `HEAD`, so neither is stale yet — they go stale the moment
-`C24` commits, and the release archive is built from the tag. **`R2` is the one
-that has something new to read**: `C24` changes `init.lua`, which ships, and
-`R2` boots the extracted archive with `codeblock_run_tests = true` on a build
-that has no `tests/`. `R1` reads top-level entries only, and `C24` adds no file
-outside the already-ignored `tests` and `.github`.
+**`R1` and `R2` are stale and owed against the tag.** Both were read at
+`f700410`, which `8da8cab` now follows, and the release archive is built from
+the tag. **`R2` is the one with something new to read**: `C24` changed
+`init.lua`, which ships, and `R2` boots the extracted archive with
+`codeblock_run_tests = true` on a build that has no `tests/`. `R1` reads
+top-level entries only, and neither `C24` nor `C25` adds a file outside the
+already-ignored `tests` and `.github`.
 
 **`CONTENTDB.md`'s description was corrected at ship, not deferred.** It was
 naming `ramp.colors`, `ramp.glass`, `ramp.lamps` and a ramp per registered
@@ -179,8 +184,8 @@ phase rather than done — its check was removed as untestable and reaching it
 needs a way to observe the server releasing a mapblock.
 
 **Phase 9's one queued item is done before the phase opened.** `C24` was to give
-CI a job that boots the engine; it landed in the working tree above `f700410`
-rather than after the tag, because the tag is what it protects. `lfs` for one
+CI a job that boots the engine; it landed at `8da8cab`, before the tag rather
+than after it, because the tag is what it protects. `lfs` for one
 directory enumeration was refused again — not a dependency worth adding. The
 phase is otherwise deliberately empty: a phase for what comes back from players
 is worth more empty than filled in advance.
@@ -848,6 +853,32 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
   fail independently. **A pass criterion with no floor under it —
   `[0-9]+ passed` — is not a criterion**; nine specs all skipping printed
   `0 passed` and matched. (`C24`)
+- **`errors: none` is not the healthy state — exactly one `ERROR[` line is.**
+  `integration_spec` provokes `lib/blocks.lua`'s late-`register_blocks` refusal
+  on purpose, so the line is expected and its *absence* means that case stopped
+  running. A filter that cannot match a `core.log('error', ...)` at all reports
+  `none` untruthfully, which is `C20`'s class. (`C25`)
+- **The local report and the CI gate are deliberately asymmetric, and must not
+  be reconciled.** `run_tests.ps1` shows everything and suppresses nothing,
+  because a person reads it and a line they recognise beats a false `none`. CI
+  **allowlists** the one deliberate message, because an allowlist fails in both
+  directions: a genuine error is red at once, and a *new* deliberate one is red
+  until someone acknowledges it in the gate. (`C25`)
+- **A spec must not intercept `core.log` to avoid provoking an expected error
+  line.** Offered and refused: it pins the spec to *how* the refusal is
+  reported, and the day someone aliases the logger to a load-time local the
+  interception silently stops working and nothing notices. Assert the return
+  value. (`C25`)
+- **Keep the container reading and the Windows reading side by side.** They
+  agree spec for spec on `8da8cab`, and that agreement is what makes the
+  standalone six honest — they cover plain 5.1 divergence and nothing about the
+  engine is taken on trust. If the two ever disagree, the standalone job is the
+  one with something to say. (`C24`)
+- **No `luajit-*` value in the standalone CI job, and the reason has changed.**
+  Every variant failing to build was observed on `gh-actions-lua` **v10** and is
+  untested since the v13 bump — but the `engine` job now runs the mod on real
+  LuaJIT, so there is no longer a reason to want one. That job exists to run
+  **plain 5.1**. (`C24`)
 - **A can't-run note is `print`, never `io.write`.** Luanti flushes `print` per
   line and discards the C stdio buffer behind `io.write` at exit, so wording a
   note to survive the report filter is necessary and not sufficient — both are
@@ -1048,8 +1079,10 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 
 ---
 
-Last reviewed **2026-09-09**, describing the working tree over **`f700410`**,
-which holds `C24`'s and `B56`'s seven files uncommitted. `origin/master` is **`f700410`**, CI
-green there. `PLAYTEST.md`: 97 entries, `F11-4` retired, one unreachable (`H8`),
-`R1` and `R2` due to go stale the moment `C24` commits. `AUDIT.md`: 94 findings,
-**none open**, one won't fix (`B34`). The `flat_sky` removal is `3fa9d0c`.
+Last reviewed **2026-09-09**, describing the working tree over **`8da8cab`**,
+which holds `C25`'s three files uncommitted. `origin/master` is **`8da8cab`**,
+nothing unpushed, **CI green there on all four jobs** (run `34391577229`).
+`PLAYTEST.md`: 97 entries, `F11-4` retired, one unreachable (`H8`), `R1` and
+`R2` **stale** — `8da8cab` follows the commit they were read at. `AUDIT.md`: 95
+findings, **none open**, one won't fix (`B34`). The `flat_sky` removal is
+`3fa9d0c`.
