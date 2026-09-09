@@ -2224,9 +2224,11 @@ surface no spec reaches.
    caveat used to live on the deleted per-category ramp and had to survive it.
 3. **Find the *Misc* group.** **Pass:** there is **no `table.randomizer` row**.
 4. Run `print(table.randomizer(colors))`.
-   **Pass:** the program stops with an *attempt to index a nil value* error on
-   that line. **The message does not name `table`** — it is not on the
-   named-refusal list `os` and `io` are on, and that is expected, not a fail.
+   **Pass:** the program stops on that line with *attempt to index global
+   'table' (a nil value)*. **The message must name `table`.** It is not on the
+   named-refusal list `os` and `io` are on, and it does not need to be — Lua
+   names the missing global itself. An error that names the symbol is the pass;
+   an anonymous one is a fail.
 
 ---
 

@@ -45,8 +45,8 @@ assertions with 0 failed, 0 xpass and the one known `B4` xfail, 253 standalone.
 **Both are played:** `F16-1` to `F16-8` all pass at `fb75bc8`, engine 5.17.0,
 2026-09-08, and `F16-8` is `B55`'s only possible in-world evidence.
 
-**Three commits are unpushed over `origin/master` at `fb75bc8`**, the last of
-them record-only. `fb75bc8`'s CI run — luacheck, the six standalone specs, the
+**Four commits are unpushed over `origin/master` at `fb75bc8`**, the last two
+record-only. `fb75bc8`'s CI run — luacheck, the six standalone specs, the
 three generator checks — concluded success. **`F17` has therefore not been
 through CI.** Take the count from `git rev-list --count origin/master..HEAD`,
 never from counting hashes.
@@ -423,9 +423,20 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
   `table` namespace went with it** (`F17`), `randomizer` having been its only
   member. It sat in *Misc* rather than *Choosing blocks* and carried a
   documented trap: the keys are taken once, so a key added afterwards is never
-  picked. A reusable picker is `function() return random.of(t) end`. `table` is
-  not on the named-refusal list `os` and `io` are on, so `table.randomizer(t)`
-  raises *attempt to index a nil value* rather than a named message.
+  picked. A reusable picker is `function() return random.of(t) end`.
+- **`table` stays out of `unavailable` in `lib/preprocess.lua`, and adding it is
+  not to be re-proposed.** No finding id and no code change. Two grounds. **The
+  mechanism would misfire on a common name:** `find_forbidden` exempts a name
+  only when it follows `.` or `:`, so it cannot see a local, and `local table =
+  {}` or `for i, table in ipairs(t)` would be refused outright — `table` is a far
+  more plausible variable name for a beginner than `os`, `newproxy` or
+  `coroutine`. The list's own header says it is not a security boundary but a way
+  to turn an obscure failure into a useful message, and **refusing a legal
+  program is too high a price for a better message**. **And the failure is not
+  obscure:** the list exists for `os.time()`, which dies on some later line
+  telling a beginner nothing, where `table.randomizer(t)` raises *attempt to
+  index global 'table' (a nil value)* on the line that wrote it. That is the
+  standard the list was built to reach, and this reaches it without the list.
 - **None of `F17`'s seven deletions got an alias or a deprecation period**, on
   the same ground as `color(v, min, max)` and the `/codelevel` names: v1.0.0 is
   untagged, and a name kept for compatibility with a version never released is a
@@ -984,7 +995,7 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 ---
 
 Last reviewed **2026-09-09**, describing `be3155f`. `origin/master` is
-**`fb75bc8`**, **three commits behind `HEAD`**. `PLAYTEST.md`: 97 entries, `F11-4`
+**`fb75bc8`**, **four commits behind `HEAD`**. `PLAYTEST.md`: 97 entries, `F11-4`
 retired, six unrun (`F-6`, `R5`, `F17-1` to `F17-4`), two stale (`R1`, `R2`),
 one unreachable (`H8`), two owed (`R4`, carrying a superseded fail, and `F12-6`,
 rewritten at `F17`). `AUDIT.md`: 93 findings, one open — `C24`, medium.
