@@ -12,152 +12,68 @@ is v2.0.0 and holds `F6` alone**.
 
 ## Now
 
-**`F17` shipped at `be3155f`, and `Phase 8` has no unshipped feature left.**
-Seven player-facing names left the API, two arrived, and the `table` namespace
-left player code with `table.randomizer`. Gates green there: luacheck silent,
-the three `--check` generators up to date, **725 in-engine assertions with 0
-failed and 0 xpass**, 254 standalone. **It is played too:** `F17-1` to `F17-4`
-and `F12-6` all pass at `6440ca0`, record-only over `3fa9d0c`, engine 5.17.0,
-2026-09-09. What is left before the tag is *Finalising v1.0.0* below.
+**v1.0.0 is built, and nothing is open.** `Phase 8` has no unshipped feature.
+`AUDIT.md` holds 95 findings, none open, one won't fix (`B34`). No decision is
+waiting on the author.
 
-**Answer the fixture question.** What `tests/game/mods/vector3` should pin is
-the one open question left before the tag, now that a player may have any of
-three versions.
+**Gates green at `eb0b997`, which is `origin/master` with nothing unpushed.**
+luacheck silent, the three `--check` generators up to date,
+`suite: 9/9 specs   725 passed   0 failed   1 xfail   0 xpass   0 skipped` with
+the one expected `ERROR[` line, 254 standalone under plain Lua 5.1. CI green on
+all four jobs, run `34468185643`. Take the unpushed count from
+`git rev-list --count origin/master..HEAD`, never from counting hashes.
 
-**`S8` and `S9` are both closed.** `snapshot_vector3` in `lib/sandbox.lua`
-rebuilds each `vector` constant with the constructor, so a run cannot reach the
-module's own; `vector3` v2.0.2 separates the metatable from the methods table
-and the submodule is bumped to `fc8a5b8`. **Both now have their in-world
-reading** — `F-6` passes at `6440ca0` on the pinned v2.0.2, and `R5` passes at
-`f700410` on all three versions. `S9` is still live for a player on
-v1.5 or v2.0.1, which the mod now names in `debug.txt` at load and which the
-support matrix in the `run-tests` skill tracks.
+**Two in-world checks are stale, and they are the only checking owed.** `R1` and
+`R2` were read at `f700410`, which `8da8cab` now follows. Every other live check
+carries a pass, and `H8` is `unreachable`.
 
-**`A17` and `A18` are closed.** `A18` landed at `c089f78`, both `meta.active`
-loops now assignments. `A17` finishes at `6a4fa91`: `lib/utils.lua` is deleted,
-four names rehomed and three made private. `fd219ef` pins the new home in
-`integration_spec`. Gates green there — 671 in-engine assertions, 0 failed, 0
-xpass.
+**What is left is one agent task and four author actions**, three of the four
+outside this repository. They are *Finalising v1.0.0* below.
 
-**`C24` is closed at `8da8cab`, and the container is proven.** CI has a fourth
-job, *the nine specs in Luanti*, running the whole suite in upstream's
-`ghcr.io/luanti-org/luanti:5.17.0` server image. The three in-engine-only specs
-and every engine-guarded case are now run by something other than a local
-`run_tests.ps1`, and this is the first CI job to run the mod on LuaJIT. **Run
-`34391577229` concluded success on all four jobs, the engine job in 10 seconds,
-and matched the Windows run spec for spec** — 31, 57, 34, 31, 29, 73, 66, 45,
-359 = 725. A local run is 2 seconds instead of 27.
-
-**`B56` closed at `8da8cab` too.** The three in-engine specs wrote their can't-run
-note with `io.write`, whose buffer the engine discards at exit, so a skipped spec
-said nothing in any captured output. All three now use `print` and read
-`skipped: needs the mod loaded`. Verified by breaking two guards at once and
-watching both notes appear.
-
-**`C25` is closed at `0ae4d3e`.** `run_tests.ps1`'s error filter matched no
-`core.log('error', ...)` the mod emits, so it printed `errors: none` on every run
-whose log carried one — and it had carried one for as long as
-`integration_spec`'s late-`register_blocks` case has existed. **Exactly one
-`ERROR[` line is now the healthy state**, not zero. That commit carried four
-more lines: `C24`'s verdict reaching the annotations and the run summary, `C24`'s
-container qualification withdrawn, `shapes_spec`'s bare `arg` read via `rawget`,
-and the three CI actions off Node 20.
-
-**The CI action bump is verified.** Run `34409912247` on `0ae4d3e` is green on
-all four jobs, and three of them use `leafo/gh-actions-lua`, which went **v10 to
-v13**. `luaVersion: "5.1"` therefore still resolves across three majors.
-`actions/checkout` v4→v5 and `leafo/gh-actions-luarocks` v4→v6 likewise.
-
-**The suite's verdict is legible where a reader actually looks, and that is
-playtest `CI1`.** The engine job's check-run on `0ae4d3e` carries exactly one
-annotation: the verdict line. Before `C24`'s two echo lines the annotation list
-held Node 20 notices, cache failures and truncated luacheck exemptions, and
-nothing at all about the tests. **An annotation is reachable from no spec and no
-gate**, so that step can stop working with every job still green; `CI1` is the
-only evidence it can ever have.
-
-**`F16` and `B55` shipped at `7c1442d`, with `2608dc3`'s 28 spec cases over the
-two parsers.** `/codeblock level` reports a codelevel, and any engine-legal
-player name is addressable by every subcommand. Gates green at `2608dc3`:
-luacheck silent, the three `--check` generators up to date, 703 in-engine
-assertions with 0 failed, 0 xpass and the one known `B4` xfail, 253 standalone.
-**Both are played:** `F16-1` to `F16-8` all pass at `fb75bc8`, engine 5.17.0,
-2026-09-08, and `F16-8` is `B55`'s only possible in-world evidence.
-
-**`origin/master` is `0ae4d3e`, nothing unpushed, and its CI run
-`34409912247` is green on all four jobs.** `f700410`'s earlier run concluded
-success on the three jobs it then had — luacheck, the six standalone specs, the
-three generator checks — so `F17` and `C18`'s `flat_sky` removal went through
-CI, but **it booted no engine**; `C24`'s fourth job does not exist at that
-commit. Take the count from `git rev-list --count origin/master..HEAD`, never
-from counting hashes.
-
-**`PLAYTEST.md` had nothing owed, stale or unrun, for the first time.** The `R`
-group was played whole on 2026-09-09 at `f700410`, record-only over `3fa9d0c`,
-engine 5.17.0: `R1` to `R5` all pass. Every live check now carries a current
-pass except `H8`, which is `unreachable`. **That held at `f700410`. `8da8cab`
-ended it for `R1` and `R2`, which are now stale.**
-
-**What that run closed.** `R4`'s four numbered cases were played in fresh
-worlds and read back with `/codeblock level`, which is also `A17`'s owed
-in-world reading of the call-time `default_auth_level`. `R5` is `S9`'s only
-possible in-world evidence. `R1` and `R2` re-confirm `C10` and `C16` at the
-current tree, and `R3` reads on the absence of the `flat_sky` guard rather than
-on the guard.
+**`F15` and the unsaved-close warning left v1.0.0 on 2026-09-10.** Neither is
+built. Both are in `TODO.md` under *After 1.0.0*, `F15` shaped in full below.
 
 ## Finalising v1.0.0
 
-Steps 4–7 are the `release-codeblock` skill's procedure and are not restated.
+**Step 1 is an agent's. Everything from 2 on needs the author** — a ContentDB
+login, a tag, or a running world. Steps 2–6 are the `release-codeblock` skill's
+procedure and are not restated here.
 
-**No playtest is outstanding.** `F17-1` to `F17-4` and `F12-6` all pass at
-`6440ca0`, `F12-5` kept its pass on the half `F17` did not touch, and the `R`
-group passes whole at `f700410`. Step 4's `release-check` reads nothing
-outstanding in `PLAYTEST.md`. **`C24` adds no in-world check** — what it changed
-is the harness and CI, neither of which a player meets. What it does owe is one
-CI run, which is not a playtest.
-
-**`R1` and `R2` are stale and owed against the tag.** Both were read at
-`f700410`, which `8da8cab` now follows, and the release archive is built from
-the tag. **`R2` is the one with something new to read**: `C24` changed
-`init.lua`, which ships, and `R2` boots the extracted archive with
-`codeblock_run_tests = true` on a build that has no `tests/`. `R1` reads
-top-level entries only, and neither `C24` nor `C25` adds a file outside the
-already-ignored `tests` and `.github`.
-
-**`CONTENTDB.md`'s description was corrected at ship, not deferred.** It was
-naming `ramp.colors`, `ramp.glass`, `ramp.lamps` and a ramp per registered
-category, none of which exist — a page that sells a function a player cannot
-call is worse than one that is merely incomplete. **What is left to the `C19`
-pass is the recent-changes list against `CHANGELOG.md`**, which is hand-kept and
-which nothing checks. **The page and the changelog address different readers**:
-the page says what a player writes now, `CHANGELOG.md` says what stops working.
-
-1. **Decide what the test fixture pins** — newest, oldest supported, or a
-   documented floor. Luanti has no dependency version mechanism, and there are
-   now three releases in the wild. (`S8`)
-2. **Fix `README.md`.** Line 10's *"works in any game that provides the blocks
+1. **Fix `README.md`.** Line 10's *"works in any game that provides the blocks
    it places"* is false and backwards since `d075742`; add a short **For game
    authors** section for `codeblock.register_blocks`; the ContentDB URLs are on
-   the pre-rename `content.minetest.net`; line 23 reads *"ant its dependencies"*
-   and there is now one. (`C19`, `F10`, `F11`)
-3. **Upload the new screenshots to the ContentDB page** — it loads them from raw
+   the pre-rename `content.minetest.net` and the domain is now
+   **`content.luanti.org`**; line 23 reads *"ant its dependencies"* and there is
+   now one. Then check `CONTENTDB.md`'s recent-changes list against
+   `CHANGELOG.md` and regenerate `.cdb.json` — the list is hand-kept and nothing
+   checks the two agree. (`C19`, `F10`, `F11`)
+2. **`release-check`**, and do not start the tag until it says ready.
+3. **Strike what the release closed** from `ROADMAP.md` and `TODO.md`, confirm
+   the `vector3` submodule commit is pushed, commit, push, tag `v1.0.0`.
+4. **Re-run `R1` and `R2`** against the archive built from the tag. **`R2` is
+   the one with something new to read**: `C24` changed `init.lua`, which ships,
+   and `R2` boots the extracted archive with `codeblock_run_tests = true` on a
+   build that has no `tests/`. `R1` reads top-level entries only, and neither
+   `C24` nor `C25` adds a file outside the already-ignored `tests` and
+   `.github`. (`C16`, `C10`)
+5. **Upload to ContentDB** — long description from the regenerated `.cdb.json`,
+   and the new screenshots to the package page. The page loads them from raw
    GitHub URLs on `master`, so the new names go up and the dropped 2021 file
    comes off. (`C19`)
-4. **`release-check`**, and do not start the tag until it says ready.
-5. **Strike what the release closed** from `ROADMAP.md` and `TODO.md`, confirm
-   the `vector3` submodule commit is pushed, commit, push, tag `v1.0.0`.
-6. **Upload to ContentDB**, long description from the regenerated `.cdb.json`.
-7. **Configure the release webhook** — trigger **Branch or tag creation**.
+6. **Configure the release webhook** — trigger **Branch or tag creation**.
 
-Done and not repeated here: `CHANGELOG.md` is the heading alone, `CONTENTDB.md`
-was corrected at `c2e541f`, `settingtypes.txt`'s generator landed, `B47` shipped
-mitigated, and `B48`, `B49`, `B50`, `B51`, `B52`, `B53`, `B54`, `C21`, `C22`,
-`C23`, `F10`–`F14`, `F16` and `F17` are all committed with their playtests run,
-and the `R` group is played whole.
+**The page and the changelog address different readers.** `CONTENTDB.md` says
+what a player writes now; `CHANGELOG.md` says what stops working. The page was
+corrected at ship rather than deferred, because a page selling a function a
+player cannot call is worse than an incomplete one.
 
-**After the tag.** `Phase 9` opens on what comes back from players. `codecube`
-adopts the release on its own schedule. `Phase 10` needs `F6`'s four obstacles
-answered in writing before any code.
+**Done and not repeated here:** every `F` item through `F17`, every finding, the
+`CHANGELOG.md` entry, `CONTENTDB.md`'s correction at `c2e541f`, and the `R`
+group played whole.
+
+**After the tag.** `Phase 9` opens on what comes back from players, and carries
+`F15`. `codecube` adopts the release on its own schedule. `Phase 10` needs
+`F6`'s four obstacles answered in writing before any code.
 
 ## Milestones
 
@@ -172,14 +88,14 @@ answered in writing before any code.
 | 6 | Limits for what the server spends | done | 3/3 |
 | 7 | Clear the way for features | done | 26/26 |
 | 8 | Features for v1.0.0 | done | 14/14 features shipped, no finding open |
-| 9 | v1.x.y — after the release | its one queued item is closed early | 1/1 |
+| 9 | v1.x.y — after the release | `C24` closed early; `F15` queued | 1/2 |
 | 10 | v2.0.0 — the Blockly editor | not started | 0/1 |
 
 Findings by phase: 0 (`C8`, `A12`); 1 (`C1`, `B5`, `B8`, `B9`); 2 (`B1`–`B4`,
 `B6`, `B23`, `S1`–`S4`, `A10`); 3 (`A1`, `A2`, `B22`); 4 (`A5`, `B12`, `A4`,
 `A15`); 5 (`S5`, `S6`, `C7`, `C13`, at `43e95a8`); 6 (`B25`, `B26`, `C14`, at
 `2647228`); 7 (`A3`, `A6`, `A9`, `A11`, `A16`, `C6`, `C10`–`C12`, `B7`, `B10`,
-`B11`, `B13`–`B18`, `B21`, `B27`–`B32`, `C16`, `742a1ca`–`191b533`); 9 (`C24`, `B56`);
+`B11`, `B13`–`B18`, `B21`, `B27`–`B32`, `C16`, `742a1ca`–`191b533`); 9 (`C24`, `B56`, `F15`);
 10 (`F6`).
 
 **Done through Phase 7 means findings closed and gates green, not played.**
@@ -194,12 +110,14 @@ two assignments and `B55` with the widened parsers. `B10`'s refusal is out of th
 phase rather than done — its check was removed as untestable and reaching it
 needs a way to observe the server releasing a mapblock.
 
-**Phase 9's one queued item is done before the phase opened.** `C24` was to give
-CI a job that boots the engine; it landed at `8da8cab`, before the tag rather
-than after it, because the tag is what it protects. `lfs` for one
-directory enumeration was refused again — not a dependency worth adding. The
-phase is otherwise deliberately empty: a phase for what comes back from players
-is worth more empty than filled in advance.
+**Phase 9's one queued finding was done before the phase opened.** `C24` was to
+give CI a job that boots the engine; it landed at `8da8cab`, before the tag
+rather than after it, because the tag is what it protects. `lfs` for one
+directory enumeration was refused again — not a dependency worth adding.
+
+**`F15` is the phase's only queued work, and the phase stays open otherwise.** A
+phase for what comes back from players is worth more empty than filled in
+advance.
 
 ## The features
 
@@ -222,7 +140,7 @@ decisions*. `F6` and `F15` describe work not done and keep their shape.
 | `F12` | large | shipped `01f9641` (examples `b752ea3`) | 35 colours, 105 nodes, the `ramp` namespace, `get_block` relative coordinates. Its per-category ramps were removed at `F17`. |
 | `F13` | small | shipped `4450ce1` | `is_block(block, n_right, n_up, n_forward)`, the predicate form of `get_block`. Closed `C22` in the same commit. |
 | `F14` | small | shipped `e3e2178` | `light_hues`, `dark_hues`, `neutrals` and `ramp.of(list, v, min, max)`. |
-| `F15` | large | shaped, not scheduled | `colorhex("#F7A8E7")`. See below. |
+| `F15` | large | shaped, `Phase 9` | `colorhex("#F7A8E7")`. See below. |
 | `F16` | small | shipped `7c1442d` | `/codeblock level` reports a codelevel; the read is free for your own. Fixed `B55` in the same commit and made `R4` runnable. Checks `F16-1` to `F16-8` all pass at `fb75bc8`. |
 | `F17` | small | shipped `be3155f` | Seven names left the API and two arrived: `random.of(list)` and `random.hues()`. `ramp.of` also takes a block category. The `table` namespace left player code with `table.randomizer`. Played at `6440ca0`. |
 
@@ -247,7 +165,7 @@ time to plan and think."* **Do not start building it because the phase exists.**
 - **What would settle feasibility:** one written answer to *where do the assets
   live and who allows the HTTP call*, before any code.
 
-### F15 · large · shaped 2026-09-07, not scheduled — `colorhex`, a palette node
+### F15 · large · shaped 2026-09-07, `Phase 9` — `colorhex`, a palette node
 
 **Feasible, but not as an arbitrary colour.** There is no runtime node
 registration in Luanti, so a hex nobody anticipated cannot become a node. The
@@ -270,6 +188,10 @@ write path changes shape. `lib/shapes.lua` is the bulk of it: a second full-size
 `get_block` and `is_block` reverse-look-up through `by_node[itemstring]`, which
 cannot tell 256 colours apart, so both must read `param2`. The block picker
 cannot enumerate 256 × 3. `lib/cost.lua:236` is trivial by comparison.
+
+**It is after v1.0.0** (2026-09-10, the author's call). It is additive, so
+nothing about it gets cheaper by shipping in the major release, and it is the
+largest unbuilt item there is: every write path changes shape.
 
 **Two questions open on purpose.** Which 256 colours — a colour cube, a
 greyscale allocation, or hand-tuned. And how the value reaches `place()`, whose
@@ -315,8 +237,15 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 - **Leave-and-document was rejected for both `S8` and `S9`.** `S8` crosses to
   other players and `S9` to other mods, so neither is a limitation a player
   could work around.
-- **What the test fixture pins is open**, not settled by either bump. It is a
-  question under *Finalising v1.0.0*, not a decision.
+- **The test fixture pins the newest `vector3`, and that is settled** —
+  2026-09-10, the author's answer to what to pin now three releases are in the
+  wild. The submodule stays at `fc8a5b8`, `v2.0.2`, so the decision changed no
+  code. **Neither the oldest supported version nor a documented floor was
+  taken**: Luanti has no dependency version mechanism, so a floor is prose
+  nothing enforces, and the suite is worth most against the version a new
+  install gets. What covers the older two is the support matrix in the
+  `run-tests` skill plus `init.lua`'s load-time warning, not the fixture.
+  (`S8`)
 - **An example copies with the constructor, not `clone()`.**
   `lib/examples/game.lua` reads `dir = vector(1, 1, 1)`. The constructor is what
   `lib/api.lua` documents, it matches the file's own `vector(1, 0, 1)`, and
@@ -944,14 +873,22 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
   and the palette underneath every spec run. **Do not move it in.** What it
   registers is written into `F11-10` in enough detail to rebuild it.
 - **No rendering has a next-step panel.** `.reports/playtest.html` opens on
-  *What is outstanding*, `audit.html` on *The categories*, `roadmap.html` on
+  *Where it stands*, `audit.html` on *The categories*, `roadmap.html` on
   *Finalising v1.0.0*. The document's own first section already answers the
   question, so a panel above it is a second, shorter answer, and two answers
   drift.
 - **A full-size cover ships in the release archive.** `screenshot.png` is the
   mosaic verbatim, 1.83 MB, putting the archive at 2.21 MB. **A stale cover
   misrepresents the mod to every player deciding whether to install it; 0.7 MB
-  does not.** Resize rather than revert if the size ever matters.
+  does not.** Resize rather than revert if the size ever matters. It survives
+  the `screenshots export-ignore` rule through its own `-export-ignore` line,
+  `.gitattributes:32`.
+- **`screenshots/mozaic.xcf` is the editable source of the root
+  `screenshot.png`.** The two live in different directories, so **do not tidy
+  `screenshots/` by deleting the `.xcf`** — it is the source of the one image a
+  player sees in the Mods tab. `screenshots/mozaic.png` was the same 1,828,208
+  bytes as `screenshot.png` and was deleted 2026-09-10; a clone was carrying the
+  mosaic twice while only the root copy ever shipped.
 - **The release webhook's trigger is *Branch or tag creation*, not push**,
   because this project tags; push would publish every commit on `master`.
 - **A reverse "no unexpected API name" check in `api_spec`** would duplicate
@@ -1004,7 +941,9 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 - **Removing a file without opening it first** — won't fix, *"not really
   needed"*. `B14`'s cold path stays unreachable as a result. (`B34`)
 - **The `soe` checkbox** — deliberately dead. A warning on unsaved changes is
-  wanted instead, and is in `TODO.md`.
+  wanted instead, and is **after v1.0.0** (2026-09-10). `F7`'s `*` on an unsaved
+  tab may already be enough, and a modal on close is a formspec no spec can
+  reach.
 - **The new-file template naming an individual colour.** `colors.orange` was
   proposed as a one-word fix for `B53` and rejected: naming a current colour
   rebuilds the dependency that had just broken, and the template is prose no
@@ -1098,9 +1037,10 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 
 ---
 
-Last reviewed **2026-09-10**, describing **`0ae4d3e`**. `origin/master` is
-**`0ae4d3e`**, nothing unpushed, **CI green there on all four jobs** (run
-`34409912247`). `PLAYTEST.md`: 98 entries, `F11-4` retired, one unreachable
-(`H8`), `R1` and `R2` **stale** — `8da8cab` follows the commit they were read
-at. `AUDIT.md`: 95 findings, **none open**, one won't fix (`B34`). The
-`flat_sky` removal is `3fa9d0c`.
+Last reviewed **2026-09-10**, describing **`eb0b997`** plus one uncommitted
+deletion, `screenshots/mozaic.png`. `origin/master` is **`eb0b997`**, nothing
+unpushed, **CI green there on all four jobs** (run `34468185643`).
+`PLAYTEST.md`: 98 entries, `F11-4` retired, one unreachable (`H8`), `R1` and
+`R2` **stale** — `8da8cab` follows the commit they were read at. `AUDIT.md`: 95
+findings, **none open**, one won't fix (`B34`). The `flat_sky` removal is
+`3fa9d0c`.

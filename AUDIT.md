@@ -91,6 +91,11 @@ restated.
   there, so `dir = vector.one; dir.x = -dir.x` reaches nothing outside that run,
   whoever writes it — a shipped example, or a player. **That is why `F-6` no
   longer watches `game.lua`'s starting direction.**
+- **`S8` — the test fixture pins the newest `vector3`, v2.0.2**, settled
+  2026-09-10. The finding left *what to pin* open and it is now closed; the
+  grounds are in `ROADMAP.md`. What covers a player on v1.5 or v2.0.1 is the
+  support matrix in the `run-tests` skill and `init.lua`'s load-time warning,
+  never the fixture.
 - **`S9` — a metatable is not a methods table.** `vector3.__index = vector3`
   made the class table an ordinary field of every instance, so a player program
   could replace `unpack`, `__add` or `__eq` for every mod using the `vector3`
@@ -1019,8 +1024,9 @@ Each of these is a wrong claim that would otherwise be repeated as fact.
 
 ---
 
-Last reviewed **2026-09-10**, describing `0ae4d3e`. **95 findings, none open,
+Last reviewed **2026-09-10**, describing `eb0b997`. **95 findings, none open,
 one won't fix (`B34`).** `F17` is complete and played, and the `R` group is
 played whole. `C24` and `B56` landed at `8da8cab`, `C25` at `0ae4d3e`, and the
 CI runs `34391577229` and `34409912247` prove the container and the action bump
-in turn. Nothing is unverified.
+in turn. CI is green at `eb0b997` on all four jobs, run `34468185643`. Nothing
+is claimed only, and the one thing verified nowhere is `B10`'s refusal.

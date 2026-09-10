@@ -87,9 +87,12 @@ Result: ...
 | [`R1`](#r1--the-archive-contains-no-tests-c16-c10) | `stale` | a re-run against the release tag; read at `f700410`, which `8da8cab` follows |
 | [`R2`](#r2--a-real-install-with-the-test-flag-set-c16) | `stale` | a re-run against the release tag; `C24` changed `init.lua`, which ships |
 
-**Every live check carries a pass, and two of them describe an earlier tree.**
-`H8` is `unreachable` and cannot improve. The `R` group was played whole on
-2026-09-09, which closed the last `unrun` entry the file ever had.
+**The two stale checks are the only checking v1.0.0 owes.** Both are read
+against the archive built from the release tag, so they come after it. `R2` is
+the one with something new to read: `C24` changed `init.lua`, which ships.
+
+**Every other live check carries a current pass.** `H8` is `unreachable` and
+cannot improve.
 
 **A pass is current, not permanent.** A check goes `owed` again the moment the
 code under it changes, and `stale` when a count it names stops describing the
