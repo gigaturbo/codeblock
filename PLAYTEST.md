@@ -5,6 +5,12 @@ map, a player or a user directory exists, so the editor, drone placement, the
 filesystem, inventories, locale files and every write into the world have no spec
 coverage and cannot have.
 
+**The criterion is reachability, not the world.** Almost every check here is
+read in a running world, because that is what the suite cannot enter. One group
+is not: `CI1` is read on a GitHub run page. It belongs here for the same reason
+as the rest — no spec and no gate can reach it, it goes stale when the code
+under it changes, and its only evidence is a person reading a screen.
+
 Reasoning for a defect lives in `AUDIT.md` under the bracketed id, and for a
 feature in `ROADMAP.md`. This file has its own `export-ignore` line and never
 ships to a player.
@@ -64,18 +70,25 @@ Result: ...
 
 | | Count |
 |---|---|
-| Entries | 97 |
+| Entries | 98 |
 | Retired | 1 — `F11-4` |
-| Live checks | 96 |
-| Most recent result a pass | 95 |
+| Live checks | 97 |
+| Most recent result a pass | 96 |
 | Unreachable | 1 — `H8` |
 | Unrun | 0 |
-| Stale | 0 |
+| Stale | 2 — `R1`, `R2` |
 | Owed | 0 |
 | Fail as most recent result | 0 |
 
-**Nothing is owed.** Every live check carries a current pass except `H8`, which
-is `unreachable` and cannot improve. The `R` group was played whole on
+**Checks needing action:**
+
+| Check | State | Waiting on |
+|---|---|---|
+| [`R1`](#r1--the-archive-contains-no-tests-c16-c10) | `stale` | a re-run against the release tag; read at `f700410`, which `8da8cab` follows |
+| [`R2`](#r2--a-real-install-with-the-test-flag-set-c16) | `stale` | a re-run against the release tag; `C24` changed `init.lua`, which ships |
+
+**Every live check carries a pass, and two of them describe an earlier tree.**
+`H8` is `unreachable` and cannot improve. The `R` group was played whole on
 2026-09-09, which closed the last `unrun` entry the file ever had.
 
 **A pass is current, not permanent.** A check goes `owed` again the moment the
@@ -1391,6 +1404,48 @@ Result: pass — `f700410`, record-only over `3fa9d0c` · engine 5.17.0 ·
 `[codeblock]` warning naming the right version; v2.0.2 was silent. The pin is
 back at `fc8a5b8`. **`S9` has its only in-world evidence here** — no spec can
 reach the branch.
+
+---
+
+## Continuous integration
+
+`CI1`. The one group read on a web page rather than in a world. A CI job's
+*output* is checked by the job's own pattern; where that output **appears** for a
+human reader is checked by nothing.
+
+### CI1 · The suite's verdict reaches the annotation list and the run summary [C24]
+
+Push a commit and open its run on GitHub. Read **two** places, neither of them a
+step body:
+
+1. the **Annotations** list at the top of the run page;
+2. the **Summary** section of the run.
+
+**Read the API instead, or as well.** In bash, with `<sha>` the commit:
+
+```bash
+curl -s "https://api.github.com/repos/gigaturbo/codeblock/commits/<sha>/check-runs" \
+  | grep -E '"name"|"id"'
+curl -s "https://api.github.com/repos/gigaturbo/codeblock/check-runs/<id>/annotations" \
+  | grep -E '"annotation_level"|"message"'
+```
+
+**Pass:** the verdict line is legible in both places, reading
+`suite: 9/9 specs   N passed   0 failed   N xfail   0 xpass   0 skipped`, and the
+engine job carries **exactly one** annotation at level `notice`. **Fail is an
+annotation list that says nothing about the tests** — which is the state that
+prompted `C24`'s two lines, an earlier list carrying only Node 20 notices, cache
+failures and truncated luacheck exemptions.
+
+**Re-read this after any change to the result step.** An annotation is reachable
+from no spec and no gate, so that step can stop working with every job still
+green.
+
+Result: pass — `0ae4d3e` · engine 5.17.0 · 2026-09-10 — read on the run page:
+*"pass, got 'suite: 9/9 specs 725 passed 0 failed 1 xfail 0 xpass 0 skipped'"*.
+Check-run `102661688597` on run `34409912247` returns exactly one annotation,
+level `notice`, that same string. **This is `C24`'s only possible evidence for
+where the verdict lands.**
 
 ---
 

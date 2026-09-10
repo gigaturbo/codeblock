@@ -54,13 +54,27 @@ said nothing in any captured output. All three now use `print` and read
 `skipped: needs the mod loaded`. Verified by breaking two guards at once and
 watching both notes appear.
 
-**`C25` is fixed and uncommitted.** `run_tests.ps1`'s error filter matched no
+**`C25` is closed at `0ae4d3e`.** `run_tests.ps1`'s error filter matched no
 `core.log('error', ...)` the mod emits, so it printed `errors: none` on every run
 whose log carried one — and it had carried one for as long as
 `integration_spec`'s late-`register_blocks` case has existed. **Exactly one
-`ERROR[` line is now the healthy state**, not zero. Alongside it in the same
-uncommitted change: `shapes_spec`'s bare `arg` read, and a **CI action bump off
-Node 20 which no run has executed**.
+`ERROR[` line is now the healthy state**, not zero. That commit carried four
+more lines: `C24`'s verdict reaching the annotations and the run summary, `C24`'s
+container qualification withdrawn, `shapes_spec`'s bare `arg` read via `rawget`,
+and the three CI actions off Node 20.
+
+**The CI action bump is verified.** Run `34409912247` on `0ae4d3e` is green on
+all four jobs, and three of them use `leafo/gh-actions-lua`, which went **v10 to
+v13**. `luaVersion: "5.1"` therefore still resolves across three majors.
+`actions/checkout` v4→v5 and `leafo/gh-actions-luarocks` v4→v6 likewise.
+
+**The suite's verdict is legible where a reader actually looks, and that is
+playtest `CI1`.** The engine job's check-run on `0ae4d3e` carries exactly one
+annotation: the verdict line. Before `C24`'s two echo lines the annotation list
+held Node 20 notices, cache failures and truncated luacheck exemptions, and
+nothing at all about the tests. **An annotation is reachable from no spec and no
+gate**, so that step can stop working with every job still green; `CI1` is the
+only evidence it can ever have.
 
 **`F16` and `B55` shipped at `7c1442d`, with `2608dc3`'s 28 spec cases over the
 two parsers.** `/codeblock level` reports a codelevel, and any engine-legal
@@ -70,16 +84,13 @@ assertions with 0 failed, 0 xpass and the one known `B4` xfail, 253 standalone.
 **Both are played:** `F16-1` to `F16-8` all pass at `fb75bc8`, engine 5.17.0,
 2026-09-08, and `F16-8` is `B55`'s only possible in-world evidence.
 
-**`origin/master` is `8da8cab`, nothing unpushed, and its CI run is green on all
-four jobs.** `f700410`'s earlier run concluded success on the three jobs it then
-had — luacheck, the six standalone specs, the three generator checks — so `F17`
-and `C18`'s `flat_sky` removal went through CI, but **it booted no engine**;
-`C24`'s fourth job does not exist at that commit. Take the count from
-`git rev-list --count origin/master..HEAD`, never from counting hashes.
-
-**Three files are uncommitted:** `.github/workflows/ci.yml`,
-`scripts/run_tests.ps1` and `tests/shapes_spec.lua` — `C25`, the `arg` read and
-the action bump. **The action bump is unverified until the next CI run.**
+**`origin/master` is `0ae4d3e`, nothing unpushed, and its CI run
+`34409912247` is green on all four jobs.** `f700410`'s earlier run concluded
+success on the three jobs it then had — luacheck, the six standalone specs, the
+three generator checks — so `F17` and `C18`'s `flat_sky` removal went through
+CI, but **it booted no engine**; `C24`'s fourth job does not exist at that
+commit. Take the count from `git rev-list --count origin/master..HEAD`, never
+from counting hashes.
 
 **`PLAYTEST.md` had nothing owed, stale or unrun, for the first time.** The `R`
 group was played whole on 2026-09-09 at `f700410`, record-only over `3fa9d0c`,
@@ -1060,7 +1071,7 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 - A game's block category shows its raw, untranslated name in the help selector.
   (`F11`)
 
-## Four rules this phase paid for
+## Five rules this phase paid for
 
 - **Run a playtest group that has never been run before writing the next
   feature.** Eight sessions on the editor found four findings; the first session
@@ -1076,13 +1087,20 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 - **Read what the game said, not just whether it did the right thing.** `F-3`
   case 2 passed on behaviour and printed the server's absolute filesystem path
   in English. That is `S7`, and a pass/fail line would have buried it.
+- **An absent line and a zero count read as health, and only a mutation tells
+  them apart.** One queued item, `C24`, surfaced three defects of that one
+  shape: the skip hole where a spec that never ran counted as one that
+  asserted, `B56` where a can't-run note went into a discarded buffer, and
+  `C25` where a filter matching nothing printed `errors: none`. Two were made
+  inside the change and one was as old as the spec that provoked it. **None
+  would have been caught by reading a diff.** All three came from breaking
+  something on purpose and reading the gate's own report back.
 
 ---
 
-Last reviewed **2026-09-09**, describing the working tree over **`8da8cab`**,
-which holds `C25`'s three files uncommitted. `origin/master` is **`8da8cab`**,
-nothing unpushed, **CI green there on all four jobs** (run `34391577229`).
-`PLAYTEST.md`: 97 entries, `F11-4` retired, one unreachable (`H8`), `R1` and
-`R2` **stale** — `8da8cab` follows the commit they were read at. `AUDIT.md`: 95
-findings, **none open**, one won't fix (`B34`). The `flat_sky` removal is
-`3fa9d0c`.
+Last reviewed **2026-09-10**, describing **`0ae4d3e`**. `origin/master` is
+**`0ae4d3e`**, nothing unpushed, **CI green there on all four jobs** (run
+`34409912247`). `PLAYTEST.md`: 98 entries, `F11-4` retired, one unreachable
+(`H8`), `R1` and `R2` **stale** — `8da8cab` follows the commit they were read
+at. `AUDIT.md`: 95 findings, **none open**, one won't fix (`B34`). The
+`flat_sky` removal is `3fa9d0c`.

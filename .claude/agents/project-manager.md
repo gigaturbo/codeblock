@@ -117,9 +117,9 @@ Read the headings before writing into one. Keep the shape; do not reorganise it.
 
 **`ROADMAP.md`** — *Now*; *Finalising v1.0.0*, a numbered ordered list; the
 *Milestones* table, one row per phase with goal, state and closed fraction; *The
-features*, a table of `F1`–`F15` with size, state and one line each, and a full
+features*, a table of `F1`–`F17` with size, state and one line each, and a full
 entry below only for work not done; *Other decisions worth not re-litigating*,
-grouped by area; *What ships broken*; *Four rules this phase paid for*; a footer
+grouped by area; *What ships broken*; *Five rules this phase paid for*; a footer
 with the date, the commit described, `origin/master`, and the audit and playtest
 counts. It is the only record of a decision, so a shipped `F` entry keeps its
 constraints and loses its survey of options.
@@ -135,8 +135,10 @@ established moves into *Keep* and stays.
 **`PLAYTEST.md`** — *How to record a result*, which is the result-line recipe;
 *How a check is written*; *Where it stands*, a counts table and a table of
 checks needing action, each linking to its anchor; then the groups `E`, `D`,
-`H`, `F-`, `W`, `P`, `R`, and *Per-feature checks* (`F1-1`, `F11-3`, `F14-2`).
-Every check hands the runner an actual program or command and names the shell.
+`H`, `F-`, `W`, `P`, `R`, `CI`, and *Per-feature checks* (`F1-1`, `F11-3`,
+`F14-2`). Every check hands the runner an actual program or command and names
+the shell. **The criterion is reachability, not the world** — `CI1` is read on a
+GitHub run page, because no spec and no gate reaches an annotation either.
 
 **`TODO.md`** — `# v1.0.0`, `# After 1.0.0`, `# Other ideas`, with `# v1.0.0`
 split into features, decisions wanted from the author, checks left in a running

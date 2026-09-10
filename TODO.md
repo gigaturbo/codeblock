@@ -42,9 +42,6 @@ Checks left in a running world — the checklist is `PLAYTEST.md`
       read at f700410 which 8da8cab now follows. R2 is the one with something
       new to read: C24 changed init.lua, which ships (audit C16, C10; playtest
       R1, R2)
-- [ ] watch the next CI run for the action bump off Node 20 — checkout v5,
-      gh-actions-lua v13, gh-actions-luarocks v6, none of which has executed
-      (audit C24)
 
 
 # After 1.0.0

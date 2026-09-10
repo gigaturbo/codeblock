@@ -435,6 +435,14 @@ restated.
   `^suite: 9/9 specs +[0-9]+ passed +0 failed +[0-9]+ xfail +0 xpass +0 skipped$`,
   driven red six ways — 1 failure, 10 failures, 1 xpass, 10 xpass, 8/9 specs,
   and an absent verdict — before being trusted. That is `C20`'s rule applied.
+- **`C24` — the verdict reaches the annotation list and the run summary, and
+  nothing can check that it still does.** The result step echoes
+  `::notice::$verdict` and appends the verdict to `$GITHUB_STEP_SUMMARY`,
+  because expanding a step body is the only other way to read it and the two
+  places a reader looks said nothing about the suite. **An annotation is
+  reachable from no spec and no gate**, so a change to that step can stop it
+  working with nothing going red and every job still green. Re-read playtest
+  `CI1` after touching it.
 - **`C24` — the standalone six stay in CI.** The engine job is added, not
   substituted: plain Lua 5.1 diverging from the engine's LuaJIT is caught by
   nothing else.
@@ -658,7 +666,7 @@ a row carries a rule, it is above under *Keep*.
 | `C22` | low | `.luacheckrc`'s sandbox std had drifted: `sleep` and `default_block` were missing, so a correct example would have been reported as a typo | `gen_docs.lua --check` compares the std with `api.names()` in both directions | `4450ce1` |
 | `C23` | medium | the shipped examples were checked against a hand-kept list of names, not against the directory, and the count agreed only by a dead entry | both directions checked against `codeblock.examples.examples`, each failing by name | `de3bcbb`, `63c3c33` |
 | `C24` | medium | CI booted no engine, so `forms_spec`, `stepper_spec`, `integration_spec` and every engine-guarded case never ran in CI | a fourth job runs all nine specs in upstream's `ghcr.io/luanti-org/luanti:5.17.0` server image, reading one verdict line `init.lua` now prints; `tests/game/minetest.conf` enables the suite as a game default and asks for the shutdown, so `run_tests.ps1` writes no user config and waits on the process instead of sleeping | `8da8cab` |
-| `C25` | medium | `run_tests.ps1`'s error filter matched no `core.log('error', ...)` the mod emits, so the report printed `errors: none` on every run whose log carried one — and it had carried one for as long as `integration_spec`'s late-`register_blocks` case has existed | `ERROR\[` added to the filter and nothing suppressed, the report being for a person; CI allowlists the one deliberate message and fails on any other `ERROR[` or `ModError`, so a genuine error is red at once and a new deliberate one is red until acknowledged | working tree |
+| `C25` | medium | `run_tests.ps1`'s error filter matched no `core.log('error', ...)` the mod emits, so the report printed `errors: none` on every run whose log carried one — and it had carried one for as long as `integration_spec`'s late-`register_blocks` case has existed | `ERROR\[` added to the filter and nothing suppressed, the report being for a person; CI allowlists the one deliberate message and fails on any other `ERROR[` or `ModError`, so a genuine error is red at once and a new deliberate one is red until acknowledged | `0ae4d3e` |
 
 ### A · Architecture and performance
 
@@ -740,21 +748,37 @@ deliberate one, on a genuine `ERROR[` alone, and on a `ModError` with no
 `ERROR[` prefix. Gates on the tree carrying it, all five green:
 `suite: 9/9 specs   725 passed   0 failed   1 xfail   0 xpass   0 skipped`,
 standalone six 254, luacheck silent, the three generators up to date. **The
-`errors` section now prints the one expected line rather than `none`.**
+`errors` section now prints the one expected line rather than `none`.** It
+landed at `0ae4d3e`, pushed.
 
 **`tests/shapes_spec.lua:105` read `arg` as a bare global and carries no id.**
 It made Luanti warn about an undeclared global on every in-engine run; it is now
 `rawget(_G, 'arg')`, the warning is gone from a captured run, and the standalone
 branch was proved still load-bearing with a negative control. **A warning in a
-spec is not a defect in what ships**, so it gets a line and not an id.
+spec is not a defect in what ships**, so it gets a line and not an id. It
+landed at `0ae4d3e`.
 
-**The three CI actions are bumped off Node 20 and that is unverified.**
+**The three CI actions are bumped off Node 20, and the bump is verified.**
 `actions/checkout` v4→v5, `leafo/gh-actions-lua` v10→v13,
-`leafo/gh-actions-luarocks` v4→v6, in the same uncommitted change as `C25`. **No
-CI run has executed them.** The `luaVersion: "5.1"` comment was corrected at the
-same time: every `luajit-*` variant failing to build was observed on **v10** and
-is untested since, and the `engine` job now covers LuaJIT for real, so there is
-no longer a reason to want one.
+`leafo/gh-actions-luarocks` v4→v6, all at `0ae4d3e`. **Run `34409912247` on
+`0ae4d3e` concluded success on all four jobs** — `luacheck`, `preprocessor
+spec`, `the nine specs in Luanti`, `docs are generated from the code`. Three of
+the four use `gh-actions-lua` and all three pass, so `luaVersion: "5.1"` still
+resolves across **three majors** of it.
+
+**The `luaVersion: "5.1"` comment was corrected with the bump.** Every
+`luajit-*` variant failing to build was observed on **v10** and is untested
+since, and the `engine` job now covers LuaJIT for real, so there is no longer a
+reason to want one. The v13 result leaves that unchanged.
+
+**The verdict line's reachability on GitHub has one kind of evidence and can
+have no other.** `C24`'s two lines — `echo "::notice::$verdict"` and
+`echo "$verdict" >> "$GITHUB_STEP_SUMMARY"` — put the suite's result in the
+annotation list and the run summary, the two places a reader looks. The engine
+job's check-run `102661688597` on `0ae4d3e` returns **exactly one annotation**,
+level `notice`, message
+`suite: 9/9 specs   725 passed   0 failed   1 xfail   0 xpass   0 skipped`, and
+the author read the same string on the page. The result line is playtest `CI1`.
 
 **`A17` and `A18` landed at `c089f78`**, touching `init.lua`,
 `lib/formspecs.lua` and `lib/utils.lua`. Gates over it: luacheck baseline
@@ -995,8 +1019,8 @@ Each of these is a wrong claim that would otherwise be repeated as fact.
 
 ---
 
-Last reviewed **2026-09-09**, describing the working tree over `8da8cab`. **95
-findings, none open, one won't fix (`B34`).** `F17` is complete and played, and
-the `R` group is played whole. `C24` and `B56` landed at `8da8cab` and its CI run
-`34391577229` proves the container. `C25`'s fix is uncommitted, and the CI action
-bump beside it is unverified.
+Last reviewed **2026-09-10**, describing `0ae4d3e`. **95 findings, none open,
+one won't fix (`B34`).** `F17` is complete and played, and the `R` group is
+played whole. `C24` and `B56` landed at `8da8cab`, `C25` at `0ae4d3e`, and the
+CI runs `34391577229` and `34409912247` prove the container and the action bump
+in turn. Nothing is unverified.
