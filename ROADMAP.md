@@ -16,9 +16,9 @@ is v2.0.0 and holds `F6` alone**.
 `AUDIT.md` holds 96 findings, none open, one won't fix (`B34`). No decision is
 waiting on the author.
 
-**`9175d0a` is one commit ahead of `origin/master`, and `README.md`,
-`.gitattributes`, `CONTENTDB.md`, `.cdb.json` and the record are uncommitted.**
-Nothing in either touches Lua, so the gate readings below still hold.
+**`b371c76` is two commits ahead of `origin/master`, and the working tree is
+clean.** Neither unpushed commit touches Lua, so the gate readings below still
+hold.
 
 **Gates green at `eb0b997`.**
 luacheck silent, the three `--check` generators up to date,
@@ -39,18 +39,21 @@ built. Both are in `TODO.md` under *After 1.0.0*, `F15` shaped in full below.
 
 ## Finalising v1.0.0
 
-**Step 1 is done and uncommitted. Everything left needs the author** — a
+**Step 1 is done and committed. Everything left needs the author** — a
 ContentDB login, a tag, or a running world. Steps 2–6 are the
 `release-codeblock` skill's procedure and are not restated here.
 
-1. **Done, uncommitted on `9175d0a`.** `README.md`'s five defects are fixed —
-   the false *"works in any game that provides the blocks it places"*, a missing
-   **For game authors** section for `codeblock.register_blocks`, five
-   `content.minetest.net` URLs, *"ant its dependencies"*, and a *Minetest*
-   tagline left behind by the URL change. `CONTENTDB.md`'s recent-changes list
-   was compared with `CHANGELOG.md`, had drifted, and gained four entries;
-   `.cdb.json` is regenerated. The generator itself could not run here and is
-   now `C26`. (`C19`, `C26`, `F10`, `F11`)
+1. **Done, `b371c76`.** `README.md` drops the false *"works in any game that
+   provides the blocks it places"*, gains a **For game authors** section for
+   `codeblock.register_blocks`, moves five `content.minetest.net` URLs to
+   `content.luanti.org` and the tagline with them, and has four stale
+   descriptions corrected — the HUD shows three limits, the editor button is
+   *load and close*, the drone panel offers pause/resume and stop, and the
+   *permisisons* and *ant its dependencies* typos are gone. `CONTENTDB.md`'s
+   recent-changes list was compared with `CHANGELOG.md`, had drifted, and gained
+   four entries; `.cdb.json` is regenerated at 7568 bytes. The generator could
+   not run here, which is `C26`, fixed in the same commit. (`C19`, `C26`, `F10`,
+   `F11`)
 2. **`release-check`**, and do not start the tag until it says ready.
 3. **Strike what the release closed** from `ROADMAP.md` and `TODO.md`, confirm
    the `vector3` submodule commit is pushed, commit, push, tag `v1.0.0`.
@@ -894,7 +897,7 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
   misrepresents the mod to every player deciding whether to install it; 0.7 MB
   does not.** Resize rather than revert if the size ever matters. It survives
   the `screenshots export-ignore` rule through its own `-export-ignore` line,
-  `.gitattributes:32`.
+  `.gitattributes:33`.
 - **`screenshots/mozaic.xcf` is the editable source of the root
   `screenshot.png`.** The two live in different directories, so **do not tidy
   `screenshots/` by deleting the `.xcf`** — it is the source of the one image a
@@ -1049,10 +1052,9 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 
 ---
 
-Last reviewed **2026-09-10**, describing **`9175d0a`** plus the uncommitted
-`README.md`, `.gitattributes`, `CONTENTDB.md` and `.cdb.json`, and one
-uncommitted deletion, `screenshots/mozaic.png`. `origin/master` is
-**`eb0b997`**, one behind, **CI green there on all four jobs** (run
+Last reviewed **2026-09-11**, describing **`b371c76`** with a clean working
+tree. `origin/master` is **`eb0b997`**, two behind, **CI green there on all four
+jobs** (run
 `34468185643`). `PLAYTEST.md`: 98 entries, `F11-4` retired, one unreachable
 (`H8`), `R1` and `R2` **stale** — `8da8cab` follows the commit they were read
 at. `AUDIT.md`: 96 findings, **none open**, one won't fix (`B34`). The

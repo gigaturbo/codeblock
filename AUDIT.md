@@ -684,7 +684,7 @@ a row carries a rule, it is above under *Keep*.
 | `C23` | medium | the shipped examples were checked against a hand-kept list of names, not against the directory, and the count agreed only by a dead entry | both directions checked against `codeblock.examples.examples`, each failing by name | `de3bcbb`, `63c3c33` |
 | `C24` | medium | CI booted no engine, so `forms_spec`, `stepper_spec`, `integration_spec` and every engine-guarded case never ran in CI | a fourth job runs all nine specs in upstream's `ghcr.io/luanti-org/luanti:5.17.0` server image, reading one verdict line `init.lua` now prints; `tests/game/minetest.conf` enables the suite as a game default and asks for the shutdown, so `run_tests.ps1` writes no user config and waits on the process instead of sleeping | `8da8cab` |
 | `C25` | medium | `run_tests.ps1`'s error filter matched no `core.log('error', ...)` the mod emits, so the report printed `errors: none` on every run whose log carried one — and it had carried one for as long as `integration_spec`'s late-`register_blocks` case has existed | `ERROR\[` added to the filter and nothing suppressed, the report being for a person; CI allowlists the one deliberate message and fails on any other `ERROR[` or `ModError`, so a genuine error is red at once and a new deliberate one is red until acknowledged | `0ae4d3e` |
-| `C26` | medium | `scripts/gen_cdb_json.sh` could not run on the author's machine: `core.autocrlf` is `true` and `.gitattributes` had no text rule, so the script was checked out CRLF, its `printf \` continuation escaped the CR instead of the newline, and bash exited 126 with `File name too long` — writing no `.cdb.json` and leaving a zero-byte lookalike beside the real one | `*.sh text eol=lf` in `.gitattributes`, with the mechanism in a comment; the file re-checked out LF and the generator run green | uncommitted, on `9175d0a` |
+| `C26` | medium | `scripts/gen_cdb_json.sh` could not run on the author's machine: `core.autocrlf` is `true` and `.gitattributes` had no text rule, so the script was checked out CRLF, its `printf \` continuation escaped the CR instead of the newline, and bash exited 126 with `File name too long` — writing no `.cdb.json` and leaving a zero-byte lookalike beside the real one | `*.sh text eol=lf` in `.gitattributes`, with the mechanism in a comment; the file re-checked out LF and the generator run green | `b371c76` |
 
 ### A · Architecture and performance
 
@@ -713,10 +713,11 @@ blurred.
 
 **Claimed only: nothing.**
 
-**`C26` is verified and uncommitted.** The script was re-checked out LF,
-`bash scripts/gen_cdb_json.sh` exited 0, and its output reproduced the committed
-`.cdb.json` byte for byte at 6262 bytes. The `.gitattributes` rule sits in the
-working tree on `9175d0a`.
+**`C26` is verified and landed in `b371c76`.** The script was re-checked out LF,
+`bash scripts/gen_cdb_json.sh` exited 0, and its output reproduced byte for byte
+the `.cdb.json` then committed, 6262 bytes at `9175d0a`. That figure is the
+verification run, not a current size: `.cdb.json` is 7568 bytes at `b371c76`,
+regenerated in the same commit after the `CONTENTDB.md` edit.
 
 **Read a file's line endings with `file`.** A `grep -cU` on a `$'\r'` pattern
 through the Bash tool reported `tests/shapes_spec.lua` as CRLF when it is LF:
