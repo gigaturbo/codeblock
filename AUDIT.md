@@ -19,9 +19,9 @@ and security, `C` compliance and packaging, `A` architecture and performance;
 |---|---|---|---|---|
 | `B` bugs | 53 | 52 | — | `B34` |
 | `S` sandbox and security | 9 | 9 | — | — |
-| `C` compliance and packaging | 19 | 19 | — | — |
+| `C` compliance and packaging | 20 | 20 | — | — |
 | `A` architecture and performance | 14 | 14 | — | — |
-| **Total** | **95** | **94** | **—** | **1** |
+| **Total** | **96** | **95** | **—** | **1** |
 
 | Id | Sev | What | Waiting on |
 |---|---|---|---|
@@ -396,6 +396,18 @@ restated.
   fails in both directions — a genuine error is red at once, and a *new*
   deliberate one is red until someone acknowledges it in the gate. Do not
   reconcile them onto one policy.
+- **`C26` — a shell script must be checked out LF on every platform, and
+  `.gitattributes` is the only thing enforcing it.** `core.autocrlf` is `true`
+  on the author's machine, so a new `.sh` with no matching attribute arrives
+  CRLF. A `printf \` continuation then escapes the CR rather than the newline
+  and bash runs the next line as a command, exiting 126 with `File name too
+  long` — a message naming nothing about the cause. `*.sh text eol=lf` covers
+  every script; git held the file as LF throughout, which is why CI never saw
+  it.
+- **`C26` — the generator's silence is indistinguishable from nothing needing to
+  change.** `gen_cdb_json.sh` prints nothing on success, so a failed run looks
+  like a clean one and `.cdb.json` stays stale after a `CONTENTDB.md` edit.
+  Check the file's size or its diff, not the run's output.
 - **`C25` — `ModError` stays beside `ERROR[`** in the CI pattern. It is
   redundant today and costs nothing if a path ever logs without that prefix.
 - **`C25` — do not have the spec intercept `core.log` to stop provoking the
@@ -672,6 +684,7 @@ a row carries a rule, it is above under *Keep*.
 | `C23` | medium | the shipped examples were checked against a hand-kept list of names, not against the directory, and the count agreed only by a dead entry | both directions checked against `codeblock.examples.examples`, each failing by name | `de3bcbb`, `63c3c33` |
 | `C24` | medium | CI booted no engine, so `forms_spec`, `stepper_spec`, `integration_spec` and every engine-guarded case never ran in CI | a fourth job runs all nine specs in upstream's `ghcr.io/luanti-org/luanti:5.17.0` server image, reading one verdict line `init.lua` now prints; `tests/game/minetest.conf` enables the suite as a game default and asks for the shutdown, so `run_tests.ps1` writes no user config and waits on the process instead of sleeping | `8da8cab` |
 | `C25` | medium | `run_tests.ps1`'s error filter matched no `core.log('error', ...)` the mod emits, so the report printed `errors: none` on every run whose log carried one — and it had carried one for as long as `integration_spec`'s late-`register_blocks` case has existed | `ERROR\[` added to the filter and nothing suppressed, the report being for a person; CI allowlists the one deliberate message and fails on any other `ERROR[` or `ModError`, so a genuine error is red at once and a new deliberate one is red until acknowledged | `0ae4d3e` |
+| `C26` | medium | `scripts/gen_cdb_json.sh` could not run on the author's machine: `core.autocrlf` is `true` and `.gitattributes` had no text rule, so the script was checked out CRLF, its `printf \` continuation escaped the CR instead of the newline, and bash exited 126 with `File name too long` — writing no `.cdb.json` and leaving a zero-byte lookalike beside the real one | `*.sh text eol=lf` in `.gitattributes`, with the mechanism in a comment; the file re-checked out LF and the generator run green | uncommitted, on `9175d0a` |
 
 ### A · Architecture and performance
 
@@ -699,6 +712,16 @@ code is there and unproven. **Claimed** means only a document says so. Never
 blurred.
 
 **Claimed only: nothing.**
+
+**`C26` is verified and uncommitted.** The script was re-checked out LF,
+`bash scripts/gen_cdb_json.sh` exited 0, and its output reproduced the committed
+`.cdb.json` byte for byte at 6262 bytes. The `.gitattributes` rule sits in the
+working tree on `9175d0a`.
+
+**Read a file's line endings with `file`.** A `grep -cU` on a `$'\r'` pattern
+through the Bash tool reported `tests/shapes_spec.lua` as CRLF when it is LF:
+the quoting does not survive, so the counts mean nothing. Every endings claim in
+this document is a `file` reading.
 
 **`C24`'s local half was verified before any CI run.** In the tree that became
 `8da8cab`: `run_tests.ps1` reports nine summaries and

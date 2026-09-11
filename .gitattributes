@@ -36,3 +36,11 @@ screenshot.png  -export-ignore
 # the PNG the engine loads and nothing else; the source is for whoever redraws it.
 *.svg           export-ignore
 *.xcf           export-ignore
+
+# A shell script must be checked out LF whatever the platform. core.autocrlf is
+# true on the author's machine, which gave gen_cdb_json.sh CRLF endings, and a
+# `printf \` continuation then escapes the CR instead of the newline: bash tries
+# to run the JSON template as a command and exits 126 saying "File name too
+# long". The repository always held LF; only the working copy was broken, so
+# .cdb.json silently stayed as it was whenever anyone regenerated it.
+*.sh            text eol=lf

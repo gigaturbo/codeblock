@@ -13,10 +13,14 @@ is v2.0.0 and holds `F6` alone**.
 ## Now
 
 **v1.0.0 is built, and nothing is open.** `Phase 8` has no unshipped feature.
-`AUDIT.md` holds 95 findings, none open, one won't fix (`B34`). No decision is
+`AUDIT.md` holds 96 findings, none open, one won't fix (`B34`). No decision is
 waiting on the author.
 
-**Gates green at `eb0b997`, which is `origin/master` with nothing unpushed.**
+**`9175d0a` is one commit ahead of `origin/master`, and `README.md`,
+`.gitattributes`, `CONTENTDB.md`, `.cdb.json` and the record are uncommitted.**
+Nothing in either touches Lua, so the gate readings below still hold.
+
+**Gates green at `eb0b997`.**
 luacheck silent, the three `--check` generators up to date,
 `suite: 9/9 specs   725 passed   0 failed   1 xfail   0 xpass   0 skipped` with
 the one expected `ERROR[` line, 254 standalone under plain Lua 5.1. CI green on
@@ -27,26 +31,26 @@ all four jobs, run `34468185643`. Take the unpushed count from
 `R2` were read at `f700410`, which `8da8cab` now follows. Every other live check
 carries a pass, and `H8` is `unreachable`.
 
-**What is left is one agent task and four author actions**, three of the four
-outside this repository. They are *Finalising v1.0.0* below.
+**What is left needs the author**: steps 2 to 6 of *Finalising v1.0.0* below,
+three of them outside this repository. No agent task remains before the tag.
 
 **`F15` and the unsaved-close warning left v1.0.0 on 2026-09-10.** Neither is
 built. Both are in `TODO.md` under *After 1.0.0*, `F15` shaped in full below.
 
 ## Finalising v1.0.0
 
-**Step 1 is an agent's. Everything from 2 on needs the author** — a ContentDB
-login, a tag, or a running world. Steps 2–6 are the `release-codeblock` skill's
-procedure and are not restated here.
+**Step 1 is done and uncommitted. Everything left needs the author** — a
+ContentDB login, a tag, or a running world. Steps 2–6 are the
+`release-codeblock` skill's procedure and are not restated here.
 
-1. **Fix `README.md`.** Line 10's *"works in any game that provides the blocks
-   it places"* is false and backwards since `d075742`; add a short **For game
-   authors** section for `codeblock.register_blocks`; the ContentDB URLs are on
-   the pre-rename `content.minetest.net` and the domain is now
-   **`content.luanti.org`**; line 23 reads *"ant its dependencies"* and there is
-   now one. Then check `CONTENTDB.md`'s recent-changes list against
-   `CHANGELOG.md` and regenerate `.cdb.json` — the list is hand-kept and nothing
-   checks the two agree. (`C19`, `F10`, `F11`)
+1. **Done, uncommitted on `9175d0a`.** `README.md`'s five defects are fixed —
+   the false *"works in any game that provides the blocks it places"*, a missing
+   **For game authors** section for `codeblock.register_blocks`, five
+   `content.minetest.net` URLs, *"ant its dependencies"*, and a *Minetest*
+   tagline left behind by the URL change. `CONTENTDB.md`'s recent-changes list
+   was compared with `CHANGELOG.md`, had drifted, and gained four entries;
+   `.cdb.json` is regenerated. The generator itself could not run here and is
+   now `C26`. (`C19`, `C26`, `F10`, `F11`)
 2. **`release-check`**, and do not start the tag until it says ready.
 3. **Strike what the release closed** from `ROADMAP.md` and `TODO.md`, confirm
    the `vector3` submodule commit is pushed, commit, push, tag `v1.0.0`.
@@ -66,6 +70,14 @@ procedure and are not restated here.
 what a player writes now; `CHANGELOG.md` says what stops working. The page was
 corrected at ship rather than deferred, because a page selling a function a
 player cannot call is worse than an incomplete one.
+
+**The page's recent-changes list carries what a v0.7.0 player meets, not only
+what is new.** The comparison against `CHANGELOG.md` found it listed the
+features and none of the breaking changes, so it gained four entries: the
+`/codeblock` command rename, the Lua fixes a program can see, the mod no longer
+writing to an inventory or a sky or granting privileges, and the retuned
+codelevels. Someone reading it is deciding whether to update, and what will stop
+working decides that.
 
 **Done and not repeated here:** every `F` item through `F17`, every finding, the
 `CHANGELOG.md` entry, `CONTENTDB.md`'s correction at `c2e541f`, and the `R`
@@ -1037,10 +1049,11 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 
 ---
 
-Last reviewed **2026-09-10**, describing **`eb0b997`** plus one uncommitted
-deletion, `screenshots/mozaic.png`. `origin/master` is **`eb0b997`**, nothing
-unpushed, **CI green there on all four jobs** (run `34468185643`).
-`PLAYTEST.md`: 98 entries, `F11-4` retired, one unreachable (`H8`), `R1` and
-`R2` **stale** — `8da8cab` follows the commit they were read at. `AUDIT.md`: 95
-findings, **none open**, one won't fix (`B34`). The `flat_sky` removal is
-`3fa9d0c`.
+Last reviewed **2026-09-10**, describing **`9175d0a`** plus the uncommitted
+`README.md`, `.gitattributes`, `CONTENTDB.md` and `.cdb.json`, and one
+uncommitted deletion, `screenshots/mozaic.png`. `origin/master` is
+**`eb0b997`**, one behind, **CI green there on all four jobs** (run
+`34468185643`). `PLAYTEST.md`: 98 entries, `F11-4` retired, one unreachable
+(`H8`), `R1` and `R2` **stale** — `8da8cab` follows the commit they were read
+at. `AUDIT.md`: 96 findings, **none open**, one won't fix (`B34`). The
+`flat_sky` removal is `3fa9d0c`.

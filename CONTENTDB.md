@@ -16,7 +16,7 @@ can imagine: learn to code, or give your inner computer artist somewhere to play
 - **Example programs to discover.** Spirals, fractals, 3D plots and other more
   artistic examples. Open one and change a number to see what happens.
 - **A control panel.** A nice UI gives you every limit with what your program has
-  spent beside it, as well as pause, resume and stop controls on the drone.
+  spent beside it, as well as pause/resume and stop controls on the drone.
 - **Per-player limits** an administrator can tune, so the mod is usable on a
   public server and not only in singleplayer: how many blocks one program may
   write, how much CPU time it may use, how much of the map it may hold and how
@@ -62,6 +62,10 @@ Experiment and discover with the other examples, or write your own!
   game. The old `blocks`, `plants`, `wools` and `iwools` names are gone. A game
   can add a block category of its own with `codeblock.register_blocks`, and it
   shows up in the editor beside the built-in ones.
+- **One `/codeblock` command** `/codelevel` and `/codegenerate` are gone.
+  `/codeblock level`, `/codeblock generate` and the new `/codeblock tools`
+  replace them, with no aliases: an old name reports an unknown command. Bare
+  `/codeblock level` now answers what your codelevel is.
 - **Colour ramps** `ramp.hues(v, min, max)` maps a number onto the colour wheel,
   so a shape can be coloured by height or distance. `ramp.of(list, v, min, max)`
   maps a number onto any other list — one of the palette orders below, a block
@@ -79,18 +83,35 @@ Experiment and discover with the other examples, or write your own!
 - **`get_block(right, up, forward)`** Read the block at an offset from the drone
   without moving it. The offsets turn with the drone, the same way
   `place_relative` does. **`is_block(block, right, up, forward)`** asks the same
-  question as a yes or no — `is_block(air, 0, 0, 1)` is *is the way ahead
-  clear*.
+  question as a yes or no.
+- **Lua fixes** `print` takes any number of arguments now,
+  joined by a space, instead of printing the first and dropping the rest.
+  `repeat ... until` works, having been refused outright. `round(x, decimals)`
+  took its two arguments the other way round. `table.randomizer` is gone, and
+  with it the whole `table` name.
 - **HUD** A display in the top right corner while a program runs, showing how
   much of its budget it has spent.
-- **Control panel** Left click with the **drone setter** tool to show a panel with the drone limits, plus pause and stop buttons.
-- **Default block** Can be set in `Editor` > `Settings`, then a bare `place()` builds using this block. A program can override it for its *own run* with `default_block(block)`.
+- **Control panel** Left click with the **drone setter** tool to show a panel
+  with the drone limits, plus pause and stop buttons. That click used to end the
+  run outright with nothing asked.
+- **Default block** Can be set in `Editor` > `Settings`, then a bare `place()`
+  builds using this block. A program can override it for its *own run* with
+  `default_block(block)`.
 - **`sleep(seconds)`** Pauses a program for a given duration.
 - **Create a copy** New button in the editor to open a copy of a program.
 - **Unsaved tabs** Now marked with a `*` so you can see the editor is holding an
   edit you have not saved.
-- **Performance** Bulk shapes no longer depend on WorldEdit, and large builds no longer freeze
-  the server.
+- **The mod imposes less on your game** It no longer puts the two drone tools in
+  your inventory when you join, no longer grants `fly`, `fast` and `noclip`, and
+  no longer holds every player's sky at noon. Take the tools from the creative
+  inventory or run `/codeblock tools`. Both tools can be dropped now.
+- **Retuned limits** Each codelevel was rewritten around what a program really
+  spends: how long it runs, how many blocks it writes, how much of the map it
+  holds. A saved program that fitted before may need a smaller shape or a higher
+  codelevel. A new player starts at codelevel 3 in singleplayer and 2 on a
+  server, where everyone used to start at 4.
+- **Performance** Bulk shapes no longer depend on WorldEdit, and large builds no
+  longer freeze the server.
 
 The **Codecube** game bundles this mod with a flat world and settings chosen for
 it, which is the quickest way to try it without setting a world up yourself.
