@@ -1261,6 +1261,14 @@ are answered from the same archive: `textures/` ships **seven PNGs** with both
 `.svg` sources excluded, and `lib/examples/` ships **fourteen** including
 `game.lua`. No engine is needed.
 
+Result: pass — `0d912b1` · engine n/a · 2026-09-16 — read from the archive
+**GitHub itself built** for `master`, not a local `git archive`. The same eleven
+top-level entries after the screenshot replacement: `screenshot.png` survives at
+its new 1,476,537 bytes, and no `screenshots/`, `.mp4` or `.xcf` reaches the
+archive. `textures/` ships seven PNGs, `lib/examples/` fourteen. **Read at the
+commit, not the release tag**, so this clears `stale` only if the tag lands on
+`0d912b1`.
+
 ### R2 · A real install with the test flag set [C16]
 
 **Build the archive** the way ContentDB does. In bash:
@@ -1301,6 +1309,14 @@ Result: pass — `f700410`, record-only over `3fa9d0c` · engine 5.17.0 ·
 2026-09-09 — in `minetest_game`, after `F4` and both `.gitattributes` changes.
 The mod loaded and logged *"codeblock_run_tests is set, but this build ships no
 tests/ directory"*.
+
+Result: pass — `0d912b1` · engine 5.17.0 · 2026-09-16 — the archive GitHub
+built for `master`, extracted into a purpose-built game beside `vector3`. The
+mod loaded and logged *"codeblock_run_tests is set, but this build ships no
+tests/ directory"*; no `ModError`, no traceback, and the server came up
+listening. **The server not exiting is the pass, not a hang:**
+`codeblock_run_tests_exit` acts once the suite has reported, and a release build
+has no suite to report. **Read at the commit, not the release tag.**
 
 ### R3 · The sky belongs to the game [C18]
 
