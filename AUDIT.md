@@ -526,7 +526,10 @@ restated.
   git archive --format=tar HEAD | tar -t | awk -F/ '{print $1}' | sort -u
   ```
 
-  **A check whose command needs its output interpreted has to say so.**
+  **A check whose command needs its output interpreted has to say so.** A
+  directory-level `export-ignore` skips the whole subtree — verified against the
+  archive, which carries no `screenshots/` entry — so a file added there needs no
+  rule of its own. Only a file outside an ignored directory does.
 - **`C16` — the suite probe tests for a file with `io.open`, not for a
   directory.** Lua 5.1 has no portable directory test, and a release build with
   `tests` export-ignored must answer rather than fail.

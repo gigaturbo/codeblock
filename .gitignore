@@ -8,3 +8,9 @@
 # tool textures were redrawn as DronePoser.svg and DroneSetter.svg, which are
 # tracked; the GIMP files they replaced are stashed here.
 textures/.old/
+
+# Gameplay video, 79 MB. Git stores every byte of it in every clone forever, and
+# nothing in a release or on the ContentDB page reads it from here: ContentDB's
+# video field takes a URL to a host, not an upload. Keep the file beside the
+# screenshots it was captured with, and out of the history.
+screenshots/*.mp4

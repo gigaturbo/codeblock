@@ -62,11 +62,14 @@ ContentDB login, a tag, or a running world. Steps 2–6 are the
    and `R2` boots the extracted archive with `codeblock_run_tests = true` on a
    build that has no `tests/`. `R1` reads top-level entries only, and neither
    `C24` nor `C25` adds a file outside the already-ignored `tests` and
-   `.github`. (`C16`, `C10`)
+   `.github`. The screenshot replacement changes what `R1` weighs but not what
+   it lists: the cover is still the only image outside `textures/` and `doc/`.
+   (`C16`, `C10`)
 5. **Upload to ContentDB** — long description from the regenerated `.cdb.json`,
-   and the new screenshots to the package page. The page loads them from raw
-   GitHub URLs on `master`, so the new names go up and the dropped 2021 file
-   comes off. (`C19`)
+   and the gallery to the package page. The gallery is `screenshots/editor.png`
+   and `screenshots/control_panel.png`; every other image comes off. The page
+   loads them from raw GitHub URLs on `master`, so a renamed file is a dead
+   image until the page is edited. (`C19`)
 6. **Configure the release webhook** — trigger **Branch or tag creation**.
 
 **The page and the changelog address different readers.** `CONTENTDB.md` says
@@ -892,18 +895,22 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
   *Finalising v1.0.0*. The document's own first section already answers the
   question, so a panel above it is a second, shorter answer, and two answers
   drift.
-- **A full-size cover ships in the release archive.** `screenshot.png` is the
-  mosaic verbatim, 1.83 MB, putting the archive at 2.21 MB. **A stale cover
-  misrepresents the mod to every player deciding whether to install it; 0.7 MB
-  does not.** Resize rather than revert if the size ever matters. It survives
-  the `screenshots export-ignore` rule through its own `-export-ignore` line,
-  `.gitattributes:33`.
-- **`screenshots/mozaic.xcf` is the editable source of the root
-  `screenshot.png`.** The two live in different directories, so **do not tidy
-  `screenshots/` by deleting the `.xcf`** — it is the source of the one image a
-  player sees in the Mods tab. `screenshots/mozaic.png` was the same 1,828,208
-  bytes as `screenshot.png` and was deleted 2026-09-10; a clone was carrying the
-  mosaic twice while only the root copy ever shipped.
+- **A full-size cover ships in the release archive.** `screenshot.png` is a
+  single in-game overview shot, 1,476,537 bytes, and is most of the archive's
+  2.00 MB. **A stale cover misrepresents the mod to every player deciding
+  whether to install it; the size does not.** Resize rather than revert if the
+  size ever matters. It survives the `screenshots export-ignore` rule through
+  its own `-export-ignore` line, `.gitattributes:33`.
+- **The cover has no editable source in the tree.** It is a game capture, not a
+  composite, so **reshoot it rather than edit it**. The mosaic it replaced was
+  built from fourteen gallery PNGs in `screenshots/` and `screenshots/mozaic.xcf`
+  was its GIMP source; cover, gallery and `.xcf` were all deleted together
+  2026-09-16. The gallery is now two shots, `screenshots/editor.png` and
+  `screenshots/control_panel.png`, and nothing in `screenshots/` ships.
+- **A gameplay video stays out of git.** `screenshots/*.mp4` is in `.gitignore`
+  with the reason beside it: git would carry all 79 MB in every clone for ever,
+  and **ContentDB's video field takes a URL to a host, not an upload.** The file
+  lives on the author's disk beside the screenshots.
 - **The release webhook's trigger is *Branch or tag creation*, not push**,
   because this project tags; push would publish every commit on `master`.
 - **A reverse "no unexpected API name" check in `api_spec`** would duplicate
@@ -1052,10 +1059,10 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 
 ---
 
-Last reviewed **2026-09-11**, describing **`b371c76`** with a clean working
-tree. `origin/master` is **`eb0b997`**, two behind, **CI green there on all four
-jobs** (run
-`34468185643`). `PLAYTEST.md`: 98 entries, `F11-4` retired, one unreachable
+Last reviewed **2026-09-16**, describing **`4690cea`** with the screenshot
+replacement staged and uncommitted. `origin/master` is **`eb0b997`**, three
+behind, **CI green there on all four jobs** (run `34468185643`).
+`PLAYTEST.md`: 98 entries, `F11-4` retired, one unreachable
 (`H8`), `R1` and `R2` **stale** — `8da8cab` follows the commit they were read
 at. `AUDIT.md`: 96 findings, **none open**, one won't fix (`B34`). The
 `flat_sky` removal is `3fa9d0c`.
