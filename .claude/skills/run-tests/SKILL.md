@@ -159,10 +159,11 @@ Running a single spec in-engine means editing the `specs` list at the bottom of
 `init.lua`. That block probes for `tests/api_spec.lua` first and only warns if it
 is missing, because `tests export-ignore` keeps the specs out of the ContentDB
 archive and an unguarded `dofile` took the mod down on a release install (audit
-C16). Running the six standalone specs needs no engine at all:
+C16). Running the six standalone specs needs no engine at all. From the
+repository root:
 
 ```bash
-wsl bash -lc 'cd /mnt/c/Users/lacba/PRogrammation/codeblock && for s in api preprocess env shapes strguard limits; do lua5.1 tests/${s}_spec.lua; done'
+wsl bash -lc 'for s in api preprocess env shapes strguard limits; do lua5.1 tests/${s}_spec.lua; done'
 ```
 
 ## Reading the result
@@ -387,10 +388,10 @@ messages the code sends, `scripts/gen_settingtypes.lua --check` verifies
 `settingtypes.txt` matches `lib/config.lua` — built 2026-09-02, and it found
 `C20` on its first run — and `luacheck` lints. All four run in CI, the three
 `--check`s in the `docs are generated from the code` job, and none is run by this
-skill:
+skill. From the repository root:
 
 ```bash
-wsl bash -lc 'cd /mnt/c/Users/lacba/PRogrammation/codeblock && luacheck . --formatter plain --codes && lua5.1 scripts/gen_docs.lua --check && lua5.1 scripts/gen_locale.lua --check && lua5.1 scripts/gen_settingtypes.lua --check'
+wsl bash -lc 'luacheck . --formatter plain --codes && lua5.1 scripts/gen_docs.lua --check && lua5.1 scripts/gen_locale.lua --check && lua5.1 scripts/gen_settingtypes.lua --check'
 ```
 
 Read what they print rather than the exit code: `$?` does not survive the WSL

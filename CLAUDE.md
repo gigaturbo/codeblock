@@ -113,10 +113,11 @@ powershell -ExecutionPolicy Bypass -File scripts/run_tests.ps1
 ```
 
 **CI runs all nine this way too**, in upstream's `luanti:5.17.0` server
-container. Six of them also run standalone under Lua 5.1 in a separate CI job:
+container. Six of them also run standalone under Lua 5.1 in a separate CI job.
+From the repository root:
 
 ```bash
-wsl bash -lc 'cd /mnt/c/Users/lacba/PRogrammation/codeblock && for s in api preprocess env shapes strguard limits; do lua5.1 tests/${s}_spec.lua; done'
+wsl bash -lc 'for s in api preprocess env shapes strguard limits; do lua5.1 tests/${s}_spec.lua; done'
 ```
 
 The rest, all run by this repository's CI:
