@@ -1200,6 +1200,11 @@ Run `cube(2, 2, 30000)` at codelevel 1, **both facings**.
 ceiling `limits.hold` returns how long to wait. **Facing does not matter any
 more**, and checking that it does not is half of this check (`B42`).
 
+**The timings below were taken under the old ceiling**, codelevel 1 at 8 MB.
+It is 16 MB since 2026-09-17, so twice the footprint is free before the throttle
+bites and a re-run is expected to be faster. The outcome under test is the wait,
+not the duration.
+
 Result: pass — `febf16f` · engine 5.17.0 · 2026-08-28 — **the first measurement
 of the throttle**: **93 s** against a predicted ≈80 s (512 mapblocks decaying
 over 29 s is 17.7 a second; the shape emerges ~1877 with the first 512 free).

@@ -72,7 +72,7 @@ codeblock_max_nodes_written (Maximum nodes written) string 100000,500000,1000000
 #    that: the heap limit below measures Lua memory, and a mapblock is not on
 #    the Lua heap. The engine unloads an idle mapblock by itself, so a program
 #    over this ceiling is slowed down rather than stopped.
-codeblock_map_memory_mb (Maximum map footprint) string 8,32,64,128
+codeblock_map_memory_mb (Maximum map footprint) string 16,64,128,512
 
 #    Lua heap growth, in megabytes, one program run may cause. Checked when the
 #    drone yields, so it catches a program that accumulates rather than one that

@@ -166,10 +166,10 @@ codeblock.config.max_runtime_s = {30, 60, 120, 300}
 -- A rate, not a total: the engine unloads a block nothing has touched for
 -- server_unload_unused_data_timeout, so the footprint drains by itself and a
 -- program over this ceiling is made to wait rather than stopped. The ceiling
--- divided by that window is the load rate it settles at - 128 MB over 29s is
--- some 280 mapblocks a second, against the 1700 a second the engine can
+-- divided by that window is the load rate it settles at - 512 MB over 29s is
+-- some 1100 mapblocks a second, against the 1700 a second the engine can
 -- actually serve. See lib/limits.lua.
-codeblock.config.map_memory_mb = {8, 32, 64, 128}
+codeblock.config.map_memory_mb = {16, 64, 128, 512}
 
 -- How many nodes one program may write.
 --

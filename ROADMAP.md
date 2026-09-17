@@ -726,6 +726,16 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
   opposite directions on purpose — with `pace_ms` at 0, *how much may I build*
   is the only ceiling a poweruser meets, and 1e7 is a 215-node cube against
   5e7's 368.
+- **`map_memory_mb` is `16 / 64 / 128 / 512`, raised 2026-09-17** from
+  `8 / 32 / 64 / 128`. It now holds the same four numbers as `heap_mb`. The
+  ceiling divided by the engine's 29 s unload window is the load rate it settles
+  at, and at 64 mapblocks to the MB codelevel 4 goes from ~280 to ~1100
+  mapblock loads a second, against the ~1700 a second the engine was measured to
+  serve (`S5`). The top codelevel's throttle sits at about two thirds of the
+  measured serve rate rather than a sixth of it. **Raised to make programs run
+  faster**: the throttle was slowing builds down more than intended. These four
+  numbers are a deliberate speed choice, so tightening them again is a decision
+  to take with the author, not a cleanup.
 - **The bundled examples all fit codelevel 2**, the largest `planet.lua` at ~71%
   of that level's node budget. Before nudging any limit: `planet.lua` and
   `death_star.lua` do not fit codelevel 1 and never did, and `cube(200,200,200)`

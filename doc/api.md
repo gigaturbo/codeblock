@@ -8,7 +8,7 @@ Drone capacities depends on the user's _codelevel_ which can be set with the `/c
 | step_budget_us    |       1000 |             2000 |         4000 |          8000 | time (µs) one drone may spend running per server step          |
 | max_runtime_s     |         30 |               60 |          120 |           300 | total running time (s) one program gets                        |
 | max_nodes_written |        1e5 |              5e5 |          1e6 |           5e7 | nodes one program may write, and so the size of a single shape |
-| map_memory_mb     |          8 |               32 |           64 |           128 | map footprint (MB) one program may hold at once                |
+| map_memory_mb     |         16 |               64 |          128 |           512 | map footprint (MB) one program may hold at once                |
 | heap_mb           |         16 |               64 |          128 |           512 | Lua heap growth (MB) one program run may cause                 |
 | max_string_mb     |          1 |                8 |           16 |            64 | size (MB) of the largest string a single call may produce      |
 
@@ -61,7 +61,7 @@ It is also the one limit a program is not stopped for reaching. The engine
 unloads a mapblock nothing has touched for `server_unload_unused_data_timeout`
 (29 s by default), so the footprint drains by itself: a program over its ceiling
 is made to wait for room instead of being killed. What that bounds in practice is
-the rate — 128 MB over 29 s is about 280 mapblocks a second, against the 1700 a
+the rate — 512 MB over 29 s is about 1100 mapblocks a second, against the 1700 a
 second the engine can serve — so a build spread thinly over the world slows down
 rather than failing.
 
