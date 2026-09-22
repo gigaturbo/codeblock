@@ -42,6 +42,8 @@ Experiment and discover with the other examples, or write your own!
 
 ## Important notes
 
+- **Install `vector3` 2.0.2 or newer.** On an older one a program in the sandbox
+  can change what `vector` does for every other mod on the server.
 - **Every player has a `codelevel`**, and it bounds what one program may spend of
   the server: how long it runs, how many blocks it writes, how much of the map it
   holds at once. If a program stops early, that is usually why, and the chat says

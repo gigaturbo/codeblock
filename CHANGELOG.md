@@ -1,159 +1,453 @@
-# v1.0.0 (unreleased)
+# v1.0.0
 
-**Breaking for existing player programs, for server operators and for
-redistributors.** The twenty-one items under *Breaking* change behaviour you may
-be relying on, and the first of them changes **every block name a program
-writes**. The last is not this mod's own change but is met through it: which
-version of the `vector3` package you have installed decides what `vector` does.
+The first release that installs into any game. Three changes carry the rest: the
+mod brings its own blocks instead of borrowing Minetest Game's, the per-codelevel
+limits now measure what a program really spends, and a running program no longer
+dies when nobody is watching it.
+
+**Read *Breaking* first.** Every block name a program writes has changed, and no
+game can migrate a saved program for you.
 
 ## Breaking
 
-- **Every block name has changed, and the mod now brings its own blocks.** `blocks`, `plants`, `wools` and `iwools` are gone. In their place: **`colors`**, 35 named colours the mod registers itself, **`glass`** and **`lamps`**, one of each per colour, **`hues`** — one name per hue family as an ordered array — and **`air`**, now a name of its own rather than a member of a table. `random.block`, `random.plant` and `random.wool` are gone; the two pickers that replace them are two items below. **A saved program naming a `default` or `wool` block stops working**, and no game can migrate it: `place(blocks.stone)` and `place(wools.red)` have to become `place(colors.grey)` and `place(colors.red)` by hand. Every bundled example was ported. **Why it is worth it:** `default` and `wool` are Minetest Game's and are not ContentDB packages, so until now the engine refused to load this mod in any game that did not ship both — which is Minetest Game, Codecube and a handful of others. It now installs into any game, and a program means the same thing in all of them
-- **`color(v, min, max)` is gone, replaced by `ramp`.** There is **no alias**: a program calling `color` fails on that line. There are exactly two ramps. **`ramp.hues(v, min, max)`** is what `color` was — a number mapped onto the colour wheel, and the only one that reads as a smooth gradient. **`ramp.of(list, v, min, max)`** maps a number onto anything else: one of the four palette orders, a block category such as `glass`, or a list you built yourself. **There is no ramp per block category** — no `ramp.colors`, `ramp.glass` or `ramp.lamps`, and none for a category a game registered. To ramp one material, index it with a palette order: `glass[ramp.of(dark_hues, v, 1, n)]`. `ramp.of(glass, v, 1, n)` walks the category itself, light, plain and dark inside each family in turn, so it strobes. Values outside `[min, max]` clamp instead of wrapping past the palette, as `color` did from this release
-- **One random picker, `random.of(list)`, and one shorthand.** `random.block`, `random.plant`, `random.wool` and `table.randomizer` are removed with **no alias**. **`random.of(list)`** takes one value at random out of anything holding values — a block category such as `colors` or `glass`, a palette order such as `hues`, or a list of your own — so `random.of(colors)` is what `random.block` was and `random.of(glass)` is a random glass. **`random.hues()`** answers a colour **name** rather than a block, the same shape as `ramp.hues`, so `place(random.hues())` builds a solid and `lamps[random.hues()]` the matching lamp. `table.randomizer(t)`, which bound a picker to one list, becomes `function() return random.of(t) end`. **Prefer `random.of(hues)` to a pick across a whole category:** `colors` holds light, plain and dark shades of ten families, so a run of picks out of it looks muddled where the ten hues are clean
-- **The whole `table` namespace has left player code.** `randomizer` was the only thing on `table`, so removing it removed the namespace: `table` is simply not a name a program has any more, so `table.randomizer(t)` raises *attempt to index global 'table' (a nil value)* on that line. It is **not** on the named-refusal list that `os` and `io` are on, and it does not need to be: Lua names the missing global itself, on the line that used it. Nothing else was ever on it — `table.insert`, `table.concat` and `table.sort` have never been reachable from a program — and no bundled example used `table.`
-- `round(x, decimals)` fixed, its arguments having been the reverse of what was documented
-- API names are read-only: assigning to `place`, `colors`, etc. now raises. A saved program using an API name as its own global fails on that line
-- Unavailable names (`os`, `io`, `pcall`, ...) fail immediately, naming what you asked for
-- Generating the examples no longer overwrites existing files (the command is now `/codeblock generate`)
-- Dropped the `worldedit` dependency: cube, sphere, dome and cylinder are now `lib/shapes.lua`, one VoxelManip pass each
-- Relicensed GPL-3.0-only to AGPL-3.0-only, matching the Codecube game
-- **The per-codelevel limits were rewritten around the resources a program actually spends.** `max_calls`, `max_commands`, `max_volume`, `max_distance`, `max_dimension`, `max_mapblocks`, `commands_before_yield` and `calls_before_yield` are gone; `max_runtime_s`, `max_nodes_written`, `map_memory_mb` and `pace_ms` replace them, and `max_memory_kb`/`max_string_bytes` became `heap_mb`/`max_string_mb`. No API name changed, but a `minetest.conf` setting an old name now warns in the log and does nothing, naming its replacement
-- **Codelevels 1 and 2 are paced:** the drone waits 250 ms (level 1) or 5 ms (level 2) after every command, so a beginner can watch the loop happen. Levels 3 and 4 do not wait. Set `codeblock_pace_ms` to change it
-- A program is limited in how much of the world it holds at once (`map_memory_mb`) rather than how many mapblocks it loads in total. Over the ceiling it is slowed down rather than stopped, because the engine frees idle mapblocks by itself
-- Nothing limits a shape's dimensions or the drone's distance from home. What bounds a shape is `max_nodes_written`, and a large one is written in slabs with a pause between them, so it no longer freezes the server — a 150-node cube stalled it for 0.44 s
-- **The default codelevel for a *new* player is 3 in singleplayer and 2 on a server**, instead of 4 everywhere. Level 3 already waits for nothing, so the single player loses no speed; level 4 is the widest set of ceilings there is and is now given out only when asked for. Existing players keep the level stored in their meta, so upgrading a server demotes nobody — and tightens nobody either. Set `codeblock_default_auth_level` to override
-- **The per-codelevel numbers were retuned.** `max_nodes_written` is now `1e5 / 5e5 / 1e6 / 5e7` (was `2e5 / 1e6 / 1e7 / 1e8`) — **the ceiling on how much a program may build is a tenth of what it was at levels 1 to 3**, while level 4, which waits for nothing and is given out only when asked for, keeps room for a 368-node cube. `max_runtime_s` became `30 / 60 / 120 / 300`, and note what it counts: time the drone was actually *advanced*, which for a fast level is under a tenth of the clock — 300 s of it is hours of building, and a program that never finishes still stops in minutes. Level 2 gained room in two places: `pace_ms` 15 → 5 ms and `max_string_mb` 4 → 8. `map_memory_mb` ships as `16 / 64 / 128 / 512`, the same four numbers as `heap_mb`, so a build that ranges widely over the world waits less for map footprint than it did. **A saved program that fitted before may not now** — a shape over the new ceiling is refused with *"Maximum number of nodes written"*, and the fix is a smaller shape or a higher codelevel. `cube(200,200,200)`, for instance, needs codelevel 4 where level 3 used to do
-- **`/codelevel` and `/codegenerate` are now `/codeblock level` and `/codeblock generate`.** One command with subcommands instead of two top-level names, plus the new `/codeblock tools`. **There are no aliases:** the old names report an unknown command. Bare `/codeblock`, or a subcommand that does not exist, prints the three usages. Privileges are unchanged — `tools` and `generate` are free for your own files and need the `codeblock` privilege for someone else's; `level` needs it either way, for yourself included, because a codelevel is what bounds what a program may spend
-- **The two drone tools are no longer put into your inventory when you join.** This mod stops writing into a player's inventory at all: take the **Drone placer** and the **Drone setter** from the creative inventory, or run **`/codeblock tools`**, which adds whichever of the two you are not already carrying and refuses cleanly if `main` is full. Both tools can now be **dropped**, which they could not be before — there is a way to get them back. **Note for a server with no creative inventory:** the command is the only route, and a first-join chat line names it
-- **Installing this mod no longer grants `fly`, `fast` and `noclip` to every new player.** It did, in any game, unguarded, with no way for the game to decline — and nothing here needs creative movement: the drone flies, the player does not. Removed outright rather than put behind a setting. **Note for a server:** if your players were relying on those privileges, they were coming from this mod and now they will not; grant them in your own configuration
-- **`codeblock.utils` is gone entirely**, and a game or another mod reading anything on it now reads `nil`. It was a global this mod published, and the one thing it published that was not about a single topic. Four of its entries moved to the module that owns each, and that is where to look if you were reading one: `codeblock.utils.path_join` is now **`codeblock.path_join`**, `codeblock.utils.check_auth_level` is **`codeblock.config.check_auth_level`**, `codeblock.utils.parse_target` is **`codeblock.parse_target`**, and `codeblock.utils.html_commands` is **`codeblock.api.html_commands`**. The other six have no replacement: `table_reverse`, `table_convert_ik` and `table_convert_iv` had no caller anywhere and are deleted, and `split`, `table_randomizer` and `scroll_max` are private now — `scroll_max` was a scrollbar's geometry, and the rest are four lines each to copy into your own mod. **The one interface this mod offers a game is `codeblock.register_blocks`**, and it is unchanged
-- **Not this mod's change, but you meet it here: `vector3` 2.0 behaves differently from 1.5, and either may be installed.** `vector` comes from the separate `vector3` package, and Luanti has no way for a mod to ask for a version, so which one you get is which one you installed. Three differences a program can see. **The named constants — `vector.one`, `vector.zero`, `vector.x` and the rest — are read-only in 2.0**: `dir = vector.one; dir.x = -1` raises `read only`, where in 1.5 it silently changed `vector.one` for every player on the server until it restarted. Build one with the constructor instead — `dir = vector(1, 1, 1)` — which works on both. **`pairs()` over a constant sees nothing in 2.0** — outside a codeblock program: it yields `x`, `y` and `z` on 1.5 and no keys at all on 2.0, with no error, and `table.copy` of one is likewise empty. A fresh vector is unaffected. **Inside a program it now works on both**, because the constants a program gets are its own copies — see *Fixed*. And **a bad argument now raises instead of answering quietly**: `vector.srandom('a', 1)` returned `(0, 0, 0)` on 1.5 — silently wrong geometry — and reports a format error on 2.0. **One more change matters to a server operator rather than to a program: install 2.0.2 or newer.** Up to and including 2.0.1, any vector a sandboxed program made handed back `vector3`'s own method table, so a program could replace what `vector` does — a method, `+`, `==` — for **every other mod on the server** using the same package, until it restarted. 2.0.2 closes that. No well-behaved program can tell the difference. **The mod now says so in the server log at startup** when it finds an older one, naming the version and the fix, and says nothing at all on 2.0.2
+### Blocks and colours
+
+- **Every block name has changed, and the mod now brings its own blocks.**
+  `blocks`, `plants`, `wools` and `iwools` are gone, replaced by `colors`,
+  `glass`, `lamps`, `hues` and `air`. `place(blocks.stone)` becomes
+  `place(colors.grey)` by hand. The bundled examples were all ported.
+- **Why it was worth it.** `default` and `wool` are Minetest Game's and are not
+  ContentDB packages, so the engine refused to load this mod in any game that
+  lacked them. It now installs anywhere, and a program means the same thing
+  everywhere.
+- **`color(v, min, max)` is replaced by `ramp`, with no alias.**
+  `ramp.hues(v, min, max)` is what `color` was, a number mapped onto the colour
+  wheel. `ramp.of(list, v, min, max)` maps a number onto any array, so
+  `glass[ramp.of(dark_hues, v, 1, n)]` ramps one material. Both clamp at the
+  ends instead of wrapping.
+- **One random picker, `random.of(list)`, with no alias.** `random.block`,
+  `random.plant`, `random.wool` and `table.randomizer` are removed.
+  `random.of(colors)` is what `random.block` was, and `random.hues()` answers a
+  colour name, so `lamps[random.hues()]` is the matching lamp.
+- **The `table` namespace has left player code entirely.** `randomizer` was the
+  only thing on it, so `table.randomizer(t)` now raises *attempt to index global
+  'table'* on that line. Write `function() return random.of(t) end` instead.
+
+### The sandbox
+
+- **API names cannot be reassigned.** Using `place` or `colors` as your own
+  global fails on that line. The tables themselves are still writable, but each
+  run gets its own copies, so nothing a program does escapes it.
+- **Unavailable names fail immediately.** `os`, `io`, `pcall` and the rest name
+  what you asked for instead of reading as nil and failing further down.
+- **`round(x, decimals)` takes its arguments in that order.** They were the
+  reverse of what the documentation said, so `round(3.14159, 2)` returned about
+  2.
+
+### Limits and codelevels
+
+- **The limits were rewritten around resources a program actually spends.**
+  `max_calls`, `max_commands`, `max_volume`, `max_distance`, `max_dimension`,
+  `max_mapblocks`, `commands_before_yield` and `calls_before_yield` are gone.
+  `max_runtime_s`, `max_nodes_written`, `map_memory_mb` and `pace_ms` replace
+  them, and `max_memory_kb` and `max_string_bytes` became `heap_mb` and
+  `max_string_mb`. An old name in `minetest.conf` warns at load, and names what
+  took over from it where something did.
+- **The numbers were retuned, and a program that fitted before may not now.**
+  `max_nodes_written` is `1e5 / 5e5 / 1e6 / 5e7`, a tenth of what it was at
+  levels 1 to 3; `max_runtime_s` is `30 / 60 / 120 / 300`, counting only time
+  the server actually gave your drone. A shape over the ceiling is refused with
+  *"Maximum number of nodes written"*, and the fix is a smaller shape or a
+  higher codelevel.
+- **Nothing limits a shape's dimensions or the drone's distance from home.**
+  `max_nodes_written` bounds a shape instead, and a large one is written in
+  slabs with a pause between them, so it no longer freezes the server.
+- **Codelevels 1 and 2 are paced.** The drone waits 250 ms at level 1 and 5 ms
+  at level 2 after every command, so a beginner can watch the loop happen.
+  Levels 3 and 4 do not wait. Set `codeblock_pace_ms` to change it.
+- **A program is bounded by how much world it holds at once, not by how much it
+  loads.** Over the `map_memory_mb` ceiling it is slowed down rather than
+  stopped, because the engine frees idle mapblocks by itself.
+- **The default codelevel for a new player is 3 in singleplayer and 2 on a
+  server**, instead of 4 everywhere. Level 3 already waits for nothing, so a
+  single player loses no speed. Existing players keep the level in their meta,
+  so upgrading demotes nobody. Set `codeblock_default_auth_level` to override.
+
+### Commands and tools
+
+- **`/codelevel` and `/codegenerate` are now `/codeblock level` and
+  `/codeblock generate`, with no aliases.** The old names report an unknown
+  command. Bare `/codeblock`, or an unknown subcommand, prints the three usages.
+- **The two drone tools are no longer put into your inventory when you join.**
+  This mod stops writing into a player's inventory at all: take them from the
+  creative inventory or run `/codeblock tools`. Both tools can now be dropped,
+  which they could not be before.
+
+### Server operators
+
+- **Installing this mod no longer grants `fly`, `fast` and `noclip` to every new
+  player.** It did so in any game, unguarded. If your players relied on them,
+  they came from here and now will not; grant them in your own configuration.
+- **Joining no longer rewrites your sky.** The mod used to hold every world at
+  permanent noon and hide the sun, moon, stars and clouds. Those five overrides
+  are gone, with no setting to restore them.
+
+### Packaging and dependencies
+
+- **Dropped the `worldedit` dependency.** `cube`, `sphere`, `dome` and
+  `cylinder` are now `lib/shapes.lua`, one VoxelManip pass each. `mod.conf`
+  reads `depends = vector3` and nothing else.
+- **Relicensed from GPL-3.0-only to AGPL-3.0-only**, matching the Codecube game.
+- **`codeblock.utils` is gone**, and a mod reading anything on it now reads nil.
+  Four entries moved: `path_join` to `codeblock.path_join`, `check_auth_level`
+  to `codeblock.config.check_auth_level`, `parse_target` to
+  `codeblock.parse_target`, `html_commands` to `codeblock.api.html_commands`.
+  The rest are private or deleted.
+- **`vector3` 2.0 behaves differently from 1.5, and either may be installed.**
+  Luanti gives a mod no way to ask for a version. In 2.0 the named constants are
+  read only outside a program, `pairs()` over one sees nothing, and a bad
+  argument raises instead of answering quietly. **Install 2.0.2 or newer:**
+  before that, a sandboxed program could change what `vector` does for every
+  other mod on the server. The mod warns in the log when it finds an older one.
 
 ## Added
 
-- **A default block for `place()`**: a *Settings* panel in the editor picks the block a bare `place()` builds. Saved with your player and read once at the start of every run, so changing it will not split a build in progress. `air` can be chosen, which makes a bare `place()` erase. **Note:** a saved program calling `place()` with no argument built the fallback block before and now builds whatever you have chosen
-- **The mod registers 105 blocks of its own** — 35 named colours, each as a solid block, a **glass** and a **lamp**. Five neutrals light to dark (`white`, `light_grey`, `grey`, `dark_grey`, `black`), then ten hue families in colour-wheel order — `pink red orange yellow olive lime green cyan blue violet` — each as `light_<name>`, `<name>` and `dark_<name>`, so the plain word always exists and you can guess a name without looking it up. `hues` is the plain shade of each family, which is what `ramp.hues` walks. They are tinted from three shared 16×16 tiles: **a solid block is a flat fill of its colour**, glass keeps a frame and a highlight, and a lamp carries a faint grid so a wall of them reads as blocks. The default block for a bare `place()` is `grey`
-- **Four ways of walking the palette, and a ramp over any array.** `hues` is joined by **`light_hues`**, **`dark_hues`** and **`neutrals`** — ordered arrays of colour names, the three hue ones in colour-wheel order and `neutrals` lightest to darkest. They hold **names, not blocks**, and every block table is indexed by the same name, so one array is a gradient in whatever material you index with it: `place(dark_hues[i])` builds a solid, `glass[dark_hues[i]]` its glass, `lamps[dark_hues[i]]` its lamp. Four arrays and three categories therefore give twelve gradients with no further names. **`ramp.of(list, v, min, max)`** maps a number onto any array — one of these, a list you built yourself, or a block category, which it walks in that category's own order: `place(glass[ramp.of(dark_hues, y, 1, 20)])`. It clamps at the ends rather than wrapping, exactly as `ramp.hues` does, and it returns whatever the list holds; a value that is not a list at all reads as nothing rather than stopping the program. Reading past the end of an array is likewise not an error and is not reported. The palette itself is unchanged. **For game authors:** `light_hues`, `dark_hues` and `neutrals` are now names in use, so `codeblock.register_blocks` refuses a category called any of the three
-- **`codeblock.register_blocks(category, entries)`, for game authors.** A mod that names `codeblock` in its own `depends` can add a block category of its own — `codeblock.register_blocks('wool', {red = 'wool:red'})` — and `wool.red` becomes a block a player's program can place, listed in the editor's picker and help panel beside `colors`, `glass` and `lamps`. Names are checked at load time for being spellable as Lua keys, for colliding with nothing, and for naming a node that exists; what the node *does* is the game's business and is not policed. **A bad entry is logged naming your mod and dropped — it never aborts the server.** A registered category's names are namespaced (`wool.red`), so a game cannot shadow one of the mod's own. **A category costs a game one name, not two.** There is no `ramp.wool`: reach the category in order with `ramp.of(wool, v, 1, n)`, which walks it **alphabetically** by entry name and is therefore a lookup rather than a gradient, and at random with `random.of(wool)`
-- **`get_block(right, up, forward)` reads without moving the drone.** It took no arguments before, so looking at a neighbouring block meant flying there and back. The three offsets are optional and turn with the drone, exactly as `place_relative`'s do, and nothing about the drone changes. It now **loads the map it reads** and pays for it against the same footprint ceiling a write does, so a block the drone has not visited answers properly instead of reading as empty. Three answers: the name of a block you could place, `false` for a node you could not, and `nil` where there is no answer at all — map that has never been generated, or a position outside the world. `nil` does not become a name by waiting: reading does not generate terrain
-- **`is_block(block, right, up, forward)`**, which asks whether the block at an offset from the drone is the one you named — `if is_block(air, 0, 0, 1) then forward(1) end`. The offsets are `get_block`'s: optional, turning with the drone, moving nothing, and costing the same one command. It answers `true` only for an exact match, so **everything else is `false`** — a node you could not place, map that has never been generated, a position outside the world, a different block, and a name that does not exist. Use `get_block` when you need to tell those apart
-- `default_block(block)`, which changes the default for the rest of one run without touching what you have saved. Deliberately run-only: nothing a program does can rewrite your saved choice
-- `sleep(seconds)`, which pauses the drone and hands the server its step back, so a program can build at a pace it chooses. Fractions allowed; defaults to one second. Other drones keep building while yours waits. The wait counts against the same runtime ceiling as everything else and is charged before it starts, so `sleep` cannot make a program live for ever
-- **Create a copy** in the editor: writes what is on screen to the next free `<name>_N.lua` and opens it, so you can try a variation without touching the version that works. It does **not** save the original first — what you copy is what you can see. A freed number is reused. One quirk: filenames cap at 15 characters, so copying a name already at the cap shortens it to fit `_10` onwards
-- **A `*` on an editor tab whose text differs from the file on disk**, so you can see the editor is holding an unsaved edit. It clears when the file is written. Display only — the file is still called `spiral.lua`. This exists because leaving with **ESC** discards an unsaved buffer without asking, which is correct and was invisible
-- **A live view of what a running program is spending**, in two places. A block in the top-right corner while your program runs: the file and whether it is running or paused, then `Budget usage` and one line each for **Blocks**, **CPU** and **Memory** as percentages. The limit reached first is **amber**, anything at 80% or more **red**, and a run nowhere near a ceiling shows no colour. And **left clicking with the drone setter** opens a panel, wherever you are aiming: every limit with what the run has spent beside it and what each one means, plus **Pause** and **Stop**. It answers for all three states, including when you have no drone at all. **Note, this changes an existing gesture:** that click used to end the run outright with nothing asked. A paused program holds its place indefinitely, is charged no running time, and gives its share of the server's step to other drones. The corner display can be turned off per player in the editor's *Settings* panel, or for everyone with `codeblock_drone_hud = false`; a player's own choice wins
-- **`/codeblock tools`**, which puts the Drone placer and the Drone setter in your main inventory on demand, replacing the hand-out on join. It adds only what is missing, so running it twice does not leave you with four tools, and it counts one parked in your craft grid as carried. With the `codeblock` privilege it works on another player
-- **`/codeblock level` now reports a codelevel, where before nothing in the mod would tell you what bounded your programs.** There was no chat line, no editor field and no HUD row: the only way to learn your codelevel was to hit one of its ceilings and read the number out of the refusal. Bare **`/codeblock level`** answers `Your codelevel is 3` and is **free** — no privilege needed for your own. `/codeblock level <playername>` answers for someone else and needs the `codeblock` privilege, which is the split `tools` and `generate` already use. **Setting is unchanged:** `/codeblock level 4` and `/codeblock level alice 4` still need the privilege, your own codelevel included. The reply is **the number alone** and not the ceilings it buys; those are in `doc/api.md`. An offline name and a name that never existed are both refused, because a codelevel is stored in player meta and the engine hands that out only for a connected player. **Two consequences of a single argument being read as a level first.** A lone `1`, `2`, `3` or `4` is a codelevel, so a player actually *named* `1` to `4` cannot be read through this command — `/codeblock level 4 2` still addresses them, so they are reachable, only not readable on the short form. And by that same rule **`/codeblock level 5` is a player name**, not an out-of-range level, which is why its refusal names the 1-to-4 range as well as the missing player
-- **A warning when a program names a block that does not exist.** `place(blocks.notablock)` used to build your default block and say nothing, because a missing name reads as no name at all and *no name* means *use the default*. It now says which name was wrong, **once per run**, and carries on building with the default rather than stopping. A string that is not a block — `place('notablock')` — was always an error and still is. **One consequence:** a program testing `if blocks[name] then` on a name that is not there now produces that one line too
-- A file list sorted so `spiral_2.lua` comes before `spiral_10.lua`. Both the editor's list and the drone's file chooser use it
-- `settingtypes.txt`: every codelevel limit is settable from the settings menu under Mods, or in `minetest.conf`. Read at load, so a change needs a restart; a malformed value warns and falls back. It is **generated from the code and checked in CI**, so the numbers the menu offers cannot disagree with the mod's real defaults, and a setting the mod reads cannot be missing from the menu
-- `server_step_budget_us`: all running drones share one slice of each server step instead of each having its own, so sixteen drones no longer cost sixteen budgets. `step_budget_us` became a per-drone cap on that share, and a waiting drone takes no share at all
-- `heap_mb` against runaway accumulation, checked where the drone yields, and `max_string_mb` bounding `("x"):rep(1e9)` and amplifying `gsub`
-- A test suite (`tests/`): six specs run standalone under Lua 5.1, all nine in-engine via `codeblock_run_tests`. Plus luacheck and CI, which this repository had none of. **CI runs all nine inside a real Luanti server** as well as the six standalone, so the three specs that need the mod loaded are covered by every push rather than only by a run on the author's machine
-- `ROADMAP.md` alongside `TODO.md` and `CHANGELOG.md`: this mod is now versioned and released on its own cadence, and the Codecube game adopts a tagged release rather than following every commit
+### Writing programs
+
+- **`get_block(right, up, forward)` reads without moving the drone.** The three
+  offsets are optional and turn with the drone. It loads the map it reads, so a
+  block the drone has never visited answers properly: a block name, `false` for
+  a node you could not place, or nil where there is no answer at all.
+- **`is_block(block, right, up, forward)`** asks whether the block at an offset
+  is the one you named, as in `if is_block(air, 0, 0, 1) then forward(1) end`.
+  It answers true only on an exact match, so everything else is false. Use
+  `get_block` when you need to tell those cases apart.
+- **`sleep(seconds)`** pauses the drone and hands the server its step back, so
+  other drones keep building while yours waits. Fractions are allowed, and a
+  missing or non-positive argument means one second. The wait is charged against
+  the runtime ceiling before it starts, so `sleep` cannot make a program live
+  for ever.
+- **`default_block(block)`** changes the default for the rest of one run without
+  touching what you have saved. Nothing a program does can rewrite your saved
+  choice. Unlike `place()`, an unknown name here raises rather than falling
+  back.
+- **Four ways of walking the palette.** `hues` is joined by `light_hues`,
+  `dark_hues` and `neutrals`, ordered arrays of colour names rather than blocks.
+  Every block table is indexed by the same names, so four arrays across three
+  categories give twelve gradients: `place(dark_hues[i])`,
+  `glass[dark_hues[i]]`, `lamps[dark_hues[i]]`.
+- **A warning when a program names a block that does not exist.**
+  `place(colors.notablock)` used to build your default silently. It now says
+  which name was wrong, once per run, and carries on with the default.
+
+### The editor
+
+- **A default block for `place()`.** A *Settings* panel picks what a bare
+  `place()` builds. It is saved with your player and read once per run, so
+  changing it cannot split a build in progress. `air` can be chosen, which makes
+  a bare `place()` erase.
+- **Create a copy** writes what is on screen to the next free `<name>_N.lua` and
+  opens it, so you can try a variation without touching the version that works.
+  It copies what you can see, not what is on disk, and a freed number is reused.
+- **A `*` on a tab whose text differs from the file on disk**, so an unsaved
+  edit is visible. Leaving with ESC discards that buffer without asking, which
+  is correct and was invisible before.
+- **A file list sorted so `spiral_2.lua` comes before `spiral_10.lua`**, in both
+  the editor's list and the drone's file chooser.
+
+### Watching a program run
+
+- **A live view of what a running program is spending.** A corner block shows
+  the file, its state, and `Blocks`, `CPU` and `Memory` as percentages; the
+  limit reached first is amber, anything at 80% or more red. It can be turned
+  off per player, or for everyone with `codeblock_drone_hud`.
+- **Left clicking with the drone setter opens a panel** showing every limit
+  against what the run has spent, with **Pause** and **Stop**. **This changes an
+  existing gesture:** that click used to end the run outright with nothing
+  asked. A paused program holds its place indefinitely and is charged no running
+  time.
+
+### Commands
+
+- **`/codeblock tools`** puts the Drone placer and Drone setter in your
+  inventory on demand, replacing the hand-out on join. It adds only what is
+  missing and counts one parked in your craft grid as carried.
+- **`/codeblock level` now reports a codelevel.** Nothing in the mod would tell
+  you what bounded your programs; the only way to learn it was to hit a ceiling.
+  Reading your own is free, reading someone else's needs the `codeblock`
+  privilege, and setting still needs it either way.
+
+### For server operators
+
+- **`settingtypes.txt`:** every codelevel limit is settable from the settings
+  menu under Mods, or in `minetest.conf`. It is generated from the code and
+  checked in CI, so the menu cannot disagree with the mod's real defaults.
+- **`server_step_budget_us`:** all running drones share one slice of each server
+  step instead of each having its own, so sixteen drones no longer cost sixteen
+  budgets. `step_budget_us` became a per-drone cap on that share.
+- **`heap_mb` and `max_string_mb`** bound runaway accumulation and a single huge
+  allocation such as `("x"):rep(1e9)`.
+
+### For game authors
+
+- **`codeblock.register_blocks(category, entries)`.** A mod that depends on
+  `codeblock` can add a block category of its own, and `wool.red` becomes a
+  block a program can place, listed in the editor beside `colors`. A bad entry
+  is logged naming your mod and dropped, never aborting the server.
+- **A category costs a game one name, not two.** There is no `ramp.wool`: reach
+  it in order with `ramp.of(wool, v, 1, n)`, which walks it alphabetically, and
+  at random with `random.of(wool)`.
+
+### The project
+
+- **A test suite.** Six specs run standalone under Lua 5.1 and all nine in a
+  real Luanti server in CI, so the three that need the mod loaded are covered by
+  every push. This repository had neither tests nor CI before.
+- **`ROADMAP.md` beside `TODO.md` and `CHANGELOG.md`.** The mod is versioned and
+  released on its own cadence, and the Codecube game adopts a tagged release
+  rather than following every commit.
 
 ## Changed
 
-- **`print` takes any number of arguments**, joined by a space, so a label and a value go out in one line: `print("is: ", is_block(colors.red))` reads `> is: true`. It took exactly one before. `nil` is printed as `nil` wherever it falls in the list, which matters because `get_block()` answers `nil` over map that was never generated. `print()` with no arguments sends a blank line, as it does in Lua. One call still costs one command however many arguments it carries, and the separator is a space rather than Lua's tab because the chat console has no tab stops and wraps on spaces
-- `repeat ... until` now works — it was refused outright before
-- The drone advances for a time budget each server step instead of exactly one coroutine resume, so throughput follows the headroom the server has spare
-- The step budget is honoured at every drone command and before every slab of a bulk shape, rather than only between resumes
-- `place()` calls `core.load_area` once per mapblock the drone crosses into instead of once per node
-- The drone is kept inside the world edge (`mapgen_limit`) instead of within a distance of its spawn point: past that edge a write silently does nothing, which is the failure the distance limit stood in for
-- Removed `max_minetest_version`; raised `min_minetest_version` 5.3 → 5.4 (`formspec_version[4]`)
-- Dropped the `formspecs` dependency: form sessions are now `lib/forms.lua` on `core.show_formspec`
-- `doc/api.md` and the in-game help are generated from `lib/api.lua`, which also builds the sandbox environment. Removed `doc/commands.md`, `doc/api.html` and their two generator scripts, a superseded pipeline nothing referenced
-- `lib/commands.lua` went from 971 to 608 lines, with a new `lib/cost.lua` holding what a command spends and when it yields. No player-facing command changed
-- The drone record has a single owner: the entity holds only its owner's name and a serial, and a program's outcome is reported from one place instead of three
-- **The drone panel and HUD were rewritten after their first playtest.** Neither mentions *map memory* any more — that row is a throttle rather than a deadline, so it sits at 100% for any large build by design and was drowning out the three limits that actually stop a program. And *Running time* became **Server time used**, because it never was clock time: a drone is charged only the time the server gave it, roughly a tenth of the time you watch pass. Nothing about what is counted changed. Long counts read as `1.2K / 10.0M`; each limit's name is bold with its explanation underneath, and the panel's heading carries the program name in **bold** with its state in **green** or **yellow**
-- The panel opens **whatever the drone is doing** — including when you have no drone at all, where it says so rather than doing nothing
-- **The panel's heading says how long the run has been going**, as `spiral.lua : running (6m 27s)`. That is clock time, and deliberately not the *Server time used* row beside it, which counts only the time the server gave your drone — the two disagreeing by a factor of twenty is expected. **It stops while a run is paused** and picks up where it left off, so what it shows is how long the build has taken rather than how long ago you started it — and the `duration:` in the completion line is the same number. An idle drone reads `spiral.lua : idle` in the same shape, instead of a sentence
-- The HUD's third line is **CPU time**, not *CPU*, which read as a percentage of a processor rather than a share of the time budget
-- **Both displays now refresh once a second rather than twice.** The reason is the panel, not the HUD: re-sending a formspec makes the client rebuild every element in it, and a button press that was in flight when that happens is thrown away — which is why a panel button sometimes needed a second click. A slower refresh halves how often that can happen. The two surfaces share one beat deliberately, so a number can never differ between them
-- The editor's three preference checkboxes — **Load program on exit**, **Save on tab switch** and **Show the drone HUD** — moved onto the **Settings** panel, from loose along the form's bottom edge
-- The two editor checkboxes start **ticked** for a player who has never set them. **Note for an existing world:** a player created before this release had an explicit "off" stored at the moment they joined, honoured as a deliberate choice
-- The two tool icons were redrawn, with SVG editable sources; neither source ships in the release archive
-- **The bundled examples shrank so every one completes at codelevel 2.** `planet.lua`, `death_star.lua` and `mosely.lua` are smaller
-- The release archive holds only what the mod needs at runtime, plus the `README.md` and `doc/api.md` a player is told to read — 1.60 MB of it down to 1.42 MB. It is **2.00 MB** as shipped, the difference being a new `screenshot.png`: Luanti shows that one in the main menu's Mods tab, so it is kept deliberately and is now a current overview of what the mod builds rather than a four-feature-old editor shot
-- Documented `color()`, and corrected block lists that had drifted from the config
-- **The editor's help row is one `Blocks` button and a category selector**, in every game, instead of the three fixed Blocks / Plants / Wools buttons. It is drawn the same whether a game has registered a category or not, deliberately: a layout that only appears in the rare case is where a defect goes unnoticed. The mod's own categories show a translated name; a game's shows the raw name, because the raw name is what a program types
-- **The bundled examples were ported to the new palette.** All eleven of them build the same shapes in the nearest colours
-- **A fourteenth bundled example, `game.lua`** — a lamp that bounces around a walled arena it builds for itself, using `get_block` to find the walls and reverse. It is the **only example that never ends**: it loops until the runtime ceiling for your codelevel stops it, which is the intended behaviour and not a failure. Written out with the others by `/codeblock generate`
+### Programs and the drone
+
+- **`print` takes any number of arguments**, joined by a space, so a label and a
+  value go out in one line. It took exactly one before. `nil` prints as `nil`,
+  which matters because `get_block()` answers nil over ungenerated map.
+- **`repeat ... until` now works.** It was refused outright before.
+- **The drone advances for a time budget each server step** instead of exactly
+  one resume, so throughput follows the headroom the server has spare. The
+  budget is honoured at every command and before every slab of a bulk shape.
+- **`place()` loads the map once per mapblock the drone crosses into**, rather
+  than once per node.
+- **The drone is kept inside the world edge (`mapgen_limit`)** instead of within
+  a distance of its spawn point. Past that edge a write silently does nothing,
+  which is the failure the distance limit stood in for.
+- **The drone record has a single owner.** The entity holds only its owner's
+  name and a serial, and a program's outcome is reported from one place instead
+  of three.
+
+### The editor and displays
+
+- **The drone panel and HUD were rewritten after their first playtest.** Neither
+  mentions *map memory* any more: that row is a throttle rather than a deadline,
+  so it sat at 100% for any large build and drowned out the three limits that
+  actually stop a program.
+- **`Running time` became `Server time used`**, because it never was clock time.
+  A drone is charged only the time the server gave it, roughly a tenth of the
+  time you watch pass. Nothing about what is counted changed.
+- **The panel's heading says how long the run has taken**, as
+  `spiral.lua : running (6m 27s)`. That is clock time, deliberately not the row
+  beside it, and it stops while a run is paused.
+- **Both displays refresh once a second rather than twice.** Re-sending a
+  formspec makes the client rebuild it, and a button press in flight at that
+  moment is thrown away, which is why a panel button sometimes needed a second
+  click.
+- **The panel opens whatever the drone is doing**, including when you have no
+  drone at all, where it says so rather than doing nothing.
+- **The three preference checkboxes moved onto the Settings panel**, from loose
+  along the form's bottom edge. They now start ticked for a player who has never
+  set them.
+- **The help row is one `Blocks` button and a category selector** in every game,
+  instead of three fixed Blocks / Plants / Wools buttons. It is drawn the same
+  whether a game has registered a category or not.
+
+### Packaging and documentation
+
+- **Removed `max_minetest_version`; raised `min_minetest_version` from 5.3 to
+  5.4** for `formspec_version[4]`.
+- **Dropped the `formspecs` dependency.** Form sessions are now `lib/forms.lua`
+  on `core.show_formspec`.
+- **`doc/api.md` and the in-game help are generated from `lib/api.lua`**, which
+  also builds the sandbox environment. `doc/commands.md`, `doc/api.html` and
+  their generators are removed as a superseded pipeline.
+- **`lib/commands.lua` went from 971 to 608 lines**, with a new `lib/cost.lua`
+  holding what a command spends and when it yields. No player-facing command
+  changed.
+- **The release archive holds only what the mod needs at runtime**, plus the
+  `README.md` and `doc/api.md` a player is told to read. It is 2.00 MB as
+  shipped, most of the difference being a current `screenshot.png`.
+- **The two tool icons were redrawn**, with SVG sources that do not ship in the
+  release archive.
+
+### The bundled examples
+
+- **All fourteen were ported to the new palette** and build the same shapes in
+  the nearest colours. `planet.lua`, `death_star.lua` and `mosely.lua` shrank so
+  that they complete at codelevel 2.
+- **A fourteenth example, `game.lua`:** a lamp that bounces around a walled
+  arena it builds for itself, using `get_block` to find the walls and reverse.
+  **It is the only example that never ends**, looping until the runtime ceiling
+  for your codelevel stops it, which is intended rather than a failure.
 
 ## Removed
 
-- **The `default` and `wool` dependencies.** `mod.conf` now reads `depends = vector3` and nothing else. Neither of the two was a ContentDB package — they are Minetest Game's — and nothing here ever called a function from either or used an asset from either; the only use was their node names. **This is the change that lets the mod be installed into any game on ContentDB**, and it is why the whole palette had to be replaced
-- **The `blocks`, `plants`, `wools` and `iwools` tables**, replaced as described under *Breaking*
+- **The `default` and `wool` dependencies.** Neither is a ContentDB package, and
+  nothing here ever used more than their node names. This is the change that
+  lets the mod install into any game, and it is why the whole palette had to be
+  replaced.
+- **The `blocks`, `plants`, `wools` and `iwools` tables**, replaced as described
+  under *Breaking*.
 
 ## Fixed
 
-**The sandbox and the preprocessor**
+### The sandbox and the preprocessor
 
-- **`print` printing only its first argument and dropping the rest, with no error.** `print("is: ", is_block(colors.red))` put `> is: ` in the chat and stopped there, and writing it the other way round — `print("is: " .. is_block(...))` — raised *attempt to concatenate a boolean value*, which is correct Lua. There was no way to print a label beside a boolean or a number. This one is not new — `print` had taken a single parameter for the project's whole life, so every earlier release has it; it went unnoticed until a program had a boolean to print
-- Code between two block comments being deleted; a standard `--[[ ... ]]` comment leaving its body behind as code; a `--` inside a string truncating it; any identifier containing `function` injecting a statement after the next `)`. Instrumentation now runs over a token stream instead of pattern-matched text
-- Programs could corrupt `blocks`/`plants`/`wools`/`iwools`/`vector` for every player, and the injected call counter could be disabled from player code
-- **The named `vector` constants are each run's own again, on every version of `vector3`.** `dir = vector.one; dir.x = -1` is safe: it changes your copy, nothing outside your program, and nothing after it ends. Before this, `vector.one`, `vector.zero`, `vector.x` and the eleven others were the `vector3` package's own objects handed straight to every program, so on `vector3` 1.5 that line changed `vector.one` for **every player on the server** until it restarted — and on 2.0, where the package froze them, the same line raised `read only` instead. Build one with the constructor — `dir = vector(1, 1, 1)` — if you prefer; both now work
-- **`pairs`, `table.copy` and `core.serialize` over a `vector` constant work inside a program on `vector3` 2.0.x.** They read one as empty everywhere else, silently and with no error, because the package freezes it. What a program gets is an ordinary vector rather than a frozen one, so `for k, v in pairs(vector.one)` sees `x`, `y` and `z`
-- Removed `worldedit.lua()` / `worldedit.luatransform()` from the bundled fork before dropping it
+- **`print` printing only its first argument and dropping the rest**, with no
+  error, so there was no way to print a label beside a boolean. This is not new:
+  `print` took a single parameter for the project's whole life and every earlier
+  release has it.
+- **Four preprocessor defects that silently changed your program.** Code between
+  two block comments was deleted, a `--[[ ... ]]` comment left its body behind
+  as code, a `--` inside a string truncated it, and an identifier containing
+  `function` injected a statement. Instrumentation now runs over a token stream
+  rather than pattern-matched text.
+- **Programs could corrupt the block tables and `vector` for every player**, and
+  the injected call counter could be disabled from player code.
+- **The named `vector` constants are each run's own again, on every `vector3`
+  version.** `dir = vector.one; dir.x = -1` now changes your copy only. Before,
+  on 1.5 that line changed `vector.one` for every player on the server until it
+  restarted; on 2.0 it raised `read only`.
+- **`pairs`, `table.copy` and `core.serialize` over a `vector` constant work
+  inside a program on `vector3` 2.0.x**, where outside one they silently read it
+  as empty.
 
-**The world**
+### The world
 
-- `place()` silently doing nothing where the mapblock was not in memory, which left holes in builds away from spawn — and the same lost write returning through the call path, so a program whose pauses came from loops rather than drone commands could skip a mapblock load and lose a node with no error
-- `turn(n)` leaving the drone facing a direction the movement commands did not recognise. Turns were accumulated as radians, so counts such as `turn(11)` drifted a fraction off a quarter-turn and the next move silently did nothing. Turns are now counted in whole quarter-turns
-- A long shape failing outright instead of building slowly, depending on which way the drone faced. Slabs were always cut across the same axis, so a shape long the other way needed more of the world in memory for one slab than a codelevel allows in total. `cube(2, 2, 30000)` at codelevel 1 completed facing north and died facing east. Slabs now follow the shape's longest axis. Nothing had been built when it failed
-- Bulk shapes loading a node-thick layer of the world they never build into. `cube`, and `cylinder` along its length, asked for a region one node larger than the shape on every axis — free where that fell inside a chunk already being loaded, and a whole extra layer of chunks where it did not, which on a thin shape is a doubling. The same call took 78 seconds facing one way and 183 facing another
-- A dead branch in the centred cylinder that could produce a shape with no coordinates
+- **`place()` silently doing nothing where the mapblock was not in memory**,
+  which left holes in builds away from spawn. The same lost write also returned
+  through the call path, so a program pausing in loops rather than on drone
+  commands could skip a load and lose a node with no error.
+- **`turn(n)` leaving the drone facing a direction the movement commands did not
+  recognise.** Turns were accumulated as radians, so `turn(11)` drifted a
+  fraction off a quarter-turn and the next move silently did nothing. They are
+  counted in whole quarter-turns now.
+- **A long shape failing outright depending on which way the drone faced.**
+  Slabs were always cut across the same axis, so `cube(2, 2, 30000)` at
+  codelevel 1 completed facing north and died facing east. Slabs now follow the
+  shape's longest axis.
+- **Bulk shapes loading a node-thick layer of the world they never build into.**
+  `cube`, and `cylinder` along its length, asked for a region one node larger on
+  every axis, which on a thin shape doubles the map loaded. The same call took
+  78 seconds facing one way and 183 facing another.
+- **A dead branch in the centred cylinder** that could produce a shape with no
+  coordinates.
 
-**The drone**
+### The drone
 
-- **Logging in wiping your entire inventory.** Joining used to empty your hotbar, main inventory and craft grid before handing you the two drone tools. **Nothing is cleared now.** This took two goes — the first narrowed the wipe to "only when a tool has gone missing", which turned out to be exactly the first join after the mod is installed, so **adding this mod to a world that already had players wiped their inventories on the next join**. If you installed an earlier development version into an existing world, that is what happened, and it is not recoverable
-- The drone poser doing nothing at all when aimed at no node — into the sky, or past what your client has loaded. That gesture reaches a different engine callback, and the mod had left it empty. It now says *"Please target a node"*, which also makes *"move closer"* reachable in practice for the first time
-- Cancelling the drone's file chooser leaving a drone behind, named `?.lua` and answering *"Not a valid file"* on every use. The drone is now taken back when you decline
-- Removing a program leaving the drone holding it standing in the world, only disappearing the next time you tried to run it. The drone now goes with the file — the same answer as cancelling the chooser
-- A runtime error reporting twice and leaving the coroutine attached; and unloading a drone that was not running reporting *"The drone has disappeared"* followed by a completion line for a program that never started
-- **A program dying when its drone went out of view, or stood still.** A drone more than about 200 nodes from any player, or one that had not moved for half a minute, was quietly deleted by the engine along with the program it was running — so a long walk out, or a `sleep(45)`, ended the build with nothing built. **A program now survives both**: the drone disappears when there is nobody to see it and comes back when there is, and what it built while you were away is on the ground when you return. `sleep()` past the map's unload timeout works, and so does leaving a run paused. **Two consequences worth knowing:** `/clearobjects` no longer ends a running program — the drone vanishes and returns a second later — and the message *"The drone has disappeared, program stopped"* is gone, because nothing can send it any more. A runaway program far from anyone is now stopped by the runtime, node and memory ceilings alone, as one near you always was
-- **A run you stopped yourself being announced as *completed*.** Pressing **Stop** in the drone panel ended the program and then told you *"Program 'x.lua' completed"*, with a node count a fraction of what the program had asked for — the two things on screen contradicting each other. It now reads *"Program 'x.lua' stopped"*, with the same counts after it, and those counts read as the partial ones they are. A program that reaches its own end still says *completed*. Disconnecting mid-run ends the run the same way and says the same thing, though nobody is there to read it
-- Placing a drone somewhere the server has not loaded now says *"Cannot place the drone there, move closer"* instead of raising
+- **Logging in wiping your entire inventory.** Joining used to empty your
+  hotbar, main inventory and craft grid before handing you the tools. Nothing is
+  cleared now. If you installed a development version into an existing world,
+  that is what happened, and it is not recoverable.
+- **A program dying when its drone went out of view, or stood still.** A drone
+  more than about 200 nodes from any player, or still for half a minute, was
+  deleted by the engine along with its program, so a long walk out or a
+  `sleep(45)` ended the build. A program now survives both, and `/clearobjects`
+  no longer ends a run.
+- **A run you stopped yourself being announced as *completed***, with a node
+  count a fraction of what the program had asked for. It reads *stopped* now,
+  and the counts read as the partial ones they are.
+- **The drone poser doing nothing when aimed at no node**, into the sky or past
+  what your client has loaded. That gesture reaches a different engine callback
+  the mod had left empty. It now says *"Please target a node"*.
+- **Cancelling the file chooser leaving a drone behind**, named `?.lua` and
+  useless, and removing a program leaving its drone standing in the world. The
+  drone now goes with the file either way.
+- **A runtime error reporting twice and leaving the coroutine attached**, and
+  unloading an idle drone reporting a completion line for a program that never
+  started.
+- **Placing a drone where the server has not loaded** now says *"Cannot place
+  the drone there, move closer"* instead of raising.
 
-**The editor and files**
+### The editor and files
 
-- **A brand new file failing on its first line.** The program a new file starts with still named a block from before the palette changed, so anything created with `+` or Enter stopped immediately with *attempt to index global 'blocks' (a nil value)* and built nothing. It now builds a ten-block rainbow column, and it names no individual colour, so a future change to the palette cannot break it again: `for i = 1, #hues do place(hues[i]) up(1) end`. **This never reached a release** — it was introduced with the new palette and fixed three days later — but if you run master and created files in that window, every one of them was born broken. The file itself is fine; only the two lines inside it were wrong, and replacing them with the above, or with anything of your own, makes it run
-- **Every bundled example showing as unsaved the moment you clicked away from it.** Opening several programs put the unsaved `*` on all of them but the one you were looking at, without a keystroke. The examples ship with Windows line endings and your client sends back Unix ones, so the editor compared the two and concluded you had edited every file it had not written itself. Program files are now read as Unix line endings whatever they hold on disk
-- **The editor throwing away everything typed since the last save whenever the button pressed was not Save.** Any of the five help/Settings panel buttons, either checkbox, the block picker or `+` re-rendered the text area from the last saved copy. Switching tabs with *Save on tab switch* off lost the edit the same way. Typed text is now kept in memory on every button, and the option decides only whether it is also written to disk
-- The editor forgetting which files were open on three of its exits: **Load and close**, being disconnected, and a server shutdown. A form now closes by one path however it was reached
-- Closing with **ESC** or the window **X** not remembering the open tabs whenever a Blocks, Plants or Wools panel was showing — which is the panel the editor opens on, so it was the usual case
-- The **Enter** key in the *New file* field doing nothing while a block panel was open. The `+` button always worked
-- The editor's two checkboxes doing nothing (`0` is truthy in Lua), and the help panel opening on Blocks with no way to reach Plants, Wools or API until a file was open
-- The editor storing no open tab as a missing value, and a number where it reads a string
-- A crash when saving or deleting a program after reconnecting: the file cache was emptied on disconnect and not rebuilt
-- **A program file is read up to a size limit rather than whole.** One too large is refused by name and by size instead of being loaded into memory and sent to your screen. A 168 MB file sitting in a player's directory took the server to about 14 GB, froze the game on exit and froze it again the next time the editor was opened. The limit is **128 kB**, settable as `codeblock_max_file_kb`. **Note for an existing world:** a file already over the ceiling stops opening, and the ceiling cannot be raised from inside the game
-- A failed program read naming the file it could not read, instead of printing an internal file handle — and a file the server cannot read no longer reports the full path to it, in English regardless of the game's language. The operating system's reason goes to the server log
-- An unreadable example file taking the whole mod down at load; it is now skipped with a warning. And an example whose name contains `.lua` anywhere losing that text from its title
+- **A brand new file failing on its first line.** The starting program still
+  named a block from before the palette changed, so anything created with `+`
+  stopped immediately and built nothing. It now builds a rainbow column and
+  names no individual colour, so a future palette change cannot break it again.
+- **Every bundled example showing as unsaved the moment you clicked away.** The
+  examples ship with Windows line endings and your client sends back Unix ones,
+  so the editor concluded you had edited every file it had not written itself.
+  Program files are now read as Unix line endings whatever they hold on disk.
+- **The editor throwing away everything typed since the last save whenever the
+  button pressed was not Save.** Any panel button, either checkbox, the block
+  picker or `+` re-rendered the text area from the last saved copy. Typed text
+  is now kept in memory on every button.
+- **The editor forgetting which files were open on three of its exits:** Load
+  and close, being disconnected, and a server shutdown. A form now closes by one
+  path however it was reached.
+- **Closing with ESC or the window X not remembering the open tabs** whenever a
+  block panel was showing, which is the panel the editor opens on.
+- **The Enter key in the *New file* field doing nothing** while a block panel
+  was open. The `+` button always worked.
+- **The two checkboxes doing nothing** (`0` is truthy in Lua), and the help
+  panel opening on Blocks with no way to reach the others until a file was open.
+- **A crash when saving or deleting a program after reconnecting**: the file
+  cache was emptied on disconnect and not rebuilt.
+- **A program file is read up to a size limit rather than whole.** A 168 MB file
+  in a player's directory took the server to about 14 GB and froze the game. The
+  limit is 128 kB, settable as `codeblock_max_file_kb`. **Note:** a file already
+  over it stops opening, and the ceiling cannot be raised from inside the game.
+- **A failed read naming the file rather than an internal handle**, and no
+  longer reporting the full path in English regardless of the game's language.
+  The operating system's reason goes to the server log.
+- **An unreadable example file taking the whole mod down at load.** It is
+  skipped with a warning now, and an example whose name contains `.lua` no
+  longer loses that text from its title.
 
-**Commands, documentation and translation**
+### Commands, documentation and translation
 
-- **A player whose name starts with a digit, a dash or an underscore could not be named to any `/codeblock` subcommand.** `/codeblock tools 007`, `/codeblock generate 007`, `/codeblock level 007 3` and `/codeblock level 4player` all answered with a usage string. The engine allows letters, digits, `-` and `_` in a player name in any order, and both argument parsers here demanded a leading letter. **For a server operator this meant such a player could not be administered through this mod at all** — no tools, no examples, no codelevel — and nothing said why: the answer was the usage line, which reports that the arguments were wrong and never that the name was rejected. Any engine-legal name is accepted now
-- `/codeblock level` being unusable in singleplayer, and `/codeblock generate` having no privilege check and ignoring its playername — both under their old names, `/codelevel` and `/codegenerate`
-- The reported duration of a program: on a Linux server it was the whole server's CPU time. The completion line now reads `commands:N nodes:N duration:X.XXs`
-- **The check that every codelevel limit has a documented row — twice, the first attempt having been just as dead as the one it replaced.** It first matched by name prefix and so never checked `pace_ms`, `heap_mb` or `map_memory_mb`; the replacement matched by shape and, because Lua's `%w` excludes the underscore that every limit name contains, matched **nothing at all** from the day it was written. No row was ever actually missing. Both the reference check and the new settings check now match correctly, and each has been run against a deliberately undocumented limit to prove it can fail
-- **The French translation**, which was missing twelve of the mod's messages and carried seventeen that no longer exist. Three more looked translated and were not: a message whose text had been changed by a single character silently stopped matching its translation. One message could never have been translated at all, its text being assembled in two pieces and so invisible to anything collecting strings. `locale/template.txt` is now generated from the source and checked in CI
-- **Joining no longer rewrites your sky.** Installing this mod used to hold every player's world at permanent noon and hide the sun, moon, stars and clouds, with no way to decline — it was there for the Codecube game and followed the mod into every other game. The five overrides are gone: your game's sky and its day/night cycle are left alone, and there is no setting that turns them off. A game that wants a flat, sunless sky sets it itself
+- **A player whose name starts with a digit, a dash or an underscore could not
+  be named to any `/codeblock` subcommand.** Both argument parsers demanded a
+  leading letter where the engine allows any order, so such a player could not
+  be administered through this mod at all, and the answer was a usage line that
+  never said why.
+- **`/codeblock level` being unusable in singleplayer**, and `/codeblock
+  generate` having no privilege check and ignoring its playername, both under
+  their old names.
+- **The reported duration of a program**, which on a Linux server was the whole
+  server's CPU time. The completion line now reads
+  `commands:N nodes:N duration:X.XXs`.
+- **The check that every codelevel limit has a documented row, twice.** The
+  first matched by name prefix and skipped three limits; its replacement matched
+  by shape and, because Lua's `%w` excludes underscores, matched nothing at all.
+  Both checks now match correctly and have been run against a deliberately
+  undocumented limit to prove they can fail.
+- **The French translation**, which was missing twelve messages and carried
+  seventeen that no longer exist. Three more looked translated and were not.
+  `locale/template.txt` is now generated from the source and checked in CI.
 
 ## Known limitations
 
-- The file manager, the code editor and placing a drone in the world have no automated tests — the suite runs before a map or a player exists, so those paths are checked by review and by hand
-- `heap_mb` cannot stop one huge allocation; a pathological Lua pattern can still burn CPU inside a single `find` or `match`
-- The step budget is checked between drone commands and between the slabs of a shape, never inside one, so a single slab — a few thousand nodes, around 10 ms — still overshoots it
-- A shape large in **two** dimensions at once still asks for more of the world in memory than a codelevel allows in one slab, and the run stops rather than waiting. Only one axis can be sliced away
-- The map footprint decays linearly over the unload window rather than tracking each block, so it estimates what is resident rather than measuring it
-- Nothing on screen says why a drone is slow: the map row was deliberately dropped from both displays
-- **A drone panel button can still miss a click** — a few presses in twenty if you click quickly, where it used to be closer to one in five. The panel refreshes itself while a program runs, and the client rebuilds the whole form each time; a press held across that moment is dropped silently. Press it again. Closing the gap completely would mean a panel that does not update on its own
-- `place()` still writes one node per call and is not batched, unlike the four bulk shapes
-- A file can only be removed from the editor once it has been opened — the *Remove file* button appears only with a file open
-- The unsaved-tab `*` records that the buffer changed, not that it differs from disk, so typing a character and undoing it leaves the tab marked until the next save
-- Nothing in CI checks `.gitattributes`, so a file added to this repository ships inside the release archive unless a rule excludes it, and nothing fails locally when one does
-- **The mod's 105 blocks are silent** — no footstep, dig or place sound. Every sound set in Luanti belongs to a game, and using one would put this mod back to needing a game to provide something, which is the whole point of it bringing its own blocks
+- **No automated tests for the file manager, the code editor or placing a
+  drone.** The suite runs before a map or a player exists, so those paths are
+  checked by review and by hand.
+- **`heap_mb` cannot stop one huge allocation**, and a pathological Lua pattern
+  can still burn CPU inside a single `find` or `match`.
+- **The step budget is never checked inside a slab**, so a single slab of a few
+  thousand nodes, around 10 ms, still overshoots it.
+- **A shape large in two dimensions at once** still asks for more of the world
+  in memory than a codelevel allows in one slab, and the run stops rather than
+  waiting. Only one axis can be sliced away.
+- **The map footprint is estimated, not measured.** It decays linearly over the
+  unload window rather than tracking each block.
+- **Nothing on screen says why a drone is slow**, the map row having been
+  deliberately dropped from both displays.
+- **A drone panel button can still miss a click**, a few presses in twenty if
+  you click quickly. The panel refreshes while a program runs and the client
+  rebuilds the whole form, so a press held across that moment is dropped. Press
+  it again.
+- **`place()` still writes one node per call** and is not batched, unlike the
+  four bulk shapes.
+- **A file can only be removed once it has been opened**, the *Remove file*
+  button appearing only with a file open.
+- **The unsaved-tab `*` records that the buffer changed**, not that it differs
+  from disk, so typing a character and undoing it leaves the tab marked.
+- **Nothing in CI checks `.gitattributes`**, so a file added to this repository
+  ships inside the release archive unless a rule excludes it.
+- **The mod's 105 blocks are silent**, with no footstep, dig or place sound.
+  Every sound set in Luanti belongs to a game, and using one would put this mod
+  back to needing a game to provide something.
 
 # v0.7.0
 

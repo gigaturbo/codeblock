@@ -17,19 +17,46 @@ and security, `C` compliance and packaging, `A` architecture and performance;
 
 | Series | Total | Resolved | Open | Won't fix |
 |---|---|---|---|---|
-| `B` bugs | 53 | 52 | — | `B34` |
+| `B` bugs | 54 | 52 | `B57` | `B34` |
 | `S` sandbox and security | 9 | 9 | — | — |
 | `C` compliance and packaging | 20 | 20 | — | — |
 | `A` architecture and performance | 14 | 14 | — | — |
-| **Total** | **96** | **95** | **—** | **1** |
+| **Total** | **97** | **95** | **1** | **1** |
 
 | Id | Sev | What | Waiting on |
 |---|---|---|---|
+| `B57` | low | the replacement warning for `codeblock_max_distance` names a setting that does not exist | a fix in a v1.x; the author deferred it and it ships open in v1.0.0 |
 | `B34` | low | won't fix: a file cannot be removed without opening it first | decided — a working route exists |
 
 ## Open and won't fix
 
-Nothing is open.
+### B57 · low · open — the retired-setting warning names `codeblock_nothing`
+
+`lib/config.lua:236` maps each retired setting to its replacement, and the loop
+below builds one sentence: `warn(old, 'no longer exists; use codeblock_' .. new)`.
+Every value is a bare setting name except `max_distance`, whose value is
+`'nothing; distance is no longer limited'`.
+
+**So an administrator whose `minetest.conf` still carries
+`codeblock_max_distance` is told to use `codeblock_nothing`.** The full line
+reads `codeblock_max_distance no longer exists; use codeblock_nothing; distance
+is no longer limited`. No such setting exists.
+
+**Impact is log-only.** The message is English and untranslated, it fires at load
+and only for that one retired key, and nothing else reads it. It misleads; it
+breaks nothing.
+
+**Keep — why the `replaced` table exists**, so a fix does not delete the
+mechanism to remove the bad sentence. A limit that is silently ignored reads as
+being in force. An administrator's `minetest.conf` outlives a rewrite, so every
+retired name has to answer for itself at load.
+
+**Keep — the fix's shape.** The table's value is a setting name in nine entries
+out of ten, and a clause in the tenth. Either let an entry carry a whole
+replacement clause and drop the `'codeblock_' ..` prefix from the loop, or give
+`max_distance` its own message. **A retired setting with no replacement is the
+general case**, not an exception to patch once: `max_distance` is simply the
+first.
 
 ### B34 · low · won't fix — a file cannot be removed without opening it first
 
@@ -1051,8 +1078,8 @@ Each of these is a wrong claim that would otherwise be repeated as fact.
 
 ---
 
-Last reviewed **2026-09-10**, describing `eb0b997`. **95 findings, none open,
-one won't fix (`B34`).** `F17` is complete and played, and the `R` group is
+Last reviewed **2026-09-10**, describing `eb0b997`. **95 findings resolved, one
+open (`B57`, filed 2026-09-22 against `5fb9b68`), one won't fix (`B34`).** `F17` is complete and played, and the `R` group is
 played whole. `C24` and `B56` landed at `8da8cab`, `C25` at `0ae4d3e`, and the
 CI runs `34391577229` and `34409912247` prove the container and the action bump
 in turn. CI is green at `eb0b997` on all four jobs, run `34468185643`. Nothing

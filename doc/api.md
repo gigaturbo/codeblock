@@ -1,6 +1,6 @@
 # Codelevel
 
-Drone capacities depends on the user's _codelevel_ which can be set with the `/codeblock level` [command](https://github.com/gigaturbo/codeblock#chat-commands) (see below). High codelevels should be given carefully to users as program could overload the server and crash it. A new player starts at codelevel `3` in singleplayer, where the player is the administrator but has no use for the widest ceilings there are, and at `2` on a server — set `codeblock_default_auth_level` to override either.
+Drone capacities depends on the user's _codelevel_ which can be set with the `/codeblock level` [command](#chat-commands) (see below). High codelevels should be given carefully to users as program could overload the server and crash it. A new player starts at codelevel `3` in singleplayer, where the player is the administrator but has no use for the widest ceilings there are, and at `2` on a server — set `codeblock_default_auth_level` to override either.
 
 | codelevel         | 1 (novice) | 2 (intermediate) | 3 (advanced) | 4 (poweruser) | description                                                    |
 |-------------------|------------|------------------|--------------|---------------|----------------------------------------------------------------|

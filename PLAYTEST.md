@@ -84,8 +84,8 @@ Result: ...
 
 | Check | State | Waiting on |
 |---|---|---|
-| [`R1`](#r1--the-archive-contains-no-tests-c16-c10) | `stale` | a re-run against the release tag; read at `f700410`, which `8da8cab` follows |
-| [`R2`](#r2--a-real-install-with-the-test-flag-set-c16) | `stale` | a re-run against the release tag; `C24` changed `init.lua`, which ships |
+| [`R1`](#r1--the-archive-contains-no-tests-c16-c10) | `stale` | a re-run against the release tag; re-read at `0d912b1`, at the commit and not the tag |
+| [`R2`](#r2--a-real-install-with-the-test-flag-set-c16) | `stale` | a re-run against the release tag; re-read at `0d912b1`, at the commit and not the tag |
 
 **The two stale checks are the only checking v1.0.0 owes.** Both are read
 against the archive built from the release tag, so they come after it. `R2` is

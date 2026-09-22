@@ -12,26 +12,28 @@ is v2.0.0 and holds `F6` alone**.
 
 ## Now
 
-**v1.0.0 is built, and nothing is open.** `Phase 8` has no unshipped feature.
-`AUDIT.md` holds 96 findings, none open, one won't fix (`B34`). No decision is
-waiting on the author.
+**v1.0.0 is built.** `Phase 8` has no unshipped feature. `AUDIT.md` holds 97
+findings, one open (`B57`, low, a misleading load-time warning), one won't fix
+(`B34`). No decision is waiting on the author.
 
-**`b371c76` is two commits ahead of `origin/master`, and the working tree is
-clean.** Neither unpushed commit touches Lua, so the gate readings below still
-hold.
+**`HEAD` is `5fb9b68` and equals `origin/master`.** Nothing is unpushed. The
+release content is uncommitted in the working tree, which is the one thing
+`release-check` refused on. Take the unpushed count from
+`git rev-list --count origin/master..HEAD`, never from counting hashes.
 
-**Gates green at `eb0b997`.**
+**Gates green at `5fb9b68`.**
 luacheck silent, the three `--check` generators up to date,
 `suite: 9/9 specs   725 passed   0 failed   1 xfail   0 xpass   0 skipped` with
 the one expected `ERROR[` line, 254 standalone under plain Lua 5.1. CI green on
-all four jobs, run `34468185643`. Take the unpushed count from
-`git rev-list --count origin/master..HEAD`, never from counting hashes.
+all four jobs by name, run `35256061658`, `head_sha` `5fb9b68`.
 
-**Two in-world checks are stale, and they are the only checking owed.** `R1` and
-`R2` were read at `f700410`, which `8da8cab` now follows. Every other live check
-carries a pass, and `H8` is `unreachable`.
+**Two in-world checks are owed, and they are the only checking owed.** `R1` and
+`R2` were re-read at `0d912b1` on 2026-09-16, against the archive GitHub built
+for `master`. Both say in their own words that they were read at the commit and
+not the release tag, so both stay owed until the tag lands. Every other live
+check carries a pass, and `H8` is `unreachable`.
 
-**What is left needs the author**: steps 2 to 6 of *Finalising v1.0.0* below,
+**What is left needs the author**: steps 3 to 6 of *Finalising v1.0.0* below,
 three of them outside this repository. No agent task remains before the tag.
 
 **`F15` and the unsaved-close warning left v1.0.0 on 2026-09-10.** Neither is
@@ -39,9 +41,9 @@ built. Both are in `TODO.md` under *After 1.0.0*, `F15` shaped in full below.
 
 ## Finalising v1.0.0
 
-**Step 1 is done and committed. Everything left needs the author** — a
-ContentDB login, a tag, or a running world. Steps 2–6 are the
-`release-codeblock` skill's procedure and are not restated here.
+**Steps 1 and 2 are done. Everything left needs the author** — a ContentDB
+login, a tag, or a running world. Steps 3–6 are the `release-codeblock` skill's
+procedure and are not restated here.
 
 1. **Done, `b371c76`.** `README.md` drops the false *"works in any game that
    provides the blocks it places"*, gains a **For game authors** section for
@@ -54,9 +56,12 @@ ContentDB login, a tag, or a running world. Steps 2–6 are the
    four entries; `.cdb.json` is regenerated at 7568 bytes. The generator could
    not run here, which is `C26`, fixed in the same commit. (`C19`, `C26`, `F10`,
    `F11`)
-2. **`release-check`**, and do not start the tag until it says ready.
-3. **Strike what the release closed** from `ROADMAP.md` and `TODO.md`, confirm
-   the `vector3` submodule commit is pushed, commit, push, tag `v1.0.0`.
+2. **Done.** `release-check` reported not ready on one thing only: the release
+   content is uncommitted, so `git archive HEAD` ships a `CHANGELOG.md` headed
+   *v1.0.0 (unreleased)*. Every other gate passed. Committing step 3 clears it.
+3. **The release commit.** What the release closed is struck from `ROADMAP.md`
+   and `TODO.md`. Left: confirm the `vector3` submodule commit is pushed,
+   commit, push, tag `v1.0.0`.
 4. **Re-run `R1` and `R2`** against the archive built from the tag. **`R2` is
    the one with something new to read**: `C24` changed `init.lua`, which ships,
    and `R2` boots the extracted archive with `codeblock_run_tests = true` on a
@@ -121,7 +126,10 @@ Phase 8's playtests have since found fifteen defects in code those phases called
 done — `B36`–`B44`, `C17`, `C18`, `S7`, `B50`–`B52` — and all fifteen are fixed
 and played.
 
-**Phase 8 has no open finding, and neither does anything else.** `S8` closed
+**Phase 8 has one open finding, `B57`, low.** The author deferred it: it ships
+open in v1.0.0 and is fixed in a v1.x. It is log-only, so a release is not worth
+holding for it. `S8`
+closed
 with the per-constant copy, `S9`
 with the v2.0.2 bump, `A17` with the deletion of `lib/utils.lua`, `A18` with the
 two assignments and `B55` with the widened parsers. `B10`'s refusal is out of the
@@ -1069,10 +1077,10 @@ before consulting `all`, which would make `place('#F7A8E7')` work directly.
 
 ---
 
-Last reviewed **2026-09-16**, describing **`4690cea`** with the screenshot
-replacement staged and uncommitted. `origin/master` is **`eb0b997`**, three
-behind, **CI green there on all four jobs** (run `34468185643`).
-`PLAYTEST.md`: 98 entries, `F11-4` retired, one unreachable
-(`H8`), `R1` and `R2` **stale** — `8da8cab` follows the commit they were read
-at. `AUDIT.md`: 96 findings, **none open**, one won't fix (`B34`). The
-`flat_sky` removal is `3fa9d0c`.
+Last reviewed **2026-09-22**, describing **`5fb9b68`** with the release content
+uncommitted. `origin/master` is **`5fb9b68`**, nothing ahead, **CI green there on
+all four jobs by name** (run `35256061658`). `PLAYTEST.md`: 98 entries, `F11-4`
+retired, one unreachable (`H8`), `R1` and `R2` **owed** — re-read at `0d912b1`
+on 2026-09-16, at the commit and not the release tag. `AUDIT.md`: 97 findings,
+**one open** (`B57`, deferred to a v1.x), one won't fix (`B34`). The `flat_sky`
+removal is `3fa9d0c`.

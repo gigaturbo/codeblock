@@ -8,8 +8,11 @@ Completed items are deleted.
 
 # v1.0.0
 
-No feature or bug work left. The remaining release steps are the ordered list in
-`ROADMAP.md`.
+No feature work left. The release commit, the tag, the ContentDB upload and the
+webhook are steps 3 to 6 of the ordered list in `ROADMAP.md`. `R1` and `R2` in
+`PLAYTEST.md` are read after the tag.
+
+One low bug ships open, `B57` in `AUDIT.md`. The author deferred it to a v1.x.
 
 
 # After 1.0.0
