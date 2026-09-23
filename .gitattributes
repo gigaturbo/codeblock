@@ -13,10 +13,8 @@
 tests            export-ignore
 scripts          export-ignore
 CLAUDE.md       export-ignore
-ROADMAP.md      export-ignore
+BACKLOG.md      export-ignore
 TODO.md         export-ignore
-AUDIT.md        export-ignore
-PLAYTEST.md     export-ignore
 
 # The ContentDB page copy. ContentDB reads it through .cdb.json, which it takes
 # from the repository rather than the archive, so shipping it to a player would
