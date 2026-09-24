@@ -155,20 +155,6 @@ The same, and **the one with something new to read**: `C24` changed `init.lua`,
 which ships, and this check boots the extracted archive with
 `codeblock_run_tests = true` on a build that has no `tests/`.
 
-### W6 · the drone's entity goes away and comes back
-
-`todo` `playtest` `stale` `target: v1.1.0`
-
-Last passed 2026-09-04, case 2 at `23f0227`. `F-D-1` changed how a re-spawned object is
-given its position, facing and nametag.
-
-### T-D-1 · the drone is drawn once per step
-
-`todo` `playtest` `filed 2026-09-24` `target: v1.1.0`
-
-New with `F-D-1`, never run. The recipe is `T-D-1` in `codeblock-kb`'s
-`references/playtests.md`.
-
 ## Closed
 
 **A check listed here is done against a commit, not for good.** Its recipe is
@@ -345,7 +331,9 @@ whoever re-runs it knows what they are re-reading against.
 - `W3` done `playtest` 2026-09-04 · a large bulk shape
 - `W4` done `playtest` 2026-09-03 · an unknown block name warns, once
 - `W5` done `playtest` 2026-09-04 · a drone that stands still far away keeps running
+- `W6` done `playtest` 2026-09-24 · the drone's entity goes away and comes back; pass at `4b61623`, engine 5.17.0, after `F-D-1` changed the re-spawn
 - `W7` done `playtest` 2026-09-07 · `print` sends every argument, in one line
+- `T-D-1` done `playtest` 2026-09-24 · the drone is drawn once per step; pass at `4b61623`, engine 5.17.0, all four cases
 - `P1` done `playtest` 2026-08-27 · `pace_ms` at the low codelevels
 - `P2` done `playtest` 2026-08-27 · slab progression under the step budget
 - `P3` done `playtest` 2026-08-28 · the footprint throttle actually throttling
