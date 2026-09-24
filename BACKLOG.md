@@ -2,9 +2,9 @@
 
 CodeBlock is a Luanti mod that adds programming to the game. **v1.0.0 is
 released** and on ContentDB, published by the tag itself. What is left of it is
-`R1` and `R2`, read against the tagged archive. `Phase 9` is v1.x, opened on what
-comes back from players, and carries `F15`; `Phase 10` is v2.0.0 and holds `F6`
-alone.
+`R1` and `R2`, read against the tagged archive. v1.1.0 is drone throughput,
+`F-S-1` to `F-S-4` and `F-D-1`. `Phase 9` is v1.x, opened on what comes back from
+players, and carries `F15`; `Phase 10` is v2.0.0 and holds `F6` alone.
 
 **Every id here predates the `B-X-N` scheme and keeps its old form for ever**,
 because commit messages cite them: `B` bugs, `S` sandbox and security, `C`
@@ -74,6 +74,76 @@ needs a second full-size `set_param2_data` array per slab in the one path that
 has to stay fast; `get_block` and `is_block` must read `param2`, since
 `by_node[itemstring]` cannot tell 256 colours apart; and the block picker cannot
 enumerate 256 x 3.
+
+### F-S-1 · one map read and write per chunk per resume
+
+`todo` `large` `filed 2026-09-24` `target: v1.1.0`
+
+Every `cube()` reads, writes and relights whole 16³ mapblocks, and every
+`place()` is a `set_node` with its own lighting update, so a program of many
+small writes pays whole-chunk work per call: 361,201 one-wide columns touched
+3.2G map positions. Consecutive commands mostly land in the same chunks.
+
+**Do:** keep the VoxelManip of the chunks written since the last yield open,
+write every shape and `place()` into it, and flush it in `release()`, where the
+mapblock memo is already dropped. `get_block` reads through it, the footprint
+charge and the one-slab stall bound still hold, and timing the passes first
+says how much this is worth against `F-S-2`.
+
+### F-S-2 · relight once per shape, not once per pass
+
+`todo` `medium` `filed 2026-09-24` `target: v1.1.0`
+
+`write_to_map()` recalculates lighting on every slab of every shape
+(`lib/shapes.lua`), however thin the shape. How much of a pass that is has not
+been measured.
+
+**Do:** time a pass with and without lighting, then write with
+`write_to_map(false)` and fix the lighting once over the area the command
+touched, keeping it inside the one-slab stall bound.
+
+### F-D-1 · move the drone entity once per resume, not once per command
+
+`todo` `small` `filed 2026-09-24` `target: v1.1.0`
+
+`update_entity` calls `set_pos`, `set_rotation` and `set_properties` with a
+rebuilt nametag on every movement and every `place_relative`, although a client
+sees at most one position per server step.
+
+**Do:** mark the drone as moved in the commands and push the entity once where
+control goes back to the stepper, and on the respawn path as today.
+
+### F-S-3 · budget a share of the step, weighted by codelevel
+
+`todo` `medium` `filed 2026-09-24` `target: v1.1.0`
+
+A drone gets a fixed slice of each step, up to 8 ms, so the same codelevel works
+about half the time in singleplayer, a tenth on a dedicated server and a twelfth
+with the game window unfocused. The pool is split equally and then capped, so a
+low codelevel's capped remainder and a paced drone's unspent slice go to nobody.
+
+**Do:** one setting, `codeblock_server_share`, defaulting to 80% in singleplayer
+and 33% otherwise, taken of `dtime` clamped to about 0.2 s, replacing the two µs
+settings through the `retired` table. Share it in one pass over the awake drones
+sorted by level cap, each getting its weight's part of what is left and paying
+what it actually spent, with a floor per share so an overshoot cannot starve the
+last drone. `stepper.budget` stays arithmetic, and its spec pins that the
+planned total never exceeds the share of the step.
+
+### F-S-4 · tile a shape into mapblock-aligned boxes, not slabs
+
+`todo` `medium` `filed 2026-09-24` `target: v1.1.0`
+
+A shape is sliced along its longest axis only, so one wide in two dimensions has
+slabs of `across` mapblocks that run uninterrupted: an estimated 0.45 s for the
+largest sphere codelevel 4 allows, and a run killed by `B42` past the footprint
+ceiling. The one-slab stall bound the security model relies on does not hold for
+such a shape.
+
+**Do:** in `shapes.build`, cut the mapblock-aligned bounds into boxes of at most
+`SLICE_BLOCKS` mapblocks, as close to cubic as the shape allows, and run one pass
+per box, skipping a box the shape does not reach, such as a sphere's corners or
+a hollow shape's inside. The fillers already clip on all three axes.
 
 ## Tests
 
