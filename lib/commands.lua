@@ -138,7 +138,6 @@ local function move_by(drone, x, y, z)
     drone.x, drone.y, drone.z = drone.x + dx, drone.y + dy, drone.z + dz
 
     check_inside_world(drone.x, drone.y, drone.z, 5)
-    drone:update_entity()
     end_command(drone)
 
 end
@@ -176,7 +175,6 @@ local function turn_by(drone, quarters)
 
     drone.dir = (round0(drone.dir / tmp2) + quarters) % 4 * tmp2
 
-    drone:update_entity()
     end_command(drone)
 
 end
@@ -222,7 +220,6 @@ local function drone_place_relative(drone, x, y, z, block, chkpt)
 
     check_inside_world(drone.x, drone.y, drone.z, 4)
 
-    drone:update_entity()
     place_block(drone, drone.x, drone.y, drone.z, real_block)
     end_command(drone)
 
@@ -563,7 +560,6 @@ local function drone_goto_checkpoint(drone, chkpt, x, y, z)
     drone.x, drone.y, drone.z = cp.x + dx, cp.y + dy, cp.z + dz
 
     check_inside_world(drone.x, drone.y, drone.z, 4)
-    drone:update_entity()
     end_command(drone)
 
 end

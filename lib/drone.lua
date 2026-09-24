@@ -9,8 +9,8 @@
 -- B29)
 --
 -- The entity is the record's, not the other way round. Drone.new spawns it,
--- Drone.on_step spawns it again once it has been unloaded, update_entity pushes
--- position, facing and nametag into it, and Drone.remove takes it away. The
+-- Drone.on_step spawns it again once it has been unloaded and pushes position
+-- and facing into it once per step, and Drone.remove takes it away. The
 -- entity itself decides nothing, and a record without one is a run nobody can
 -- see rather than a run that has stopped.
 --
@@ -89,6 +89,30 @@ local function preferred_block(name)
     return blocks[stored] and stored or fallback_block
 end
 
+--- Push the drone's position and facing into its object, if they changed.
+--
+-- Called once per step, not per command: each set_pos is a reliable message to
+-- every client that sees the drone, the engine merges none of them, and the
+-- client shows only the last. drone.shown is what was pushed last; empty it to
+-- force a push to a new object. (F-D-1)
+local function show(drone)
+    local obj, shown = drone.obj, drone.shown
+    local x, y, z, dir = drone.x, drone.y, drone.z, drone.dir
+    if obj == nil or (shown.x == x and shown.y == y and shown.z == z and
+        shown.dir == dir) then return end
+    shown.x, shown.y, shown.z, shown.dir = x, y, z, dir
+    obj:set_pos({x = x, y = y, z = z})
+    obj:set_rotation({x = 0, y = dir, z = 0})
+end
+
+--- Push the nametag, which names the file: at spawn and when the file changes.
+local function show_nametag(drone)
+    if drone.obj == nil then return end
+    drone.obj:set_properties({
+        nametag = '[' .. drone.name .. '] ' .. (drone.file or '?.lua')
+    })
+end
+
 --------------------------------------------------------------------------------
 -- private
 --------------------------------------------------------------------------------
@@ -98,16 +122,6 @@ local Drone = {instances = {}}
 local instance_mt = {
 
     __index = {
-
-        update_entity = function(self)
-            if self.obj ~= nil then
-                self.obj:set_pos({x = self.x, y = self.y, z = self.z})
-                self.obj:set_rotation({x = 0, y = self.dir, z = 0})
-                self.obj:set_properties({
-                    nametag = '[' .. self.name .. '] ' .. (self.file or '?.lua')
-                });
-            end
-        end,
 
         -- Which quarter-turn the drone faces, 0 to 3, as an integer fit to
         -- index a table with. Rounded rather than scaled, because dir is a
@@ -207,14 +221,16 @@ local drone_mt = {
                 -- clock. (F9)
                 paused = false,
                 paused_at = nil,
-                obj = obj
+                obj = obj,
+                shown = {}
             }
 
             drone.checkpoints['spawn'] = {x = px, y = py, z = pz, dir = dir}
 
             setmetatable(drone, instance_mt)
 
-            drone:update_entity()
+            show(drone)
+            show_nametag(drone)
 
             Drone.set(name, drone)
 
@@ -407,7 +423,9 @@ local drone_mt = {
                         drone.obj = core.add_entity(pos, 'codeblock:drone',
                                                     drone.serial .. ' ' ..
                                                         drone.name)
-                        drone:update_entity()
+                        drone.shown = {}
+                        show(drone)
+                        show_nametag(drone)
                     end
                 end
 
@@ -422,6 +440,8 @@ local drone_mt = {
                     local _, outcome, err = advance(drone, budget)
                     if outcome ~= 'yielded' then
                         Drone.finish(drone, outcome, err)
+                    else
+                        show(drone)
                     end
                 end
 
@@ -550,7 +570,7 @@ local drone_mt = {
             local drone = Drone.get(name)
             if drone then
                 drone.file = filename
-                drone:update_entity()
+                show_nametag(drone)
             end
 
             -- set last_file for next drone placing

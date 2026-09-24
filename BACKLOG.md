@@ -3,7 +3,7 @@
 CodeBlock is a Luanti mod that adds programming to the game. **v1.0.0 is
 released** and on ContentDB, published by the tag itself. What is left of it is
 `R1` and `R2`, read against the tagged archive. v1.1.0 is drone throughput,
-`F-S-1` to `F-S-4` and `F-D-1`. v1.x is opened on what comes back from players
+`F-S-1` to `F-S-4`. v1.x is opened on what comes back from players
 and carries `F15`; v2.0.0 holds `F6` alone.
 
 **Every id here predates the `B-X-N` scheme and keeps its old form for ever**,
@@ -102,22 +102,6 @@ been measured.
 `write_to_map(false)` and fix the lighting once over the area the command
 touched, keeping it inside the one-slab stall bound.
 
-### F-D-1 · move the drone entity once per resume, not once per command
-
-`todo` `small` `filed 2026-09-24` `target: v1.1.0`
-
-`update_entity` runs on every movement, turn, `place_relative` and
-`goto_checkpoint`. Each `set_pos` sends its own reliable message to every client
-that sees the drone, and the engine merges none of them, although the client
-only shows the last one of a step. `set_properties` rebuilds the nametag and
-re-reads the table on every call, only to find nothing changed.
-
-**Do:** drop `update_entity` from the four commands. After `advance()` returns
-`yielded` in `Drone.on_step`, push the position and facing once, and only if
-they differ from what was last pushed. Push the nametag only where it changes:
-at spawn, at respawn, and when the file changes. Count `set_pos` calls on a stub
-object in a spec: one per step, whatever the program does.
-
 ### F-S-3 · budget a share of the step, weighted by codelevel
 
 `todo` `medium` `filed 2026-09-24` `target: v1.1.0`
@@ -170,6 +154,20 @@ ignored `tests` and `.github`.
 The same, and **the one with something new to read**: `C24` changed `init.lua`,
 which ships, and this check boots the extracted archive with
 `codeblock_run_tests = true` on a build that has no `tests/`.
+
+### W6 · the drone's entity goes away and comes back
+
+`todo` `playtest` `stale` `target: v1.1.0`
+
+Last passed 2026-09-04, case 2 at `23f0227`. `F-D-1` changed how a re-spawned object is
+given its position, facing and nametag.
+
+### T-D-1 · the drone is drawn once per step
+
+`todo` `playtest` `filed 2026-09-24` `target: v1.1.0`
+
+New with `F-D-1`, never run. The recipe is `T-D-1` in `codeblock-kb`'s
+`references/playtests.md`.
 
 ## Closed
 
@@ -282,6 +280,7 @@ whoever re-runs it knows what they are re-reading against.
 
 ### Features
 
+- `F-D-1` done `small` 2026-09-24 · the drone's object is moved once per step rather than once per command, and only if it moved; the nametag is pushed only when the file changes
 - `F17` done `small` `be3155f` · seven names left the API and two arrived, `random.of(list)` and `random.hues()`; `ramp.of` also takes a block category, and the `table` namespace left player code with `table.randomizer`
 - `F16` done `small` `7c1442d` · `/codeblock level` reports a codelevel, the read free for your own
 - `F14` done `small` `e3e2178` · `light_hues`, `dark_hues`, `neutrals` and `ramp.of(list, v, min, max)`
@@ -346,7 +345,6 @@ whoever re-runs it knows what they are re-reading against.
 - `W3` done `playtest` 2026-09-04 · a large bulk shape
 - `W4` done `playtest` 2026-09-03 · an unknown block name warns, once
 - `W5` done `playtest` 2026-09-04 · a drone that stands still far away keeps running
-- `W6` done `playtest` 2026-09-04 · the drone's entity goes away and comes back
 - `W7` done `playtest` 2026-09-07 · `print` sends every argument, in one line
 - `P1` done `playtest` 2026-08-27 · `pace_ms` at the low codelevels
 - `P2` done `playtest` 2026-08-27 · slab progression under the step budget

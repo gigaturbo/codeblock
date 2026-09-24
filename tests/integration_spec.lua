@@ -340,6 +340,33 @@ do
     it('and a drone that is not running is left where it is',
        Drone.instances[spec_player] ~= nil, true)
 
+    -- The object is moved once per step however many commands ran, and not at
+    -- all while the drone stands still: each set_pos is a message to every
+    -- client in range, and the client shows only the last one. (F-D-1)
+    local pushes = 0
+    local mover = stub_drone(4)
+    mover.name, mover.serial, mover.shown = spec_player, '3', {}
+    mover.obj = {
+        set_pos = function() pushes = pushes + 1 end,
+        set_rotation = function() end
+    }
+    mover.x, mover.y, mover.z, mover.dir = 0, 0, 0, 0
+    mover.angle = function(self)
+        return math.floor(self.dir / (math.pi / 2) + .5) % 4
+    end
+    local forward = codeblock.commands.drone_forward
+    mover.cor = coroutine.create(function()
+        for _ = 1, 50 do forward(mover) end
+        while true do coroutine.yield() end
+    end)
+    Drone.instances[spec_player] = mover
+
+    Drone.on_step(0)
+    it('a drone that moved fifty times in a step is pushed once', pushes, 1)
+    it('to where it ended', mover.shown.z, 50)
+    Drone.on_step(0)
+    it('and not again while it stands still', pushes, 1)
+
     Drone.instances[spec_player] = nil
 end
 
@@ -441,7 +468,6 @@ do
         local drone = stub_drone(auth_level)
         drone.dir = 0
         drone.deadline = deadline
-        drone.update_entity = function() end
 
         local co = coroutine.create(function()
             for _ = 1, n do turn_left(drone) end
@@ -483,7 +509,7 @@ do
     -- while the drone is not running, and a stale memo would skip the load that
     -- had become necessary again and lose the write with no error. (A4)
     local drone = stub_drone(1)
-    drone.dir, drone.update_entity = 0, function() end
+    drone.dir = 0
     drone.bx, drone.by, drone.bz = 1, 2, 3
     coroutine.resume(coroutine.create(function() turn_left(drone) end))
     it('yielding drops the mapblock memo',
@@ -562,7 +588,6 @@ do
         local drone = stub_drone(4)
         drone.x, drone.y, drone.z = 0, 0, 0
         drone.dir = quarter * half_pi
-        drone.update_entity = function() end
         -- Mirrors the angle() method on the real record in lib/drone.lua.
         drone.angle = function(self)
             return math.floor(self.dir / half_pi + .5) % 4
@@ -658,7 +683,7 @@ end
 do
     local turn_left = codeblock.commands.drone_turn_left
     local drone = stub_drone(4)
-    drone.dir, drone.update_entity = 0, function() end
+    drone.dir = 0
 
     it('a fresh run has spent nothing', drone.budget.used.nodes, 0)
 
@@ -987,7 +1012,6 @@ local function sandboxed(src, at)
     local drone = stub_drone(4)
     drone.x, drone.y, drone.z, drone.dir = sandbox_edge + 5, 0, 0, 0
     if at then drone.x, drone.y, drone.z = at.x, at.y, at.z end
-    drone.update_entity = function() end
     drone.angle = function(self)
         return math.floor(self.dir / half_pi + .5) % 4
     end
