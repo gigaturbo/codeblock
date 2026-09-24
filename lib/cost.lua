@@ -54,7 +54,7 @@ end
 
 --- Release control if this drone's slice of the server step is gone.
 --
--- Checked at every command and before every slab of a bulk shape, which is what
+-- Checked at every command and before every box of a bulk shape, which is what
 -- makes the step budget bound work rather than resumes. lib/stepper.lua sets the
 -- deadline; it is nil outside a step.
 local function yield_if_spent(drone)
@@ -97,7 +97,7 @@ end
 
 --- What lib/shapes.lua calls before each of its VoxelManip passes: take the
 -- footprint that pass will pin, and start it on a fresh slice if this one is
--- already spent. A slab is around 10ms, so a large shape becomes many steps of
+-- already spent. A box is under 10ms, so a large shape becomes many steps of
 -- work rather than one long stall.
 local function slabs(drone)
     return function(n)

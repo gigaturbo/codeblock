@@ -1,6 +1,6 @@
 --- The four bulk shapes a program can place.
 --
--- A VoxelManip pass per slab of the shape: read the area, write node ids into
+-- A VoxelManip pass per box of the shape: read the area, write node ids into
 -- the flat data array, write it back. Ported from the WorldEdit fork this mod
 -- used to depend on, keeping only cube, sphere, dome and cylinder.
 --
@@ -11,21 +11,23 @@
 -- That left a hollow shape's inside lit and a darker row on every mapblock
 -- border around any shape. (B-S-1)
 --
--- Sliced rather than written in one pass, because a pass cannot be interrupted:
--- a 150-node cube is 3.4M nodes and froze the server for 0.44s, against the
--- 16ms the whole mod is allowed per step. See SLICE_BLOCKS below. Every filler
--- clips itself to the area it is handed, which is what makes a slab correct
--- without narrowing the shape.
+-- Tiled into boxes rather than written in one pass, because a pass cannot be
+-- interrupted: a 150-node cube is 3.4M nodes and froze the server for 0.44s,
+-- against the 16ms the whole mod is allowed per step. See SLICE_BLOCKS below.
+-- Every filler clips itself to the area it is handed, which is what makes a box
+-- correct without narrowing the shape.
 
 codeblock.shapes = {}
 
 local shapes = codeblock.shapes
 
+local ceil = math.ceil
 local floor = math.floor
 local max = math.max
 local min = math.min
 local get_voxel_manip = core.get_voxel_manip
 local get_content_id = core.get_content_id
+local load_area = core.load_area
 
 local others = {x = {'y', 'z'}, y = {'x', 'z'}, z = {'x', 'y'}}
 
@@ -43,7 +45,7 @@ local data = {}
 -- at the measured 7.7M nodes a second, 16 mapblocks is 65k nodes and under
 -- 10ms - about what the whole mod is allowed for one server step. It is also
 -- why nothing limits a shape's dimensions any more, since a large shape is many
--- passes and so is slow rather than a freeze. Bigger slabs are slightly cheaper
+-- passes and so is slow rather than a freeze. Bigger boxes are slightly cheaper
 -- per node and stall the server for proportionally longer.
 local SLICE_BLOCKS = 16
 
@@ -104,12 +106,12 @@ local bounds = {
 -- fillers
 --
 -- Each writes only the part of the shape inside the area it is handed, which is
--- one slab of it. The clip comes from the area rather than from a range passed
+-- one box of it. The clip comes from the area rather than from a range passed
 -- in, so it is exactly the extent `data` covers - the invariant that has to hold
--- whatever build() slices the shape into.
+-- whatever build() tiles the shape into.
 --
--- Clipped on all three axes, not just the one build() happens to slice along:
--- that is what lets it slice along whichever axis is longest. (B42)
+-- Clipped on all three axes, which is what lets build() cut along all three.
+-- (B42, F-S-4)
 -------------------------------------------------------------------------------
 
 --- A sphere between `ymin` and `r`. A dome is the half of one above its centre.
@@ -211,6 +213,86 @@ local fillers = {
 }
 
 -------------------------------------------------------------------------------
+-- reach
+--
+-- Whether the shape writes any node in the box `lo` .. `hi`, which lies inside
+-- its bounds. A box it cannot reach gets no pass: a sphere's corners, the inside
+-- of a hollow shape. Answering true when unsure only costs a pass.
+-------------------------------------------------------------------------------
+
+--- Squared distance from `c` to the nearest and the farthest point of the box,
+-- over the axes named in `axes`.
+local function reach2(c, lo, hi, axes)
+    local near, far = 0, 0
+    for i = 1, #axes do
+        local a = axes[i]
+        local dlo, dhi = lo[a] - c[a], hi[a] - c[a]
+        if dlo > 0 then near = near + dlo * dlo end
+        if dhi < 0 then near = near + dhi * dhi end
+        far = far + max(dlo * dlo, dhi * dhi)
+    end
+    return near, far
+end
+
+local xyz = {'x', 'y', 'z'}
+
+--- A sphere or a dome, whose bounds already keep a dome's box above its centre.
+local function ball_reaches(s, o, lo, hi)
+    local r = s.r
+    local near, far = reach2(o, lo, hi, xyz)
+    return near <= r * (r + 1) and (not s.hollow or far >= r * (r - 1))
+end
+
+local reaches = {
+
+    -- A hollow cube misses only a box wholly inside its walls.
+    cube = function(s, o, lo, hi)
+        if not s.hollow then return true end
+        local inside = lo.x > o.x and hi.x < o.x + s.w - 1 and
+                           lo.y > o.y and hi.y < o.y + s.h - 1 and
+                           lo.z > o.z and hi.z < o.z + s.l - 1
+        return not inside
+    end,
+
+    sphere = ball_reaches,
+
+    dome = ball_reaches,
+
+    -- The length is always reached, so only the two radius axes decide.
+    cylinder = function(s, o, lo, hi)
+        local r = s.r
+        local near, far = reach2(o, lo, hi, others[s.axis])
+        return near <= r * (r + 1) and (not s.hollow or far >= r * (r - 1))
+    end
+
+}
+
+--- The box to tile a shape of `sp` mapblocks into, in mapblocks per axis.
+--
+-- The largest that fits SLICE_BLOCKS, then the least surface, then the one that
+-- leaves the fewest passes. Least surface because it has the least border to
+-- relight, and because a slab one mapblock thick always touches a hollow shape's
+-- wall and so never skips its inside. A shape thin in two dimensions still gets
+-- a long box, since nothing else fills one.
+local function box_size(sp)
+    local best, bv, bs, bn
+    for a = 1, min(SLICE_BLOCKS, sp.x) do
+        for b = 1, min(floor(SLICE_BLOCKS / a), sp.y) do
+            for c = 1, min(floor(SLICE_BLOCKS / (a * b)), sp.z) do
+                local v, s = a * b * c, a * b + b * c + c * a
+                local n = ceil(sp.x / a) * ceil(sp.y / b) * ceil(sp.z / c)
+                local better = not best or v > bv or
+                                   (v == bv and (s < bs or (s == bs and n < bn)))
+                if better then
+                    best, bv, bs, bn = {x = a, y = b, z = c}, v, s, n
+                end
+            end
+        end
+    end
+    return best
+end
+
+-------------------------------------------------------------------------------
 -- export
 -------------------------------------------------------------------------------
 
@@ -225,14 +307,15 @@ local fillers = {
 --   r       radius, for sphere, dome and cylinder
 --   axis    'x', 'y' or 'z', for cylinder
 --   l       length, for cylinder
---   charge  optional, called before each pass with the mapblocks that pass will
+--   charge  optional, called before each box with the mapblocks that box will
 --           emerge. It may yield, which is how a large shape is spread over
 --           several server steps instead of stalling one.
 --
 -- Returns how many mapblocks were emerged in all. read_from_map aligns the
 -- region outward to mapblock boundaries, so this is exact rather than an
 -- estimate, and it is what the caller charges against its map footprint - a
--- shape pins blocks in server memory just as place() does. (S5)
+-- shape pins blocks in server memory just as place() does. (S5) A box the
+-- shape does not reach is loaded rather than passed, and charged the same.
 function shapes.build(spec)
 
     local origin, pos1, pos2 = bounds[spec.kind](spec)
@@ -244,62 +327,66 @@ function shapes.build(spec)
     -- nothing.
     if pos2.x < pos1.x or pos2.y < pos1.y or pos2.z < pos1.z then return 0 end
 
-    -- Slabs of whole mapblocks along the shape's longest axis. Whole blocks
-    -- because the engine emerges them whole anyway: a slab boundary inside a
-    -- block would emerge and charge that block twice.
-    --
-    -- The longest axis, not z, because `across` - the slab's cross-section, the
-    -- part no slicing can reduce - is what a pass costs at minimum. Slicing a
-    -- shape 30000 nodes long across its length left every slab emerging 1877
-    -- mapblocks, past a low codelevel's whole footprint ceiling, so the run died
-    -- where the ceiling exists to make it wait. Ties go to z, which is the
-    -- outermost loop of every filler and so keeps a slab contiguous in the data
-    -- array. A shape large in two dimensions is still bigger than one pass
-    -- should be, and slicing cannot fix that. (B42)
+    -- Boxes of whole mapblocks, at most SLICE_BLOCKS each, on all three axes.
+    -- Whole blocks because the engine emerges them whole anyway: a box boundary
+    -- inside a block would emerge and charge that block twice. All three axes
+    -- because a pass over anything larger than one box is a stall no yield can
+    -- break, and past a low codelevel's footprint ceiling a run that dies where
+    -- the ceiling exists to make it wait. (B42, F-S-4)
     local sp = {
         x = span(pos1.x, pos2.x),
         y = span(pos1.y, pos2.y),
         z = span(pos1.z, pos2.z)
     }
-    local axis = 'z'
-    if sp.x > sp[axis] then axis = 'x' end
-    if sp.y > sp[axis] then axis = 'y' end
-    local o1, o2 = others[axis][1], others[axis][2]
+    local size = sp
+    if sp.x * sp.y * sp.z > SLICE_BLOCKS then size = box_size(sp) end
+    local nx, nz = ceil(sp.x / size.x), ceil(sp.z / size.z)
+    local count = nx * ceil(sp.y / size.y) * nz
 
-    local across = sp[o1] * sp[o2]
-    local layers = floor(SLICE_BLOCKS / across)
-    if layers < 1 then layers = 1 end
-
+    local b0 = {x = floor(pos1.x / 16), y = floor(pos1.y / 16),
+                z = floor(pos1.z / 16)}
     local id = get_content_id(spec.node)
+    local reached = reaches[spec.kind]
     local total = 0
-    local a = pos1[axis]
 
-    while a <= pos2[axis] do
+    -- Bottom up, y outermost. A box the shape does not reach is loaded instead
+    -- of passed, before the box above it is written: a write pushes its new
+    -- shadow down into the blocks below it only if they are in memory, and stale
+    -- sunlight is never repaired afterwards, so an unloaded inside of a hollow
+    -- shape would stay sky-lit for good. (B-S-1)
+    for i = 0, count - 1 do
 
-        -- Last node of the last whole mapblock in this slab.
-        local aend = min((floor(a / 16) + layers) * 16 - 1, pos2[axis])
-        local emerged = across * span(a, aend)
+        local k = {x = i % nx, z = floor(i / nx) % nz, y = floor(i / (nx * nz))}
+        local lo = {
+            x = max(pos1.x, (b0.x + k.x * size.x) * 16),
+            y = max(pos1.y, (b0.y + k.y * size.y) * 16),
+            z = max(pos1.z, (b0.z + k.z * size.z) * 16)
+        }
+        local hi = {
+            x = min(pos2.x, (b0.x + (k.x + 1) * size.x) * 16 - 1),
+            y = min(pos2.y, (b0.y + (k.y + 1) * size.y) * 16 - 1),
+            z = min(pos2.z, (b0.z + (k.z + 1) * size.z) * 16 - 1)
+        }
+        local emerged = span(lo.x, hi.x) * span(lo.y, hi.y) * span(lo.z, hi.z)
 
         -- Before the pass, not after: the caller pays for the memory before it
         -- is pinned, and can make the drone wait for room first.
         if spec.charge then spec.charge(emerged) end
         total = total + emerged
 
-        local manip = get_voxel_manip()
-        local emin, emax = manip:read_from_map({
-            [axis] = a,
-            [o1] = pos1[o1],
-            [o2] = pos1[o2]
-        }, {[axis] = aend, [o1] = pos2[o1], [o2] = pos2[o2]})
-        local area = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
+        if reached(spec, origin, lo, hi) then
+            local manip = get_voxel_manip()
+            local emin, emax = manip:read_from_map(lo, hi)
+            local area = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
 
-        manip:get_data(data)
-        fillers[spec.kind](spec, area, id, origin)
+            manip:get_data(data)
+            fillers[spec.kind](spec, area, id, origin)
 
-        manip:set_data(data)
-        manip:write_to_map()
-
-        a = aend + 1
+            manip:set_data(data)
+            manip:write_to_map()
+        else
+            load_area(lo, hi)
+        end
     end
 
     return total

@@ -29,7 +29,24 @@ in-world check recipes are in its `references/playtests.md`.
 
 ## Bugs
 
-None open.
+### B-S-3 · a write into a chunk mapgen is generating is silently reverted
+
+`open` `medium` `filed 2026-09-24`
+
+`sphere(100)` built beside freshly explored ground came out with a
+mapblock-aligned hole about 32 x 64 nodes, and the run reported *completed*.
+Reproduced by spamming place and run. The tiling is not the cause: at four
+positions, off-grid included, `sphere(100)` writes all 4,252,701 nodes exactly
+once. The emerge thread copies a mapchunk and its one-mapblock border,
+generates with the environment lock released, then blits the copy back over
+whatever the main thread wrote meanwhile (`finishBlockMake`, 5.4.0 to 5.17.0).
+Every shape pass and every `place()` is exposed, since `v1.0.0`.
+
+**Do:** before a shape's first pass, `core.emerge_area` its bounds grown by one
+mapblock, sleep the drone until every callback has arrived, and retry any
+`EMERGE_CANCELLED`. Charge the footprint first, and bound one request the way a
+box is, or a long shape pins more than the ceiling. It generates the map a far
+carve lands in, which `B-S-2` declined for looks; this one loses writes.
 
 ## Features
 
@@ -107,25 +124,22 @@ what it actually spent, with a floor per share so an overshoot cannot starve the
 last drone. `stepper.budget` stays arithmetic, and its spec pins that the
 planned total never exceeds the share of the step.
 
-### F-S-4 · tile a shape into mapblock-aligned boxes, not slabs
-
-`todo` `medium` `filed 2026-09-24` `target: v1.1.0`
-
-A shape is sliced along its longest axis only, so one wide in two dimensions has
-slabs of `across` mapblocks that run uninterrupted: an estimated 0.45 s for the
-largest sphere codelevel 4 allows, and a run killed by `B42` past the footprint
-ceiling. The one-slab stall bound the security model relies on does not hold for
-such a shape.
-
-**Do:** in `shapes.build`, cut the mapblock-aligned bounds into boxes of at most
-`SLICE_BLOCKS` mapblocks, as close to cubic as the shape allows, and run one pass
-per box, skipping a box the shape does not reach, such as a sphere's corners or
-a hollow shape's inside. The fillers already clip on all three axes. A box no
-pass reads is not relit (`B-S-1`), so skipping the inside owes `T-S-1`.
-
 ## Tests
 
-None open.
+### P2 · slab progression under the step budget
+
+`todo` `playtest`
+
+The overshoot under test is now one box of at most 16 mapblocks, whatever the
+shape (`F-S-4`). Last pass 2026-08-27.
+
+### P3 · the footprint throttle actually throttling
+
+`todo` `playtest`
+
+`F-S-4` replaced the longest-axis slicing `B42` relied on with boxes on all
+three axes; `cube(2, 2, 30000)` should now pass in boxes of 1 x 1 x 16. Last
+pass 2026-08-28.
 
 ## Closed
 
@@ -240,6 +254,7 @@ whoever re-runs it knows what they are re-reading against.
 
 ### Features
 
+- `F-S-4` done `medium` 2026-09-24 · a shape is written in boxes of at most 16 mapblocks cut on all three axes, not slabs along one, so no pass stalls longer than one box whatever the shape; a box the shape does not reach is loaded and charged but not passed, bottom up so the shadow above it can reach it
 - `F-S-2` dropped `medium` 2026-09-24 · relighting once per shape with `core.fix_light` after `write_to_map(false)` was up to 1.9x slower than relighting each pass in open air and level underground, measured headless on 5.17.0; lighting is 60 to 97% of a pass in open air, and fewer relights is `F-S-1`'s to win
 - `F-D-1` done `small` 2026-09-24 · the drone's object is moved once per step rather than once per command, and only if it moved; the nametag is pushed only when the file changes
 - `F17` done `small` `be3155f` · seven names left the API and two arrived, `random.of(list)` and `random.hues()`; `ramp.of` also takes a block category, and the `table` namespace left player code with `table.randomizer`
@@ -303,16 +318,14 @@ whoever re-runs it knows what they are re-reading against.
 - `F-7` done `playtest` 2026-09-08 · every shipped example still runs, after a dependency bump
 - `W1` done `playtest` 2026-09-03 · `place()` far from spawn
 - `W2` done `playtest` 2026-09-04 · a node written into never-generated ground
-- `W3` done `playtest` 2026-09-24 · a large bulk shape; pass at `e0c2d23`, engine 5.17.0, 0.4 s, after `B-S-1` changed the pass
+- `W3` done `playtest` 2026-09-24 · a large bulk shape; pass on the uncommitted `F-S-4` tree over `b353401`, engine 5.17.0, `cube(200, 200, 200)` in ~0.68 s against 0.4 s in slabs at `e0c2d23`: about 196 short passes cost more in all than 13 long ones
 - `W4` done `playtest` 2026-09-03 · an unknown block name warns, once
 - `W5` done `playtest` 2026-09-04 · a drone that stands still far away keeps running
 - `W6` done `playtest` 2026-09-24 · the drone's entity goes away and comes back; pass at `4b61623`, engine 5.17.0, after `F-D-1` changed the re-spawn
 - `W7` done `playtest` 2026-09-07 · `print` sends every argument, in one line
-- `T-S-1` done `playtest` 2026-09-24 · a shape is lit correctly, inside and out; pass at `e0c2d23`, engine 5.17.0, all three cases
+- `T-S-1` done `playtest` 2026-09-24 · a shape is lit correctly, inside and out; pass on the uncommitted `F-S-4` tree over `b353401`, engine 5.17.0, after `F-S-4` began skipping the boxes a shape does not reach
 - `T-D-1` done `playtest` 2026-09-24 · the drone is drawn once per step; pass at `4b61623`, engine 5.17.0, all four cases
 - `P1` done `playtest` 2026-08-27 · `pace_ms` at the low codelevels
-- `P2` done `playtest` 2026-08-27 · slab progression under the step budget
-- `P3` done `playtest` 2026-08-28 · the footprint throttle actually throttling
 - `P4` done `playtest` 2026-08-27 · several drones at once
 - `R1` done `playtest` 2026-09-24 · the archive contains no `tests/`; pass against the `v1.0.0` tag, `f75766b`: top level is `doc`, `lib`, `locale`, `textures` and the files, with `screenshot.png`
 - `R2` done `playtest` 2026-09-24 · a real install with the test flag set; pass against the `v1.0.0` tag, `f75766b`, engine 5.17.0, headless: the mod loads, logs that the build ships no `tests/`, no error. `vector3` was the working copy, not the ContentDB package

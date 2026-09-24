@@ -31,8 +31,10 @@ local READ = 3 -- what the fake map holds everywhere before a shape
 
 local written -- data array from the last set_data
 local area -- area of the last read_from_map
-local passes = 0 -- set_data calls, ie. how many slabs the shape was cut into
+local passes = 0 -- set_data calls, ie. how many boxes the shape was written in
 local world = {} -- every node written, in world coordinates, across all passes
+local loads = 0 -- load_area calls, ie. boxes the shape skipped
+local floors = {} -- lowest y of every box read or loaded, in order
 
 local function align(v, dir) return math.floor(v / 16) * 16 + (dir > 0 and 15 or 0) end
 
@@ -54,6 +56,7 @@ function manip:read_from_map(p1, p2)
     local emin = {x = align(p1.x, -1), y = align(p1.y, -1), z = align(p1.z, -1)}
     local emax = {x = align(p2.x, 1), y = align(p2.y, 1), z = align(p2.z, 1)}
     area = fake_area:new({MinEdge = emin, MaxEdge = emax})
+    floors[#floors + 1] = p1.y
     return emin, emax
 end
 function manip:get_data(buf)
@@ -61,7 +64,7 @@ function manip:get_data(buf)
     return buf
 end
 -- Also accumulates what was written in world coordinates. build() cuts a large
--- shape into slabs, one set_data each, and every slab has its own index space,
+-- shape into boxes, one set_data each, and every box has its own index space,
 -- so the only way to see the whole shape is to convert as it goes.
 function manip:set_data(d)
     written = d
@@ -92,6 +95,10 @@ do
         math = math,
         core = {
             get_voxel_manip = function() return manip end,
+            load_area = function(p1)
+                loads = loads + 1
+                floors[#floors + 1] = p1.y
+            end,
             get_content_id = function(name)
                 return name == 'ignore' and IGNORE or NODE
             end
@@ -479,20 +486,20 @@ do
 end
 
 --------------------------------------------------------------------------------
--- slicing
+-- tiling
 --
 -- A shape wider than SLICE_BLOCKS mapblocks is written in several passes, so
 -- that no single uninterruptible pass stalls the server - a 150-node cube took
--- 0.44s as one pass. Each filler then has to write only the slab it was handed
--- and still, across every slab, exactly the shape it would have written in one
+-- 0.44s as one pass. Each filler then has to write only the box it was handed
+-- and still, across every box, exactly the shape it would have written in one
 -- go. That clipping arithmetic is what these cases pin: they compare in world
--- coordinates, which is the only space the slabs share.
+-- coordinates, which is the only space the boxes share.
 --------------------------------------------------------------------------------
 
 do
     --- Every node a shape wrote across all its passes, and how many passes.
     local function sliced(spec)
-        world, passes = {}, 0
+        world, passes, loads, floors = {}, 0, 0, {}
         local charged = {}
         spec.charge = function(n) charged[#charged + 1] = n end
         local total = shapes.build(spec)
@@ -518,10 +525,10 @@ do
 
     -- 48 nodes on a side, from {-24, 0, -24} to {23, 47, 23}. That is 4 x 3 x 4
     -- mapblocks: y sits at 0..47, three whole blocks, while x and z straddle a
-    -- boundary and take four. Sliced along z (ties go to z), so `across` is
-    -- 4 x 3 = 12 and one z layer fits in a pass of 16: four passes of 12, 48 in
-    -- total. Before B43 it read 4 x 4 x 4 and charged 64 for a box a node
-    -- larger than the shape on every axis.
+    -- boundary and take four. The fullest box with the least surface is
+    -- 2 x 2 x 4, which leaves four passes: two of 16 at the bottom, two of 8
+    -- over the last mapblock of y, 48 in total. Before B43 it read 4 x 4 x 4
+    -- and charged 64 for a box a node larger than the shape on every axis.
     local got, n, total, charged = sliced({
         kind = 'cube',
         pos = o,
@@ -531,7 +538,7 @@ do
         node = 'x',
         hollow = false
     })
-    it('a large cube is cut into slabs', n, 4)
+    it('a large cube is cut into boxes', n, 4)
     it('and writes every node it should', same(got, box({
         x = -24,
         y = 0,
@@ -539,7 +546,7 @@ do
     }, {x = 23, y = 47, z = 23}, function() return true end)), 'ok')
     it('the whole charge is the emerged box', total, 48)
     it('charged once per pass', #charged, 4)
-    it('and per pass for what that pass emerged', charged[1], 12)
+    it('and per pass for what that pass emerged', charged[1], 16)
 
     -- The sphere clips its outer loop the same way, over a radius rather than
     -- an extent, and the radius test must still be the asymmetric one.
@@ -558,7 +565,7 @@ do
         return x * x + y * y + z * z <= 20 * 21
     end)), 'ok')
 
-    -- A cylinder reaches its axes through a lookup table, so the slab clip
+    -- A cylinder reaches its axes through a lookup table, so the box clip
     -- lands on a different one of its three loops depending on which way it
     -- lies: along the length for z, across a radius for x.
     local along = sliced({
@@ -596,11 +603,11 @@ do
         return sq <= 20 * 21 and sq >= 20 * 19
     end)), 'ok')
 
-    -- A shape long in x is sliced along x. It used to be sliced along z
-    -- whatever its shape, so every slab emerged the whole x extent: more than
-    -- one pass should cost, and past a low codelevel's entire footprint ceiling
-    -- the run died where the ceiling exists to make it wait. Here that is 26
-    -- mapblocks a slab against the budget of 16. (B42)
+    -- A shape long in x is cut across x. It used to be sliced along z whatever
+    -- its shape, so every slab emerged the whole x extent: more than one pass
+    -- should cost, and past a low codelevel's entire footprint ceiling the run
+    -- died where the ceiling exists to make it wait. Here that is 26 mapblocks
+    -- a slab against the budget of 16. (B42)
     local long, _, ltotal, lcharged = sliced({
         kind = 'cube',
         pos = o,
@@ -620,7 +627,88 @@ do
     }, {x = 199, y = 1, z = 0}, function() return true end)), 'ok')
     it('and the whole charge is still the emerged box', ltotal, 52)
 
-    -- Nothing small is sliced: a shape inside the slab budget stays one pass,
+    --- The largest charge in a list, which is the largest pass.
+    local function largest(list)
+        local m = 0
+        for _, c in ipairs(list) do if c > m then m = c end end
+        return m
+    end
+
+    --- Whether every box was read or loaded no lower than the one before it.
+    local function bottom_up()
+        for i = 2, #floors do
+            if floors[i] < floors[i - 1] then return false end
+        end
+        return true
+    end
+
+    -- Wide in two dimensions, the case slicing along one axis could not cut
+    -- down: 14 x 1 x 14 mapblocks, which was one slab of 14 per x layer at
+    -- best. Every pass is now within the budget. (F-S-4)
+    local plate, _, _, pcharged = sliced({
+        kind = 'cube',
+        pos = o,
+        w = 200,
+        h = 1,
+        l = 200,
+        node = 'x',
+        hollow = false
+    })
+    it('a shape wide in two dimensions keeps every pass in budget',
+       largest(pcharged) <= 16, true)
+    it('and writes every node of it', same(plate, box({
+        x = -100,
+        y = 0,
+        z = -100
+    }, {x = 99, y = 0, z = 99}, function() return true end)), 'ok')
+
+    -- A hollow sphere of radius 64 spans 9 x 9 x 9 mapblocks. The boxes wholly
+    -- beyond its surface in a corner get no pass, and are loaded instead, so
+    -- the shadow the shell casts can reach them. They are still charged:
+    -- loading pins them just as a pass would.
+    local shell, spasses, stotal, scharged = sliced({
+        kind = 'sphere',
+        pos = o,
+        r = 64,
+        node = 'x',
+        hollow = true
+    })
+    it('a hollow sphere writes every node of its shell', same(shell, box({
+        x = -64,
+        y = -64,
+        z = -64
+    }, {x = 64, y = 64, z = 64}, function(x, y, z)
+        local sq = x * x + y * y + z * z
+        return sq <= 64 * 65 and sq >= 64 * 63
+    end)), 'ok')
+    it('and skips the boxes it does not reach', loads > 0, true)
+    it('loading each one it skips', spasses + loads, #scharged)
+    it('and charging for them all', stotal, 729)
+    it('bottom up, so a box is loaded before the one above it is written',
+       bottom_up(), true)
+    it('with every pass in budget', largest(scharged) <= 16, true)
+
+    -- A hollow cube skips its inside the same way. It takes 10 mapblocks a
+    -- side before a box of 2 x 2 x 4 can sit clear of every wall.
+    local hollow = sliced({
+        kind = 'cube',
+        pos = o,
+        w = 160,
+        h = 160,
+        l = 160,
+        node = 'x',
+        hollow = true
+    })
+    it('a hollow cube skips its inside', loads > 0, true)
+    it('and writes every node of its walls', same(hollow, box({
+        x = -80,
+        y = 0,
+        z = -80
+    }, {x = 79, y = 159, z = 79}, function(x, y, z)
+        return x == -80 or x == 79 or y == 0 or y == 159 or z == -80 or z == 79
+    end)), 'ok')
+
+    -- Nothing small is cut: a shape inside the box budget stays one pass,
     -- which is what keeps the common case as cheap as it was.
     local _, one = sliced({
         kind = 'cube',

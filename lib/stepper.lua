@@ -5,8 +5,8 @@
 -- spare instead of the tick rate.
 --
 -- The budget is checked between resumes, and again at each drone command and
--- each slab of a bulk shape through the deadline this module publishes. What
--- still overshoots it is one slab, which is bounded by lib/shapes.lua rather
+-- each box of a bulk shape through the deadline this module publishes. What
+-- still overshoots it is one box, which is bounded by lib/shapes.lua rather
 -- than by anything here.
 --
 -- The budget itself is a share rather than an allowance - see stepper.budget.
