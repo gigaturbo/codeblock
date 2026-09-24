@@ -137,6 +137,7 @@ whoever re-runs it knows what they are re-reading against.
 
 ### Bugs and findings
 
+- `B-S-2` wontfix `low` 2026-09-24 · a shape carved into never-generated map keeps its air, but mapgen later lays the biome's top and filler nodes on the carve's floor; the author's call, the game's generator is the place to stop that, and generating before every write would make a far carve wait on mapgen
 - `B-S-1` closed `medium` 2026-09-24 · every shape left the light of the voxels it did not claim stale, the buffer being prefilled with `ignore`, which the engine's relight skips: a hollow shape stayed sky-lit inside, and every air node on a mapblock border around a shape sat one light level low, drawn as dark lines every 16 nodes
 - `B34` wontfix `low` · a file cannot be removed without opening it first; the author's call, not really needed, open it then remove it. Its permanent second effect is that `B14`'s cold-cache removal path can never be reached from the editor
 
