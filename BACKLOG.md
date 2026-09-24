@@ -3,8 +3,8 @@
 CodeBlock is a Luanti mod that adds programming to the game. **v1.0.0 is
 released** and on ContentDB, published by the tag itself. What is left of it is
 `R1` and `R2`, read against the tagged archive. v1.1.0 is drone throughput,
-`F-S-1` to `F-S-4` and `F-D-1`. `Phase 9` is v1.x, opened on what comes back from
-players, and carries `F15`; `Phase 10` is v2.0.0 and holds `F6` alone.
+`F-S-1` to `F-S-4` and `F-D-1`. v1.x is opened on what comes back from players
+and carries `F15`; v2.0.0 holds `F6` alone.
 
 **Every id here predates the `B-X-N` scheme and keeps its old form for ever**,
 because commit messages cite them: `B` bugs, `S` sandbox and security, `C`
@@ -40,7 +40,7 @@ None open.
 
 Build programs by dragging blocks in a browser instead of typing Lua. A major
 version because it is the change most likely to break how a program is stored
-and edited. **Do not start building it because the phase exists.**
+and edited. **Do not start building it because it has a target.**
 
 **Four obstacles, none answered.** This mod has no HTTP allowance and cannot
 give itself one, `core.request_http_api` returning a table only for a mod named
@@ -106,12 +106,17 @@ touched, keeping it inside the one-slab stall bound.
 
 `todo` `small` `filed 2026-09-24` `target: v1.1.0`
 
-`update_entity` calls `set_pos`, `set_rotation` and `set_properties` with a
-rebuilt nametag on every movement and every `place_relative`, although a client
-sees at most one position per server step.
+`update_entity` runs on every movement, turn, `place_relative` and
+`goto_checkpoint`. Each `set_pos` sends its own reliable message to every client
+that sees the drone, and the engine merges none of them, although the client
+only shows the last one of a step. `set_properties` rebuilds the nametag and
+re-reads the table on every call, only to find nothing changed.
 
-**Do:** mark the drone as moved in the commands and push the entity once where
-control goes back to the stepper, and on the respawn path as today.
+**Do:** drop `update_entity` from the four commands. After `advance()` returns
+`yielded` in `Drone.on_step`, push the position and facing once, and only if
+they differ from what was last pushed. Push the nametag only where it changes:
+at spawn, at respawn, and when the file changes. Count `set_pos` calls on a stub
+object in a spec: one per step, whatever the program does.
 
 ### F-S-3 · budget a share of the step, weighted by codelevel
 
@@ -178,18 +183,18 @@ whoever re-runs it knows what they are re-reading against.
 
 - `B34` wontfix `low` · a file cannot be removed without opening it first; the author's call, not really needed, open it then remove it. Its permanent second effect is that `B14`'s cold-cache removal path can never be reached from the editor
 
-- `B1` closed `critical` `Phase 2` · comment stripping deleted the code between two block comments
-- `B2` closed `critical` `Phase 2` · `--[[ ]]` unhandled; only `--]]` matched, leaving a comment body as bare code
-- `B3` closed `critical` `Phase 2` · a string containing `--` was truncated mid-literal
-- `B4` closed `high` `Phase 2` · `"function"` matched as a substring, injecting a statement into unrelated expressions
-- `B5` closed `high` `Phase 1, `500dd85` · two editor checkboxes did nothing, because `0` is truthy in Lua; it destroyed work rather than being ignored
-- `B6` closed `medium` `Phase 3` · `color()` wrapped instead of clamping and answered nil past its maximum, so `place(nil)` silently built stone
+- `B1` closed `critical` · comment stripping deleted the code between two block comments
+- `B2` closed `critical` · `--[[ ]]` unhandled; only `--]]` matched, leaving a comment body as bare code
+- `B3` closed `critical` · a string containing `--` was truncated mid-literal
+- `B4` closed `high` · `"function"` matched as a substring, injecting a statement into unrelated expressions
+- `B5` closed `high` `500dd85` · two editor checkboxes did nothing, because `0` is truthy in Lua; it destroyed work rather than being ignored
+- `B6` closed `medium` · `color()` wrapped instead of clamping and answered nil past its maximum, so `place(nil)` silently built stone
 - `B7` closed `medium` `37c416e` · a file-read error printed a file handle instead of the filename
-- `B8` closed `high` `Phase 1` · `/codegenerate` had no privilege check and overwrote the caller's files
-- `B9` closed `medium` `Phase 1` · `/codelevel` was unreachable in singleplayer, which it special-cased
+- `B8` closed `high` · `/codegenerate` had no privilege check and overwrote the caller's files
+- `B9` closed `medium` · `/codelevel` was unreachable in singleplayer, which it special-cased
 - `B10` closed `medium` `742a1ca` · `add_entity`'s result was used without a nil check
 - `B11` closed `medium` `742a1ca` · `on_deactivate` dereferenced `_data` without the guard `on_step` had
-- `B12` closed `medium` `Phase 4` · a runtime error was reported twice and left the coroutine attached
+- `B12` closed `medium` · a runtime error was reported twice and left the coroutine attached
 - `B13` closed `low` `37c416e` · `save_editor_state` could pass nil to `set_string`
 - `B14` closed `medium` `37c416e` · `write_file` and `remove_file` indexed the per-player cache without populating it, so the first save after a rejoin crashed
 - `B15` closed `low` `37c416e` · example loading had no error handling and leaked handles
@@ -198,9 +203,9 @@ whoever re-runs it knows what they are re-reading against.
 - `B18` closed `low` `834f69f` · a dead branch left cylinder coordinates nil
 - `B21` closed `low` `834f69f` · 61 trailing-whitespace sites across 16 files
 - `B22` closed `medium` `5832bf2` · `gen_cdb_json.sh` produced different output on Windows and Linux
-- `B23` closed `medium` `Phase 3` · `round()` took its arguments in the opposite order to its own documentation, plausibly and silently
-- `B25` closed `high` `Phase 6` · `use_call` yielded without dropping the mapblock memo, so a lost write could return
-- `B26` closed `low` `Phase 6` · a program's reported duration was the server's CPU time, so on Linux it counted everything else the server did
+- `B23` closed `medium` · `round()` took its arguments in the opposite order to its own documentation, plausibly and silently
+- `B25` closed `high` · `use_call` yielded without dropping the mapblock memo, so a lost write could return
+- `B26` closed `low` · a program's reported duration was the server's CPU time, so on Linux it counted everything else the server did
 - `B27` closed `critical` `7d9ca47` · the rotation table is keyed by exact integers and was indexed with a float, so one `turn(n)` could make the next move crash — a regression from `A3`
 - `B28` closed `medium` `7d9ca47` · `check_inside_world`'s error level was one short on the movement path, losing the player's line — a regression from `A3`
 - `B29` closed `high` `191b533` · placing a second drone destroyed it immediately, because `on_lost` fired after the replacement was installed
@@ -231,24 +236,24 @@ whoever re-runs it knows what they are re-reading against.
 - `B55` closed `medium` `7c1442d` · both argument parsers in `lib/register.lua` required a leading `[%a]`, so a player named `007`, `4player` or `_bob` — all legal to the engine — could not be named to `tools`, `generate` or `level`, and the answer was the usage string
 - `B56` closed `low` `8da8cab` · the three in-engine specs wrote their can't-run note with `io.write`, whose buffer the engine discards at exit, so a skipped spec said nothing in any captured output — and `C24`'s wording rule could not help, the filter never receiving the line
 - `B57` closed `low` `v1.x` · the warning for a retired setting told administrators to use `codeblock_nothing`, every value in the table being read as a setting name and `max_distance` having no replacement
-- `S1` closed `high` `Phase 2` · player programs got live references to shared module and config tables, and the damage was global until restart
-- `S2` closed `high` `Phase 4` · one builtin call could exhaust server memory, invisibly to the call counter
-- `S3` closed `medium` `Phase 2` · the blacklist refused any file containing `repeat`, `until`, `_G` or `_c_` as substrings, so `repeat_count` was refused
-- `S4` closed `medium` `Phase 2, Phase 4` · the vendored WorldEdit fork still carried its arbitrary-code-execution module
-- `S5` closed `medium` `Phase 6` · `place()` could pin an unbounded number of mapblocks in server memory, and no limit could see them
-- `S6` closed `medium` `Phase 5, `af018d0` · every player got the widest limits by default
+- `S1` closed `high` · player programs got live references to shared module and config tables, and the damage was global until restart
+- `S2` closed `high` · one builtin call could exhaust server memory, invisibly to the call counter
+- `S3` closed `medium` · the blacklist refused any file containing `repeat`, `until`, `_G` or `_c_` as substrings, so `repeat_count` was refused
+- `S4` closed `medium` · the vendored WorldEdit fork still carried its arbitrary-code-execution module
+- `S5` closed `medium` · `place()` could pin an unbounded number of mapblocks in server memory, and no limit could see them
+- `S6` closed `medium` `af018d0` · every player got the widest limits by default
 - `S7` closed `low` `6fea453` · a failed file open told the player the server's absolute path, in English whatever the game's language
 - `S8` closed `medium` `124d032` · `env.snapshot` copies one level, so `vector`'s fourteen load-time constants were the module's own: `dir = vector.one; dir.x = -dir.x` wrote into a constant every player read, until restart
 - `S9` closed `high` `submodule bumped to `fc8a5b8` · `vector3.__index = vector3` made the class table an ordinary field of every instance, so `v.__index.unpack = f` replaced a method for every mod using the `vector3` global
-- `C1` closed `high` `Phase 1` · a `max_minetest_version` ceiling hid the package from every modern user, and the floor was a false claim
-- `C6` closed `low` `Phase 7` · `minetest.*` throughout, style rather than breakage
-- `C7` closed `medium` `Phase 5, `d8d44cd` · no `settingtypes.txt`: every limit was source-only
-- `C8` closed `low` `Phase 0` · linting and CI had been set up, then removed
-- `C10` closed `low` `pre-Phase 7` · a malformed `.gitattributes` line, and a release archive nothing had decided the contents of
-- `C11` closed `low` `Phase 7` · the changelog shipped two known limitations the same section contradicted
-- `C12` closed `low` `Phase 7` · `.luacheckrc` configured two mods that no longer exist, under a comment asserting a correspondence that did not hold
-- `C13` closed `low` `Phase 6` · `max_distance` was stored squared while its documentation gave it in nodes, which `C7` turned into a defect
-- `C14` closed `medium` `Phase 6` · `gen_docs.lua`'s documented-limit check matched by name prefix, so three limits were invisible to it
+- `C1` closed `high` · a `max_minetest_version` ceiling hid the package from every modern user, and the floor was a false claim
+- `C6` closed `low` · `minetest.*` throughout, style rather than breakage
+- `C7` closed `medium` `d8d44cd` · no `settingtypes.txt`: every limit was source-only
+- `C8` closed `low` · linting and CI had been set up, then removed
+- `C10` closed `low` · a malformed `.gitattributes` line, and a release archive nothing had decided the contents of
+- `C11` closed `low` · the changelog shipped two known limitations the same section contradicted
+- `C12` closed `low` · `.luacheckrc` configured two mods that no longer exist, under a comment asserting a correspondence that did not hold
+- `C13` closed `low` · `max_distance` was stored squared while its documentation gave it in nodes, which `C7` turned into a defect
+- `C14` closed `medium` · `gen_docs.lua`'s documented-limit check matched by name prefix, so three limits were invisible to it
 - `C16` closed `medium` `7d9ca47` · `codeblock_run_tests` aborted mod load on a ContentDB install, `tests` being export-ignored
 - `C17` closed `medium` `b5d2e40` · `locale/template.txt` had drifted 12 messages one way and 17 the other, one key was built with `..`, and three translations were orphaned by a one-character edit
 - `C18` closed `medium` `6fea453`, removed `3fa9d0c` · five sky overrides were forced on every joining player, unguarded, under a `TODO: TEMP fix` comment
@@ -260,17 +265,17 @@ whoever re-runs it knows what they are re-reading against.
 - `C24` closed `medium` `8da8cab` · CI booted no engine, so `forms_spec`, `stepper_spec`, `integration_spec` and every engine-guarded case never ran in CI
 - `C25` closed `medium` `0ae4d3e` · `run_tests.ps1`'s error filter matched no `core.log('error', ...)` the mod emits, so the report printed `errors: none` on every run whose log carried one — and it had carried one for as long as `integration_spec`'s late-`register_blocks` case has existed
 - `C26` closed `medium` `b371c76` · `scripts/gen_cdb_json.sh` could not run on the author's machine: `core.autocrlf` is `true` and `.gitattributes` had no text rule, so the script was checked out CRLF, its `printf \` continuation escaped the CR instead of the newline, and bash exited 126 with `File name too long` — writing no `.cdb.json` and leaving a zero-byte lookalike beside the real one
-- `A1` closed `high` `Phase 3` · the entire UI rested on an unmaintained mod that installed ten names into the engine namespace and replaced `register_node` globally
-- `A2` closed `medium` `Phase 3` · the player-facing API was defined in three places and had already drifted
+- `A1` closed `high` · the entire UI rested on an unmaintained mod that installed ten names into the engine namespace and replaced `register_node` globally
+- `A2` closed `medium` · the player-facing API was defined in three places and had already drifted
 - `A3` closed `medium` `834f69f` · `lib/commands.lua` was 971 lines of mechanical repetition
 - `A4` closed `medium` `f413758` · `place()` wrote one node at a time and failed silently off-map
-- `A5` closed `high` `Phase 4` · the drone advanced one coroutine resume per server step, pinning throughput near 400 commands/s regardless of headroom
+- `A5` closed `high` · the drone advanced one coroutine resume per server step, pinning throughput near 400 commands/s regardless of headroom
 - `A6` closed `low` `742a1ca` · the entity prototype relied on a two-level metatable chain that resolved by coincidence
 - `A9` closed `medium` `37c416e` · the filesystem layer duplicated its read path and exported six near-identical getters
-- `A10` closed `low` `Phase 7` · `get_safe_coroutine` overwrote its own parameter
+- `A10` closed `low` · `get_safe_coroutine` overwrote its own parameter
 - `A11` closed `medium` `742a1ca` · `drone.lua` and `drone_entity.lua` did not divide by responsibility, and drone state had no owner
-- `A12` closed `low` `Phase 0 onward` · no tests, on the component that most needs them
-- `A15` closed `medium` `Phase 4` · only 448 of the vendored WorldEdit fork's 2,299 lines were reachable, and the whole dependency was four functions
+- `A12` closed `low` · no tests, on the component that most needs them
+- `A15` closed `medium` · only 448 of the vendored WorldEdit fork's 2,299 lines were reachable, and the whole dependency was four functions
 - `A16` closed `medium` `a023ceb` · `api_spec` was standalone-capable but not run by CI, so the change most likely to break every saved player program was the one CI could not see
 - `A17` closed `low` `c089f78`, `6a4fa91`, `fd219ef` · `codeblock.utils` was a published global holding ten unrelated entries, three of them with no caller anywhere in the tree
 - `A18` closed `low` `c089f78` · `meta.active = #meta.tabs` was written as a `0` followed by a guarded `ipairs` loop assigning the index every iteration, at two sites

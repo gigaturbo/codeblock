@@ -8,10 +8,8 @@
 -- in minetest.conf (mirrors the worldedit_run_tests convention).
 --
 -- Tests marked `xfail` assert the behaviour we WANT and are known to fail
--- against the current implementation. They are the audit's confirmed defects,
--- and flipping them to `it` is the acceptance criterion for the Phase 2
--- preprocessor rewrite. A green run means "no regressions and no accidental
--- fixes"; the xfail block below is the work list.
+-- against the current implementation; one that starts passing is flipped to
+-- `it`. A green run means "no regressions and no accidental fixes".
 
 local preprocess
 do

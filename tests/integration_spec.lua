@@ -128,7 +128,6 @@ do
 end
 
 do
-    -- repeat/until was refused outright before Phase 2.
     local ok, drone = run('local i = 0\nrepeat i = i + 1 until i >= 4\n')
     it('repeat/until runs', ok, true)
     it('repeat/until is charged per iteration', (drone.calls >= 4), true)

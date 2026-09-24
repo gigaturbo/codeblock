@@ -42,8 +42,7 @@ ignore = os.getenv("LUACHECK_STRICT") and {} or {
     "213",
     -- 611/612/613/614: whitespace-only findings. There are 61 across 16 files,
     -- left behind by the existing lua-format style. That is a formatter's job,
-    -- not a linter's - consistent with max_line_length above. Fold into a
-    -- formatter pass once the Phase 2/3 rewrites have landed.
+    -- not a linter's - consistent with max_line_length above.
     "611", "612", "613", "614"
 }
 
