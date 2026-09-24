@@ -1,10 +1,10 @@
 # BACKLOG
 
 CodeBlock is a Luanti mod that adds programming to the game. **v1.0.0 is
-built**: no feature work is left in it, the gates are green, and what remains is
-the release commit, the tag, the ContentDB upload and the release webhook, three
-of which need the author. After the tag, `Phase 9` opens on what comes back from
-players and carries `F15`; `Phase 10` is v2.0.0 and holds `F6` alone.
+released** and on ContentDB, published by the tag itself. What is left of it is
+`R1` and `R2`, read against the tagged archive. `Phase 9` is v1.x, opened on what
+comes back from players, and carries `F15`; `Phase 10` is v2.0.0 and holds `F6`
+alone.
 
 **Every id here predates the `B-X-N` scheme and keeps its old form for ever**,
 because commit messages cite them: `B` bugs, `S` sandbox and security, `C`
@@ -30,20 +30,7 @@ in-world check recipes are in its `references/playtests.md`.
 
 ## Bugs
 
-### B57 · the retired-setting warning names `codeblock_nothing`
-
-`open` `low` `filed 2026-09-18` `target: v1.x`
-
-`lib/config.lua` maps each retired setting to its replacement and builds one
-sentence per entry. Every value is a bare setting name except `max_distance`,
-whose value is a whole clause, so an administrator still carrying
-`codeblock_max_distance` is told to use `codeblock_nothing`, which does not
-exist. Impact is log-only: English, untranslated, once at load.
-
-**Fix:** let an entry carry a whole replacement clause and drop the
-`'codeblock_' ..` prefix from the loop, or give `max_distance` its own message.
-**A retired setting with no replacement is the general case**, not an exception
-to patch once.
+None open.
 
 ## Features
 
@@ -173,6 +160,7 @@ whoever re-runs it knows what they are re-reading against.
 - `B54` closed `medium` `24842d3` · `print` took exactly one parameter, so it dropped every argument after the first with no error, while the concatenated form raised
 - `B55` closed `medium` `7c1442d` · both argument parsers in `lib/register.lua` required a leading `[%a]`, so a player named `007`, `4player` or `_bob` — all legal to the engine — could not be named to `tools`, `generate` or `level`, and the answer was the usage string
 - `B56` closed `low` `8da8cab` · the three in-engine specs wrote their can't-run note with `io.write`, whose buffer the engine discards at exit, so a skipped spec said nothing in any captured output — and `C24`'s wording rule could not help, the filter never receiving the line
+- `B57` closed `low` `v1.x` · the warning for a retired setting told administrators to use `codeblock_nothing`, every value in the table being read as a setting name and `max_distance` having no replacement
 - `S1` closed `high` `Phase 2` · player programs got live references to shared module and config tables, and the damage was global until restart
 - `S2` closed `high` `Phase 4` · one builtin call could exhaust server memory, invisibly to the call counter
 - `S3` closed `medium` `Phase 2` · the blacklist refused any file containing `repeat`, `until`, `_G` or `_c_` as substrings, so `repeat_count` was refused

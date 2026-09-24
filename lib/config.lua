@@ -232,23 +232,25 @@ end
 
 -- Settings that no longer exist, and what took over from each. An
 -- administrator's minetest.conf outlives a rewrite, and a limit that is silently
--- ignored is worse than one that is rejected: it reads as being in force.
-local replaced = {
-    max_calls = 'max_runtime_s',
-    max_commands = 'max_runtime_s',
-    max_volume = 'max_nodes_written',
-    max_dimension = 'max_nodes_written',
-    max_distance = 'nothing; distance is no longer limited',
-    max_mapblocks = 'map_memory_mb',
-    max_memory_kb = 'heap_mb',
-    max_string_bytes = 'max_string_mb',
-    commands_before_yield = 'pace_ms',
-    calls_before_yield = 'pace_ms'
+-- ignored is worse than one that is rejected: it reads as being in force. Each
+-- value is the advice that ends the warning, since a retired setting need not
+-- have a replacement.
+local retired = {
+    max_calls = 'use codeblock_max_runtime_s',
+    max_commands = 'use codeblock_max_runtime_s',
+    max_volume = 'use codeblock_max_nodes_written',
+    max_dimension = 'use codeblock_max_nodes_written',
+    max_distance = 'distance is no longer limited',
+    max_mapblocks = 'use codeblock_map_memory_mb',
+    max_memory_kb = 'use codeblock_heap_mb',
+    max_string_bytes = 'use codeblock_max_string_mb',
+    commands_before_yield = 'use codeblock_pace_ms',
+    calls_before_yield = 'use codeblock_pace_ms'
 }
-for old, new in pairs(replaced) do
+for old, advice in pairs(retired) do
     local raw = settings and settings:get('codeblock_' .. old)
     if raw ~= nil and raw ~= '' then
-        warn(old, 'no longer exists; use codeblock_' .. new)
+        warn(old, 'no longer exists; ' .. advice)
     end
 end
 
