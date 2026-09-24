@@ -1,8 +1,7 @@
 # BACKLOG
 
 CodeBlock is a Luanti mod that adds programming to the game. **v1.0.0 is
-released** and on ContentDB, published by the tag itself. What is left of it is
-`R1` and `R2`, read against the tagged archive. v1.1.0 is drone throughput,
+released** and on ContentDB, published by the tag itself. v1.1.0 is drone throughput,
 `F-S-1` to `F-S-4`. v1.x is opened on what comes back from players
 and carries `F15`; v2.0.0 holds `F6` alone.
 
@@ -136,24 +135,7 @@ a hollow shape's inside. The fillers already clip on all three axes.
 
 ## Tests
 
-### R1 · the archive contains no `tests/`
-
-`todo` `playtest` `stale` `target: v1.0.0`
-
-Carries a pass re-read at `0d912b1` on 2026-09-16, against the archive GitHub
-built for `master` rather than the release tag, and says so in its own words.
-
-**Do:** re-run against the archive built from the tag. `R1` reads top-level
-entries only, and neither `C24` nor `C25` adds a file outside the already
-ignored `tests` and `.github`.
-
-### R2 · a real install with the test flag set
-
-`todo` `playtest` `stale` `target: v1.0.0`
-
-The same, and **the one with something new to read**: `C24` changed `init.lua`,
-which ships, and this check boots the extracted archive with
-`codeblock_run_tests = true` on a build that has no `tests/`.
+None open.
 
 ## Closed
 
@@ -338,6 +320,8 @@ whoever re-runs it knows what they are re-reading against.
 - `P2` done `playtest` 2026-08-27 · slab progression under the step budget
 - `P3` done `playtest` 2026-08-28 · the footprint throttle actually throttling
 - `P4` done `playtest` 2026-08-27 · several drones at once
+- `R1` done `playtest` 2026-09-24 · the archive contains no `tests/`; pass against the `v1.0.0` tag, `f75766b`: top level is `doc`, `lib`, `locale`, `textures` and the files, with `screenshot.png`
+- `R2` done `playtest` 2026-09-24 · a real install with the test flag set; pass against the `v1.0.0` tag, `f75766b`, engine 5.17.0, headless: the mod loads, logs that the build ships no `tests/`, no error. `vector3` was the working copy, not the ContentDB package
 - `R3` done `playtest` 2026-09-09 · the sky belongs to the game
 - `R4` done `playtest` 2026-09-09 · a brand new world hands out the right codelevel
 - `R5` done `playtest` 2026-09-09 · an old `vector3` is named in the log at mod load
