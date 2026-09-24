@@ -81,7 +81,8 @@ enumerate 256 x 3.
 Every `cube()` reads, writes and relights whole 16³ mapblocks, and every
 `place()` is a `set_node` with its own lighting update, so a program of many
 small writes pays whole-chunk work per call: 361,201 one-wide columns touched
-3.2G map positions. Consecutive commands mostly land in the same chunks.
+3.2G map positions. Consecutive commands mostly land in the same chunks. The
+baseline to beat: `mosely.lua` at `pow(3, 4)` takes 28.5 s at `e0c2d23`.
 
 **Do:** keep the VoxelManip of the chunks written since the last yield open,
 write every shape and `place()` into it, and flush it in `release()`, where the
@@ -119,24 +120,12 @@ such a shape.
 **Do:** in `shapes.build`, cut the mapblock-aligned bounds into boxes of at most
 `SLICE_BLOCKS` mapblocks, as close to cubic as the shape allows, and run one pass
 per box, skipping a box the shape does not reach, such as a sphere's corners or
-a hollow shape's inside. The fillers already clip on all three axes.
+a hollow shape's inside. The fillers already clip on all three axes. A box no
+pass reads is not relit (`B-S-1`), so skipping the inside owes `T-S-1`.
 
 ## Tests
 
-### T-S-1 · a shape is lit correctly, inside and out
-
-`todo` `playtest` `filed 2026-09-24`
-
-`B-S-1` changed what every shape pass hands the engine to relight. No spec sees
-light, and the headless reading of stored light is not what a player sees.
-
-### W3 · a large bulk shape
-
-`todo` `playtest`
-
-Each shape pass now reads the area's contents instead of filling a buffer in
-Lua (`B-S-1`), so its stall has changed. Last pass 2026-09-04, before that
-change.
+None open.
 
 ## Closed
 
@@ -313,10 +302,12 @@ whoever re-runs it knows what they are re-reading against.
 - `F-7` done `playtest` 2026-09-08 · every shipped example still runs, after a dependency bump
 - `W1` done `playtest` 2026-09-03 · `place()` far from spawn
 - `W2` done `playtest` 2026-09-04 · a node written into never-generated ground
+- `W3` done `playtest` 2026-09-24 · a large bulk shape; pass at `e0c2d23`, engine 5.17.0, 0.4 s, after `B-S-1` changed the pass
 - `W4` done `playtest` 2026-09-03 · an unknown block name warns, once
 - `W5` done `playtest` 2026-09-04 · a drone that stands still far away keeps running
 - `W6` done `playtest` 2026-09-24 · the drone's entity goes away and comes back; pass at `4b61623`, engine 5.17.0, after `F-D-1` changed the re-spawn
 - `W7` done `playtest` 2026-09-07 · `print` sends every argument, in one line
+- `T-S-1` done `playtest` 2026-09-24 · a shape is lit correctly, inside and out; pass at `e0c2d23`, engine 5.17.0, all three cases
 - `T-D-1` done `playtest` 2026-09-24 · the drone is drawn once per step; pass at `4b61623`, engine 5.17.0, all four cases
 - `P1` done `playtest` 2026-08-27 · `pace_ms` at the low codelevels
 - `P2` done `playtest` 2026-08-27 · slab progression under the step budget
