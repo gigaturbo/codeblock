@@ -13,8 +13,8 @@
 -- axis all show up as a mismatch.
 --
 -- What this cannot cover is the real VoxelManip: these specs run at mod load,
--- before there is a map to read. The engine call itself is three lines and
--- unchanged from the fork.
+-- before there is a map to read, nor the light the engine recomputes on write
+-- (B-S-1, an in-world check).
 
 --------------------------------------------------------------------------------
 -- a map that is only a table
@@ -27,6 +27,7 @@
 
 local IGNORE = -1
 local NODE = 7
+local READ = 3 -- what the fake map holds everywhere before a shape
 
 local written -- data array from the last set_data
 local area -- area of the last read_from_map
@@ -54,6 +55,10 @@ function manip:read_from_map(p1, p2)
     local emax = {x = align(p2.x, 1), y = align(p2.y, 1), z = align(p2.z, 1)}
     area = fake_area:new({MinEdge = emin, MaxEdge = emax})
     return emin, emax
+end
+function manip:get_data(buf)
+    for i = 1, area:getVolume() do buf[i] = READ end
+    return buf
 end
 -- Also accumulates what was written in world coordinates. build() cuts a large
 -- shape into slabs, one set_data each, and every slab has its own index space,
@@ -395,13 +400,14 @@ do
     for _ in pairs(small) do n = n + 1 end
     it('the buffer is cleared between shapes', n, 1)
 
-    -- Everything the shape did not claim must stay `ignore`, which is what
-    -- makes set_data leave the surrounding map alone.
+    -- Everything the shape did not claim must carry what the map held, never
+    -- `ignore`: the engine skips an ignore voxel when relighting, so it would
+    -- keep stale light. (B-S-1)
     local untouched = 0
     for i = 1, area:getVolume() do
-        if written[i] == IGNORE then untouched = untouched + 1 end
+        if written[i] == READ then untouched = untouched + 1 end
     end
-    it('everything else is left as ignore', untouched, area:getVolume() - 1)
+    it('everything else is what the map held', untouched, area:getVolume() - 1)
 end
 
 --------------------------------------------------------------------------------

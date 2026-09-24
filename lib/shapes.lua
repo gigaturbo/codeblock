@@ -4,8 +4,12 @@
 -- the flat data array, write it back. Ported from the WorldEdit fork this mod
 -- used to depend on, keeping only cube, sphere, dome and cylinder.
 --
--- The data array is filled with `ignore` first, which set_data leaves untouched
--- on write, so only the voxels the shape claims are changed.
+-- The data array is the area's real contents, read with get_data, and the
+-- filler overwrites only the voxels the shape claims. Never prefill it with
+-- `ignore` instead: write_to_map skips an ignore voxel when relighting as well
+-- as when writing, so every voxel the shape does not claim keeps its old light.
+-- That left a hollow shape's inside lit and a darker row on every mapblock
+-- border around any shape. (B-S-1)
 --
 -- Sliced rather than written in one pass, because a pass cannot be interrupted:
 -- a 150-node cube is 3.4M nodes and froze the server for 0.44s, against the
@@ -22,10 +26,6 @@ local max = math.max
 local min = math.min
 local get_voxel_manip = core.get_voxel_manip
 local get_content_id = core.get_content_id
-
--- Resolved on first use rather than at load: content ids are only settled once
--- every mod has registered its nodes.
-local c_ignore
 
 local others = {x = {'y', 'z'}, y = {'x', 'z'}, z = {'x', 'y'}}
 
@@ -270,7 +270,6 @@ function shapes.build(spec)
     local layers = floor(SLICE_BLOCKS / across)
     if layers < 1 then layers = 1 end
 
-    c_ignore = c_ignore or get_content_id('ignore')
     local id = get_content_id(spec.node)
     local total = 0
     local a = pos1[axis]
@@ -294,7 +293,7 @@ function shapes.build(spec)
         }, {[axis] = aend, [o1] = pos2[o1], [o2] = pos2[o2]})
         local area = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
 
-        for i = 1, area:getVolume() do data[i] = c_ignore end
+        manip:get_data(data)
         fillers[spec.kind](spec, area, id, origin)
 
         manip:set_data(data)

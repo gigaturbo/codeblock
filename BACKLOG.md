@@ -85,21 +85,9 @@ small writes pays whole-chunk work per call: 361,201 one-wide columns touched
 
 **Do:** keep the VoxelManip of the chunks written since the last yield open,
 write every shape and `place()` into it, and flush it in `release()`, where the
-mapblock memo is already dropped. `get_block` reads through it, the footprint
-charge and the one-slab stall bound still hold, and timing the passes first
-says how much this is worth against `F-S-2`.
-
-### F-S-2 · relight once per shape, not once per pass
-
-`todo` `medium` `filed 2026-09-24` `target: v1.1.0`
-
-`write_to_map()` recalculates lighting on every slab of every shape
-(`lib/shapes.lua`), however thin the shape. How much of a pass that is has not
-been measured.
-
-**Do:** time a pass with and without lighting, then write with
-`write_to_map(false)` and fix the lighting once over the area the command
-touched, keeping it inside the one-slab stall bound.
+mapblock memo is already dropped. `get_block` reads through it, and the
+footprint charge and the one-slab stall bound still hold. Lighting is most of a
+pass in open air, so fewer passes per chunk is where the time is.
 
 ### F-S-3 · budget a share of the step, weighted by codelevel
 
@@ -135,7 +123,20 @@ a hollow shape's inside. The fillers already clip on all three axes.
 
 ## Tests
 
-None open.
+### T-S-1 · a shape is lit correctly, inside and out
+
+`todo` `playtest` `filed 2026-09-24`
+
+`B-S-1` changed what every shape pass hands the engine to relight. No spec sees
+light, and the headless reading of stored light is not what a player sees.
+
+### W3 · a large bulk shape
+
+`todo` `playtest`
+
+Each shape pass now reads the area's contents instead of filling a buffer in
+Lua (`B-S-1`), so its stall has changed. Last pass 2026-09-04, before that
+change.
 
 ## Closed
 
@@ -147,6 +148,7 @@ whoever re-runs it knows what they are re-reading against.
 
 ### Bugs and findings
 
+- `B-S-1` closed `medium` 2026-09-24 · every shape left the light of the voxels it did not claim stale, the buffer being prefilled with `ignore`, which the engine's relight skips: a hollow shape stayed sky-lit inside, and every air node on a mapblock border around a shape sat one light level low, drawn as dark lines every 16 nodes
 - `B34` wontfix `low` · a file cannot be removed without opening it first; the author's call, not really needed, open it then remove it. Its permanent second effect is that `B14`'s cold-cache removal path can never be reached from the editor
 
 - `B1` closed `critical` · comment stripping deleted the code between two block comments
@@ -248,6 +250,7 @@ whoever re-runs it knows what they are re-reading against.
 
 ### Features
 
+- `F-S-2` dropped `medium` 2026-09-24 · relighting once per shape with `core.fix_light` after `write_to_map(false)` was up to 1.9x slower than relighting each pass in open air and level underground, measured headless on 5.17.0; lighting is 60 to 97% of a pass in open air, and fewer relights is `F-S-1`'s to win
 - `F-D-1` done `small` 2026-09-24 · the drone's object is moved once per step rather than once per command, and only if it moved; the nametag is pushed only when the file changes
 - `F17` done `small` `be3155f` · seven names left the API and two arrived, `random.of(list)` and `random.hues()`; `ramp.of` also takes a block category, and the `table` namespace left player code with `table.randomizer`
 - `F16` done `small` `7c1442d` · `/codeblock level` reports a codelevel, the read free for your own
@@ -310,7 +313,6 @@ whoever re-runs it knows what they are re-reading against.
 - `F-7` done `playtest` 2026-09-08 · every shipped example still runs, after a dependency bump
 - `W1` done `playtest` 2026-09-03 · `place()` far from spawn
 - `W2` done `playtest` 2026-09-04 · a node written into never-generated ground
-- `W3` done `playtest` 2026-09-04 · a large bulk shape
 - `W4` done `playtest` 2026-09-03 · an unknown block name warns, once
 - `W5` done `playtest` 2026-09-04 · a drone that stands still far away keeps running
 - `W6` done `playtest` 2026-09-24 · the drone's entity goes away and comes back; pass at `4b61623`, engine 5.17.0, after `F-D-1` changed the re-spawn
