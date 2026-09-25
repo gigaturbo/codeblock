@@ -83,6 +83,15 @@ codeblock_heap_mb (Maximum heap growth) string 16,64,128,512
 #    allocation the heap limit cannot see.
 codeblock_max_string_mb (Maximum string size) string 1,8,16,64
 
+[Map generation]
+
+#    Whether a drone waits for the map around what it writes to be generated
+#    first. Map the engine is still generating overwrites whatever is written
+#    into it meanwhile, silently. The wait takes seconds in new ground and
+#    nothing in explored ground. Turn it off only if the game generates in
+#    advance all the map its drones can reach.
+codeblock_wait_for_mapgen (Wait for map generation) bool true
+
 [Appearance]
 
 #    Whether a player who has set no preference of their own sees the drone HUD

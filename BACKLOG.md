@@ -49,10 +49,35 @@ wrong at `5dd7411`, by 72 and 126 nodes; 3 of 3 wrong with `F-S-1`, by 539 to
 still generating. Without the emerge requests, `pow(3, 5)` is exact. In-world,
 `pow(3, 5)` came out with several mapblock-sized holes.
 
-**Do:** before a shape's first pass, `core.emerge_area` its bounds grown by one
-mapblock, sleep the drone until every callback has arrived, and retry any
-`EMERGE_CANCELLED`. Charge the footprint first, and bound one request the way a
-box is, or a long shape pins more than the ceiling. It generates the map a far
+**What it costs**, probed headless on 5.17.0 with one emerge thread, the
+default for every mapgen but singlenode. A mapchunk takes ~200 ms in Mineclonia
+(v7) and ~25 ms flat, so the wait is the new chunks a shape touches: 0.2 to
+0.6 s for a `place()` in new ground, 8.4 s for `sphere(100)` in Mineclonia and
+1.3 s flat. Drones queue on the one thread: 16 small shapes far apart, the last
+waited 13 s. Over generated map a request answers in 0 to 34 ms, but the drone
+resumes a step later, so each shape pays 50 to 90 ms regardless. Server steps
+peaked at 189 to 323 ms against 70 idle, none over 500. A forced request counts
+toward `emergequeue_limit_total`, 1024, so `sphere(100)`'s 3,840 blocks refuse
+a player's own terrain loading until they drain.
+
+**Built on `b-s-3-wait-for-mapgen`, not merged.** Headless, the `mosely.lua`
+harness above with its emerge requests: 6 runs of 6 exact, in 19 to 28 s; with
+`codeblock_wait_for_mapgen` off, 2 of 3 wrong, by -12,978 and +147 nodes. Needs
+the in-world `sphere(100)` beside fresh ground before it closes.
+
+**Do:** before a shape's first pass and before `place()`, `core.emerge_area` the
+bounds grown by one mapblock, sleep the drone until every callback has arrived,
+and retry any `EMERGE_CANCELLED`. Charge the footprint first, and bound one
+request the way a box is, or a long shape pins more than the ceiling and holds
+back players' map loading. Skip the request when every mapchunk it touches is
+in a memo of generated chunks, filled from the callbacks: a chunk is generated once, so the memo stays true,
+except after `core.delete_area`. Clip to `core.get_mapgen_edges()`: a block past
+`mapgen_limit` gets no callback at all, and a chunk whose border crosses it is
+cancelled for ever, so cap the retries too. A stopped run leaves its callbacks
+pending, so they touch no drone. Add a bool setting,
+`codeblock_wait_for_mapgen`, default true, for a game that pre-generates the
+map the drones can reach and confines them to it: off, a write into map being
+generated is lost again, silently. It generates the map a far
 carve lands in, which `B-S-2` declined for looks; this one loses writes.
 
 ## Features

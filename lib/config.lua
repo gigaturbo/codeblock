@@ -94,6 +94,14 @@ codeblock.config.max_file_kb = number('max_file_kb', 128)
 -- default. (F4)
 codeblock.config.drone_hud = flag('drone_hud', true)
 
+-- Whether a drone waits for the map around a write to be generated first.
+--
+-- On, because a write into a mapchunk the engine is generating is overwritten
+-- when generation finishes, and nothing reports it (B-S-3). The wait is seconds
+-- in new ground and nothing once a chunk is known. Off is for a game that
+-- generates in advance all the map its drones can reach.
+codeblock.config.wait_for_mapgen = flag('wait_for_mapgen', true)
+
 codeblock.config.auth_levels = {1, 2, 3, 4}
 
 --- Validate a codelevel, from player meta or from a setting.

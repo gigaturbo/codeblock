@@ -336,8 +336,9 @@ end
 --   axis    'x', 'y' or 'z', for cylinder
 --   l       length, for cylinder
 --   charge  optional, called before each box with the mapblocks that box will
---           emerge. It may yield, which is how a large shape is spread over
---           several server steps instead of stalling one.
+--           emerge and the box's corners in nodes. It may yield, which is how a
+--           large shape is spread over several server steps instead of
+--           stalling one.
 --
 -- Returns how many mapblocks were charged in all. read_from_map aligns the
 -- region outward to mapblock boundaries, so this is exact rather than an
@@ -408,7 +409,7 @@ function shapes.build(spec)
             local emerged = span(lo.x, hi.x) * span(lo.y, hi.y) * span(lo.z, hi.z)
             -- Before the pass, not after: the caller pays for the memory before
             -- it is pinned, and can make the drone wait for room first.
-            if spec.charge then spec.charge(emerged) end
+            if spec.charge then spec.charge(emerged, lo, hi) end
             total = total + emerged
         end
 

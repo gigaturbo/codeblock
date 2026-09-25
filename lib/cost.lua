@@ -21,10 +21,18 @@ codeblock.cost = {}
 -------------------------------------------------------------------------------
 
 local floor = math.floor
+local ceil = math.ceil
+local max = math.max
+local min = math.min
 
 local set_node = core.set_node
 local load_area = core.load_area
+local emerge_area = core.emerge_area
 local get_us_time = core.get_us_time
+local EMERGE_CANCELLED = core.EMERGE_CANCELLED
+local EMERGE_ERRORED = core.EMERGE_ERRORED
+
+local wait_for_mapgen = codeblock.config.wait_for_mapgen
 
 local S = codeblock.S
 local charge = codeblock.limits.charge
@@ -37,6 +45,26 @@ local flush = codeblock.shapes.flush
 -- a handful of microseconds; reading the clock on each one would cost more than
 -- the work being measured.
 local CALLS_PER_CHECK = 256
+
+-- How a drone waiting for mapgen sleeps, in microseconds. POLL is shorter than
+-- any server step and longer than one resume, so the drone looks again once a
+-- step. BUSY is the pause before asking again for a chunk another emerge thread
+-- was generating, at most RETRIES times: a chunk whose border crosses
+-- mapgen_limit answers busy for ever, and is never generated, so it is safe to
+-- write after. GIVE_UP bounds a wait whose answer never comes.
+local POLL_US = 1000
+local BUSY_US = 250000
+local RETRIES = 20
+local GIVE_UP_US = 120e6
+
+-- Mapchunks known to be generated, keyed by chunk_key. A chunk is generated
+-- once, so an entry stays true for the server's life, unless core.delete_area
+-- removes its blocks. Filled from emerge_area callbacks only.
+local generated = {}
+
+-- The mapchunk size, in mapblocks per axis, and the mapblocks mapgen can reach.
+-- Read on the first wait: the mapgen is set up after every mod has loaded.
+local chunk, reach_lo, reach_hi
 
 -------------------------------------------------------------------------------
 -- private
@@ -84,6 +112,104 @@ local function use_map(drone, n)
 
 end
 
+--- The mapchunk holding mapblock (x, y, z), in chunks per axis.
+-- The engine's alignment: a chunk starts half a chunk below the origin, so at
+-- the default 5 mapblocks they span nodes -32 to 47.
+local function chunk_of(x, y, z)
+    local c = chunk
+    return floor((x + floor(c.x / 2)) / c.x), floor((y + floor(c.y / 2)) / c.y),
+           floor((z + floor(c.z / 2)) / c.z)
+end
+
+--- One number for chunk (x, y, z), exact for any chunk inside mapgen_limit.
+local function chunk_key(x, y, z)
+    return ((x + 4096) * 8192 + y + 4096) * 8192 + z + 4096
+end
+
+--- Wait until no mapchunk being generated can overwrite mapblocks b1 to b2.
+--
+-- The emerge thread generates a mapchunk from a copy of it and a one-mapblock
+-- border, then writes the copy back over anything written there meanwhile, with
+-- no error (B-S-3). So a write is safe once every chunk within one mapblock of
+-- it is generated. They are asked for with emerge_area, and the drone sleeps
+-- until every mapblock has answered. Nothing is asked when all are known.
+--
+-- The request loads the border as well, so its footprint is charged here: the
+-- caller has charged b1 to b2 already. Clipped to what mapgen can reach, since
+-- a mapblock outside the world never answers. May yield, through release().
+local function wait_for_map(drone, b1, b2)
+
+    if not wait_for_mapgen then return end
+    if not chunk then
+        -- While mods load no mapgen runs, so nothing can be overwritten, and no
+        -- step comes to deliver an answer. The in-engine specs run then.
+        if core.get_current_modname() then return end
+        chunk = core.get_mapgen_chunksize and core.get_mapgen_chunksize()
+        if not chunk then
+            local n = tonumber(core.get_mapgen_setting('chunksize')) or 5
+            chunk = {x = n, y = n, z = n}
+        end
+        local e = tonumber(core.get_mapgen_setting('mapgen_limit')) or 31007
+        local lo, hi = {x = -e, y = -e, z = -e}, {x = e, y = e, z = e}
+        if core.get_mapgen_edges then lo, hi = core.get_mapgen_edges() end
+        -- Only mapblocks wholly inside.
+        reach_lo = {x = ceil(lo.x / 16), y = ceil(lo.y / 16), z = ceil(lo.z / 16)}
+        reach_hi = {x = floor((hi.x + 1) / 16) - 1, y = floor((hi.y + 1) / 16) - 1,
+                    z = floor((hi.z + 1) / 16) - 1}
+    end
+
+    local lo = {x = max(b1.x - 1, reach_lo.x), y = max(b1.y - 1, reach_lo.y),
+                z = max(b1.z - 1, reach_lo.z)}
+    local hi = {x = min(b2.x + 1, reach_hi.x), y = min(b2.y + 1, reach_hi.y),
+                z = min(b2.z + 1, reach_hi.z)}
+    if lo.x > hi.x or lo.y > hi.y or lo.z > hi.z then return end
+
+    local ax, ay, az = chunk_of(lo.x, lo.y, lo.z)
+    local bx, by, bz = chunk_of(hi.x, hi.y, hi.z)
+    local nx, ny = bx - ax + 1, by - ay + 1
+    local known = true
+    for i = 0, nx * ny * (bz - az + 1) - 1 do
+        local x, y, z = i % nx, floor(i / nx) % ny, floor(i / (nx * ny))
+        if not generated[chunk_key(ax + x, ay + y, az + z)] then
+            known = false
+            break
+        end
+    end
+    if known then return end
+
+    use_map(drone, max(0, (hi.x - lo.x + 1) * (hi.y - lo.y + 1) * (hi.z - lo.z + 1) -
+                           (b2.x - b1.x + 1) * (b2.y - b1.y + 1) * (b2.z - b1.z + 1)))
+
+    -- The callback touches no drone, so one outliving a stopped run is harmless.
+    local pos1 = {x = lo.x * 16, y = lo.y * 16, z = lo.z * 16}
+    local pos2 = {x = hi.x * 16 + 15, y = hi.y * 16 + 15, z = hi.z * 16 + 15}
+    local started = get_us_time()
+    for _ = 0, RETRIES do
+        local ask = {pending = true, busy = false}
+        emerge_area(pos1, pos2, function(bp, action, remaining)
+            if action == EMERGE_CANCELLED then
+                ask.busy = true
+            elseif action ~= EMERGE_ERRORED then
+                generated[chunk_key(chunk_of(bp.x, bp.y, bp.z))] = true
+            end
+            if remaining == 0 then ask.pending = false end
+        end)
+        while ask.pending do
+            if get_us_time() - started > GIVE_UP_US then
+                core.log('warning', '[codeblock] no answer from mapgen at ' ..
+                             core.pos_to_string(pos1) .. '; writing anyway')
+                return
+            end
+            drone.wake_at = get_us_time() + POLL_US
+            release(drone)
+        end
+        if not ask.busy then return end
+        drone.wake_at = get_us_time() + BUSY_US
+        release(drone)
+    end
+
+end
+
 -------------------------------------------------------------------------------
 -- charging
 -------------------------------------------------------------------------------
@@ -97,12 +223,15 @@ local function use_nodes(drone, n)
 end
 
 --- What lib/shapes.lua calls before each of its VoxelManip passes: take the
--- footprint that pass will pin, and start it on a fresh slice if this one is
--- already spent. A box is under 10ms, so a large shape becomes many steps of
--- work rather than one long stall.
+-- footprint that pass will pin, wait for the map around it to be generated,
+-- and start it on a fresh slice if this one is already spent. A box is under
+-- 10ms, so a large shape becomes many steps of work rather than one long stall.
 local function slabs(drone)
-    return function(n)
+    return function(n, lo, hi)
         use_map(drone, n)
+        wait_for_map(drone,
+                     {x = floor(lo.x / 16), y = floor(lo.y / 16), z = floor(lo.z / 16)},
+                     {x = floor(hi.x / 16), y = floor(hi.y / 16), z = floor(hi.z / 16)})
         yield_if_spent(drone)
     end
 end
@@ -219,10 +348,12 @@ local function load_block(drone, pos)
     local bz = floor(pos.z / 16)
     if bx == drone.bx and by == drone.by and bz == drone.bz then return end
 
-    -- Footprint before the memo, because use_map may make the drone wait and so
-    -- may yield: recording the block first would leave the memo claiming a block
-    -- that was never loaded.
+    -- Footprint and mapgen before the memo, because either may make the drone
+    -- wait and so may yield: recording the block first would leave the memo
+    -- claiming a block that was never loaded.
     use_map(drone, 1)
+    local b = {x = bx, y = by, z = bz}
+    wait_for_map(drone, b, b)
     drone.bx, drone.by, drone.bz = bx, by, bz
     load_area(pos)
 

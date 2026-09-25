@@ -203,6 +203,22 @@ local SETTINGS = {
         }
     }},
 
+    {'Map generation', {
+        {
+            name = 'wait_for_mapgen',
+            label = 'Wait for map generation',
+            kind = 'bool',
+            text = {
+                'Whether a drone waits for the map around what it writes to ' ..
+                'be generated first. Map the engine is still generating ' ..
+                'overwrites whatever is written into it meanwhile, silently. ' ..
+                'The wait takes seconds in new ground and nothing in explored ' ..
+                'ground. Turn it off only if the game generates in advance ' ..
+                'all the map its drones can reach.'
+            }
+        }
+    }},
+
     {'Appearance', {
         {
             name = 'drone_hud',
