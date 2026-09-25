@@ -341,20 +341,27 @@ end
 -- could skip a load that had become necessary again and lose the write. Nothing
 -- unloads a block within one resume, which is what makes the memo safe at all.
 -- (S5, A4)
-local function load_block(drone, pos)
+--
+-- Only a `write` waits for mapgen: a read cannot lose anything, and waiting
+-- would have it generate map, which get_block never does. drone.bw says whether
+-- the memo's block was waited for. (B-S-3)
+local function load_block(drone, pos, write)
 
     local bx = floor(pos.x / 16)
     local by = floor(pos.y / 16)
     local bz = floor(pos.z / 16)
-    if bx == drone.bx and by == drone.by and bz == drone.bz then return end
+    local same = bx == drone.bx and by == drone.by and bz == drone.bz
+    if same and (drone.bw or not write) then return end
 
     -- Footprint and mapgen before the memo, because either may make the drone
     -- wait and so may yield: recording the block first would leave the memo
     -- claiming a block that was never loaded.
-    use_map(drone, 1)
-    local b = {x = bx, y = by, z = bz}
-    wait_for_map(drone, b, b)
-    drone.bx, drone.by, drone.bz = bx, by, bz
+    if not same then use_map(drone, 1) end
+    if write then
+        local b = {x = bx, y = by, z = bz}
+        wait_for_map(drone, b, b)
+    end
+    drone.bx, drone.by, drone.bz, drone.bw = bx, by, bz, write
     load_area(pos)
 
 end
@@ -369,7 +376,7 @@ local function place_block(drone, x, y, z, block)
 
     local pos = {x = x, y = y, z = z}
 
-    load_block(drone, pos)
+    load_block(drone, pos, true)
     flush(pos)
     set_node(pos, {name = block})
 
