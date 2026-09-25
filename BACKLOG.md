@@ -42,6 +42,13 @@ generates with the environment lock released, then blits the copy back over
 whatever the main thread wrote meanwhile (`finishBlockMake`, 5.4.0 to 5.17.0).
 Every shape pass and every `place()` is exposed, since `v1.0.0`.
 
+**`F-S-1` makes it worse, by being faster.** Headless, `mosely.lua` at
+`pow(3, 4)` with an emerge request over its area every third step: 2 runs of 5
+wrong at `5dd7411`, by 72 and 126 nodes; 3 of 3 wrong with `F-S-1`, by 539 to
+8,098, the build finishing in 4 s instead of 29 while the chunks under it are
+still generating. Without the emerge requests, `pow(3, 5)` is exact. In-world,
+`pow(3, 5)` came out with several mapblock-sized holes.
+
 **Do:** before a shape's first pass, `core.emerge_area` its bounds grown by one
 mapblock, sleep the drone until every callback has arrived, and retry any
 `EMERGE_CANCELLED`. Charge the footprint first, and bound one request the way a
@@ -91,22 +98,6 @@ has to stay fast; `get_block` and `is_block` must read `param2`, since
 `by_node[itemstring]` cannot tell 256 colours apart; and the block picker cannot
 enumerate 256 x 3.
 
-### F-S-1 · one map read and write per chunk per resume
-
-`todo` `large` `filed 2026-09-24` `target: v1.1.0`
-
-Every `cube()` reads, writes and relights whole 16³ mapblocks, and every
-`place()` is a `set_node` with its own lighting update, so a program of many
-small writes pays whole-chunk work per call: 361,201 one-wide columns touched
-3.2G map positions. Consecutive commands mostly land in the same chunks. The
-baseline to beat: `mosely.lua` at `pow(3, 4)` takes 28.5 s at `e0c2d23`.
-
-**Do:** keep the VoxelManip of the chunks written since the last yield open,
-write every shape and `place()` into it, and flush it in `release()`, where the
-mapblock memo is already dropped. `get_block` reads through it, and the
-footprint charge and the one-slab stall bound still hold. Lighting is most of a
-pass in open air, so fewer passes per chunk is where the time is.
-
 ### F-S-3 · budget a share of the step, weighted by codelevel
 
 `todo` `medium` `filed 2026-09-24` `target: v1.1.0`
@@ -125,6 +116,22 @@ last drone. `stepper.budget` stays arithmetic, and its spec pins that the
 planned total never exceeds the share of the step.
 
 ## Tests
+
+### T-S-2 · small shapes, `place` and `get_block` sharing a mapblock
+
+`todo` `playtest`
+
+`F-S-1` writes a shape's box back late: when a shape leaves it, a node is read
+or placed in it, or the step ends. No spec reaches a real map, so what a
+program sees and what is left after it fails are unchecked. Never run.
+
+### T-S-1 · a shape is lit correctly, inside and out
+
+`todo` `playtest`
+
+`F-S-1` writes several shapes back in one relight, after the step's last
+command rather than after each shape. Last pass at `9c369c7`, engine 5.17.0,
+2026-09-24.
 
 ### P2 · slab progression under the step budget
 
@@ -254,6 +261,7 @@ whoever re-runs it knows what they are re-reading against.
 
 ### Features
 
+- `F-S-1` done `large` 2026-09-24 · a shape leaves its last box open, and the shapes after it that fit inside write into it, so many small shapes pay one read, write and relight per mapblock per step; `mosely.lua` at `pow(3, 4)` went from 106 s to 19 s headless with an identical map and light, its peak footprint halved; `place()` stays a `set_node`, which runs the replaced node's callbacks
 - `F-S-4` done `medium` 2026-09-24 · a shape is written in boxes of at most 16 mapblocks cut on all three axes, not slabs along one, so no pass stalls longer than one box whatever the shape; a box the shape does not reach is loaded and charged but not passed, bottom up so the shadow above it can reach it
 - `F-S-2` dropped `medium` 2026-09-24 · relighting once per shape with `core.fix_light` after `write_to_map(false)` was up to 1.9x slower than relighting each pass in open air and level underground, measured headless on 5.17.0; lighting is 60 to 97% of a pass in open air, and fewer relights is `F-S-1`'s to win
 - `F-D-1` done `small` 2026-09-24 · the drone's object is moved once per step rather than once per command, and only if it moved; the nametag is pushed only when the file changes
@@ -323,7 +331,6 @@ whoever re-runs it knows what they are re-reading against.
 - `W5` done `playtest` 2026-09-04 · a drone that stands still far away keeps running
 - `W6` done `playtest` 2026-09-24 · the drone's entity goes away and comes back; pass at `4b61623`, engine 5.17.0, after `F-D-1` changed the re-spawn
 - `W7` done `playtest` 2026-09-07 · `print` sends every argument, in one line
-- `T-S-1` done `playtest` 2026-09-24 · a shape is lit correctly, inside and out; pass at `9c369c7`, engine 5.17.0, after `F-S-4` began skipping the boxes a shape does not reach
 - `T-D-1` done `playtest` 2026-09-24 · the drone is drawn once per step; pass at `4b61623`, engine 5.17.0, all four cases
 - `P1` done `playtest` 2026-08-27 · `pace_ms` at the low codelevels
 - `P4` done `playtest` 2026-08-27 · several drones at once

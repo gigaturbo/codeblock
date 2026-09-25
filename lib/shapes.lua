@@ -34,10 +34,16 @@ local others = {x = {'y', 'z'}, y = {'x', 'z'}, z = {'x', 'y'}}
 -- One scratch buffer for the whole mod, refilled per pass rather than
 -- reallocated. It keeps the largest size it has been asked for.
 --
--- Shared safely even though build() yields between passes: a pass fills the
--- buffer and hands it to set_data before anything else can run, so nothing in
--- it has to survive the yield. Only its length does.
+-- It holds the contents of `open`, the last box read, which stays unwritten
+-- while the shapes that follow land inside it: a program of many small shapes
+-- then pays one read, write and relight per mapblock rather than per shape,
+-- which is most of what a pass costs in open air. (F-S-1)
+--
+-- Shared safely across yields and drones because shapes.flush() writes it back
+-- before stepper.advance returns: nothing else can run inside a step, so it
+-- never survives one.
 local data = {}
+local open
 
 -- How many mapblocks one VoxelManip pass may emerge.
 --
@@ -296,6 +302,28 @@ end
 -- export
 -------------------------------------------------------------------------------
 
+--- Write the open box back to the map, relighting it.
+--
+-- With `pos`, only when the open box holds it: call it so before any single
+-- node read or write, which would otherwise see the map behind the box, or be
+-- overwritten by it. Without, always: stepper.advance does before it returns.
+function shapes.flush(pos)
+
+    local o = open
+    if not o then return end
+    if pos then
+        local mn, mx = o.area.MinEdge, o.area.MaxEdge
+        local inside = pos.x >= mn.x and pos.x <= mx.x and pos.y >= mn.y and
+                           pos.y <= mx.y and pos.z >= mn.z and pos.z <= mx.z
+        if not inside then return end
+    end
+
+    open = nil
+    o.manip:set_data(data)
+    o.manip:write_to_map()
+
+end
+
 --- Place one shape.
 --
 -- spec fields:
@@ -311,11 +339,15 @@ end
 --           emerge. It may yield, which is how a large shape is spread over
 --           several server steps instead of stalling one.
 --
--- Returns how many mapblocks were emerged in all. read_from_map aligns the
+-- Returns how many mapblocks were charged in all. read_from_map aligns the
 -- region outward to mapblock boundaries, so this is exact rather than an
 -- estimate, and it is what the caller charges against its map footprint - a
 -- shape pins blocks in server memory just as place() does. (S5) A box the
--- shape does not reach is loaded rather than passed, and charged the same.
+-- shape does not reach is loaded rather than passed, and charged the same. A
+-- box inside the open one is neither read nor charged again: it is already
+-- pinned.
+--
+-- The last box is left open, unwritten: see shapes.flush.
 function shapes.build(spec)
 
     local origin, pos1, pos2 = bounds[spec.kind](spec)
@@ -367,23 +399,32 @@ function shapes.build(spec)
             y = min(pos2.y, (b0.y + (k.y + 1) * size.y) * 16 - 1),
             z = min(pos2.z, (b0.z + (k.z + 1) * size.z) * 16 - 1)
         }
-        local emerged = span(lo.x, hi.x) * span(lo.y, hi.y) * span(lo.z, hi.z)
+        local o = open
+        local mn, mx = o and o.area.MinEdge, o and o.area.MaxEdge
+        local within = o and lo.x >= mn.x and lo.y >= mn.y and lo.z >= mn.z and
+                           hi.x <= mx.x and hi.y <= mx.y and hi.z <= mx.z
 
-        -- Before the pass, not after: the caller pays for the memory before it
-        -- is pinned, and can make the drone wait for room first.
-        if spec.charge then spec.charge(emerged) end
-        total = total + emerged
+        if not within then
+            local emerged = span(lo.x, hi.x) * span(lo.y, hi.y) * span(lo.z, hi.z)
+            -- Before the pass, not after: the caller pays for the memory before
+            -- it is pinned, and can make the drone wait for room first.
+            if spec.charge then spec.charge(emerged) end
+            total = total + emerged
+        end
 
-        if reached(spec, origin, lo, hi) then
+        if within then
+            fillers[spec.kind](spec, o.area, id, origin)
+        elseif reached(spec, origin, lo, hi) then
+            -- After the charge, which may yield and so end the step, closing
+            -- whatever was open then.
+            shapes.flush()
             local manip = get_voxel_manip()
             local emin, emax = manip:read_from_map(lo, hi)
             local area = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
 
             manip:get_data(data)
+            open = {manip = manip, area = area}
             fillers[spec.kind](spec, area, id, origin)
-
-            manip:set_data(data)
-            manip:write_to_map()
         else
             load_area(lo, hi)
         end

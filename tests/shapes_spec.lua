@@ -165,8 +165,10 @@ end
 -- one buffer across calls, so a shape run after a larger one leaves entries
 -- above that volume; the engine never looks at them.
 local function produced(spec)
+    shapes.flush()
     written, area = nil, nil
     shapes.build(spec)
+    shapes.flush()
     local set = {}
     for i = 1, area:getVolume() do
         if written[i] == NODE then set[i] = true end
@@ -429,6 +431,7 @@ end
 do
     -- A 1x1x1 cube at the origin: pos1 == pos2 == one node, and the emerged
     -- region is the single mapblock containing it.
+    shapes.flush()
     local one = shapes.build({
         kind = 'cube',
         pos = {x = 0, y = 0, z = 0},
@@ -444,6 +447,7 @@ do
     -- at 1 - and since B43 its bounds are pos2 = pos1 - 1 on every axis. An
     -- inverted box must never reach read_from_map, so build answers 0 without a
     -- pass. Before B43 the same call emerged one mapblock and wrote nothing.
+    shapes.flush()
     local empty = shapes.build({
         kind = 'cube',
         pos = {x = 0, y = 0, z = 0},
@@ -458,6 +462,7 @@ do
     -- A radius-20 sphere spans -20..20 on every axis, which aligns out to
     -- -32..31 - four mapblocks per axis, not two, because the shape crosses a
     -- boundary in both directions.
+    shapes.flush()
     local big = shapes.build({
         kind = 'sphere',
         pos = {x = 0, y = 0, z = 0},
@@ -473,6 +478,7 @@ do
     -- Origin is {14, 15, 14} and the last node {15, 16, 15}, so only y crosses:
     -- 1 x 2 x 1. It was 8 before B43, when pos2 ran a node past the shape and
     -- put all three axes across a boundary that the shape itself never reaches.
+    shapes.flush()
     local across = shapes.build({
         kind = 'cube',
         pos = {x = 15, y = 15, z = 15},
@@ -499,10 +505,12 @@ end
 do
     --- Every node a shape wrote across all its passes, and how many passes.
     local function sliced(spec)
+        shapes.flush()
         world, passes, loads, floors = {}, 0, 0, {}
         local charged = {}
         spec.charge = function(n) charged[#charged + 1] = n end
         local total = shapes.build(spec)
+        shapes.flush()
         return world, passes, total, charged
     end
 
@@ -720,6 +728,57 @@ do
         hollow = false
     })
     it('a small shape is still a single pass', one, 1)
+end
+
+--------------------------------------------------------------------------------
+-- the open box (F-S-1)
+--
+-- The last box a shape read stays open, and the shapes after it that land
+-- inside it are written into it: one read, one write and one relight for all of
+-- them. What must hold is that nothing is lost or read stale on the way, which
+-- is what shapes.flush is for.
+--------------------------------------------------------------------------------
+
+do
+    --- A one-node cube at x, y, z, recording what it was charged.
+    local function dot(x, y, z, charged)
+        return shapes.build({
+            kind = 'cube',
+            pos = {x = x, y = y, z = z},
+            w = 1,
+            h = 1,
+            l = 1,
+            node = 'x',
+            hollow = false,
+            charge = function(n) charged[#charged + 1] = n end
+        })
+    end
+
+    shapes.flush()
+    world, passes, floors = {}, 0, {}
+    local charged = {}
+    local first = dot(1, 1, 1, charged)
+    local second = dot(5, 9, 2, charged)
+    it('a shape leaves its box open, unwritten', passes, 0)
+    it('the next one inside it reads nothing more', #floors, 1)
+    it('and is charged nothing more', #charged .. ' ' .. first .. ' ' .. second,
+       '1 1 0')
+
+    shapes.flush({x = 20, y = 1, z = 1})
+    it('a flush for a node outside the box leaves it open', passes, 0)
+    shapes.flush({x = 15, y = 0, z = 15})
+    it('one for a node inside writes it back', passes, 1)
+    it('with both shapes in it', world['1,1,1'] and world['5,9,2'], true)
+    shapes.flush()
+    it('and a second flush has nothing left to write', passes, 1)
+
+    world, passes = {}, 0
+    dot(1, 1, 1, {})
+    dot(17, 1, 1, {})
+    it('a shape outside the open box writes that box back first', passes, 1)
+    it('before reading its own', world['1,1,1'] and not world['17,1,1'], true)
+    shapes.flush()
+    it('whose node lands when it is written back in turn', world['17,1,1'], true)
 end
 
 --------------------------------------------------------------------------------

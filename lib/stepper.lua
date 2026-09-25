@@ -34,7 +34,8 @@ local charge = codeblock.limits.charge
 local deps = {
     now = function() return core.get_us_time() end,
     guard_enter = function(bytes) codeblock.strguard.enter(bytes) end,
-    guard_leave = function() codeblock.strguard.leave() end
+    guard_leave = function() codeblock.strguard.leave() end,
+    flush = function() codeblock.shapes.flush() end
 }
 
 --- Replace the clock and guards. Returns the previous set so a test can restore.
@@ -159,6 +160,12 @@ function stepper.advance(drone, budget_us)
     -- limit to every other mod on the server.
     deps.guard_leave()
     drone.deadline = nil
+
+    -- Every outcome, the error and timeout paths as much as a yield: the last
+    -- shape box is still open, and a run that ended here would lose it. The
+    -- engine may unload its blocks once the step is over, and another drone
+    -- shares the buffer. (F-S-1)
+    deps.flush()
 
     -- Only the time actually spent advancing, which is the point of charging it
     -- here: a drone that waited, or one on a busy server, is not charged for

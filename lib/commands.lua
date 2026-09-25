@@ -27,6 +27,7 @@ local chat_send_player = core.chat_send_player
 local get_node = core.get_node
 
 local build = codeblock.shapes.build
+local flush = codeblock.shapes.flush
 
 local use_nodes = codeblock.cost.use_nodes
 local slabs = codeblock.cost.slabs
@@ -620,6 +621,8 @@ local function drone_get_block(drone, x, y, z)
     local block_name
     if inside_world(pos.x, pos.y, pos.z) then
         load_block(drone, pos)
+        -- The open shape box holds what the map will, not what it does yet.
+        flush(pos)
         block_name = get_node(pos).name
     end
 

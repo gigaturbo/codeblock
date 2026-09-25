@@ -41,6 +41,7 @@ end
 local clock = 0
 local cost_per_call = 4 -- microseconds of pretend work per instrumented call
 local guard_enters, guard_leaves = 0, 0
+local flushes = 0
 
 --- A real budget for `auth_level`, as lib/drone.lua builds one per run.
 local function new_budget(auth_level)
@@ -50,7 +51,8 @@ end
 local real_deps = stepper.set_deps({
     now = function() return clock end,
     guard_enter = function() guard_enters = guard_enters + 1 end,
-    guard_leave = function() guard_leaves = guard_leaves + 1 end
+    guard_leave = function() guard_leaves = guard_leaves + 1 end,
+    flush = function() flushes = flushes + 1 end
 })
 
 -- The clock only moves when the program makes an instrumented call, so advance()
@@ -332,6 +334,31 @@ do
     stepper.advance(bad, 1000)
     it('released even when the program raises', guard_leaves, 1)
     it('armed exactly once on that path too', guard_enters, 1)
+end
+
+--------------------------------------------------------------------------------
+-- the open shape box is written back on every way out of a step (F-S-1)
+--
+-- A run that ended with its last box still open would lose it, so the error
+-- path counts as much as a yield and a finish.
+--------------------------------------------------------------------------------
+
+do
+    local drone = make_drone('for i = 1, 100000 do end\n', 4)
+    flushes, clock = 0, 0
+    local _, outcome = stepper.advance(drone, 1000)
+    it('a step that yields writes the box back', outcome .. ' ' .. flushes,
+       'yielded 1')
+
+    local done = make_drone('local x = 1\n', 4)
+    flushes, clock = 0, 0
+    _, outcome = stepper.advance(done, 1000)
+    it('so does one that finishes', outcome .. ' ' .. flushes, 'completed 1')
+
+    local bad = make_drone('error("boom")\n', 4)
+    flushes, clock = 0, 0
+    _, outcome = stepper.advance(bad, 1000)
+    it('and one that raises', outcome .. ' ' .. flushes, 'error 1')
 end
 
 --------------------------------------------------------------------------------
