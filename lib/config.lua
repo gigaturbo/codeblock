@@ -188,6 +188,17 @@ codeblock.config.map_memory_mb = {16, 64, 128, 512}
 -- dimensions unnecessary.
 codeblock.config.max_nodes_written = {1e5, 5e5, 1e6, 5e7}
 
+-- How much new map one program may make the engine generate, in mapblocks.
+--
+-- A write waits for the map around it to be generated (B-S-3), so a program
+-- spreading single nodes over unexplored ground makes the engine generate far
+-- more than it writes: one place() there is 1 to 8 mapchunks of 125 mapblocks
+-- each, 0.5 to 4 million nodes. Generation takes the server's one emerge
+-- thread, ~25 ms a chunk flat and ~200 ms in Mineclonia, and stays on disk for
+-- good, so it is spent rather than held. About 16, 128, 512 and 4096 chunks:
+-- sphere(100) in new ground is 48.
+codeblock.config.max_map_generated = {2000, 16000, 64000, 512000}
+
 -- How long, in microseconds, one drone may spend advancing its program during
 -- a single server step. See lib/stepper.lua.
 --

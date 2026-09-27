@@ -1,6 +1,6 @@
 --- The drone HUD: what a running program is spending, on screen.
 --
--- A five-line block hanging from the top-right corner while the player's own
+-- A six-line block hanging from the top-right corner while the player's own
 -- program runs, and nothing at all otherwise:
 --
 --     mosely.lua : running          <- bold
@@ -8,8 +8,9 @@
 --     - Blocks: 72%
 --     - CPU time: 0%
 --     - Memory: 4%
+--     - New map: 12%
 --
--- The three that can stop a program, as percentages, with the one that will be
+-- The four that can stop a program, as percentages, with the one that will be
 -- reached first in amber and anything at 80% or more in red - so a glance finds
 -- either nothing or one thing. The map footprint is absent: it throttles rather
 -- than stops, so a percentage of it says nothing about whether the run survives.
@@ -119,7 +120,8 @@ local LABELS = {
     nodes = function() return S('Blocks placed') end,
     runtime = function() return S('Server time used') end,
     map = function() return S('Map held') end,
-    heap_kb = function() return S('Lua memory') end
+    heap_kb = function() return S('Lua memory') end,
+    generated = function() return S('Map generated') end
 }
 
 -- One line each, and short on purpose: the panel gives each two wrapped lines,
@@ -140,10 +142,13 @@ local DESCRIPTIONS = {
     end,
     heap_kb = function()
         return S('The most memory the program has grown by at any point.')
+    end,
+    generated = function()
+        return S('New map the server generated for this program, in mapblocks of 16x16x16.')
     end
 }
 
--- The same three resources named for the HUD, where there is room for one word
+-- The same four resources named for the HUD, where there is room for one word
 -- and no room for an explanation.
 --
 -- A second naming, and the duplication is the point rather than a slip: the
@@ -157,13 +162,14 @@ local DESCRIPTIONS = {
 local SHORT_LABELS = {
     nodes = function() return S('Blocks') end,
     runtime = function() return S('CPU time') end,
-    heap_kb = function() return S('Memory') end
+    heap_kb = function() return S('Memory') end,
+    generated = function() return S('New map') end
 }
 
--- Which resources the HUD lists, in order. The same three the panel lists and
--- the same three limits.binding compares - the held one stops nothing, so it is
+-- Which resources the HUD lists, in order. The same four the panel lists and
+-- the same four limits.binding compares - the held one stops nothing, so it is
 -- not a budget to show a percentage of. (B45)
-local HUD_ROWS = {'nodes', 'runtime', 'heap_kb'}
+local HUD_ROWS = {'nodes', 'runtime', 'heap_kb', 'generated'}
 
 --- What to call the resource `what`, or the key itself if it has no name here -
 -- a limit added to limits.report and not here shows as its key rather than as a
@@ -199,7 +205,7 @@ end
 
 -- name -> {ids = {n...}, text = {n...}, colour = {n...}}
 --
--- One element per line, five of them: the header, "Budget usage:", and one row
+-- One element per line, six of them: the header, "Budget usage:", and one row
 -- per resource. Not one element holding newlines, for two reasons - colour is a
 -- property of the whole element, so per-line colouring needs per-line elements
 -- anyway, and `number` is documented for every client while inline
@@ -336,7 +342,7 @@ function hud.tick(dtime)
                         S('running'))))
                 set_line(player, rec, 2, S('Budget usage'))
 
-                -- Which of the three will be reached first, so exactly one of
+                -- Which of the four will be reached first, so exactly one of
                 -- them can be marked amber. It is never the map footprint: that
                 -- one is a throttle and stops nothing. (B45)
                 local worst = binding(drone.budget)

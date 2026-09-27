@@ -10,8 +10,8 @@
 --
 -- Two kinds of resource, and the difference between them is the design:
 --
---   spent   Nodes written, runtime. Gone once used, so going over has to stop
---           the run. limits.charge.
+--   spent   Nodes written, runtime, map generated. Gone once used, so going
+--           over has to stop the run. limits.charge.
 --   held    The map footprint. The engine unloads a mapblock nothing has
 --           touched for server_unload_unused_data_timeout seconds, so this one
 --           drains by itself; a program over the ceiling should be made to wait
@@ -46,6 +46,7 @@ function limits.new(config, level, now)
         level = level,
         caps = {
             nodes = config.max_nodes_written[level],
+            generated = config.max_map_generated[level],
             runtime = config.max_runtime_s[level] * 1e6,
             map = config.map_memory_mb[level] * BLOCKS_PER_MB,
             heap_kb = config.heap_mb[level] * 1024,
@@ -57,7 +58,7 @@ function limits.new(config, level, now)
         -- rather than counted, so nothing charges it. Kept so the display can
         -- show the heap beside the other three instead of leaving a ceiling
         -- nobody can see how close they are to. (F4)
-        used = {nodes = 0, runtime = 0, map = 0, heap_kb = 0},
+        used = {nodes = 0, runtime = 0, map = 0, heap_kb = 0, generated = 0},
         map_at = now,
         window = (config.map_window_s or DEFAULT_WINDOW_S) * 1e6
     }
@@ -67,7 +68,7 @@ end
 -- spending
 --------------------------------------------------------------------------------
 
---- Charge `n` units of a spent resource - 'nodes' or 'runtime'.
+--- Charge `n` units of a spent resource - 'nodes', 'runtime' or 'generated'.
 --
 -- Returns false once the run is over that ceiling; raising the player-facing
 -- error is the caller's job, so the message stays beside the other ones. The
@@ -143,7 +144,7 @@ end
 -- `string_bytes`, `pace` and `step` are absent for their own reasons:
 -- `string_bytes` bounds one allocation rather than a total, so there is nothing
 -- to be a fraction of, and the other two are cadence, not a resource at all.
-local SPENT = {'nodes', 'runtime', 'heap_kb'}
+local SPENT = {'nodes', 'runtime', 'heap_kb', 'generated'}
 
 --- The spent resource closest to its ceiling: its key, and how full it is.
 --
@@ -177,7 +178,7 @@ function limits.binding(budget)
     return worst, worst_at
 end
 
--- All four, converted back into the units lib/config.lua is written in and
+-- All five, converted back into the units lib/config.lua is written in and
 -- doc/api.md documents - seconds and megabytes, not microseconds and mapblocks.
 --
 -- The conversion belongs here for the reason limits.new's does: this file is the
@@ -192,7 +193,8 @@ local REPORT = {
     {what = 'nodes', unit = '', scale = 1},
     {what = 'runtime', unit = 's', scale = 1 / 1e6},
     {what = 'map', unit = 'MB', scale = 1 / BLOCKS_PER_MB, held = true},
-    {what = 'heap_kb', unit = 'MB', scale = 1 / 1024}
+    {what = 'heap_kb', unit = 'MB', scale = 1 / 1024},
+    {what = 'generated', unit = '', scale = 1}
 }
 
 --- Every ceiling as {what, used, cap, unit, at, held}, in player-facing units.

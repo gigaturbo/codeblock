@@ -62,6 +62,7 @@ end
 -- conversion rather than realistic.
 local config = {
     max_nodes_written = {100, 200, 300, 400},
+    max_map_generated = {10, 20, 30, 40},
     max_runtime_s = {1, 2, 3, 4},
     map_memory_mb = {1, 2, 4, 8},
     heap_mb = {1, 2, 4, 8},
@@ -96,7 +97,8 @@ do
 
     -- The engine's own setting is the source; 29s is only the fallback.
     local d = limits.new({
-        max_nodes_written = {1}, max_runtime_s = {1}, map_memory_mb = {1},
+        max_nodes_written = {1}, max_map_generated = {1}, max_runtime_s = {1},
+        map_memory_mb = {1},
         heap_mb = {1}, max_string_mb = {1}, pace_ms = {0},
         step_budget_us = {1}
     }, 1, 0)
@@ -255,9 +257,9 @@ do
 
     local r = limits.report(b)
 
-    it('every fillable resource is reported', #r, 4)
+    it('every fillable resource is reported', #r, 5)
     it('in a fixed order, so the rows never move', r[1].what .. r[2].what ..
-           r[3].what .. r[4].what, 'nodesruntimemapheap_kb')
+           r[3].what .. r[4].what .. r[5].what, 'nodesruntimemapheap_kbgenerated')
 
     it('nodes are counted, not converted', r[1].used, 50)
     it('and their ceiling is the config figure', r[1].cap, 200)
@@ -286,6 +288,11 @@ do
     it('nodes are not', r[1].held, false)
     it('nor runtime', r[2].held, false)
     it('nor the heap', r[4].held, false)
+
+    -- Map generated is counted in mapblocks and spent, like nodes. (B-S-3)
+    it('map generated is counted, not converted', r[5].cap, 20)
+    it('and carries no unit', r[5].unit, '')
+    it('and is not held', r[5].held, false)
 end
 
 --------------------------------------------------------------------------------

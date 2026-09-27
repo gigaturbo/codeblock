@@ -31,6 +31,7 @@ local emerge_area = core.emerge_area
 local get_us_time = core.get_us_time
 local EMERGE_CANCELLED = core.EMERGE_CANCELLED
 local EMERGE_ERRORED = core.EMERGE_ERRORED
+local EMERGE_GENERATED = core.EMERGE_GENERATED
 
 local wait_for_mapgen = codeblock.config.wait_for_mapgen
 
@@ -65,6 +66,20 @@ local generated = {}
 -- The mapchunk size, in mapblocks per axis, and the mapblocks mapgen can reach.
 -- Read on the first wait: the mapgen is set up after every mod has loaded.
 local chunk, reach_lo, reach_hi
+
+-- The one emerge request drones have in flight, for the whole server, while it
+-- is pending. A drone asks only when there is none, so however many programs
+-- build in new ground, they take one place at a time in the engine's queue and
+-- players' own map loading takes turns with them.
+local in_flight
+
+-- Requests waiting for their turn, as a set. Each carries `since`, when its
+-- drone started waiting, and `seen`, when it last looked. The turn goes to the
+-- one waiting longest, or the first drone resumed each step would take every
+-- turn. One not seen for STALE_US belongs to a run stopped or paused while it
+-- waited, and is dropped so it holds nobody up.
+local waiting = {}
+local STALE_US = 2e6
 
 -------------------------------------------------------------------------------
 -- private
@@ -126,6 +141,23 @@ local function chunk_key(x, y, z)
     return ((x + 4096) * 8192 + y + 4096) * 8192 + z + 4096
 end
 
+--- Whether `ask` may be sent now: no request is in flight, and no other one
+-- still waiting has waited longer. Drops the stale ones on the way.
+local function my_turn(ask)
+    local t = get_us_time()
+    ask.seen = t
+    waiting[ask] = true
+    if in_flight and in_flight.pending then return false end
+    for other in pairs(waiting) do
+        if t - other.seen > STALE_US then
+            waiting[other] = nil
+        elseif other.since < ask.since then
+            return false
+        end
+    end
+    return true
+end
+
 --- Wait until no mapchunk being generated can overwrite mapblocks b1 to b2.
 --
 -- The emerge thread generates a mapchunk from a copy of it and a one-mapblock
@@ -135,7 +167,8 @@ end
 -- until every mapblock has answered. Nothing is asked when all are known.
 --
 -- The request loads the border as well, so its footprint is charged here: the
--- caller has charged b1 to b2 already. Clipped to what mapgen can reach, since
+-- caller has charged b1 to b2 already. So is the map it made the engine
+-- generate, which stops the run past max_map_generated. Clipped to what mapgen can reach, since
 -- a mapblock outside the world never answers. May yield, through release().
 local function wait_for_map(drone, b1, b2)
 
@@ -181,27 +214,45 @@ local function wait_for_map(drone, b1, b2)
                            (b2.x - b1.x + 1) * (b2.y - b1.y + 1) * (b2.z - b1.z + 1)))
 
     -- The callback touches no drone, so one outliving a stopped run is harmless.
+    -- A drone asks only once no other request is in flight: see in_flight.
     local pos1 = {x = lo.x * 16, y = lo.y * 16, z = lo.z * 16}
     local pos2 = {x = hi.x * 16 + 15, y = hi.y * 16 + 15, z = hi.z * 16 + 15}
     local started = get_us_time()
     for _ = 0, RETRIES do
-        local ask = {pending = true, busy = false}
-        emerge_area(pos1, pos2, function(bp, action, remaining)
-            if action == EMERGE_CANCELLED then
-                ask.busy = true
-            elseif action ~= EMERGE_ERRORED then
-                generated[chunk_key(chunk_of(bp.x, bp.y, bp.z))] = true
-            end
-            if remaining == 0 then ask.pending = false end
-        end)
+        local ask = {pending = true, busy = false, made = 0,
+                     since = get_us_time()}
+        local sent = false
         while ask.pending do
             if get_us_time() - started > GIVE_UP_US then
                 core.log('warning', '[codeblock] no answer from mapgen at ' ..
                              core.pos_to_string(pos1) .. '; writing anyway')
+                waiting[ask], in_flight = nil, nil
                 return
+            end
+            if not sent and my_turn(ask) then
+                waiting[ask], in_flight, sent = nil, ask, true
+                emerge_area(pos1, pos2, function(bp, action, remaining)
+                    if action == EMERGE_CANCELLED then
+                        ask.busy = true
+                    elseif action ~= EMERGE_ERRORED then
+                        generated[chunk_key(chunk_of(bp.x, bp.y, bp.z))] = true
+                    end
+                    -- One answer per chunk this request made the engine generate.
+                    if action == EMERGE_GENERATED then ask.made = ask.made + 1 end
+                    if remaining == 0 then ask.pending = false end
+                end)
             end
             drone.wake_at = get_us_time() + POLL_US
             release(drone)
+        end
+        -- Charged once generated, the only point the count is known, so a run
+        -- overshoots by one request's chunks at most. Level 6: this function,
+        -- slabs or load_block, build or place_block, the command, the sandbox
+        -- closure, then the player's line.
+        local n = ask.made * chunk.x * chunk.y * chunk.z
+        if n > 0 and not charge(drone.budget, 'generated', n) then
+            error(S('Maximum map generated (@1 mapblocks)',
+                    drone.budget.caps.generated), 6)
         end
         if not ask.busy then return end
         drone.wake_at = get_us_time() + BUSY_US

@@ -914,7 +914,7 @@ local file_chooser = {
 -- a player would hunt for and never find. One action, one button. (F8)
 --
 -- **Only the hard limits are listed.** The map footprint stops nothing - it makes
--- the drone wait and frees itself - so showing it beside three ceilings that do
+-- the drone wait and frees itself - so showing it beside four ceilings that do
 -- end a run invited the exact misreading `B45` was filed for. It is still in
 -- `limits.report`; this surface chooses not to draw it.
 --
@@ -949,7 +949,7 @@ local PANEL_W = 10
 local ROW_Y = 1.9
 local ROW_H = 1.35
 local DESC_DY = 0.3
-local HARD_ROWS = 3
+local HARD_ROWS = 4
 local BUTTON_Y = ROW_Y + HARD_ROWS * ROW_H + 0.35
 
 -- The drone's state in the panel header. Deliberately not the amber and red of
@@ -1078,7 +1078,7 @@ local drone_panel = {
         local y = ROW_Y
         for _, row in ipairs(limits_report(drone.budget)) do
             -- Hard limits only. The held one stops nothing - it makes the drone
-            -- wait - so listing it beside three ceilings that do end a run
+            -- wait - so listing it beside four ceilings that do end a run
             -- invited exactly the reading B45 was filed for.
             if not row.held then
                 -- Bold for the name only, so the eye lands on the four names

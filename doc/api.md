@@ -8,6 +8,7 @@ Drone capacities depends on the user's _codelevel_ which can be set with the `/c
 | step_budget_us    |       1000 |             2000 |         4000 |          8000 | time (µs) one drone may spend running per server step          |
 | max_runtime_s     |         30 |               60 |          120 |           300 | total running time (s) one program gets                        |
 | max_nodes_written |        1e5 |              5e5 |          1e6 |           5e7 | nodes one program may write, and so the size of a single shape |
+| max_map_generated |       2000 |            16000 |        64000 |        512000 | mapblocks of new map one program may make the server generate  |
 | map_memory_mb     |         16 |               64 |          128 |           512 | map footprint (MB) one program may hold at once                |
 | heap_mb           |         16 |               64 |          128 |           512 | Lua heap growth (MB) one program run may cause                 |
 | max_string_mb     |          1 |                8 |           16 |            64 | size (MB) of the largest string a single call may produce      |
@@ -19,7 +20,7 @@ when the mod loads, so a change needs a restart, and the defaults in
 `lib/config.lua` apply to anything left unset.
 
 Each limit stands for a resource the server actually spends: time, nodes written,
-map memory, Lua memory. Raising a codelevel buys more of each — and less waiting.
+map generated, map memory, Lua memory. Raising a codelevel buys more of each — and less waiting.
 
 `pace_ms` is the only one that is not a ceiling. The drone waits that long after
 every command, which is what makes the lower codelevels slow enough to watch a
@@ -45,6 +46,15 @@ codelevel can place — 1e5 nodes is a 46-node cube or a radius-28 sphere, 5e7 a
 limited: a big shape is written in slabs of a few thousand nodes with a pause
 between them, so it is slow rather than a frozen server, and flying away costs
 map memory, which is charged below.
+
+`max_map_generated` bounds the map a program makes the server generate. Before
+the drone writes, it waits for the map around the write to be generated, or the
+server generating it would overwrite the write. In explored ground that costs
+nothing. In unexplored ground one `place()` generates 1 to 8 mapchunks, each
+125 mapblocks of 16×16×16 nodes, far more than the program writes, and it stays
+on disk for good. `sphere(100)` in new ground is 6000 mapblocks. Only one drone
+at a time waits on the server's map generation, so players' own map keeps
+loading however many drones build in new ground.
 
 `map_memory_mb` bounds the one resource none of the others can see. Writing a
 node needs the mapblock containing it to be in memory, so `place()` loads it

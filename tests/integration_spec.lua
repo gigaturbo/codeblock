@@ -383,7 +383,7 @@ do
     local cfg = codeblock.config
     local names = {
         'pace_ms', 'step_budget_us', 'max_runtime_s', 'max_nodes_written',
-        'map_memory_mb', 'heap_mb', 'max_string_mb'
+        'map_memory_mb', 'heap_mb', 'max_string_mb', 'max_map_generated'
     }
     local wrong = {}
     for _, name in ipairs(names) do

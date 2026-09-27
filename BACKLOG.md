@@ -65,6 +65,18 @@ harness above with its emerge requests: 6 runs of 6 exact, in 19 to 28 s; with
 `codeblock_wait_for_mapgen` off, 2 of 3 wrong, by -12,978 and +147 nodes. Needs
 the in-world `sphere(100)` beside fresh ground before it closes.
 
+**Waiting makes a write generate map, so that is limited too.** A program
+placing one node per mapblock across 8000 x 8000 nodes generated ~10,700
+chunks at codelevel 4, charged 0.3 s of runtime per 120 s. So
+`max_map_generated`, in mapblocks, `2000 / 16000 / 64000 / 512000`, about
+16 to 4096 chunks, stops a run like the node ceiling; that program stops at
+codelevel 1 after 17 chunks, on its own line. And one drone request is in
+flight server-wide, the turn going to the drone waiting longest: four drones
+generated 900 chunks in 90 s between them, 3,590 to 3,635 nodes each, against
+908 for one alone. Only a write waits: `get_block` generates nothing. Charging
+the wait as runtime was declined: a mod cannot time a chunk, and the wait
+includes queueing behind others (`B46`).
+
 **Do:** before a shape's first pass and before `place()`, `core.emerge_area` the
 bounds grown by one mapblock, sleep the drone until every callback has arrived,
 and retry any `EMERGE_CANCELLED`. Charge the footprint first, and bound one

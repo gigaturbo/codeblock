@@ -164,6 +164,18 @@ local SETTINGS = {
                 'shape, since neither a shape\'s dimensions nor the drone\'s ' ..
                 'distance are limited.'
             }
+        },
+        {
+            name = 'max_map_generated',
+            label = 'Maximum map generated',
+            kind = 'per_level',
+            text = {
+                'Mapblocks of new map one program may make the server ' ..
+                'generate. A drone waits for the map around what it writes to ' ..
+                'be generated, so a program spread over unexplored ground ' ..
+                'generates far more than it writes. A mapchunk is 125 mapblocks ' ..
+                'at the default chunk size.'
+            }
         }
     }},
 
@@ -228,7 +240,7 @@ local SETTINGS = {
                 'Whether a player who has set no preference of their own sees ' ..
                 'the drone HUD while their program runs: the file, whether it ' ..
                 'is running or paused, and what the run has spent of each of ' ..
-                'the three limits that can stop it. On, because it is the only ' ..
+                'the four limits that can stop it. On, because it is the only ' ..
                 'place a running program\'s budget can be seen, and it leaves ' ..
                 'the screen the moment the program ends. A player\'s own ' ..
                 'choice, made in the editor, overrides this.'
