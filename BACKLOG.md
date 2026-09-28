@@ -105,19 +105,6 @@ program sees and what is left after it fails are unchecked. Never run.
 command rather than after each shape. Last pass at `9c369c7`, engine 5.17.0,
 2026-09-24.
 
-### P3 · the footprint throttle actually throttling
-
-`todo` `playtest`
-
-Not a pass at `2b5b913`, 2026-09-28: the throttle never bit. `cube(2, 2, 30000)`
-is 120000 nodes, over codelevel 1's `max_nodes_written`, and at 2 and up its
-30 MB fits the footprint, so over generated ground it finished in 0.5 to 1 s.
-**The recipe predates `B-S-3`**: in fresh ground it now tests
-`max_map_generated`, which failed at 2 facing west and north, and at 3 passed
-at 73% and 70% or failed, the line crossing one mapchunk or two depending on
-where it starts. That spread is the charge being exact, not a defect. Facing
-west nothing was seen until the end: `B-S-4`.
-
 ## Closed
 
 **A check listed here is done against a commit, not for good.** Its recipe is
@@ -304,6 +291,7 @@ whoever re-runs it knows what they are re-reading against.
 - `W6` done `playtest` 2026-09-24 · the drone's entity goes away and comes back; pass at `4b61623`, engine 5.17.0, after `F-D-1` changed the re-spawn
 - `W7` done `playtest` 2026-09-07 · `print` sends every argument, in one line
 - `T-S-3` done `playtest` 2026-09-28 · throughput, and the game while a drone builds; pass at `2b5b913`: `mosely.lua` at `pow(3, 4)` after a `sleep(2)`, mean of 3, 5.2 s focused, 4.8 s unfocused, 6.9 s on a server, and digging beside it stayed responsive
+- `P3` done `playtest` 2026-09-28 · the footprint throttle actually throttling; pass at `2b5b913` on the recipe rewritten after `B-S-3`: `cube(1, 1, 30000)` at codelevel 1 over ground a level 4 run had generated took 24 s, pausing then finishing, against ~26 s for 875 mapblocks over the 16 MB ceiling to drain in the 29 s window; the display read 30 KB during the pause, unexplained. At 2 and up the line fits the footprint and never waits; in fresh ground it tests `max_map_generated` instead
 - `P1` done `playtest` 2026-09-28 · `pace_ms` at the low codelevels; pass at `2b5b913`
 - `P2` done `playtest` 2026-09-28 · slab progression under the step budget; pass at `2b5b913`
 - `P4` done `playtest` 2026-09-28 · several drones at once; pass at `2b5b913`: at codelevel 4 `mosely.lua` at `pow(3, 4)` took ~7 s alone and 14 s each for two, one pool split in half; at codelevel 2 four drones on `pow(3, 3)` took 107 s each against 109 s alone, a paced drone running one command per step and spending almost none of its share
