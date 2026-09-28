@@ -74,24 +74,30 @@ has to stay fast; `get_block` and `is_block` must read `param2`, since
 `by_node[itemstring]` cannot tell 256 colours apart; and the block picker cannot
 enumerate 256 x 3.
 
-### F-S-3 · budget a share of the step, weighted by codelevel
-
-`todo` `medium` `filed 2026-09-24` `target: v1.1.0`
-
-A drone gets a fixed slice of each step, up to 8 ms, so the same codelevel works
-about half the time in singleplayer, a tenth on a dedicated server and a twelfth
-with the game window unfocused. The pool is split equally and then capped, so a
-low codelevel's capped remainder and a paced drone's unspent slice go to nobody.
-
-**Do:** one setting, `codeblock_server_share`, defaulting to 80% in singleplayer
-and 33% otherwise, taken of `dtime` clamped to about 0.2 s, replacing the two µs
-settings through the `retired` table. Share it in one pass over the awake drones
-sorted by level cap, each getting its weight's part of what is left and paying
-what it actually spent, with a floor per share so an overshoot cannot starve the
-last drone. `stepper.budget` stays arithmetic, and its spec pins that the
-planned total never exceeds the share of the step.
-
 ## Tests
+
+### T-S-3 · throughput, and the game while a drone builds
+
+`todo` `playtest`
+
+`F-S-3` made the drones' pool a share of the step rather than a fixed time.
+The drone should build at a similar rate with the game window focused and
+unfocused, and digging and placing by hand should stay responsive beside it.
+Never run.
+
+### P4 · several drones at once
+
+`todo` `playtest`
+
+`F-S-3` shares the pool by `step_share` and passes on what a drone leaves.
+Last pass 2026-08-27.
+
+### P1 · `pace_ms` at the low codelevels
+
+`todo` `playtest`
+
+`F-S-3` changed how much of a step a novice drone gets, beside its pace. Last
+pass 2026-08-27.
 
 ### T-S-2 · small shapes, `place` and `get_block` sharing a mapblock
 
@@ -238,6 +244,7 @@ whoever re-runs it knows what they are re-reading against.
 
 ### Features
 
+- `F-S-3` done `medium` 2026-09-28 · the drones share a percent of the step, `codeblock_server_share`, 50 in singleplayer and 33 on a server, of `dtime` clamped to 0.2 s, split in one pass by a per-codelevel `step_share` of 25/50/100/100 that is both weight and ceiling; what a capped or sleeping drone leaves goes to the next, and a floor keeps an overshoot from starving the last; both µs settings retired
 - `F-S-1` done `large` 2026-09-24 · a shape leaves its last box open, and the shapes after it that fit inside write into it, so many small shapes pay one read, write and relight per mapblock per step; `mosely.lua` at `pow(3, 4)` went from 106 s to 19 s headless with an identical map and light, its peak footprint halved; `place()` stays a `set_node`, which runs the replaced node's callbacks
 - `F-S-4` done `medium` 2026-09-24 · a shape is written in boxes of at most 16 mapblocks cut on all three axes, not slabs along one, so no pass stalls longer than one box whatever the shape; a box the shape does not reach is loaded and charged but not passed, bottom up so the shadow above it can reach it
 - `F-S-2` dropped `medium` 2026-09-24 · relighting once per shape with `core.fix_light` after `write_to_map(false)` was up to 1.9x slower than relighting each pass in open air and level underground, measured headless on 5.17.0; lighting is 60 to 97% of a pass in open air, and fewer relights is `F-S-1`'s to win
@@ -309,8 +316,6 @@ whoever re-runs it knows what they are re-reading against.
 - `W6` done `playtest` 2026-09-24 · the drone's entity goes away and comes back; pass at `4b61623`, engine 5.17.0, after `F-D-1` changed the re-spawn
 - `W7` done `playtest` 2026-09-07 · `print` sends every argument, in one line
 - `T-D-1` done `playtest` 2026-09-24 · the drone is drawn once per step; pass at `4b61623`, engine 5.17.0, all four cases
-- `P1` done `playtest` 2026-08-27 · `pace_ms` at the low codelevels
-- `P4` done `playtest` 2026-08-27 · several drones at once
 - `R1` done `playtest` 2026-09-24 · the archive contains no `tests/`; pass against the `v1.0.0` tag, `f75766b`: top level is `doc`, `lib`, `locale`, `textures` and the files, with `screenshot.png`
 - `R2` done `playtest` 2026-09-24 · a real install with the test flag set; pass against the `v1.0.0` tag, `f75766b`, engine 5.17.0, headless: the mod loads, logs that the build ships no `tests/`, no error. `vector3` was the working copy, not the ContentDB package
 - `R3` done `playtest` 2026-09-09 · the sky belongs to the game

@@ -68,7 +68,7 @@ local config = {
     heap_mb = {1, 2, 4, 8},
     max_string_mb = {1, 2, 4, 8},
     pace_ms = {300, 50, 0, 0},
-    step_budget_us = {1000, 2000, 4000, 8000},
+    step_share = {25, 50, 100, 100},
     map_window_s = 10
 }
 
@@ -88,7 +88,7 @@ do
     it('heap becomes kB', b.caps.heap_kb, 2048)
     it('the string ceiling becomes bytes', b.caps.string_bytes, 2 * 1024 * 1024)
     it('pace becomes microseconds', b.caps.pace, 50000)
-    it('the step budget is passed through', b.caps.step, 2000)
+    it('the step share is passed through', b.caps.share, 50)
 
     it('nothing is spent yet', b.used.nodes, 0)
     it('nothing is held yet', b.used.map, 0)
@@ -100,7 +100,7 @@ do
         max_nodes_written = {1}, max_map_generated = {1}, max_runtime_s = {1},
         map_memory_mb = {1},
         heap_mb = {1}, max_string_mb = {1}, pace_ms = {0},
-        step_budget_us = {1}
+        step_share = {1}
     }, 1, 0)
     it('an unstated window falls back to the unload default', d.window, 29e6)
 

@@ -49,15 +49,29 @@ end
 -- how much of a step one drone gets
 --------------------------------------------------------------------------------
 
---- The smaller of a drone's codelevel cap and an equal share of the pool.
+--- One drone's slice of the pool, in the pool's unit, during one pass.
 --
--- Without the pool, every drone gets its own allowance and the server's cost
--- grows with the number of players: N drones cost N budgets per step. With it,
--- the total is bounded and adding a player slows everyone equally instead of
--- charging the server more. Arithmetic only, so it can be tested. (S5)
-function stepper.budget(cap, pool, running)
-    local share = pool / (running > 1 and running or 1)
-    return share < cap and share or cap
+-- The pool is one share of the step for every awake drone together, so the
+-- server's cost does not grow with the number of players (S5). The caller
+-- walks the drones lowest weight first and takes off `left` what each really
+-- spent, so a capped or sleeping drone's remainder goes to those after it.
+--
+--   pool     the whole pool this step
+--   left     what the drones before this one left of it
+--   weight   this drone's step_share, a percent: its weight and its ceiling
+--   weights  the weights of this drone and every one after it
+--   total    the weights of every drone in the pass
+--
+-- The floor, half the drone's fair part of the whole pool, binds only once an
+-- earlier drone overshot: without an overshoot, left / weights never falls
+-- below pool / total, so the grants never add up to more than the pool.
+-- Arithmetic only, so it can be tested. (F-S-3)
+function stepper.budget(s)
+    local grant = s.left * s.weight / s.weights
+    local floor = s.pool * s.weight / s.total / 2
+    local ceiling = s.pool * s.weight / 100
+    if grant < floor then grant = floor end
+    return grant < ceiling and grant or ceiling
 end
 
 --------------------------------------------------------------------------------
@@ -86,7 +100,8 @@ end
 
 --- Run `drone`'s coroutine until its budget is spent or it stops.
 --
--- Returns resumes, outcome, err where outcome is one of:
+-- Returns resumes, outcome, err, spent, where spent is the microseconds the
+-- step took and outcome is one of:
 --   'yielded'    still running, budget spent - resume again next step
 --   'completed'  the program finished
 --   'error'      it raised; `err` is the message
@@ -102,7 +117,7 @@ function stepper.advance(drone, budget_us)
     local now = deps.now
 
     -- Asleep: nothing to do this step, and no time charged for finding out.
-    if not stepper.awake(drone) then return 0, 'yielded' end
+    if not stepper.awake(drone) then return 0, 'yielded', nil, 0 end
     drone.wake_at = nil
 
     local started = now()
@@ -171,9 +186,10 @@ function stepper.advance(drone, budget_us)
     -- here: a drone that waited, or one on a busy server, is not charged for
     -- being slow. A run out of time reports it, unless it has already finished
     -- or failed for a better reason.
-    local within = charge(drone.budget, 'runtime', now() - started)
+    local spent = now() - started
+    local within = charge(drone.budget, 'runtime', spent)
 
-    return resumes, outcome or (within and 'yielded' or 'timeout'), err
+    return resumes, outcome or (within and 'yielded' or 'timeout'), err, spent
 end
 
 return stepper

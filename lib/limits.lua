@@ -52,7 +52,7 @@ function limits.new(config, level, now)
             heap_kb = config.heap_mb[level] * 1024,
             string_bytes = config.max_string_mb[level] * 1024 * 1024,
             pace = config.pace_ms[level] * 1000,
-            step = config.step_budget_us[level]
+            share = config.step_share[level]
         },
         -- heap_kb is the peak growth seen, not a running total: it is measured
         -- rather than counted, so nothing charges it. Kept so the display can

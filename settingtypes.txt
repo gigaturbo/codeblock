@@ -44,15 +44,20 @@ codeblock_max_file_kb (Maximum program file size) int 128 1 640
 #    nothing, as a waiting drone is not running.
 codeblock_pace_ms (Pace between commands) string 250,5,0,0
 
-#    Microseconds one drone may spend advancing its program per server step. A
-#    cap, not an allowance: a drone gets the smaller of this and its share of
-#    the server budget below.
-codeblock_step_budget_us (Step budget per drone) string 1000,2000,4000,8000
+#    Percent of the drones' share of the server step, below, that one drone may
+#    take. Also its weight when several run: a drone at 50 beside one at 100
+#    gets a third. What one drone leaves unused goes to the others. Zero is not
+#    allowed.
+codeblock_step_share (Step share per drone) string 25,50,100,100
 
-#    Microseconds per server step for all running drones together, divided
-#    equally among them. Without it, each new drone costs the server another
-#    full budget. A dedicated server steps roughly every 90000 microseconds.
-codeblock_server_step_budget_us (Step budget for all drones) int 16000 1000 90000
+#    Percent of each server step all running drones together may spend, shared
+#    out by the step share above. Measured against how long a step really lasts,
+#    which varies with the server and the game, so a codelevel gets the same
+#    part of the server's time everywhere. The time the drones spend lengthens
+#    the step, so a busy server slows down by up to 1 / (1 - share).
+#    Leave empty for the built-in default, which is 50 in singleplayer, where
+#    the player is the one waiting for the build, and 33 on a server.
+codeblock_server_share (Share of the server step for all drones) string
 
 [Work limits]
 

@@ -361,10 +361,12 @@ do
     end)
     Drone.instances[spec_player] = mover
 
-    Drone.on_step(0)
+    -- A step of 20 ms: the pool is a share of the step's length, so a step of
+    -- zero gives the drone no time and it stops after one command. (F-S-3)
+    Drone.on_step(0.02)
     it('a drone that moved fifty times in a step is pushed once', pushes, 1)
     it('to where it ended', mover.shown.z, 50)
-    Drone.on_step(0)
+    Drone.on_step(0.02)
     it('and not again while it stands still', pushes, 1)
 
     Drone.instances[spec_player] = nil
@@ -382,7 +384,7 @@ end
 do
     local cfg = codeblock.config
     local names = {
-        'pace_ms', 'step_budget_us', 'max_runtime_s', 'max_nodes_written',
+        'pace_ms', 'step_share', 'max_runtime_s', 'max_nodes_written',
         'map_memory_mb', 'heap_mb', 'max_string_mb', 'max_map_generated'
     }
     local wrong = {}
@@ -402,7 +404,7 @@ do
        table.concat(cfg.auth_levels, ','), '1,2,3,4')
     it('the default codelevel is a level that exists',
        (cfg.auth_levels[cfg.default_auth_level] ~= nil), true)
-    it('the server step budget is a number', type(cfg.server_step_budget_us),
+    it('the server share is a number', type(cfg.server_share),
        'number')
     -- Read from the engine's own server_unload_unused_data_timeout, because the
     -- map footprint budget decays over exactly that window.

@@ -50,7 +50,13 @@ local step_budget = codeblock.stepper.budget
 local awake = codeblock.stepper.awake
 
 local max_runtime_s = codeblock.config.max_runtime_s
-local server_step_budget_us = codeblock.config.server_step_budget_us
+local server_share = codeblock.config.server_share
+
+-- The longest step the pool is a share of, in seconds. A step after a stall
+-- or a load can last seconds, and a share of it would stall the next one.
+local MAX_STEP_S = 0.2
+
+local function by_share(a, b) return a.budget.caps.share < b.budget.caps.share end
 
 local blocks = codeblock.config.allowed_blocks.all
 -- What a bare place() uses until a player chooses otherwise. Described in
@@ -387,10 +393,11 @@ local drone_mt = {
         -- every drone standing still for server_unload_unused_data_timeout.
         -- (B50, B52)
         --
-        -- One pass, because the share each drone gets needs the number of them
-        -- running: counted per entity, that was a scan of every drone for every
-        -- drone. It is counted rather than kept as a running total because a
-        -- drone can stop for reasons that never pass through here.
+        -- The awake drones share one pool, a server_share of the step, in one
+        -- pass lowest step_share first, each paying what it really spent, so
+        -- what a capped or sleeping drone leaves goes to the drones after it.
+        -- See stepper.budget. Collected afresh each step rather than kept,
+        -- because a drone can stop for reasons that never pass through here.
         --
         -- Clearing a key during pairs is defined in Lua 5.1 and adding one is
         -- not; Drone.finish only ever removes.
@@ -398,10 +405,14 @@ local drone_mt = {
 
             -- Sleeping drones are left out: they will spend nothing this step,
             -- so they must not take a share either.
-            local running = 0
+            local running, total = {}, 0
             for _, d in pairs(Drone.instances) do
-                if d.cor ~= nil and awake(d) then running = running + 1 end
+                if d.cor ~= nil and awake(d) then
+                    running[#running + 1] = d
+                    total = total + d.budget.caps.share
+                end
             end
+            table.sort(running, by_share)
 
             respawn_wait = respawn_wait - dtime
             local respawn = respawn_wait <= 0
@@ -428,23 +439,27 @@ local drone_mt = {
                         show_nametag(drone)
                     end
                 end
+            end
 
-                -- Advance for up to this drone's slice of the step rather than
-                -- exactly one resume; see lib/stepper.lua for why, and for why
-                -- the slice shrinks as more drones run. The string guards are
-                -- armed for the span in which player code runs and released
-                -- inside advance().
-                if drone.cor ~= nil then
-                    local budget = step_budget(drone.budget.caps.step,
-                                               server_step_budget_us, running)
-                    local _, outcome, err = advance(drone, budget)
-                    if outcome ~= 'yielded' then
-                        Drone.finish(drone, outcome, err)
-                    else
-                        show(drone)
-                    end
+            -- Advance each for up to its slice of the step rather than exactly
+            -- one resume; see lib/stepper.lua for why. The string guards are
+            -- armed for the span in which player code runs and released inside
+            -- advance().
+            local pool = server_share / 100 *
+                             (dtime < MAX_STEP_S and dtime or MAX_STEP_S) * 1e6
+            local left, weights = pool, total
+            for _, drone in ipairs(running) do
+                local weight = drone.budget.caps.share
+                local _, outcome, err, spent = advance(drone, step_budget{
+                    pool = pool, left = left, weight = weight,
+                    weights = weights, total = total
+                })
+                left, weights = left - spent, weights - weight
+                if outcome ~= 'yielded' then
+                    Drone.finish(drone, outcome, err)
+                else
+                    show(drone)
                 end
-
             end
 
         end,

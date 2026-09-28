@@ -119,26 +119,31 @@ local SETTINGS = {
             }
         },
         {
-            name = 'step_budget_us',
-            label = 'Step budget per drone',
+            name = 'step_share',
+            label = 'Step share per drone',
             kind = 'per_level',
             text = {
-                'Microseconds one drone may spend advancing its program per ' ..
-                'server step. A cap, not an allowance: a drone gets the smaller ' ..
-                'of this and its share of the server budget below.'
+                'Percent of the drones\' share of the server step, below, that ' ..
+                'one drone may take. Also its weight when several run: a drone ' ..
+                'at 50 beside one at 100 gets a third. What one drone leaves ' ..
+                'unused goes to the others. Zero is not allowed.'
             }
         },
         {
-            name = 'server_step_budget_us',
-            label = 'Step budget for all drones',
-            kind = 'int',
-            min = 1000,
-            max = 90000,
+            name = 'server_share',
+            label = 'Share of the server step for all drones',
+            kind = 'string',
             text = {
-                'Microseconds per server step for all running drones together, ' ..
-                'divided equally among them. Without it, each new drone costs ' ..
-                'the server another full budget. A dedicated server steps ' ..
-                'roughly every 90000 microseconds.'
+                'Percent of each server step all running drones together may ' ..
+                'spend, shared out by the step share above. Measured against ' ..
+                'how long a step really lasts, which varies with the server ' ..
+                'and the game, so a codelevel gets the same part of the ' ..
+                'server\'s time everywhere. The time the drones spend ' ..
+                'lengthens the step, so ' ..
+                'a busy server slows down by up to 1 / (1 - share).',
+                'Leave empty for the built-in default, which is 50 in ' ..
+                'singleplayer, where the player is the one waiting for the ' ..
+                'build, and 33 on a server.'
             }
         }
     }},

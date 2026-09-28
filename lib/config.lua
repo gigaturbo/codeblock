@@ -199,19 +199,28 @@ codeblock.config.max_nodes_written = {1e5, 5e5, 1e6, 5e7}
 -- sphere(100) in new ground is 48.
 codeblock.config.max_map_generated = {2000, 16000, 64000, 512000}
 
--- How long, in microseconds, one drone may spend advancing its program during
--- a single server step. See lib/stepper.lua.
+-- How much of the drones' pool, in percent, one drone may take in a server
+-- step, and its weight when several share it. See stepper.budget.
 --
--- A dedicated server steps every ~90ms by default, so 8ms is under a tenth of
--- a step at the top codelevel. It is a cap per drone, not an allowance: what a
--- drone actually gets is the smaller of this and its share of
--- server_step_budget_us below.
-codeblock.config.step_budget_us = {1000, 2000, 4000, 8000}
+-- A percent rather than a time, because a step lasts ~16 ms in singleplayer,
+-- ~90 ms on a dedicated server and ~100 ms with the game window unfocused, so a
+-- fixed time was a different speed in each. A ceiling as well as a weight, so a
+-- novice running alone does not take the whole pool. (F-S-3)
+codeblock.config.step_share = {25, 50, 100, 100}
 
--- The whole mod's slice of one server step, in microseconds, divided equally
--- among the drones currently running. Without it, N drones cost N budgets per
--- step and the server's cost grows with the number of players. (S5)
-codeblock.config.server_step_budget_us = number('server_step_budget_us', 16000)
+-- The drones' pool: the percent of each server step all awake drones together
+-- may spend running, shared by step_share. Half in singleplayer, where the
+-- player is the one waiting for the build, and a third on a server. The drones'
+-- time lengthens the step it is a share of, so a busy step grows to at most
+-- 1 / (1 - share) of the rest of the server's work. (F-S-3)
+local share = singleplayer and 50 or 33
+local asked_share = number('server_share', share)
+if asked_share > 0 and asked_share <= 100 then
+    share = asked_share
+else
+    warn('server_share', 'is not a percent above 0 and up to 100; ignored')
+end
+codeblock.config.server_share = share
 
 -- How much Lua heap growth, in megabytes, one program run may be responsible
 -- for before it is stopped. Checked where the drone yields, so it catches a
@@ -243,9 +252,20 @@ codeblock.config.map_window_s =
 -- in the config is a codelevel limit and takes one setting; auth_levels is the
 -- list of levels themselves, not a limit, so it keeps its values. The block
 -- tables are not assigned yet, which is why this runs here and not at the end.
+local default_step_share = codeblock.config.step_share
 for name, default in pairs(codeblock.config) do
     if name ~= 'auth_levels' and type(default) == 'table' and #default == 4 then
         codeblock.config[name] = per_level(name, default)
+    end
+end
+
+-- A step_share of zero is a drone that is never advanced and so never times
+-- out either: its program hangs until the player stops it.
+for i = 1, 4 do
+    if codeblock.config.step_share[i] == 0 then
+        warn('step_share', 'has a zero; using the defaults')
+        codeblock.config.step_share = default_step_share
+        break
     end
 end
 
@@ -264,7 +284,9 @@ local retired = {
     max_memory_kb = 'use codeblock_heap_mb',
     max_string_bytes = 'use codeblock_max_string_mb',
     commands_before_yield = 'use codeblock_pace_ms',
-    calls_before_yield = 'use codeblock_pace_ms'
+    calls_before_yield = 'use codeblock_pace_ms',
+    step_budget_us = 'use codeblock_step_share',
+    server_step_budget_us = 'use codeblock_server_share'
 }
 for old, advice in pairs(retired) do
     local raw = settings and settings:get('codeblock_' .. old)

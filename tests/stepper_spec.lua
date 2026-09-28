@@ -123,26 +123,66 @@ do
 end
 
 --------------------------------------------------------------------------------
--- one pool, shared (S5)
+-- one pool, shared by weight (S5, F-S-3)
 --
 -- stepper.budget is arithmetic and nothing else, which is the point: the claim
--- "N drones no longer cost N budgets per step" is checkable without a server.
+-- "N drones never cost more than the pool" is checkable without a server.
+-- `share_out` walks the drones as lib/drone.lua's on_step does, lowest weight
+-- first, each spending `spend(grant)` of what it is granted.
 --------------------------------------------------------------------------------
 
 do
     local budget = stepper.budget
 
-    it('one drone gets its whole codelevel cap', budget(8000, 16000, 1), 8000)
-    it('two drones still fit under the cap', budget(8000, 16000, 2), 8000)
-    it('four drones share the pool', budget(8000, 16000, 4), 4000)
-    it('sixteen drones share it further', budget(8000, 16000, 16), 1000)
+    local function share_out(pool, weights, spend)
+        table.sort(weights)
+        local total = 0
+        for _, w in ipairs(weights) do total = total + w end
+        local grants, left, rest = {}, pool, total
+        for i, w in ipairs(weights) do
+            grants[i] = budget{pool = pool, left = left, weight = w,
+                               weights = rest, total = total}
+            local spent = spend and spend(grants[i], i) or grants[i]
+            left, rest = left - spent, rest - w
+        end
+        return grants
+    end
 
-    -- The old behaviour, for comparison: 16 drones at 8000 each was 128000us of
-    -- a 90000us step. The share keeps the total at the pool.
-    it('the total never exceeds the pool', 16 * budget(8000, 16000, 16), 16000)
+    local function sum(t)
+        local n = 0
+        for _, v in ipairs(t) do n = n + v end
+        return n
+    end
 
-    it('a low codelevel keeps its own smaller cap', budget(1000, 16000, 2), 1000)
-    it('a count of zero is treated as one', budget(8000, 16000, 0), 8000)
+    it('a top-level drone alone gets the whole pool', share_out(1000, {100})[1], 1000)
+    it('a novice alone is held to its ceiling', share_out(1000, {25})[1], 250)
+    it('two equal drones halve the pool', share_out(1000, {100, 100})[2], 500)
+    it('a weight of 50 beside 100 gets a third', share_out(1200, {50, 100})[1], 400)
+    it('and the 100 gets the rest', share_out(1200, {50, 100})[2], 800)
+
+    -- The capped remainder goes to whoever is next instead of to nobody: 25
+    -- beside 100 is a fifth of the pool by weight, under its ceiling of a
+    -- quarter, but a drone that goes to sleep after 10 leaves the rest.
+    local slept = share_out(1000, {25, 100},
+                       function(g, i) return i == 1 and 10 or g end)
+    it('a sleeping drone\'s slice goes to the next', slept[2], 990)
+
+    -- Planned, with every drone spending exactly its grant, the pool is never
+    -- exceeded, whatever mix of levels is awake.
+    local over = {}
+    for _, ws in ipairs({{25}, {25, 25, 25}, {25, 50, 100, 100},
+                         {100, 100, 100, 100, 100, 100, 100, 100},
+                         {25, 25, 50, 50, 100, 100, 100}, {50, 100}}) do
+        local total = sum(share_out(9000, ws))
+        if total > 9000 + 1e-6 then over[#over + 1] = total end
+    end
+    it('the planned total never exceeds the pool', table.concat(over, ','), '')
+
+    -- One overshoot, a box of a shape running long, cannot starve the rest:
+    -- each still gets half its fair part of the whole pool.
+    local starved = share_out(1000, {100, 100, 100, 100},
+                         function(g, i) return i == 1 and 5000 or g end)
+    it('after an overshoot a drone keeps its floor', starved[4], 125)
 end
 
 --------------------------------------------------------------------------------

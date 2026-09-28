@@ -5,7 +5,7 @@ Drone capacities depends on the user's _codelevel_ which can be set with the `/c
 | codelevel         | 1 (novice) | 2 (intermediate) | 3 (advanced) | 4 (poweruser) | description                                                    |
 |-------------------|------------|------------------|--------------|---------------|----------------------------------------------------------------|
 | pace_ms           |        250 |                5 |            0 |             0 | wait after each drone command, in milliseconds (0 = no wait)   |
-| step_budget_us    |       1000 |             2000 |         4000 |          8000 | time (µs) one drone may spend running per server step          |
+| step_share        |         25 |               50 |          100 |           100 | share (%) of the drones' step time one drone may take          |
 | max_runtime_s     |         30 |               60 |          120 |           300 | total running time (s) one program gets                        |
 | max_nodes_written |        1e5 |              5e5 |          1e6 |           5e7 | nodes one program may write, and so the size of a single shape |
 | max_map_generated |       2000 |            16000 |        64000 |        512000 | mapblocks of new map one program may make the server generate  |
@@ -91,15 +91,18 @@ computing it. (`format` cannot: Lua accepts at most two digits of field width, s
 Neither limit can stop a pathological Lua pattern from burning CPU inside a
 single `find` or `match` call. That is a known gap.
 
-`step_budget_us` is how long a drone may spend running its program during one
-server step. It advances repeatedly until the budget is spent, so throughput
-follows the headroom the server has spare rather than the tick rate.
+`step_share` is how much of the drones' time in one server step a drone may
+take. The drones together get a share of each step, `codeblock_server_share`:
+50% in singleplayer and 33% on a server by default. Each running drone gets a
+part of it in proportion to its `step_share`, and never more than that percent
+of it. A drone keeps running its program until its part is spent, so throughput
+follows the time the server has to spare rather than the tick rate.
 
-It is a cap rather than an allowance. What a drone actually gets is the smaller of
-it and an equal share of `codeblock_server_step_budget_us`, 16000 µs by default,
-divided among the drones currently running. So the server's cost does not grow
-with the number of players: a second drone halves the share rather than doubling
-the bill.
+Because it is a share of the step rather than a fixed time, a codelevel gets
+the same part of the server's time in singleplayer, on a dedicated server and
+with the game window unfocused. A second drone divides the share rather than
+doubling the bill, and what one drone leaves unused, because it is paced or
+waiting, goes to the others.
 
 One limit worth knowing: the budget is checked between drone commands and between
 the slabs of a shape, never inside one, so a single slab — a few thousand nodes,
