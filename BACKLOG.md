@@ -29,7 +29,20 @@ in-world check recipes are in its `references/playtests.md`.
 
 ## Bugs
 
-Nothing open.
+### B-S-4 · a shape facing west or south is built from its far end
+
+`todo` `low` `filed 2026-09-28`
+
+`shapes.build` writes its boxes from the shape's lowest corner, which is the
+drone's end only when the shape grows toward +x or +z. `cube(2, 2, 30000)`
+facing west starts 30000 nodes away, past the 192 nodes a client is sent, so
+nothing appears until the last boxes, and a run stopped midway leaves only the
+far part, out of sight. Found by `P3` at `2b5b913`, 2026-09-28.
+
+**Do:** walk x and z from the reference point's side. y stays bottom up, which
+lighting needs (`B-S-1`), so a shape growing down keeps building from below.
+Also unexplained: at codelevel 3 in fresh ground west took 71 s and north 37 s,
+which the order may or may not account for.
 
 ## Features
 
@@ -76,16 +89,6 @@ enumerate 256 x 3.
 
 ## Tests
 
-### T-S-3 · throughput, and the game while a drone builds
-
-`todo` `playtest`
-
-`F-S-3` made the drones' pool a share of the step rather than a fixed time.
-Rate half at `2b5b913`, 2026-09-28: `mosely.lua` at `pow(3, 4)` after a
-`sleep(2)`, mean of 3, took 5.2 s focused, 4.8 s unfocused and 6.9 s on a
-server, the server's third of a step against singleplayer's half. Open on the
-other half: whether digging and placing by hand stay responsive beside it.
-
 ### T-S-2 · small shapes, `place` and `get_block` sharing a mapblock
 
 `todo` `playtest`
@@ -106,14 +109,14 @@ command rather than after each shape. Last pass at `9c369c7`, engine 5.17.0,
 
 `todo` `playtest`
 
-Not a pass at `2b5b913`, 2026-09-28, and not about the throttle: at codelevel 4
-`cube(2, 2, 30000)` completed, but 4 has the footprint to hold it without
-waiting, and at 1 to 3 the run failed before the throttle could bite, at 1 on
-`max_nodes_written` (120000 nodes against 1e5) and at 2 and 3 on generating
-map. Along one facing blocks appeared, the drone waited, then it failed on
-mapgen; along the other it waited first, then built when mapgen allowed.
-**The recipe predates `B-S-3`**, which made fresh ground charge
-`max_map_generated` before a write, so it now tests that limit instead.
+Not a pass at `2b5b913`, 2026-09-28: the throttle never bit. `cube(2, 2, 30000)`
+is 120000 nodes, over codelevel 1's `max_nodes_written`, and at 2 and up its
+30 MB fits the footprint, so over generated ground it finished in 0.5 to 1 s.
+**The recipe predates `B-S-3`**: in fresh ground it now tests
+`max_map_generated`, which failed at 2 facing west and north, and at 3 passed
+at 73% and 70% or failed, the line crossing one mapchunk or two depending on
+where it starts. That spread is the charge being exact, not a defect. Facing
+west nothing was seen until the end: `B-S-4`.
 
 ## Closed
 
@@ -300,6 +303,7 @@ whoever re-runs it knows what they are re-reading against.
 - `W5` done `playtest` 2026-09-04 · a drone that stands still far away keeps running
 - `W6` done `playtest` 2026-09-24 · the drone's entity goes away and comes back; pass at `4b61623`, engine 5.17.0, after `F-D-1` changed the re-spawn
 - `W7` done `playtest` 2026-09-07 · `print` sends every argument, in one line
+- `T-S-3` done `playtest` 2026-09-28 · throughput, and the game while a drone builds; pass at `2b5b913`: `mosely.lua` at `pow(3, 4)` after a `sleep(2)`, mean of 3, 5.2 s focused, 4.8 s unfocused, 6.9 s on a server, and digging beside it stayed responsive
 - `P1` done `playtest` 2026-09-28 · `pace_ms` at the low codelevels; pass at `2b5b913`
 - `P2` done `playtest` 2026-09-28 · slab progression under the step budget; pass at `2b5b913`
 - `P4` done `playtest` 2026-09-28 · several drones at once; pass at `2b5b913`: at codelevel 4 `mosely.lua` at `pow(3, 4)` took ~7 s alone and 14 s each for two, one pool split in half; at codelevel 2 four drones on `pow(3, 3)` took 107 s each against 109 s alone, a paced drone running one command per step and spending almost none of its share
