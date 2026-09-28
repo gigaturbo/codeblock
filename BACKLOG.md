@@ -29,68 +29,7 @@ in-world check recipes are in its `references/playtests.md`.
 
 ## Bugs
 
-### B-S-3 · a write into a chunk mapgen is generating is silently reverted
-
-`open` `medium` `filed 2026-09-24`
-
-`sphere(100)` built beside freshly explored ground came out with a
-mapblock-aligned hole about 32 x 64 nodes, and the run reported *completed*.
-Reproduced by spamming place and run. The tiling is not the cause: at four
-positions, off-grid included, `sphere(100)` writes all 4,252,701 nodes exactly
-once. The emerge thread copies a mapchunk and its one-mapblock border,
-generates with the environment lock released, then blits the copy back over
-whatever the main thread wrote meanwhile (`finishBlockMake`, 5.4.0 to 5.17.0).
-Every shape pass and every `place()` is exposed, since `v1.0.0`.
-
-**`F-S-1` makes it worse, by being faster.** Headless, `mosely.lua` at
-`pow(3, 4)` with an emerge request over its area every third step: 2 runs of 5
-wrong at `5dd7411`, by 72 and 126 nodes; 3 of 3 wrong with `F-S-1`, by 539 to
-8,098, the build finishing in 4 s instead of 29 while the chunks under it are
-still generating. Without the emerge requests, `pow(3, 5)` is exact. In-world,
-`pow(3, 5)` came out with several mapblock-sized holes.
-
-**What it costs**, probed headless on 5.17.0 with one emerge thread, the
-default for every mapgen but singlenode. A mapchunk takes ~200 ms in Mineclonia
-(v7) and ~25 ms flat, so the wait is the new chunks a shape touches: 0.2 to
-0.6 s for a `place()` in new ground, 8.4 s for `sphere(100)` in Mineclonia and
-1.3 s flat. Drones queue on the one thread: 16 small shapes far apart, the last
-waited 13 s. Over generated map a request answers in 0 to 34 ms, but the drone
-resumes a step later, so each shape pays 50 to 90 ms regardless. Server steps
-peaked at 189 to 323 ms against 70 idle, none over 500. A forced request counts
-toward `emergequeue_limit_total`, 1024, so `sphere(100)`'s 3,840 blocks refuse
-a player's own terrain loading until they drain.
-
-**Built on `b-s-3-wait-for-mapgen`, not merged.** Headless, the `mosely.lua`
-harness above with its emerge requests: 6 runs of 6 exact, in 19 to 28 s; with
-`codeblock_wait_for_mapgen` off, 2 of 3 wrong, by -12,978 and +147 nodes. Needs
-the in-world `sphere(100)` beside fresh ground before it closes.
-
-**Waiting makes a write generate map, so that is limited too.** A program
-placing one node per mapblock across 8000 x 8000 nodes generated ~10,700
-chunks at codelevel 4, charged 0.3 s of runtime per 120 s. So
-`max_map_generated`, in mapblocks, `2000 / 16000 / 64000 / 512000`, about
-16 to 4096 chunks, stops a run like the node ceiling; that program stops at
-codelevel 1 after 17 chunks, on its own line. And one drone request is in
-flight server-wide, the turn going to the drone waiting longest: four drones
-generated 900 chunks in 90 s between them, 3,590 to 3,635 nodes each, against
-908 for one alone. Only a write waits: `get_block` generates nothing. Charging
-the wait as runtime was declined: a mod cannot time a chunk, and the wait
-includes queueing behind others (`B46`).
-
-**Do:** before a shape's first pass and before `place()`, `core.emerge_area` the
-bounds grown by one mapblock, sleep the drone until every callback has arrived,
-and retry any `EMERGE_CANCELLED`. Charge the footprint first, and bound one
-request the way a box is, or a long shape pins more than the ceiling and holds
-back players' map loading. Skip the request when every mapchunk it touches is
-in a memo of generated chunks, filled from the callbacks: a chunk is generated once, so the memo stays true,
-except after `core.delete_area`. Clip to `core.get_mapgen_edges()`: a block past
-`mapgen_limit` gets no callback at all, and a chunk whose border crosses it is
-cancelled for ever, so cap the retries too. A stopped run leaves its callbacks
-pending, so they touch no drone. Add a bool setting,
-`codeblock_wait_for_mapgen`, default true, for a game that pre-generates the
-map the drones can reach and confines them to it: off, a write into map being
-generated is lost again, silently. It generates the map a far
-carve lands in, which `B-S-2` declined for looks; this one loses writes.
+Nothing open.
 
 ## Features
 
@@ -195,6 +134,7 @@ whoever re-runs it knows what they are re-reading against.
 
 ### Bugs and findings
 
+- `B-S-3` closed `medium` 2026-09-28 · a write into a mapchunk the engine was generating was overwritten when generation finished, leaving mapblock-sized holes in a completed build; a write now waits for the map one mapblock around it to be generated, bounded per run by `max_map_generated` and to one drone request server-wide, and `codeblock_wait_for_mapgen` turns it off; headless 6 of 6 exact against 2 of 3 wrong, and the in-world `sphere(100)` beside fresh ground passed
 - `B-S-2` wontfix `low` 2026-09-24 · a shape carved into never-generated map keeps its air, but mapgen later lays the biome's top and filler nodes on the carve's floor; the author's call, the game's generator is the place to stop that, and generating before every write would make a far carve wait on mapgen
 - `B-S-1` closed `medium` 2026-09-24 · every shape left the light of the voxels it did not claim stale, the buffer being prefilled with `ignore`, which the engine's relight skips: a hollow shape stayed sky-lit inside, and every air node on a mapblock border around a shape sat one light level low, drawn as dark lines every 16 nodes
 - `B34` wontfix `low` · a file cannot be removed without opening it first; the author's call, not really needed, open it then remove it. Its permanent second effect is that `B14`'s cold-cache removal path can never be reached from the editor
