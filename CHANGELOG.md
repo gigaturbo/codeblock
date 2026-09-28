@@ -4,6 +4,7 @@
   The drone waits for the map around a write to be generated first.
 - [ ] FIX: A carve into unexplored ground no longer grows the game's grass and dirt on its floor.
 - [ ] FIX: Shapes are lit correctly: a hollow shape is dark inside, with no dark lines every 16 nodes around it.
+- [ ] FIX: A long shape facing west or south is built from the drone's end, as the others are, instead of starting at its far end, out of sight.
 - [ ] FIX: A retired setting with no replacement says so, instead of naming a setting that does not exist.
 - [ ] FEATURE: New codelevel limit `max_map_generated`, the new map one program may make the server generate.
   Shown on the HUD and in the drone panel.

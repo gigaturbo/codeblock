@@ -266,6 +266,7 @@ local function drone_place_cube(drone, w, h, l, block, hollow)
 
     build {
         charge = slabs(drone),
+        from = drone,
         kind = 'cube',
         pos = {x = x, y = y, z = z},
         w = w,
@@ -294,6 +295,7 @@ local function drone_place_ccube(drone, w, h, l, block, hollow)
 
     build {
         charge = slabs(drone),
+        from = drone,
         kind = 'cube',
         pos = {x = drone.x, y = drone.y - floor(0.5 * (h - 1)), z = drone.z},
         w = w,
@@ -334,6 +336,7 @@ local function drone_place_sphere(drone, r, block, hollow)
 
     build {
         charge = slabs(drone),
+        from = drone,
         kind = 'sphere',
         pos = {x = x, y = y, z = z},
         r = r,
@@ -354,6 +357,7 @@ local function drone_place_csphere(drone, r, block, hollow)
 
     build {
         charge = slabs(drone),
+        from = drone,
         kind = 'sphere',
         pos = {
             x = round0(drone.x),
@@ -396,6 +400,7 @@ local function drone_place_dome(drone, r, block, hollow)
 
     build {
         charge = slabs(drone),
+        from = drone,
         kind = 'dome',
         pos = {x = x, y = y, z = z},
         r = r,
@@ -416,6 +421,7 @@ local function drone_place_cdome(drone, r, block, hollow)
 
     build {
         charge = slabs(drone),
+        from = drone,
         kind = 'dome',
         pos = {x = drone.x, y = drone.y, z = drone.z},
         r = r,
@@ -476,6 +482,7 @@ local function drone_place_cylinder(drone, o, l, r, block, hollow)
 
     build {
         charge = slabs(drone),
+        from = drone,
         kind = 'cylinder',
         pos = {x = x, y = y, z = z},
         axis = axis,
@@ -514,6 +521,7 @@ local function drone_place_ccylinder(drone, o, l, r, block, hollow)
 
     build {
         charge = slabs(drone),
+        from = drone,
         kind = 'cylinder',
         pos = {x = x, y = y, z = z},
         axis = axis,

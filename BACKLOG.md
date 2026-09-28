@@ -29,20 +29,7 @@ in-world check recipes are in its `references/playtests.md`.
 
 ## Bugs
 
-### B-S-4 · a shape facing west or south is built from its far end
-
-`todo` `low` `filed 2026-09-28`
-
-`shapes.build` writes its boxes from the shape's lowest corner, which is the
-drone's end only when the shape grows toward +x or +z. `cube(2, 2, 30000)`
-facing west starts 30000 nodes away, past the 192 nodes a client is sent, so
-nothing appears until the last boxes, and a run stopped midway leaves only the
-far part, out of sight. Found by `P3` at `2b5b913`, 2026-09-28.
-
-**Do:** walk x and z from the reference point's side. y stays bottom up, which
-lighting needs (`B-S-1`), so a shape growing down keeps building from below.
-Also unexplained: at codelevel 3 in fresh ground west took 71 s and north 37 s,
-which the order may or may not account for.
+Nothing open.
 
 ## Features
 
@@ -115,6 +102,7 @@ whoever re-runs it knows what they are re-reading against.
 
 ### Bugs and findings
 
+- `B-S-4` closed `low` 2026-09-28 · a shape facing west or south was built from its far end, starting past what a client is sent, since the boxes went from its lowest corner; x and z now start at the end nearest the drone, y still bottom up for the light; the 71 s against 37 s `P3` saw at codelevel 3 is not explained by it and was not re-measured
 - `B-S-3` closed `medium` 2026-09-28 · a write into a mapchunk the engine was generating was overwritten when generation finished, leaving mapblock-sized holes in a completed build; a write now waits for the map one mapblock around it to be generated, bounded per run by `max_map_generated` and to one drone request server-wide, and `codeblock_wait_for_mapgen` turns it off; headless 6 of 6 exact against 2 of 3 wrong, and the in-world `sphere(100)` beside fresh ground passed
 - `B-S-2` closed `low` 2026-09-28 · a shape carved into never-generated map kept its air, but mapgen later laid the biome's top and filler nodes on the carve's floor; fixed by `B-S-3`, which generates the map before the write, confirmed in-world; it comes back with `codeblock_wait_for_mapgen` off
 - `B-S-1` closed `medium` 2026-09-24 · every shape left the light of the voxels it did not claim stale, the buffer being prefilled with `ignore`, which the engine's relight skips: a hollow shape stayed sky-lit inside, and every air node on a mapblock border around a shape sat one light level low, drawn as dark lines every 16 nodes

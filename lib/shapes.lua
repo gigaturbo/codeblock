@@ -335,6 +335,8 @@ end
 --   r       radius, for sphere, dome and cylinder
 --   axis    'x', 'y' or 'z', for cylinder
 --   l       length, for cylinder
+--   from    optional, a point with x and z: the boxes are written from the
+--           shape's end nearest it, the lowest corner without
 --   charge  optional, called before each box with the mapblocks that box will
 --           emerge and the box's corners in nodes. It may yield, which is how a
 --           large shape is spread over several server steps instead of
@@ -382,14 +384,22 @@ function shapes.build(spec)
     local reached = reaches[spec.kind]
     local total = 0
 
+    -- From the end nearest `from`, so a long shape grows away from the drone
+    -- instead of starting out of sight, past what a client is sent. (B-S-4)
+    local from = spec.from or pos1
+    local back_x = from.x > (pos1.x + pos2.x) / 2
+    local back_z = from.z > (pos1.z + pos2.z) / 2
+
     -- Bottom up, y outermost. A box the shape does not reach is loaded instead
     -- of passed, before the box above it is written: a write pushes its new
     -- shadow down into the blocks below it only if they are in memory, and stale
     -- sunlight is never repaired afterwards, so an unloaded inside of a hollow
-    -- shape would stay sky-lit for good. (B-S-1)
+    -- shape would stay sky-lit for good. So only x and z follow `from`. (B-S-1)
     for i = 0, count - 1 do
 
         local k = {x = i % nx, z = floor(i / nx) % nz, y = floor(i / (nx * nz))}
+        if back_x then k.x = nx - 1 - k.x end
+        if back_z then k.z = nz - 1 - k.z end
         local lo = {
             x = max(pos1.x, (b0.x + k.x * size.x) * 16),
             y = max(pos1.y, (b0.y + k.y * size.y) * 16),

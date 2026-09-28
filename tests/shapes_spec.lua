@@ -503,15 +503,19 @@ end
 --------------------------------------------------------------------------------
 
 do
-    --- Every node a shape wrote across all its passes, and how many passes.
+    --- Every node a shape wrote across all its passes, how many passes, what
+    -- they were charged, and the corner each box starts at.
     local function sliced(spec)
         shapes.flush()
         world, passes, loads, floors = {}, 0, 0, {}
-        local charged = {}
-        spec.charge = function(n) charged[#charged + 1] = n end
+        local charged, starts = {}, {}
+        spec.charge = function(n, lo)
+            charged[#charged + 1] = n
+            starts[#starts + 1] = lo.x .. ',' .. lo.z
+        end
         local total = shapes.build(spec)
         shapes.flush()
-        return world, passes, total, charged
+        return world, passes, total, charged, starts
     end
 
     --- The same set, stated by walking a box in world coordinates.
@@ -634,6 +638,27 @@ do
         z = -1
     }, {x = 199, y = 1, z = 0}, function() return true end)), 'ok')
     it('and the whole charge is still the emerged box', ltotal, 52)
+
+    --- The corners of a 400 x 400 plate's first and last box, built from `from`.
+    local function ends(from)
+        local _, _, _, _, starts = sliced({
+            kind = 'cube',
+            pos = o,
+            w = 400,
+            h = 2,
+            l = 400,
+            node = 'x',
+            hollow = false,
+            from = from
+        })
+        return starts[1] .. ' to ' .. starts[#starts]
+    end
+    -- From the end nearest the drone, so a shape facing -x or -z starts beside
+    -- it rather than 400 nodes away, out of sight. (B-S-4)
+    it('a shape is built from its lowest corner without a start', ends(nil),
+       '-200,-200 to 176,176')
+    it('and from the end nearest the drone', ends({x = 199, z = 199}), '176,176 to -200,-200')
+    it('on each axis alone', ends({x = 199, z = -200}), '176,-200 to -200,176')
 
     --- The largest charge in a list, which is the largest pass.
     local function largest(list)
