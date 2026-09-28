@@ -81,23 +81,10 @@ enumerate 256 x 3.
 `todo` `playtest`
 
 `F-S-3` made the drones' pool a share of the step rather than a fixed time.
-The drone should build at a similar rate with the game window focused and
-unfocused, and digging and placing by hand should stay responsive beside it.
-Never run.
-
-### P4 · several drones at once
-
-`todo` `playtest`
-
-`F-S-3` shares the pool by `step_share` and passes on what a drone leaves.
-Last pass 2026-08-27.
-
-### P1 · `pace_ms` at the low codelevels
-
-`todo` `playtest`
-
-`F-S-3` changed how much of a step a novice drone gets, beside its pace. Last
-pass 2026-08-27.
+Rate half at `2b5b913`, 2026-09-28: `mosely.lua` at `pow(3, 4)` after a
+`sleep(2)`, mean of 3, took 5.2 s focused, 4.8 s unfocused and 6.9 s on a
+server, the server's third of a step against singleplayer's half. Open on the
+other half: whether digging and placing by hand stay responsive beside it.
 
 ### T-S-2 · small shapes, `place` and `get_block` sharing a mapblock
 
@@ -115,20 +102,18 @@ program sees and what is left after it fails are unchecked. Never run.
 command rather than after each shape. Last pass at `9c369c7`, engine 5.17.0,
 2026-09-24.
 
-### P2 · slab progression under the step budget
-
-`todo` `playtest`
-
-The overshoot under test is now one box of at most 16 mapblocks, whatever the
-shape (`F-S-4`). Last pass 2026-08-27.
-
 ### P3 · the footprint throttle actually throttling
 
 `todo` `playtest`
 
-`F-S-4` replaced the longest-axis slicing `B42` relied on with boxes on all
-three axes; `cube(2, 2, 30000)` should now pass in boxes of 1 x 1 x 16. Last
-pass 2026-08-28.
+Not a pass at `2b5b913`, 2026-09-28, and not about the throttle: at codelevel 4
+`cube(2, 2, 30000)` completed, but 4 has the footprint to hold it without
+waiting, and at 1 to 3 the run failed before the throttle could bite, at 1 on
+`max_nodes_written` (120000 nodes against 1e5) and at 2 and 3 on generating
+map. Along one facing blocks appeared, the drone waited, then it failed on
+mapgen; along the other it waited first, then built when mapgen allowed.
+**The recipe predates `B-S-3`**, which made fresh ground charge
+`max_map_generated` before a write, so it now tests that limit instead.
 
 ## Closed
 
@@ -315,6 +300,9 @@ whoever re-runs it knows what they are re-reading against.
 - `W5` done `playtest` 2026-09-04 · a drone that stands still far away keeps running
 - `W6` done `playtest` 2026-09-24 · the drone's entity goes away and comes back; pass at `4b61623`, engine 5.17.0, after `F-D-1` changed the re-spawn
 - `W7` done `playtest` 2026-09-07 · `print` sends every argument, in one line
+- `P1` done `playtest` 2026-09-28 · `pace_ms` at the low codelevels; pass at `2b5b913`
+- `P2` done `playtest` 2026-09-28 · slab progression under the step budget; pass at `2b5b913`
+- `P4` done `playtest` 2026-09-28 · several drones at once; pass at `2b5b913`: at codelevel 4 `mosely.lua` at `pow(3, 4)` took ~7 s alone and 14 s each for two, one pool split in half; at codelevel 2 four drones on `pow(3, 3)` took 107 s each against 109 s alone, a paced drone running one command per step and spending almost none of its share
 - `T-D-1` done `playtest` 2026-09-24 · the drone is drawn once per step; pass at `4b61623`, engine 5.17.0, all four cases
 - `R1` done `playtest` 2026-09-24 · the archive contains no `tests/`; pass against the `v1.0.0` tag, `f75766b`: top level is `doc`, `lib`, `locale`, `textures` and the files, with `screenshot.png`
 - `R2` done `playtest` 2026-09-24 · a real install with the test flag set; pass against the `v1.0.0` tag, `f75766b`, engine 5.17.0, headless: the mod loads, logs that the build ships no `tests/`, no error. `vector3` was the working copy, not the ContentDB package
