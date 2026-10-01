@@ -43,6 +43,10 @@ end
 --
 
 local sizes = {pow(3, 3), pow(3, 2), pow(3, 1), pow(3, 0)}
+local sunset = {
+    colors.hex('#355070'), colors.hex('#b56576'), colors.hex('#e56b6f'),
+    colors.hex('#eaac8b')
+}
 
 up()
-for i, size in ipairs(sizes) do menger(size, ramp.hues(i, 1, #sizes)) end
+for i, size in ipairs(sizes) do menger(size, sunset[i]) end

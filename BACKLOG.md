@@ -91,18 +91,6 @@ needs a row's run lengths read back as numbers.
 otherwise add `tonumber(s, base)` to `lib/api.lua`, which brings the sandbox,
 the help panel and `doc/api.md` along with it.
 
-### F-S-6 · document `random()` as a fraction in [0, 1)
-
-`todo` `small` `filed 2026-10-01`
-
-The fraction is already there: `random` is `math.random`, so `random()`
-answers a fraction in [0, 1). The help line *no arguments for 0..1* reads as
-an integer, 0 or 1, and hides it.
-
-**Do:** reword the `random` entry in `lib/api.lua` to say a fraction from 0 up
-to but not including 1, then whole numbers for one and two arguments, and
-regenerate `doc/api.md`.
-
 ## Tests
 
 Nothing open.
@@ -222,6 +210,7 @@ whoever re-runs it knows what they are re-reading against.
 
 ### Features
 
+- `F-S-6` done `small` 2026-10-01 · the `random` help line says `random()` answers a fraction from 0 up to but not including 1, and whole numbers for one and two arguments
 - `F-K-1` done `large` 2026-10-01 · the 35 named colours became textured `bricks.<name>`; `colors.red`, the bare name `'red'` and the old nodes in a world round to the nearest palette colour, and a name no block table holds stops the program
 - `F15` done `medium` 2026-10-01 · `colors.hex`, `colors.rgb`, `colors.oklch`, `colors.okhsl` and `colors.okhsv` round to one of 3930 colours of an OKLCh grid, on sixteen palette nodes of 256 each, and `get_block` answers the name back
 - `F-S-3` done `medium` 2026-09-28 · the drones share a percent of the step, `codeblock_server_share`, 50 in singleplayer and 33 on a server, of `dtime` clamped to 0.2 s, split in one pass by a per-codelevel `step_share` of 25/50/100/100 that is both weight and ceiling; what a capped or sleeping drone leaves goes to the next, and a floor keeps an overshoot from starving the last; both µs settings retired

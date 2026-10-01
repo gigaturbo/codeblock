@@ -1,3 +1,10 @@
+-- The most vivid colour of each hue, from blue at `vmin` round through cyan,
+-- green and yellow to red at `vmax`.
+function heat(v, vmin, vmax)
+    local t = (v - vmin) / (vmax - vmin)
+    return colors.okhsv(264 - 235 * t, 1, 1)
+end
+
 function plot3D(XMIN, XMAX, ZMIN, ZMAX, FMIN, FMAX, NPOINTS, SIZE, fun)
 
     local visited = {}
@@ -15,7 +22,7 @@ function plot3D(XMIN, XMAX, ZMIN, ZMAX, FMIN, FMAX, NPOINTS, SIZE, fun)
             i = (rx - XMIN) / NPOINTS + (ry - FMIN) / NPOINTS * NPOINTS +
                     (rz - ZMIN) / NPOINTS * NPOINTS * NPOINTS + 3
             if not visited[i] then
-                place_relative(rx, ry, rz, ramp.hues(y, FMIN, FMAX))
+                place_relative(rx, ry, rz, heat(y, FMIN, FMAX))
                 visited[i] = true
             end
 

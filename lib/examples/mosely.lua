@@ -46,4 +46,4 @@ end
 --
 
 up()
-mosely(pow(3, 3), colors.hex('#ffffff'))
+mosely(pow(3, 3), colors.white)

@@ -28,9 +28,7 @@ end
 
 --
 
-local mblocks = {
-    colors.hex('#f3e583'), colors.hex('#c0c0c0'), colors.hex('#ff9c40')
-}
+local mblocks = {colors.light_yellow, colors.light_grey, colors.orange}
 
 for i = 1, #mblocks do
     spiral(5, 25, 100, mblocks[i])

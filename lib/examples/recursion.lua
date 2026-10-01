@@ -26,8 +26,5 @@ end
 ---
 
 save('origin')
-local mblocks = {
-    colors.hex('#808080'), colors.hex('#a5672e'),
-    colors.hex('#101010'), colors.hex('#f3e583')
-}
+local mblocks = {glass.grey, glass.dark_orange, glass.black, glass.light_yellow}
 recursion('origin', mblocks, #mblocks)

@@ -253,9 +253,9 @@ centered.vertical.cylinder(height, radius, block, hollow)   -- A standing cylind
 centered.horizontal.cylinder(length, radius, block, hollow) -- A lying cylinder centred on the drone.
 ```
 
-## Colors
+## Color blocks
 
-Solid blocks in any of 3930 colours. Each of these rounds the colour asked for to one of them, as a block you can place: `place(colors.hex('#f7a8e7'))`. The answer is a name, here `color_#f9a7ef`, which is also what `get_block` reads back. The colours are steps of lightness, chroma and hue, as `colors.oklch` counts them, each rounded on its own, so a gradient in one never steps back in another. They include 47 greys and the six pure colours such as `#ff0000`.
+Solid blocks in 3930 colours. The quickest are the thirty-five named colours listed under Block types, such as `colors.red` or `colors.dark_blue`, each the nearest of the 3930. A bare name such as `'red'`, or one taken out of `hues`, is the same block. For any other colour, each function below rounds the colour asked for to one of the 3930, as a block you can place: `place(colors.hex('#f7a8e7'))`. The answer is a name, here `color_#f9a7ef`, which is also what `get_block` reads back. The colours are steps of lightness, chroma and hue, as `colors.oklch` counts them, each rounded on its own, so a gradient in one never steps back in another. They include 47 greys and the six pure colours such as `#ff0000`.
 
 ```lua
 colors.hex(hex)       -- The palette colour of a hex string, `#rgb` or `#rrggbb`.
@@ -278,7 +278,7 @@ colors.list           -- All 3930 colours as an array, greys first.
 
 ## Block tables
 
-Thirty-five named colours in three materials. The names each table holds are listed under Block types below. A name that does not exist stops the program, naming it.
+Three materials beside the solid colours: bricks, glass and lamps. Each comes in the thirty-five named colours only, the five neutrals and a light, a plain and a dark shade of ten hues, which are the names `neutrals`, `light_hues`, `hues` and `dark_hues` hold. For any other colour, use a solid block from Color blocks. The names are listed under Block types below. A name that does not exist stops the program, naming it.
 
 ```lua
 bricks     -- One brick block per colour, indexed by name.
@@ -331,7 +331,7 @@ vector(x, y, z) -- Make a vector. Also carries the library's constructors, such 
 ## Math
 
 ```lua
-random(m, n)       -- A random number: no arguments for 0..1, one for 1..m, two for m..n.
+random(m, n)       -- A random number. With no arguments, a fraction from 0 up to but not including 1. With one, a whole number from 1 to m. With two, a whole number from m to n.
 round(x, decimals) -- Round x to this many decimal places (default 0).
 round0(x)          -- Round x to a whole number; short for round(x, 0).
 floor(x)           -- Round down.
@@ -371,7 +371,9 @@ pairs(table)        -- Standard pairs.
 # Block types
 
 The names each block table holds, in palette order, then the four
-palette orders themselves. Generated from `lib/config.lua`.
+palette orders themselves. The same thirty-five names are the
+named solid colours, `colors.red` and the rest. Generated from
+`lib/config.lua`.
 
 ## `bricks`
 

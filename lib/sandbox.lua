@@ -384,8 +384,8 @@ local function getScriptEnv(drone)
 
     -- `colors` is a namespace now, and a v1 program's colors.red reads as the
     -- palette colour nearest the old red, so it still builds, in a close shade.
-    -- Anything else it does not hold raises, like a block table. Undescribed on
-    -- purpose: it exists for programs written before v2. (F-K-1)
+    -- Anything else it does not hold raises, like a block table. Described in
+    -- the Color blocks intro rather than as entries, one per name. (F-K-1)
     setmetatable(api.colors, {
         __index = function(_, key)
             local found = canonical[key]

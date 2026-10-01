@@ -1,3 +1,10 @@
+-- The most vivid colour of each hue, from blue at `vmin` round through cyan,
+-- green and yellow to red at `vmax`.
+function heat(v, vmin, vmax)
+    local t = (v - vmin) / (vmax - vmin)
+    return colors.okhsv(264 - 235 * t, 1, 1)
+end
+
 function plot2D(XMIN, XMAX, ZMIN, ZMAX, FMIN, FMAX, NPOINTS, SIZE, fun)
 
     local increment = (XMAX - XMIN) / (NPOINTS - 1)
@@ -12,7 +19,7 @@ function plot2D(XMIN, XMAX, ZMIN, ZMAX, FMIN, FMAX, NPOINTS, SIZE, fun)
             ry = 0
             rz = (z - ZMIN) / (ZMAX - ZMIN) * SIZE
 
-            place_relative(rx, ry, rz, ramp.hues(y, FMIN, FMAX))
+            place_relative(rx, ry, rz, heat(y, FMIN, FMAX))
 
         end
     end

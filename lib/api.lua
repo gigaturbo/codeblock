@@ -178,10 +178,15 @@ api.groups = {
             }
         }
     }, {
-        title = 'Colors',
-        intro = 'Solid blocks in any of 3930 colours. Each of these ' ..
-            'rounds the colour asked for to one of them, as a block you ' ..
-            'can place: `place(colors.hex(\'#f7a8e7\'))`. The answer is a ' ..
+        title = 'Color blocks',
+        intro = 'Solid blocks in 3930 colours. The quickest are the ' ..
+            'thirty-five named colours listed under Block types, such ' ..
+            'as `colors.red` or `colors.dark_blue`, each the nearest of ' ..
+            'the 3930. A bare name such as `\'red\'`, or one taken out ' ..
+            'of `hues`, is the same block. For any other colour, each ' ..
+            'function below rounds the colour asked for to one of the ' ..
+            '3930, as a block you can place: ' ..
+            '`place(colors.hex(\'#f7a8e7\'))`. The answer is a ' ..
             'name, here `color_#f9a7ef`, which is also what `get_block` ' ..
             'reads back. The colours are steps of lightness, chroma and ' ..
             'hue, as `colors.oklch` counts them, each rounded on its own, ' ..
@@ -255,9 +260,14 @@ api.groups = {
         -- category a game registers and matching on the title would break on a
         -- rewording. It is the only group that grows at run time. (F11)
         id = 'blocks',
-        intro = 'Thirty-five named colours in three materials. The names each ' ..
-            'table holds are listed under Block types below. A name that ' ..
-            'does not exist stops the program, naming it.',
+        intro = 'Three materials beside the solid colours: bricks, glass ' ..
+            'and lamps. Each comes in the thirty-five named colours ' ..
+            'only, the five neutrals and a light, a plain and a dark ' ..
+            'shade of ten hues, which are the names `neutrals`, ' ..
+            '`light_hues`, `hues` and `dark_hues` hold. For any other ' ..
+            'colour, use a solid block from Color blocks. The names are ' ..
+            'listed under Block types below. A name that does not exist ' ..
+            'stops the program, naming it.',
         entries = {
             {
                 name = 'bricks',
@@ -413,8 +423,9 @@ api.groups = {
             {
                 name = 'random',
                 params = {'m', 'n'},
-                doc = 'A random number: no arguments for 0..1, one for 1..m, ' ..
-                    'two for m..n.'
+                doc = 'A random number. With no arguments, a fraction from 0 ' ..
+                    'up to but not including 1. With one, a whole number ' ..
+                    'from 1 to m. With two, a whole number from m to n.'
             }, {
                 name = 'round',
                 params = {'x', 'decimals'},
@@ -680,7 +691,9 @@ function api.to_markdown(allowed)
         w('# Block types')
         w()
         w('The names each block table holds, in palette order, then the four')
-        w('palette orders themselves. Generated from `lib/config.lua`.')
+        w('palette orders themselves. The same thirty-five names are the')
+        w('named solid colours, `colors.red` and the rest. Generated from')
+        w('`lib/config.lua`.')
         w()
         local listed = {}
         for _, category in ipairs(allowed.categories or {}) do

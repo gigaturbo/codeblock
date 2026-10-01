@@ -179,6 +179,11 @@ do
             at = n:find('.', at + 1, true)
         end
     end
+    -- colors.red and the other named colours, which the Color blocks intro
+    -- describes in one sentence rather than as an entry each.
+    for _, entry in ipairs(codeblock.config.named) do
+        described['colors.' .. entry[1]] = true
+    end
 
     -- Neither side may be empty, or the comparison below would pass by matching
     -- nothing at all. (C20)
