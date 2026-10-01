@@ -4,7 +4,8 @@ CodeBlock is a Luanti mod that adds programming to the game. **v1.0.0 is
 released** and on ContentDB, published by the tag itself. v2.0.0 is next, with
 no v1.1.0 before it: it turns `colors` into a palette of 3930 and the 35
 colours into bricks, `F15` and `F-K-1`, and carries the drone throughput of
-`F-S-1` to `F-S-4`. v3.0.0 holds `F6` alone.
+`F-S-1` to `F-S-4`. v2.1.0 is the editor's icons and a quick start, `F-E-1`
+and `F-E-2`; v3.0.0 holds `F6` alone.
 
 **Every id here predates the `B-X-N` scheme and keeps its old form for ever**,
 because commit messages cite them: `B` bugs, `S` sandbox and security, `C`
@@ -54,39 +55,53 @@ licensing and privacy question, or an in-tree server this mod does not have.
 **Do:** one written answer to *where do the assets live and who allows the HTTP
 call*, before any code.
 
-### F15 · `colors` becomes a palette of 3930 colours
+### F-E-1 · icons instead of words on the editor's buttons
 
-`wip` `medium` `filed 2026-09-07` `target: v2.0.0`
+`todo` `medium` `filed 2026-10-01` `target: v2.1.0`
 
-`colors.hex(s)`, `colors.rgb(r, g, b)`, `colors.oklch(L, c, h)`,
-`colors.okhsl(h, s, l)` and `colors.okhsv(h, s, v)` answer the key `color_#rrggbb` of one of 3930 colours, a grid in OKLCh,
-carried by sixteen `paramtype2 = "color"` nodes of 256 each, and
-`colors.list` holds the 3930 keys. Luanti registers no node at runtime, so the
-documentation says a colour is *rounded*. `place()` keeps its one-string contract and
-`allowed_blocks.all` its shape, the palette index riding beside the key.
+Save, Load and close, Remove file, Close file, Settings and the other editor
+buttons carry words, which overflow their buttons on a small window and need a
+translation each. An icon fits the button at any size.
 
-**Do:** sample the grid once and commit it as a literal, then generate the
-sixteen textures from it with a `--check`; snap by rounding each axis, an
-oklch colour after its chroma is brought into gamut; carry `param2` through `place_block`, through
-`lib/shapes.lua` only for a box a palette shape lands in, and back out of
-`get_block`. The decisions are in the skill's `blocks.md`.
+**Do:** draw an original icon per action, show it with `image_button` and keep
+the word as its tooltip, so the meaning stays one hover away and translated.
 
-### F-K-1 · the 35 colours become bricks, their old names palette colours
+### F-E-2 · an in-game quick start
 
-`wip` `large` `filed 2026-09-28` `target: v2.0.0` `needs: F15`
+`todo` `medium` `filed 2026-10-01` `target: v2.1.0`
 
-The 35 hand-picked colours become textured `bricks.<name>`, new nodes keyed
-`<name>_brick`; `glass` and `lamps` are unchanged. `colors.red` and the bare key
-`'red'` resolve to the nearest palette colour, so a shared program and a saved
-default block still build, in a slightly different shade, and an LBM converts
-`codeblock:<name>` in existing worlds the same way. An unknown name raises in
-every category, and `ramp.of(colors)`, `random.of(colors)` and `pairs(colors)`
-stop meaning the 35 colours, which is what makes it v2.0.0.
+A new player has the tools and the editor, but nothing in the game says how to
+write and run a first program; the API panel is a reference, not a start.
 
-**Do:** draw an original running-bond tile, near-white and unlike the lamp
-grid; keep the 35 old nodes registered and out of the creative inventory; say
-in `CHANGELOG.md` what each old call now does and that `bricks` leaves every
-game's namespace.
+**Do:** one quick-start panel, shown once at a player's first join, again on
+`/codeblock help`, and from a help button in the editor.
+
+### F-S-5 · decide whether player code needs `tonumber`
+
+`todo` `small` `filed 2026-10-01`
+
+The sandbox has no `tonumber` or `tostring`. Player code can already turn a
+string into a number: arithmetic coerces one, so `"12" + 0` is 12 and
+`"0x1f" + 0` is 31, and the string methods reach `match` and `byte`. A string
+that is not a number stops the program instead of answering `nil`. The
+question came up while writing an image program, where a compact encoding
+needs a row's run lengths read back as numbers.
+
+**Do:** decide whether coercion is enough, and if so document it under Math;
+otherwise add `tonumber(s, base)` to `lib/api.lua`, which brings the sandbox,
+the help panel and `doc/api.md` along with it.
+
+### F-S-6 · document `random()` as a fraction in [0, 1)
+
+`todo` `small` `filed 2026-10-01`
+
+The fraction is already there: `random` is `math.random`, so `random()`
+answers a fraction in [0, 1). The help line *no arguments for 0..1* reads as
+an integer, 0 or 1, and hides it.
+
+**Do:** reword the `random` entry in `lib/api.lua` to say a fraction from 0 up
+to but not including 1, then whole numbers for one and two arguments, and
+regenerate `doc/api.md`.
 
 ## Tests
 
@@ -207,6 +222,8 @@ whoever re-runs it knows what they are re-reading against.
 
 ### Features
 
+- `F-K-1` done `large` 2026-10-01 · the 35 named colours became textured `bricks.<name>`; `colors.red`, the bare name `'red'` and the old nodes in a world round to the nearest palette colour, and a name no block table holds stops the program
+- `F15` done `medium` 2026-10-01 · `colors.hex`, `colors.rgb`, `colors.oklch`, `colors.okhsl` and `colors.okhsv` round to one of 3930 colours of an OKLCh grid, on sixteen palette nodes of 256 each, and `get_block` answers the name back
 - `F-S-3` done `medium` 2026-09-28 · the drones share a percent of the step, `codeblock_server_share`, 50 in singleplayer and 33 on a server, of `dtime` clamped to 0.2 s, split in one pass by a per-codelevel `step_share` of 25/50/100/100 that is both weight and ceiling; what a capped or sleeping drone leaves goes to the next, and a floor keeps an overshoot from starving the last; both µs settings retired
 - `F-S-1` done `large` 2026-09-24 · a shape leaves its last box open, and the shapes after it that fit inside write into it, so many small shapes pay one read, write and relight per mapblock per step; `mosely.lua` at `pow(3, 4)` went from 106 s to 19 s headless with an identical map and light, its peak footprint halved; `place()` stays a `set_node`, which runs the replaced node's callbacks
 - `F-S-4` done `medium` 2026-09-24 · a shape is written in boxes of at most 16 mapblocks cut on all three axes, not slabs along one, so no pass stalls longer than one box whatever the shape; a box the shape does not reach is loaded and charged but not passed, bottom up so the shadow above it can reach it
