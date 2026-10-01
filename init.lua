@@ -1,6 +1,7 @@
 ﻿codeblock = {modpath = core.get_modpath('codeblock')}
 
 dofile(codeblock.modpath .. "/lib/intl.lua")
+dofile(codeblock.modpath .. "/lib/palette.lua")
 dofile(codeblock.modpath .. "/lib/config.lua")
 dofile(codeblock.modpath .. "/lib/nodes.lua")
 dofile(codeblock.modpath .. "/lib/api.lua")
@@ -116,8 +117,8 @@ end
 if core.settings:get_bool("codeblock_run_tests") then
 
     local specs = {
-        'api', 'preprocess', 'env', 'shapes', 'strguard', 'limits', 'forms',
-        'stepper', 'integration'
+        'api', 'preprocess', 'env', 'shapes', 'strguard', 'limits', 'palette',
+        'forms', 'stepper', 'integration'
     }
 
     local first = io.open(codeblock.modpath .. '/tests/api_spec.lua', 'r')

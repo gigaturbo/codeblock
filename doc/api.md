@@ -253,12 +253,35 @@ centered.vertical.cylinder(height, radius, block, hollow)   -- A standing cylind
 centered.horizontal.cylinder(length, radius, block, hollow) -- A lying cylinder centred on the drone.
 ```
 
-## Block tables
+## Colors
 
-Anything taking a `block` argument wants a value from one of these. The names each table holds are listed under Block types below.
+Solid blocks in any of 3930 colours. Each of these rounds the colour asked for to one of them, as a block you can place: `place(colors.hex('#f7a8e7'))`. The answer is a name, here `color_#f9a7ef`, which is also what `get_block` reads back. The colours are steps of lightness, chroma and hue, as `colors.oklch` counts them, each rounded on its own, so a gradient in one never steps back in another. They include 47 greys and the six pure colours such as `#ff0000`.
 
 ```lua
-colors     -- Solid coloured blocks, indexed by name. A name that does not exist reads as nil and builds your default block instead; the first time a run does that, it says so in the chat.
+colors.hex(hex)       -- The palette colour of a hex string, `#rgb` or `#rrggbb`.
+colors.rgb(r, g, b)   -- The palette colour of red, green and blue, each 0 to 255.
+colors.oklch(L, c, h) -- The palette colour of a lightness, a chroma and a hue.
+colors.okhsl(h, s, l) -- The palette colour of a hue, a saturation and a lightness.
+colors.okhsv(h, s, v) -- The palette colour of a hue, a saturation and a value.
+colors.list           -- All 3930 colours as an array, greys first.
+```
+
+**`colors.rgb`** &mdash; A value outside 0 to 255 is clamped rather than stopping the program. A value that is not a number does stop it.
+
+**`colors.oklch`** &mdash; The numbers of CSS `oklch()`: `L` from 0 (black) to 1 (white), `c` from 0 (grey) to about 0.37, and `h` an angle in degrees. Keep `L` and `c` and turn `h` for a rainbow of one brightness. A colour no screen can show loses chroma, keeping its lightness and hue, before it is rounded. A screen reaches far more chroma in some hues than others: at `L` 0.45, blue reaches 0.31 and cyan only 0.08, so a large `c` gives vivid blues and dull greens. For a rainbow as strong in every hue, keep `c` at 0.128 or less, which every hue reaches at `L` 0.75 and at no other lightness. For a saturation from 0 to 1 instead, use `colors.okhsl`, and for vivid colours `colors.okhsv`.
+
+**`colors.okhsl`** &mdash; `h` is the hue of `colors.oklch`, in degrees. `s` and `l` run from 0 to 1. `l` is the same lightness in every hue, 0 black and 1 white, so turning `h` at one `s` and `l` gives a rainbow of one brightness. `s` 0 is a grey and `s` 1 the most chroma a screen can show at that hue and lightness, which is vivid in some hues and soft in others. The lower `s`, the more nearly it is as strong in every hue.
+
+**`colors.okhsv`** &mdash; `h` is the hue of `colors.oklch`, in degrees. `s` and `v` run from 0 to 1, and are measured against what a screen can show in that hue: `colors.okhsv(h, 1, 1)` is its most vivid colour, `s` 0 a grey and `v` 0 black. Turn `h` for the most vivid rainbow there is; its lightness changes with the hue, yellow being light and blue dark, because that is where each is vivid.
+
+**`colors.list`** &mdash; For `random.of(colors.list)`. It is not a gradient: no order of 3930 colours reads as one, so ramp with `colors.oklch`, `colors.okhsl` or `colors.okhsv` instead.
+
+## Block tables
+
+Thirty-five named colours in three materials. The names each table holds are listed under Block types below. A name that does not exist stops the program, naming it.
+
+```lua
+bricks     -- One brick block per colour, indexed by name.
 glass      -- One see-through block per colour, indexed by name.
 lamps      -- One glowing block per colour, indexed by name. The light itself is the same whatever the colour.
 hues       -- The plain shade of each hue family as an array, in colour-wheel order.
@@ -268,7 +291,7 @@ neutrals   -- The neutrals as an array, white to black.
 air        -- Empty space. Place it to carve rather than to build.
 ```
 
-**`hues`** &mdash; `hues`, `light_hues`, `dark_hues` and `neutrals` are the four ways of walking the palette: which colours, in what order. They hold colour names rather than blocks, and every table above is indexed by the same names, so `glass[hues[1]]` is glass and `lamps[dark_hues[1]]` is a lamp. A name out of one of them is a solid block already, so `place(hues[1])` needs nothing around it. Use them with `ramp.of` and `random.of`.
+**`hues`** &mdash; `hues`, `light_hues`, `dark_hues` and `neutrals` are the four ways of walking the palette: which colours, in what order. They hold colour names rather than blocks, and every table above is indexed by the same names, so `glass[hues[1]]` is glass and `lamps[dark_hues[1]]` is a lamp. A name out of one of them is a solid colour already, so `place(hues[1])` needs nothing around it. Use them with `ramp.of` and `random.of`.
 
 ## Choosing blocks
 
@@ -283,17 +306,17 @@ get_block(n_right, n_up, n_forward)       -- The block at an offset from the dro
 is_block(block, n_right, n_up, n_forward) -- Whether the block at an offset from the drone is the one named.
 ```
 
-**`random.of`** &mdash; Takes anything holding values: a palette order, a block table such as `colors` or `glass`, or a list you built. It takes a block table as it stands where `ramp.of` has to put one in order first, because a random pick has no order to respect. Prefer `random.of(hues)`: a pick across a whole table draws light, plain and dark shades of unrelated families in a row and looks muddled, where the hues are ten clean families.
+**`random.of`** &mdash; Takes anything holding values: a palette order, a block table such as `bricks` or `glass`, `colors.list`, or a list you built. It takes a block table as it stands where `ramp.of` has to put one in order first, because a random pick has no order to respect. Prefer `random.of(hues)`: a pick across a whole table draws light, plain and dark shades of unrelated families in a row and looks muddled, where the hues are ten clean families.
 
-**`random.hues`** &mdash; A colour name, so `place(random.hues())` is a solid block and `lamps[random.hues()]` the matching lamp.
+**`random.hues`** &mdash; A colour name, so `place(random.hues())` is a solid colour and `lamps[random.hues()]` the matching lamp.
 
 **`ramp.hues`** &mdash; Short for `ramp.of(hues, v, min, max)`. It reads as a gradient because `hues` is one name per family in colour-wheel order.
 
-**`ramp.of`** &mdash; The material is whatever you index with the answer, so `glass[ramp.of(dark_hues, i, 1, n)]` is the dark shades in glass, and a name out of a palette order is a solid block already. A block table is a map and has no order of its own, so it is walked in the only order there is: palette order for `colors`, `glass` and `lamps`, and alphabetical for a table the game added. Neither reads as a gradient - `ramp.of(colors, i, 1, n)` runs light, plain and dark through one family before reaching the next, so it strobes, and an alphabetical one is a lookup. `ramp.of(hues, ...)` is the smooth one. It returns whatever the list holds, so a list of your own works too, and a value that is neither a list nor a block table reads as nothing rather than stopping the program.
+**`ramp.of`** &mdash; The material is whatever you index with the answer, so `glass[ramp.of(dark_hues, i, 1, n)]` is the dark shades in glass, and a name out of a palette order is a solid colour already. A block table is a map and has no order of its own, so it is walked in the only order there is: palette order for `bricks`, `glass` and `lamps`, and alphabetical for a table the game added. Neither reads as a gradient - `ramp.of(bricks, i, 1, n)` runs light, plain and dark through one family before reaching the next, so it strobes, and an alphabetical one is a lookup. `ramp.of(hues, ...)` is the smooth one. It returns whatever the list holds, so a list of your own works too, and a value that is neither a list nor a block table reads as nothing rather than stopping the program.
 
 **`get_block`** &mdash; Each offset defaults to zero, so `get_block()` reads where the drone is and `get_block(0, 0, 1)` reads one step ahead of it. The offsets turn with the drone, the same way `place_relative` does. Three answers: the name of a block the drone could place, `false` for a node it could not, and `nil` where there is no answer at all - map that has never been generated, or a position outside the world.
 
-**`is_block`** &mdash; The offsets are `get_block`'s: each defaults to zero, they turn with the drone, and nothing is moved. True only when the block there is exactly the one named, so `is_block(air)` asks whether the space is empty. Everything else is false - a node no program can place, map that has never been generated, a position outside the world, and a name that does not exist. Use `get_block` to tell those apart.
+**`is_block`** &mdash; The offsets are `get_block`'s: each defaults to zero, they turn with the drone, and nothing is moved. True only when the block there is exactly the one named, so `is_block(air)` asks whether the space is empty and `is_block(colors.hex('#fff'))` whether it is white. Everything else is false - a node no program can place, map that has never been generated, a position outside the world, and a name that does not exist. Use `get_block` to tell those apart.
 
 ## Vectors
 
@@ -350,7 +373,7 @@ pairs(table)        -- Standard pairs.
 The names each block table holds, in palette order, then the four
 palette orders themselves. Generated from `lib/config.lua`.
 
-## `colors`
+## `bricks`
 
 ```lua
 white, light_grey, grey, dark_grey, black, light_pink, pink, dark_pink, light_red, red, dark_red, light_orange, orange, dark_orange, light_yellow, yellow, dark_yellow, light_olive, olive, dark_olive, light_lime, lime, dark_lime, light_green, green, dark_green, light_cyan, cyan, dark_cyan, light_blue, blue, dark_blue, light_violet, violet, dark_violet

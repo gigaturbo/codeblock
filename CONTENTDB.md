@@ -4,9 +4,9 @@ can imagine: learn to code, or give your inner computer artist somewhere to play
 
 ## Features
 
-- **Its own blocks.** Thirty-five named colours, each as a solid block, a
-  glass and a lamp, so the mod installs into any game and a program means the
-  same thing in all of them.
+- **Its own blocks.** 3930 colours as solid blocks, and thirty-five named
+  colours each as a brick, a glass and a lamp, so the mod installs into any
+  game and a program means the same thing in all of them.
 - **An editor in the game.** A per-player program list, create, edit and save,
   and helpers beside the code for when you forget a command or a block name.
 - **A large API.** Shapes, maths and conveniences: cubes, spheres, domes and

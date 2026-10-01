@@ -111,8 +111,10 @@ stds.codeblock_sandbox = {
         },
         -- checkpoints
         "save", "go",
-        -- blocks
-        "colors", "glass", "lamps", "air",
+        -- blocks. `colors` is spelled out so a v1 colors.red in an example is
+        -- caught: it still runs, but the examples show the v2 API.
+        colors = {fields = {"hex", "rgb", "oklch", "okhsl", "okhsv", "list"}},
+        "bricks", "glass", "lamps", "air",
         -- The four palette views: arrays of colour names, one axis of the
         -- palette against the category's material.
         "hues", "light_hues", "dark_hues", "neutrals",

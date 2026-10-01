@@ -1,6 +1,6 @@
-# Run the nine specs inside Luanti, against the fixture game in tests/game.
+# Run the ten specs inside Luanti, against the fixture game in tests/game.
 #
-# Six of them also run under a bare Lua 5.1 in CI, and CI runs all nine in
+# Seven of them also run under a bare Lua 5.1 in CI, and CI runs all ten in
 # upstream's server container. This is the same run on the engine the mod is
 # actually developed against.
 #

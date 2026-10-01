@@ -2,8 +2,9 @@
 
 CodeBlock is a Luanti mod that adds programming to the game. **v1.0.0 is
 released** and on ContentDB, published by the tag itself. v1.1.0 is drone throughput,
-`F-S-1` to `F-S-4`. v1.x is opened on what comes back from players
-and carries `F15`; v2.0.0 holds `F6` alone.
+`F-S-1` to `F-S-4`. v1.x is opened on what comes back from players.
+v2.0.0 turns `colors` into a palette of 3930 and the 35 colours into bricks,
+`F15` and `F-K-1`; v3.0.0 holds `F6` alone.
 
 **Every id here predates the `B-X-N` scheme and keeps its old form for ever**,
 because commit messages cite them: `B` bugs, `S` sandbox and security, `C`
@@ -35,7 +36,7 @@ Nothing open.
 
 ### F6 · Blockly web-based editor
 
-`todo` `large` `target: v2.0.0`
+`todo` `large` `target: v3.0.0`
 
 Build programs by dragging blocks in a browser instead of typing Lua. A major
 version because it is the change most likely to break how a program is stored
@@ -53,26 +54,39 @@ licensing and privacy question, or an in-tree server this mod does not have.
 **Do:** one written answer to *where do the assets live and who allows the HTTP
 call*, before any code.
 
-### F15 · `colorhex`, a palette node
+### F15 · `colors` becomes a palette of 3930 colours
 
-`todo` `large` `target: v1.x` `filed 2026-09-07`
+`wip` `medium` `filed 2026-09-07` `target: v2.0.0`
 
-`place(colorhex("#F7A8E7"))`. Feasible, but **not as an arbitrary colour**:
-Luanti has no runtime node registration, so a hex nobody anticipated cannot
-become a node. What it offers is `paramtype2 = "color"` plus a 256-pixel palette
-texture, one node carrying 256 colours indexed by `param2`, so `colorhex` snaps
-to the nearest of 256 and its name and documentation must say *nearest*. Plain
-`color` is the right paramtype2: all eight bits go to colour, these nodes
-needing no rotation. It is additive, so no saved program and no existing world
-breaks.
+`colors.hex(s)`, `colors.rgb(r, g, b)`, `colors.oklch(L, c, h)`,
+`colors.okhsl(h, s, l)` and `colors.okhsv(h, s, v)` answer the key `color_#rrggbb` of one of 3930 colours, a grid in OKLCh,
+carried by sixteen `paramtype2 = "color"` nodes of 256 each, and
+`colors.list` holds the 3930 keys. Luanti registers no node at runtime, so the
+documentation says a colour is *rounded*. `place()` keeps its one-string contract and
+`allowed_blocks.all` its shape, the palette index riding beside the key.
 
-**Do:** answer which 256 colours, and how the value reaches `place()`, whose
-one-string contract is load-bearing. Then the cost: `allowed_blocks.all` stops
-being name to itemstring, so every write path changes shape; `lib/shapes.lua`
-needs a second full-size `set_param2_data` array per slab in the one path that
-has to stay fast; `get_block` and `is_block` must read `param2`, since
-`by_node[itemstring]` cannot tell 256 colours apart; and the block picker cannot
-enumerate 256 x 3.
+**Do:** sample the grid once and commit it as a literal, then generate the
+sixteen textures from it with a `--check`; snap by rounding each axis, an
+oklch colour after its chroma is brought into gamut; carry `param2` through `place_block`, through
+`lib/shapes.lua` only for a box a palette shape lands in, and back out of
+`get_block`. The decisions are in the skill's `blocks.md`.
+
+### F-K-1 · the 35 colours become bricks, their old names palette colours
+
+`wip` `large` `filed 2026-09-28` `target: v2.0.0` `needs: F15`
+
+The 35 hand-picked colours become textured `bricks.<name>`, new nodes keyed
+`<name>_brick`; `glass` and `lamps` are unchanged. `colors.red` and the bare key
+`'red'` resolve to the nearest palette colour, so a shared program and a saved
+default block still build, in a slightly different shade, and an LBM converts
+`codeblock:<name>` in existing worlds the same way. An unknown name raises in
+every category, and `ramp.of(colors)`, `random.of(colors)` and `pairs(colors)`
+stop meaning the 35 colours, which is what makes it v2.0.0.
+
+**Do:** draw an original running-bond tile, near-white and unlike the lamp
+grid; keep the 35 old nodes registered and out of the creative inventory; say
+in `CHANGELOG.md` what each old call now does and that `bricks` leaves every
+game's namespace.
 
 ## Tests
 
@@ -264,6 +278,8 @@ whoever re-runs it knows what they are re-reading against.
 - `W5` done `playtest` 2026-09-04 · a drone that stands still far away keeps running
 - `W6` done `playtest` 2026-09-24 · the drone's entity goes away and comes back; pass at `4b61623`, engine 5.17.0, after `F-D-1` changed the re-spawn
 - `W7` done `playtest` 2026-09-07 · `print` sends every argument, in one line
+- `T-K-1` done `playtest` 2026-10-01 · the palette's colours and the bricks, in a world; pass at `2b5b0de`, branch `v2`, all nine steps, step 8 re-run after it failed at `0da7df0`: the picker offers the 35 plain colours and the default grey picks back
+- `T-K-2` done `playtest` 2026-10-01 · a v1 world opens under v2; pass at `2b5b0de`, branch `v2`: the v1 blocks turn into their nearest palette colour, a v1 item places, a saved v1 default block builds
 - `T-S-3` done `playtest` 2026-09-28 · throughput, and the game while a drone builds; pass at `2b5b913`: `mosely.lua` at `pow(3, 4)` after a `sleep(2)`, mean of 3, 5.2 s focused, 4.8 s unfocused, 6.9 s on a server, and digging beside it stayed responsive
 - `T-S-2` done `playtest` 2026-09-28 · small shapes, `place` and `get_block` sharing a mapblock; pass at `2ed906d`, engine 5.17.0, singleplayer, codelevel 4: the reads saw `blue` then `green`, the error named line 2 with all twenty nodes built, and `mosely.lua` at `pow(3, 4)` took 3.2 s against 28.5 s at `e0c2d23`, dark inside and evenly lit
 - `T-S-1` done `playtest` 2026-09-28 · a shape is lit correctly, inside and out; pass at `2ed906d`, engine 5.17.0, after `F-S-1` moved the relight to the step's end: even faces, a dark inside, and no light defect after the rebuild and removal

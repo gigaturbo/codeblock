@@ -28,6 +28,9 @@ local explode_scrollbar_event = core.explode_scrollbar_event
 local get_player_by_name = core.get_player_by_name
 
 local blocks = codeblock.config.allowed_blocks.all
+local canonical = codeblock.config.allowed_blocks.canonical
+local palette_keys = codeblock.config.allowed_blocks.palette_keys
+local param2 = codeblock.config.allowed_blocks.param2
 local categories = codeblock.config.allowed_blocks.categories
 
 -- Every name the default-block picker offers, with the API path to show beside
@@ -56,7 +59,7 @@ local help_categories = codeblock.config.allowed_blocks.by_name
 -- name, deliberately: the raw name is what a program types, and codeblock has
 -- no translation for a name it has never seen. (F11)
 local CATEGORY_LABELS = {
-    colors = S('Colors'),
+    bricks = S('Bricks'),
     glass = S('Glass'),
     lamps = S('Lamps')
 }
@@ -374,10 +377,26 @@ local file_editor = {
             -- The line is the button: clicking it opens the list, clicking it
             -- again closes it. One control rather than a label and a switch
             -- beside it.
-            fs = fs .. 'item_image[14.5,1.15;0.8,0.8;' ..
-                     blocks[meta.default_block] .. ']'
+            -- A palette colour is one item for 256 colours, so its item
+            -- carries the colour's index, which item_image reads from the
+            -- whole item string. Not escaped: the string's metadata is JSON
+            -- with \u escapes, which the formspec parser passes through as
+            -- they are and an escape would double. (F15)
+            local shown = canonical[meta.default_block] or meta.default_block
+            local item = blocks[shown]
+            if palette_keys[item] then
+                local stack = ItemStack(item)
+                stack:get_meta():set_int('palette_index', param2[shown])
+                item = stack:to_string()
+            end
+            -- Named as the list names it, not by its key.
+            local label, chosen = meta.default_block, 0
+            for i, v in ipairs(pickable) do
+                if v.key == meta.default_block then label, chosen = v.label, i end
+            end
+            fs = fs .. 'item_image[14.5,1.15;0.8,0.8;' .. item .. ']'
             fs = fs .. 'button[15.3,1.15;4.4,0.8;pick_open;' ..
-                     S('Default block: @1', meta.default_block) .. ']'
+                     S('Default block: @1', label) .. ']'
 
             -- A textlist, not the item rows the help panels draw. This form is
             -- in legacy coordinates, where a scroll_container maps its contents
@@ -390,12 +409,10 @@ local file_editor = {
             -- this same form already uses. The price is that the rows are names
             -- only, with the texture of the chosen one shown above. (F1)
             if meta.picking then
-                local chosen = 0
                 fs = fs .. 'textlist[14.5,2.2;5.2,7.5;pick;'
                 for i, v in ipairs(pickable) do
                     if i ~= 1 then fs = fs .. ',' end
                     fs = fs .. formspec_escape(v.label)
-                    if v.key == meta.default_block then chosen = i end
                 end
                 fs = fs .. ';' .. chosen .. ']'
             end

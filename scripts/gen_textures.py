@@ -1,10 +1,11 @@
-"""Write the three 16x16 tiles that lib/nodes.lua tints per colour.
+"""Write the four 16x16 tiles that lib/nodes.lua tints per colour.
 
     python scripts/gen_textures.py
 
 Run it when the tiles need redrawing; the PNGs it writes are committed, and
 nothing checks that they match this source. It is the editable source for
-textures/codeblock_block.png, codeblock_glass.png and codeblock_lamp.png the
+textures/codeblock_block.png, codeblock_glass.png, codeblock_lamp.png and
+codeblock_brick.png the
 way the .svg files beside them are for the two tool icons.
 
 No Pillow on this machine, so the PNGs are assembled from zlib + struct.
@@ -101,3 +102,26 @@ for y in range(H):
         row.append((v, v, v, 255))
     lamp.append(row)
 print('codeblock_lamp.png', png(os.path.join(OUT, 'codeblock_lamp.png'), lamp))
+
+# --- codeblock_brick.png ------------------------------------------------------
+# A running bond: courses 4 px high, bricks 8 px long, each course offset by
+# half a brick, so a node face holds four courses and the bond runs on across
+# tiles. Near-white like the lamp, so the tint keeps its hue, and each brick a
+# shade apart from its neighbours so a wall reads as laid rather than printed.
+# Mortar is a darker line than the lamp's grid and the grid is square, so the
+# two stay apart on a wall of one colour.
+MORTAR = 196
+brick = []
+for y in range(H):
+    row = []
+    course = y // 4
+    for x in range(W):
+        shift = (x + 4 * (course % 2)) % W
+        if y % 4 == 3 or shift % 8 == 0:
+            v = MORTAR
+        else:
+            shade = int(round(hashnoise(shift // 8, course, 5) * 14))
+            v = 252 - shade - int(round(hashnoise(x, y, 6) * 4))
+        row.append((v, v, v, 255))
+    brick.append(row)
+print('codeblock_brick.png', png(os.path.join(OUT, 'codeblock_brick.png'), brick))

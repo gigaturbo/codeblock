@@ -23,11 +23,12 @@ not read it, report on it, or change it from here.**
 - [lib/](lib/) the whole mod, one file per topic. The run pipeline is
   `preprocess`, `env`, `sandbox`, `stepper`, `limits`, `strguard`; the drone is
   `drone`, `drone_entity`, `commands`, `cost`, `shapes`; the interface is
-  `forms`, `formspecs`, `hud`; the content is `nodes`, `blocks`, `config`,
-  `api`. `register.lua` owns every engine registration and the globalstep.
+  `forms`, `formspecs`, `hud`; the content is `nodes`, `blocks`, `palette`,
+  `config`, `api`. `register.lua` owns every engine registration and the
+  globalstep.
 - [lib/examples/](lib/examples/) the shipped example programs, player code.
 - [scripts/](scripts/) the generators and the local test runner. Not shipped.
-- [tests/](tests/) nine specs, and `tests/game/` the fixture game they boot in.
+- [tests/](tests/) ten specs, and `tests/game/` the fixture game they boot in.
   Not shipped.
 - [doc/api.md](doc/api.md) the player's API reference. Generated below its
   `# Lua api` heading, hand-written above it. Shipped.
@@ -65,17 +66,17 @@ No arguments are needed from outside the repository root. `lua5.1` and
 `luacheck` live in WSL, not on Windows.
 
 **Test.** The suite runs inside Luanti, against the fixture game in
-`tests/game`. All nine specs run this way, and so does CI.
+`tests/game`. All ten specs run this way, and so does CI.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/run_tests.ps1
 ```
 
-**Test, standalone.** Six of the nine also run under plain Lua 5.1, which is
+**Test, standalone.** Seven of the ten also run under plain Lua 5.1, which is
 the only thing that catches 5.1 differing from the engine's LuaJIT.
 
 ```powershell
-wsl bash -lc 'lua5.1 tests/api_spec.lua; lua5.1 tests/preprocess_spec.lua; lua5.1 tests/env_spec.lua; lua5.1 tests/shapes_spec.lua; lua5.1 tests/strguard_spec.lua; lua5.1 tests/limits_spec.lua'
+wsl bash -lc 'lua5.1 tests/api_spec.lua; lua5.1 tests/preprocess_spec.lua; lua5.1 tests/env_spec.lua; lua5.1 tests/shapes_spec.lua; lua5.1 tests/strguard_spec.lua; lua5.1 tests/limits_spec.lua; lua5.1 tests/palette_spec.lua'
 ```
 
 Each spec is named because **a shell variable does not survive this machine's
@@ -98,7 +99,7 @@ write. `bash scripts/gen_cdb_json.sh` regenerates `.cdb.json` after a
 
 **Read the output, not the exit code.** `$?` does not survive this machine's WSL
 layer, so a gate is green when it *says* so: luacheck silent, each generator
-*up to date*, and one verdict line reading `9/9 specs`, `0 failed`, `0 xpass`,
+*up to date*, and one verdict line reading `10/10 specs`, `0 failed`, `0 xpass`,
 `0 skipped`.
 
 **Report.** Rebuilds `.reports/backlog.html` from the JSON.

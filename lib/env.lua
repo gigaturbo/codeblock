@@ -32,9 +32,10 @@ local env = {}
 
 --- Shallow copy of a plain table.
 --
--- `on_miss(key)` is optional: reading a key the table does not hold calls it and
--- still reads nil, so the program sees what it always saw. The action is passed
--- in rather than taken here, because this file may not reach the engine.
+-- `on_miss(key)` is optional: reading a key the table does not hold calls it,
+-- and the read is nil if it returns at all. lib/sandbox.lua's raises, from two
+-- frames below the read. The action is passed in rather than taken here,
+-- because this file may not reach the engine.
 function env.snapshot(t, on_miss)
     local c = {}
     for k, v in pairs(t) do c[k] = v end

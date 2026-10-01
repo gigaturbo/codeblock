@@ -417,19 +417,19 @@ local function load_block(drone, pos, write)
 
 end
 
---- Place one node.
+--- Place one node, `param2` being a palette colour's index or nil.
 --
 -- Written straight to the map, not into the open shape box, which would skip
 -- the replaced node's on_destruct and reset nothing of its param2. So the box
 -- is written back first when it holds the node, or it would overwrite it.
 -- (F-S-1)
-local function place_block(drone, x, y, z, block)
+local function place_block(drone, x, y, z, block, param2)
 
     local pos = {x = x, y = y, z = z}
 
     load_block(drone, pos, true)
     flush(pos)
-    set_node(pos, {name = block})
+    set_node(pos, {name = block, param2 = param2})
 
 end
 

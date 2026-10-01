@@ -84,6 +84,20 @@ function manip:set_data(d)
 end
 function manip:write_to_map() end
 
+-- param2, which the map holds as READ_P2 everywhere: a stale value, so a voxel
+-- the module should have reset and did not is told apart from one it zeroed.
+local READ_P2 = 9
+local p2_reads, p2_writes, p2_written = 0, 0, nil
+function manip:get_param2_data(buf)
+    p2_reads = p2_reads + 1
+    for i = 1, area:getVolume() do buf[i] = READ_P2 end
+    return buf
+end
+function manip:set_param2_data(d)
+    p2_writes = p2_writes + 1
+    p2_written = d
+end
+
 -- The module is loaded into a private environment holding those fakes, in-engine
 -- as well as standalone. It cannot be tested through codeblock.shapes: the specs
 -- run at mod load, when core.get_voxel_manip() has no map yet and returns
@@ -804,6 +818,59 @@ do
     it('before reading its own', world['1,1,1'] and not world['17,1,1'], true)
     shapes.flush()
     it('whose node lands when it is written back in turn', world['17,1,1'], true)
+end
+
+--------------------------------------------------------------------------------
+-- param2 (F15)
+--
+-- A palette colour rides in param2, so a box a palette shape lands in carries a
+-- second array. A plain shape must not pay for it, and once a box does carry
+-- it, a plain shape must zero the param2 of what it writes: a VoxelManip write
+-- keeps the old value, and a node with a facing would inherit a colour index.
+--------------------------------------------------------------------------------
+
+do
+    local function dot(x, y, z, p2)
+        shapes.build({
+            kind = 'cube',
+            pos = {x = x, y = y, z = z},
+            w = 1,
+            h = 1,
+            l = 1,
+            node = 'x',
+            param2 = p2,
+            hollow = false
+        })
+    end
+
+    local function at(x, y, z)
+        local mn = area.MinEdge
+        return p2_written[(z - mn.z) * area.zstride + (y - mn.y) * area.ystride +
+                              (x - mn.x) + 1]
+    end
+
+    shapes.flush()
+    p2_reads, p2_writes, p2_written = 0, 0, nil
+    dot(1, 1, 1)
+    shapes.flush()
+    it('a plain shape never fetches param2', p2_reads, 0)
+    it('nor writes it', p2_writes, 0)
+
+    dot(1, 1, 1, 42)
+    dot(2, 1, 1)
+    dot(3, 1, 1, 7)
+    shapes.flush()
+    it('a palette shape fetches its box param2 once', p2_reads, 1)
+    it('and it is written back with the box', p2_writes, 1)
+    it('the palette shape writes its index', at(1, 1, 1), 42)
+    it('a plain shape after it in the same box writes 0', at(2, 1, 1), 0)
+    it('a second palette shape in the box writes its own', at(3, 1, 1), 7)
+    it('a voxel no shape claims keeps what the map held', at(4, 1, 1), READ_P2)
+
+    dot(1, 1, 1, 42)
+    dot(17, 1, 1)
+    shapes.flush()
+    it('the next box starts without param2 again', p2_reads, 2)
 end
 
 --------------------------------------------------------------------------------

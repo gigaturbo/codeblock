@@ -67,7 +67,7 @@ jobs:
         with:
           # Plain 5.1 rather than a luajit-* value, and deliberately so: this
           # job exists to catch plain 5.1 differing from the engine's LuaJIT,
-          # which the `nine specs in Luanti` job now covers for real. Every
+          # which the `ten specs in Luanti` job now covers for real. Every
           # luajit-* variant also failed to build here, observed on this
           # action's v10; untested since the bump to v13, and there is no
           # longer a reason to want one.
@@ -103,8 +103,13 @@ jobs:
       - name: Run limits spec
         run: lua tests/limits_spec.lua
 
+      # The palette: every entry snapping to itself, the inputs that are not a
+      # colour, and an out-of-gamut sweep keeping its hue. Pure arithmetic.
+      - name: Run palette spec
+        run: lua tests/palette_spec.lua
+
   engine:
-    name: the nine specs in Luanti
+    name: the ten specs in Luanti
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -161,7 +166,7 @@ jobs:
           cat engine.log
 
       # init.lua prints one verdict line covering every criterion, so this job
-      # restates none of them. `0 skipped` is not redundant beside `9/9`: a spec
+      # restates none of them. `0 skipped` is not redundant beside `10/10`: a spec
       # that declares itself unable to run is the failure a per-spec eyeball
       # misses, and breaking the guard forms_spec exists to hold once lost 66
       # assertions while the run still reported nine specs.
@@ -189,7 +194,7 @@ jobs:
           # Anchored on the whole line, not on substrings: `*0 failed*` would
           # also match `10 failed`.
           if ! printf '%s\n' "$verdict" | grep -qE \
-            '^suite: 9/9 specs +[0-9]+ passed +0 failed +[0-9]+ xfail +0 xpass +0 skipped$'
+            '^suite: 10/10 specs +[0-9]+ passed +0 failed +[0-9]+ xfail +0 xpass +0 skipped$'
           then
             echo "::error::$verdict"
             exit 1

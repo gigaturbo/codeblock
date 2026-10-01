@@ -39,10 +39,13 @@ local load_block = codeblock.cost.load_block
 local S = codeblock.S
 
 local blocks = codeblock.config.allowed_blocks.all
+local param2_of = codeblock.config.allowed_blocks.param2
 -- The same map read backwards, for get_block(). Taken from the config rather
 -- than reversed here: a game may add a category after this file has run, and a
 -- table reversed at load time would be a snapshot that never grew. (F11)
 local rev_blocks = codeblock.config.allowed_blocks.by_node
+-- A palette node is one name for 256 colours, so its key is read from param2.
+local palette_keys = codeblock.config.allowed_blocks.palette_keys
 
 -- The engine's own edge of the world, from mapgen_limit. Past it a write
 -- silently does nothing, which is the lost write load_area was added to stop, so
@@ -99,7 +102,8 @@ end
 
 --- The opening every placement command shares: the drone has to exist, the
 -- block has to be one a program may place, and hollow is a boolean whatever the
--- program passed. Returns the node name and that flag. (A3)
+-- program passed. Returns the node name, that flag, and the param2 a palette
+-- colour rides in, nil for any other block. (A3, F15)
 --
 -- Level 4 rather than the 3 the commands themselves use, because raising from
 -- in here puts one more frame between the message and the player's line.
@@ -107,9 +111,10 @@ local function placement(drone, block, hollow)
     assert(drone, S("Error, drone does not exist"))
     -- No third fallback: every record carries a valid default_block from the
     -- moment it is made, and lib/drone.lua refreshes it once per run. (F1)
-    local real_block = blocks[block or drone.default_block]
+    local key = block or drone.default_block
+    local real_block = blocks[key]
     if not real_block then error(S('Cannot place this block'), 4) end
-    return real_block, (hollow and true or false)
+    return real_block, (hollow and true or false), param2_of[key]
 end
 
 --- The named checkpoint, or an error naming it.
@@ -194,18 +199,18 @@ local function drone_turn_right(drone) turn_by(drone, -1) end
 
 local function drone_place_block(drone, block)
 
-    local real_block = placement(drone, block)
+    local real_block, _, p2 = placement(drone, block)
 
     use_nodes(drone, 1)
 
-    place_block(drone, drone.x, drone.y, drone.z, real_block)
+    place_block(drone, drone.x, drone.y, drone.z, real_block, p2)
     end_command(drone)
 
 end
 
 local function drone_place_relative(drone, x, y, z, block, chkpt)
 
-    local real_block = placement(drone, block)
+    local real_block, _, p2 = placement(drone, block)
 
     local x = (type(x) == 'number') and round0(x) or 0
     local y = (type(y) == 'number') and round0(y) or 0
@@ -221,7 +226,7 @@ local function drone_place_relative(drone, x, y, z, block, chkpt)
 
     check_inside_world(drone.x, drone.y, drone.z, 4)
 
-    place_block(drone, drone.x, drone.y, drone.z, real_block)
+    place_block(drone, drone.x, drone.y, drone.z, real_block, p2)
     end_command(drone)
 
 end
@@ -236,7 +241,7 @@ end
 
 local function drone_place_cube(drone, w, h, l, block, hollow)
 
-    local real_block, hollow = placement(drone, block, hollow)
+    local real_block, hollow, param2 = placement(drone, block, hollow)
 
     local w = (type(w) == 'number') and round0(abs(w)) or 10
     local h = (type(h) == 'number') and round0(abs(h)) or 10
@@ -273,6 +278,7 @@ local function drone_place_cube(drone, w, h, l, block, hollow)
         h = h,
         l = l,
         node = real_block,
+        param2 = param2,
         hollow = hollow
     }
     end_command(drone)
@@ -281,7 +287,7 @@ end
 
 local function drone_place_ccube(drone, w, h, l, block, hollow)
 
-    local real_block, hollow = placement(drone, block, hollow)
+    local real_block, hollow, param2 = placement(drone, block, hollow)
 
     local w = (type(w) == 'number') and round0(abs(w)) or 10
     local h = (type(h) == 'number') and round0(abs(h)) or 10
@@ -302,6 +308,7 @@ local function drone_place_ccube(drone, w, h, l, block, hollow)
         h = h,
         l = l,
         node = real_block,
+        param2 = param2,
         hollow = hollow
     }
     end_command(drone)
@@ -310,7 +317,7 @@ end
 
 local function drone_place_sphere(drone, r, block, hollow)
 
-    local real_block, hollow = placement(drone, block, hollow)
+    local real_block, hollow, param2 = placement(drone, block, hollow)
 
     local r = (type(r) == 'number') and round0(abs(r)) or 5
     local x
@@ -341,6 +348,7 @@ local function drone_place_sphere(drone, r, block, hollow)
         pos = {x = x, y = y, z = z},
         r = r,
         node = real_block,
+        param2 = param2,
         hollow = hollow
     }
     end_command(drone)
@@ -349,7 +357,7 @@ end
 
 local function drone_place_csphere(drone, r, block, hollow)
 
-    local real_block, hollow = placement(drone, block, hollow)
+    local real_block, hollow, param2 = placement(drone, block, hollow)
 
     local r = (type(r) == 'number') and round0(abs(r)) or 5
 
@@ -366,6 +374,7 @@ local function drone_place_csphere(drone, r, block, hollow)
         },
         r = r,
         node = real_block,
+        param2 = param2,
         hollow = hollow
     }
     end_command(drone)
@@ -374,7 +383,7 @@ end
 
 local function drone_place_dome(drone, r, block, hollow)
 
-    local real_block, hollow = placement(drone, block, hollow)
+    local real_block, hollow, param2 = placement(drone, block, hollow)
 
     local r = (type(r) == 'number') and round0(abs(r)) or 5
     local x
@@ -405,6 +414,7 @@ local function drone_place_dome(drone, r, block, hollow)
         pos = {x = x, y = y, z = z},
         r = r,
         node = real_block,
+        param2 = param2,
         hollow = hollow
     }
     end_command(drone)
@@ -413,7 +423,7 @@ end
 
 local function drone_place_cdome(drone, r, block, hollow)
 
-    local real_block, hollow = placement(drone, block, hollow)
+    local real_block, hollow, param2 = placement(drone, block, hollow)
 
     local r = (type(r) == 'number') and round0(abs(r)) or 5
 
@@ -426,6 +436,7 @@ local function drone_place_cdome(drone, r, block, hollow)
         pos = {x = drone.x, y = drone.y, z = drone.z},
         r = r,
         node = real_block,
+        param2 = param2,
         hollow = hollow
     }
     end_command(drone)
@@ -443,7 +454,7 @@ end
 
 local function drone_place_cylinder(drone, o, l, r, block, hollow)
 
-    local real_block, hollow = placement(drone, block, hollow)
+    local real_block, hollow, param2 = placement(drone, block, hollow)
 
     local o = orientation(o)
     local l = (type(l) == 'number') and round0(abs(l)) or 10
@@ -489,6 +500,7 @@ local function drone_place_cylinder(drone, o, l, r, block, hollow)
         l = l,
         r = r,
         node = real_block,
+        param2 = param2,
         hollow = hollow
     }
     end_command(drone)
@@ -497,7 +509,7 @@ end
 
 local function drone_place_ccylinder(drone, o, l, r, block, hollow)
 
-    local real_block, hollow = placement(drone, block, hollow)
+    local real_block, hollow, param2 = placement(drone, block, hollow)
 
     local o = orientation(o)
     local l = (type(l) == 'number') and round0(abs(l)) or 10
@@ -528,6 +540,7 @@ local function drone_place_ccylinder(drone, o, l, r, block, hollow)
         l = l,
         r = r,
         node = real_block,
+        param2 = param2,
         hollow = hollow
     }
     end_command(drone)
@@ -626,18 +639,22 @@ local function drone_get_block(drone, x, y, z)
     local dx, dy, dz = rotate[drone:angle()](x, y, z)
     local pos = {x = drone.x + dx, y = drone.y + dy, z = drone.z + dz}
 
-    local block_name
+    local node
     if inside_world(pos.x, pos.y, pos.z) then
         load_block(drone, pos)
         -- The open shape box holds what the map will, not what it does yet.
         flush(pos)
-        block_name = get_node(pos).name
+        node = get_node(pos)
     end
 
     end_command(drone)
 
-    if block_name == nil or block_name == 'ignore' then return nil end
-    return rev_blocks[block_name] or false
+    if node == nil or node.name == 'ignore' then return nil end
+    -- The last node's indices past the end of the list hold no colour, and
+    -- only a hand-set param2 lands there.
+    local keys = palette_keys[node.name]
+    if keys then return keys[node.param2 + 1] or false end
+    return rev_blocks[node.name] or false
 
 end
 

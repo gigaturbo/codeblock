@@ -297,14 +297,33 @@ end
 
 
 --------------------------------------------------------------------------------
--- The block palette
+-- The palette's colours
 --
--- Thirty-five colours the mod registers itself: five neutrals light to dark,
--- then ten hue families in colour-wheel order, each one light / plain / dark so
--- the plain name a player reaches for first always exists.
+-- `colors` is the palette record lib/palette.lua builds from the committed
+-- list: its keys, and the three ways of snapping a colour to one. Sixteen
+-- nodes carry them, 256 each, the index within a node riding in param2.
 --
--- The two literals below are the source, and `palette` and the four palette
--- views are derived from them. `palette` is the flat {name, hex} list
+-- Loaded from codeblock.modpath, which scripts/gen_docs.lua and
+-- gen_settingtypes.lua set to the repository root under a bare interpreter.
+--------------------------------------------------------------------------------
+
+local palette = codeblock.palette or
+                    dofile(codeblock.modpath .. '/lib/palette.lua')
+local colors = palette.new(dofile(codeblock.modpath ..
+                                      '/lib/palette_hexes.lua'))
+codeblock.config.colors = colors
+
+--------------------------------------------------------------------------------
+-- The thirty-five named colours
+--
+-- Hand-picked, and the colours of bricks, glass and lamps: five neutrals light
+-- to dark, then ten hue families in colour-wheel order, each one light / plain /
+-- dark so the plain name a player reaches for first always exists. Up to v1 they
+-- were the solid blocks too; a bare name now places the nearest palette colour
+-- instead. (F-K-1)
+--
+-- The two literals below are the source, and `named` and the four palette
+-- views are derived from them. `named` is the flat {name, hex} list
 -- lib/nodes.lua reads - the hexes go nowhere else, one shared tile per variant
 -- being multiplied by each of them rather than 105 images being drawn.
 --
@@ -339,9 +358,9 @@ local families = {
     {'violet', '#a985de', '#7f56b8', '#563b7e'}
 }
 
-local palette, hues, light_hues, dark_hues, neutral_names = {}, {}, {}, {}, {}
+local named, hues, light_hues, dark_hues, neutral_names = {}, {}, {}, {}, {}
 for i, neutral in ipairs(neutrals) do
-    palette[#palette + 1] = neutral
+    named[#named + 1] = neutral
     neutral_names[i] = neutral[1]
 end
 for i, family in ipairs(families) do
@@ -349,12 +368,12 @@ for i, family in ipairs(families) do
     hues[i] = plain
     light_hues[i] = 'light_' .. plain
     dark_hues[i] = 'dark_' .. plain
-    palette[#palette + 1] = {light_hues[i], family[2]}
-    palette[#palette + 1] = {plain, family[3]}
-    palette[#palette + 1] = {dark_hues[i], family[4]}
+    named[#named + 1] = {light_hues[i], family[2]}
+    named[#named + 1] = {plain, family[3]}
+    named[#named + 1] = {dark_hues[i], family[4]}
 end
 
-codeblock.config.palette = palette
+codeblock.config.named = named
 
 --------------------------------------------------------------------------------
 -- What a program may name, and what each name places
@@ -362,10 +381,22 @@ codeblock.config.palette = palette
 -- `all` is the flat key -> itemstring union every write path resolves a block
 -- through: place() takes one string and knows nothing about which table it came
 -- from, so the keys have to be unique across every category. A category spells
--- a name for the player and holds that unique key - colors.red is 'red',
+-- a name for the player and holds that unique key - bricks.red is 'red_brick',
 -- glass.red is 'red_glass', lamps.red is 'red_lamp'.
 --
--- `by_node` is the same map read backwards, for get_block().
+-- The palette keys, 'color_#rrggbb', 256 to a node in list order: entry i
+-- names codeblock:color_<n>, n = i // 256 as one hex digit, and `param2` holds
+-- i % 256. Entry 0 is white, the colour an item of codeblock:color_0 with no
+-- palette_index places. So do the thirty-five bare
+-- names, 'red' and the rest, each the palette colour nearest it: a v1 program
+-- and a saved default block keep building, in a close shade. `canonical` maps
+-- each bare name to that palette key, which is what get_block() answers for it.
+-- (F15, F-K-1)
+--
+-- `by_node` is `all` read backwards, for get_block(). A palette node is read
+-- through `palette_keys` instead, its 256 keys by param2 + 1, and a v1 solid
+-- block still in the map, which lib/nodes.lua converts as its mapblock loads,
+-- reads as its palette colour.
 --
 -- `air` is engine-provided, belongs to no category, and is a name of its own.
 --
@@ -383,11 +414,13 @@ codeblock.config.palette = palette
 local blocks = {
     all = {air = 'air'},
     by_node = {air = 'air'},
-    -- The four palette views, short colour names rather than flat keys. For
-    -- `colors` the two are equal, which falls out of F11's key layout - a
-    -- category holds its short name unchanged and only glass and lamps suffix
-    -- it - so place(ramp.of(dark_hues, i, 1, n)) places a solid block with no
-    -- wrapping, while glass[ramp.of(dark_hues, i, 1, n)] places its glass.
+    param2 = {},
+    palette_keys = {},
+    canonical = {},
+    -- The four palette views, short colour names rather than flat keys. A bare
+    -- name is a palette colour, so place(ramp.of(dark_hues, i, 1, n)) places
+    -- one with no wrapping, while glass[ramp.of(dark_hues, i, 1, n)] places its
+    -- glass.
     hues = hues,
     light_hues = light_hues,
     dark_hues = dark_hues,
@@ -395,11 +428,34 @@ local blocks = {
     categories = {},
     by_name = {},
     pickable = {{key = 'air', label = 'air'}},
-    -- What a bare place() uses until a player picks something else: the flat
-    -- key of the grey solid block. lib/api.lua says so in prose, so the two
-    -- have to agree.
+    -- What a bare place() uses until a player picks something else: grey, the
+    -- palette colour nearest the v1 grey. lib/api.lua says so in prose, so the
+    -- two have to agree.
     fallback = 'grey'
 }
+
+for i, key in ipairs(colors.keys) do
+    local node = ('codeblock:color_%x'):format(math.floor((i - 1) / 256))
+    local keys = blocks.palette_keys[node] or {}
+    blocks.palette_keys[node] = keys
+    keys[#keys + 1] = key
+    blocks.all[key] = node
+    blocks.param2[key] = (i - 1) % 256
+end
+for _, entry in ipairs(named) do
+    local key = colors.hex(entry[2])
+    blocks.all[entry[1]] = blocks.all[key]
+    blocks.param2[entry[1]] = blocks.param2[key]
+    blocks.canonical[entry[1]] = key
+    blocks.by_node['codeblock:' .. entry[1]] = key
+    -- The picker offers them under the bare name, the key the fallback and a
+    -- v1 saved default hold, so the default grey can be picked back, and
+    -- labels them as a program reads them.
+    blocks.pickable[#blocks.pickable + 1] = {
+        key = entry[1],
+        label = 'colors.' .. entry[1]
+    }
+end
 
 --- Add one block category, and every view of it, in one place.
 --
@@ -411,9 +467,9 @@ local blocks = {
 -- The record carries `names`, the shorts in that order, `spelled`, short -> key,
 -- and `keys`, the same keys as an array - the order ramp.of resolves a category
 -- table to, a map having none of its own. Whatever order `entries` arrived in:
--- palette order for the mod's own three, and alphabetical for a category a game
--- registered, which lib/blocks.lua sorts because a Lua map has no order to
--- preserve.
+-- the named colours' order for the mod's own three, and alphabetical for a
+-- category a game registered, which lib/blocks.lua sorts because a Lua map has
+-- no order to preserve.
 --
 -- Deriving the views here rather than in each reader is what keeps a late
 -- registration visible: a list built once at load time by lib/commands.lua or
@@ -446,10 +502,10 @@ function codeblock.config.add_category(name, entries)
 end
 
 for _, variant in ipairs({
-    {'colors', ''}, {'glass', '_glass'}, {'lamps', '_lamp'}
+    {'bricks', '_brick'}, {'glass', '_glass'}, {'lamps', '_lamp'}
 }) do
     local entries = {}
-    for i, entry in ipairs(palette) do
+    for i, entry in ipairs(named) do
         local key = entry[1] .. variant[2]
         entries[i] = {entry[1], key, 'codeblock:' .. key}
     end

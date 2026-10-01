@@ -189,7 +189,7 @@ do
     end)(), #api.entries() + #api.groups)
 
     local m = api.to_markdown({
-        categories = {{name = 'colors', names = {'white', 'red'}}},
+        categories = {{name = 'bricks', names = {'white', 'red'}}},
         hues = {'red'}
     })
     it('markdown is produced', (#m > 0), true)
@@ -222,7 +222,11 @@ do
         'vertical.cylinder', 'horizontal.cylinder', 'centered.cube',
         'centered.sphere', 'centered.dome', 'centered.cylinder',
         'centered.vertical.cylinder', 'centered.horizontal.cylinder',
-        'colors', 'glass', 'lamps', 'hues', 'light_hues', 'dark_hues',
+        -- `colors` is a namespace from v2, the 3930 colours; the thirty-five
+        -- named ones are bricks, glass and lamps. (F15, F-K-1)
+        'colors.hex', 'colors.rgb', 'colors.oklch', 'colors.okhsl',
+        'colors.okhsv', 'colors.list',
+        'bricks', 'glass', 'lamps', 'hues', 'light_hues', 'dark_hues',
         'neutrals', 'air', 'vector', 'get_block',
         'is_block',
         'print', 'ipairs', 'pairs', 'random', 'random.of', 'random.hues',

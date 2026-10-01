@@ -10,7 +10,7 @@
 --     })
 --
 -- and `wool.red` is a block a player's program can place, listed in the editor
--- beside the mod's own colors, glass and lamps. The keys are the names a
+-- beside the mod's own bricks, glass and lamps. The keys are the names a
 -- program spells; the values are itemstrings the game has registered. Names are
 -- listed alphabetically, because a Lua table with string keys has no order and
 -- an arbitrary one would change between runs.
@@ -109,7 +109,7 @@ local function install_one(request, taken, refusals)
                    item)
         else
             -- The flat key carries the category, unlike the mod's own, so a
-            -- game's `red` can never shadow colors.red however many games
+            -- game's `red` can never shadow bricks.red however many games
             -- register one. It is what place() takes and what the editor's
             -- settings line shows.
             list[#list + 1] = {short, name .. '.' .. short, item}

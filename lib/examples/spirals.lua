@@ -29,7 +29,7 @@ end
 --
 
 local mblocks = {
-    colors.light_yellow, colors.light_grey, colors.orange
+    colors.hex('#f3e583'), colors.hex('#c0c0c0'), colors.hex('#ff9c40')
 }
 
 for i = 1, #mblocks do

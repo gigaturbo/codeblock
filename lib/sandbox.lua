@@ -5,7 +5,6 @@ codeblock.sandbox = {}
 --------------------------------------------------------------------------------
 
 local S = codeblock.S
-local chat_send_player = core.chat_send_player
 local max = math.max
 local min = math.min
 local floor = math.floor
@@ -52,6 +51,9 @@ local hues = codeblock.config.allowed_blocks.hues
 local light_hues = codeblock.config.allowed_blocks.light_hues
 local dark_hues = codeblock.config.allowed_blocks.dark_hues
 local neutrals = codeblock.config.allowed_blocks.neutrals
+-- The palette, and each v1 bare name's nearest colour in it. (F15)
+local palette = codeblock.config.colors
+local canonical = codeblock.config.allowed_blocks.canonical
 
 local snapshot = codeblock.env.snapshot
 local snapshot_module = codeblock.env.snapshot_module
@@ -167,17 +169,13 @@ local function getScriptEnv(drone)
 
     assert(drone, S("Error, drone does not exist"))
 
-    -- Said once and at the read, where the name the player typed is still
-    -- known: by the time a nil block reaches a command all that is left is the
-    -- fallback. The flag is an upvalue of this environment, which is built
-    -- fresh for every run, so drones running side by side each get their own.
-    local warned = false
+    -- Raised at the read, where the name the player typed is still known: by
+    -- the time a nil block reaches a command all that is left is the fallback.
+    -- Level 3 is the player's line: this, then the snapshot's __index. A
+    -- warning and a grey build was the v1 answer, and it let a misspelt
+    -- program run to the end in the wrong colour. (F-K-1)
     local function unknown_block(key)
-        if warned then return end
-        warned = true
-        chat_send_player(drone.name, S(
-            "Warning: no block named '@1', the default block is used instead",
-            tostring(key)))
+        error(S("There is no block named '@1'", tostring(key)), 3)
     end
 
     -- Every name a program may use, paired with what it does. The names come
@@ -257,6 +255,36 @@ local function getScriptEnv(drone)
         ['dark_hues'] = snapshot(dark_hues),
         ['neutrals'] = snapshot(neutrals),
         ['air'] = 'air',
+        -- The palette. lib/palette.lua answers nil for an argument that is
+        -- not a colour at all, and it is raised here, in the player's
+        -- language, at level 2: the player's own line.
+        ['colors.hex'] = function(s)
+            local key = palette.hex(s)
+            if key then return key end
+            error(S("colors.hex needs a colour such as '#f7a8e7', not @1",
+                    tostring(s)), 2)
+        end,
+        ['colors.rgb'] = function(r, g, b)
+            local key = palette.rgb(r, g, b)
+            if key then return key end
+            error(S('colors.rgb needs three numbers'), 2)
+        end,
+        ['colors.oklch'] = function(L, c, h)
+            local key = palette.oklch(L, c, h)
+            if key then return key end
+            error(S('colors.oklch needs three numbers'), 2)
+        end,
+        ['colors.okhsv'] = function(h, s, v)
+            local key = palette.okhsv(h, s, v)
+            if key then return key end
+            error(S('colors.okhsv needs three numbers'), 2)
+        end,
+        ['colors.okhsl'] = function(h, s, l)
+            local key = palette.okhsl(h, s, l)
+            if key then return key end
+            error(S('colors.okhsl needs three numbers'), 2)
+        end,
+        ['colors.list'] = snapshot(palette.keys),
         -- choosing blocks
         ['random.of'] = random_of,
         -- Bound to hues for the same reason ramp.hues is: the ten plain family
@@ -278,12 +306,12 @@ local function getScriptEnv(drone)
         -- The read happens whatever `block` is, so one call costs one command
         -- however it answers. A name that is not a block answers false rather
         -- than resolving through place()'s default: substituting grey is right
-        -- for a write and a trap for a question, and a misspelling has already
-        -- been reported once by unknown_block, at the read where its spelling
-        -- was still known.
+        -- for a write and a trap for a question. A v1 bare name compares as the
+        -- palette colour it places, which is what get_block reads back.
         ['is_block'] = function(block, x, y, z)
             local found = drone_get_block(drone, x, y, z)
-            return type(block) == 'string' and found == block
+            return type(block) == 'string' and
+                       found == (canonical[block] or block)
         end,
         -- vectors. The copy keeps the module's metatable, so vector(x, y, z)
         -- still resolves through its __call, and its constants are this run's
@@ -339,8 +367,8 @@ local function getScriptEnv(drone)
 
     -- Every block category, the mod's own three and any the game registered.
     -- Snapshots, so a program cannot alter one for every other player, and
-    -- name-indexed, so a name that is not in one is a misspelling worth
-    -- reporting. Built here rather than listed above because the list is only
+    -- name-indexed, so a name that is not in one is a misspelling, and raises.
+    -- Built here rather than listed above because the list is only
     -- complete once every mod has loaded, and lib/blocks.lua has by then
     -- described each one in lib/api.lua - which is what stops build_api below
     -- refusing an implementation nothing describes. (F11)
@@ -353,6 +381,19 @@ local function getScriptEnv(drone)
     end
 
     local api = build_api(impls)
+
+    -- `colors` is a namespace now, and a v1 program's colors.red reads as the
+    -- palette colour nearest the old red, so it still builds, in a close shade.
+    -- Anything else it does not hold raises, like a block table. Undescribed on
+    -- purpose: it exists for programs written before v2. (F-K-1)
+    setmetatable(api.colors, {
+        __index = function(_, key)
+            local found = canonical[key]
+            if found then return found end
+            error(S("There is no block named '@1'", 'colors.' .. tostring(key)),
+                  2)
+        end
+    })
 
     -- The instrumenter emits `_G.use_call()`, so this is the budget counter the
     -- program is paying into. Sealed: a program that could assign to

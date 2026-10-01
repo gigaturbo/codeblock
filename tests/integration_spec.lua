@@ -80,7 +80,7 @@ local function run(src, auth_level)
         -- a real API name to attack
         place = function() end,
         up = function() end,
-        colors = envlib.snapshot({grey = 'grey', white = 'white'})
+        bricks = envlib.snapshot({grey = 'grey_brick', white = 'white_brick'})
     }
     api._G = envlib.seal({
         print = api.print,
@@ -185,10 +185,11 @@ end
 
 do
     -- S1: a program must not be able to corrupt shared config for everyone.
-    local ok = run('colors.grey = "tampered"\n')
+    local ok = run('bricks.grey = "tampered"\n')
     it('mutating the block table is allowed within the run', ok, true)
     it('but the real config is untouched',
-       codeblock.config.allowed_blocks.by_name.colors.spelled.grey, 'grey')
+       codeblock.config.allowed_blocks.by_name.bricks.spelled.grey,
+       'grey_brick')
 end
 
 do
@@ -1054,11 +1055,11 @@ do
     local edge = sandbox_edge
 
     local named, err = sandboxed(
-                           'if is_block(colors.grey) == false then turn_left() end\n')
+                           'if is_block(bricks.grey) == false then turn_left() end\n')
     it('a program calling is_block runs at all', err, nil)
     it('a block that is not the one there answers false', named:angle(), 1)
 
-    -- The guard. colors.typo is nil, and outside the world the read answers nil
+    -- The guard. A missing argument is nil, and outside the world the read answers nil
     -- too, so without `type(block) == 'string'` this is nil == nil and the
     -- answer is true - a program asking about a misspelling would be told yes.
     local guarded = sandboxed('if is_block() == false then turn_left() end\n')
@@ -1072,7 +1073,7 @@ do
     local control = sandboxed('local x = 1\n')
     it('a program with no command in it is charged none', control.commands, 0)
 
-    local counted = sandboxed('is_block(colors.grey)\n')
+    local counted = sandboxed('is_block(bricks.grey)\n')
     it('one is_block costs one command', counted.commands, 1)
 
     local rejected = sandboxed('is_block(42)\n')
@@ -1201,7 +1202,8 @@ do
     -- change to the palette fails here, naming itself, rather than quietly
     -- turning the max cases into mid-list ones.
     it('hues is one name per family', #blocks.hues, 10)
-    it('a colour category is the whole palette', #blocks.by_name.colors.keys, 35)
+    it('a colour category is every named colour', #blocks.by_name.bricks.keys,
+       35)
 
     -- {label, call prefix, bare call, length, first entry, last entry, a value
     -- mid-list and its answer}. The prefix is everything up to the first
@@ -1216,8 +1218,8 @@ do
             'ramp.hues', 'ramp.hues(', 'ramp.hues()', 10, 'pink', 'violet', 5,
             'olive'
         }, {
-            'ramp.of over colors', 'ramp.of(colors, ', 'ramp.of(colors)', 35,
-            'white', 'dark_violet', 18, 'light_olive'
+            'ramp.of over bricks', 'ramp.of(bricks, ', 'ramp.of(bricks)', 35,
+            'white_brick', 'dark_violet_brick', 18, 'light_olive_brick'
         }, {
             'ramp.of over glass', 'ramp.of(glass, ', 'ramp.of(glass)', 35,
             'white_glass', 'dark_violet_glass', 18, 'light_olive_glass'
@@ -1297,11 +1299,11 @@ for i = -3, 14 do
     end
     if not plain then bad = bad + 1 end
 end
-if bad == 0 then default_block(colors.white) else default_block(colors.black) end
+if bad == 0 then default_block(bricks.white) else default_block(bricks.black) end
 ]])
     it('the hues sweep runs', sweep_err, nil)
     it('every ramp.hues answer is the plain shade of a family',
-       swept.default_block, 'white')
+       swept.default_block, 'white_brick')
 
     codeblock.filesystem.remove_file('test_player', program_file)
     codeblock.filesystem.remove_user_data('test_player')
@@ -1349,10 +1351,10 @@ do
     -- as a failure and not as a negative answer.
     local function holds(cond)
         local drone, err = sandboxed(
-                               ('if %s then default_block(colors.white) else default_block(colors.black) end\n')
+                               ('if %s then default_block(bricks.white) else default_block(bricks.black) end\n')
                                    :format(cond))
         if err then return 'error: ' .. err end
-        return drone.default_block == 'white'
+        return drone.default_block == 'white_brick'
     end
 
     --- Whether `view` holds exactly `want`, in order, read from inside a
@@ -1366,10 +1368,10 @@ do
 local want = {%s}
 local bad = 0
 for i = 1, %d do if %s[i] ~= want[i] then bad = bad + 1 end end
-if bad == 0 then default_block(colors.white) else default_block(colors.black) end
+if bad == 0 then default_block(bricks.white) else default_block(bricks.black) end
 ]]):format(table.concat(quoted, ', '), #want, view))
         if err then return 'error: ' .. err end
-        return drone.default_block == 'white'
+        return drone.default_block == 'white_brick'
     end
 
     -- The lengths, separately from the contents, so a view that lost an entry
@@ -1429,11 +1431,11 @@ for k = -6, 28 do
 end
 if ramp.of(hues, 'x') ~= ramp.hues('x') then bad = bad + 1 end
 if ramp.of(hues, 3, 3, 3) ~= ramp.hues(3, 3, 3) then bad = bad + 1 end
-if bad == 0 then default_block(colors.white) else default_block(colors.black) end
+if bad == 0 then default_block(bricks.white) else default_block(bricks.black) end
 ]])
     it('the ramp.of sweep runs', agree_err, nil)
     it('ramp.of over hues answers exactly what ramp.hues answers',
-       agreed.default_block, 'white')
+       agreed.default_block, 'white_brick')
 
     ----------------------------------------------------------------------------
     -- the composition, end to end
@@ -1490,9 +1492,10 @@ if bad == 0 then default_block(colors.white) else default_block(colors.black) en
     ----------------------------------------------------------------------------
 
     it("a two-entry list of the program's own answers its first entry",
-       answer('ramp.of({colors.white, colors.red}, 1, 1, 2)'), 'white')
-    it('and its last', answer('ramp.of({colors.white, colors.red}, 2, 1, 2)'),
-       'red')
+       answer('ramp.of({bricks.white, bricks.red}, 1, 1, 2)'),
+       'white_brick')
+    it('and its last', answer('ramp.of({bricks.white, bricks.red}, 2, 1, 2)'),
+       'red_brick')
     -- It returns whatever the list holds and does not check that an entry is a
     -- block name, so a program may ramp anything it has in order.
     it('a list of things that are not blocks ramps the same way',
@@ -1538,7 +1541,90 @@ if bad == 0 then default_block(colors.white) else default_block(colors.black) en
 
     it('an index past the end of a view reads nil',
        holds('dark_hues[99] == nil'), true)
-    it('and the program carries on', answer('colors.white'), 'white')
+    it('and the program carries on', answer('bricks.white'),
+       'white_brick')
+
+    codeblock.filesystem.remove_file('test_player', program_file)
+    codeblock.filesystem.remove_user_data('test_player')
+end
+
+--------------------------------------------------------------------------------
+-- the palette and the names that raise, through the real environment
+-- (F15, F-K-1)
+--
+-- lib/palette.lua's snapping is palette_spec's. What is pinned here is the glue
+-- a program sees: the constructors answer a key default_block and place()
+-- accept, a v1 colors.red still resolves, and a name no table holds stops the
+-- program on the line that read it, where v1 warned and built grey.
+--
+-- Same readback channel as the ramps above: default_block, which refuses
+-- anything that is not a block.
+--------------------------------------------------------------------------------
+
+do
+    local function answer(expr)
+        local drone, err = sandboxed('default_block(' .. expr .. ')\n')
+        if err then return 'error: ' .. err end
+        return drone.default_block
+    end
+
+    --- The error a program stopped on, or nil when it ran to the end.
+    local function stops(src)
+        local _, err = sandboxed(src)
+        return err
+    end
+
+    it('colors.hex answers a key a program can place',
+       answer("colors.hex('#fff')"), 'color_#ffffff')
+    it('so do colors.rgb', answer('colors.rgb(255, 0, 0)'), 'color_#ff0000')
+    it('and colors.oklch', answer('colors.oklch(0, 0, 0)'), 'color_#000000')
+    it('and colors.okhsl', answer('colors.okhsl(0, 1, 0)'), 'color_#000000')
+    it('and colors.okhsv', answer('colors.okhsv(0, 0, 1)'), 'color_#ffffff')
+    it('colors.list holds the whole palette',
+       answer('colors.list[#colors.list == 3930 and 1 or 2]'), 'color_#ffffff')
+    it('a colour rounds to a palette entry',
+       answer("colors.hex('#f7a8e7')"), 'color_#f9a7ef')
+    -- A key of the right shape that is not in the palette is no block: only
+    -- the palette's own keys exist, which is what makes nearest the promise.
+    it('a hex that is not in the palette is no block',
+       answer("'color_#123457'"):find('Cannot place', 1, true) ~= nil, true)
+
+    -- The v1 names, resolving to the palette colour nearest the old hex rather
+    -- than to the hex itself, which is not in the palette.
+    local red = codeblock.config.colors.hex('#f74931')
+    it('a v1 colors.red resolves to its nearest palette colour',
+       answer('colors.red'), red)
+    it('and so does the bare v1 key a saved default block holds',
+       codeblock.config.allowed_blocks.canonical.red, red)
+
+    local bad_color = stops('local x = 1\nlocal b = colors.nosuch\n')
+    it('a name colors does not hold stops the program',
+       (bad_color or ''):find('colors.nosuch', 1, true) ~= nil, true)
+    it('on the line that read it', (bad_color or ''):find(':2:', 1, true) ~= nil,
+       true)
+
+    local bad_brick = stops('local x = 1\nlocal b = bricks.nosuch\n')
+    it('a name a block table does not hold stops the program too',
+       (bad_brick or ''):find('nosuch', 1, true) ~= nil, true)
+    it('on the line that read it as well',
+       (bad_brick or ''):find(':2:', 1, true) ~= nil, true)
+    it('glass raises the same way', stops('local b = glass.nosuch\n') ~= nil,
+       true)
+
+    local bad_hex = stops("local x = 1\nlocal c = colors.hex('pink')\n")
+    it('a string that is not a hex stops the program, naming it',
+       (bad_hex or ''):find('pink', 1, true) ~= nil, true)
+    it('on its own line', (bad_hex or ''):find(':2:', 1, true) ~= nil, true)
+    it('a channel that is not a number stops colors.rgb',
+       stops("colors.rgb('a', 0, 0)\n") ~= nil, true)
+    it('and colors.oklch', stops('colors.oklch(0.5)\n') ~= nil, true)
+    it('and colors.okhsl', stops('colors.okhsl(0.5, 1)\n') ~= nil, true)
+    it('and colors.okhsv', stops('colors.okhsv(0.5, 1)\n') ~= nil, true)
+
+    -- Reading past the end of a view stays legitimate: the views are arrays,
+    -- not block tables, and walking one to its nil is a reasonable loop.
+    it('a view read past its end does not raise',
+       stops('local h = hues[99]\n'), nil)
 
     codeblock.filesystem.remove_file('test_player', program_file)
     codeblock.filesystem.remove_user_data('test_player')
@@ -1568,7 +1654,7 @@ end
 --------------------------------------------------------------------------------
 
 do
-    local palette = codeblock.config.palette
+    local palette = codeblock.config.named
     local blocks = codeblock.config.allowed_blocks
 
     -- 5 neutrals + 10 families x 3 shades.
@@ -1626,10 +1712,13 @@ do
 
     -- place() takes one string and knows nothing about which category it came
     -- from, so a collision between two categories would silently shadow one.
+    -- The palette keys, the thirty-five bare names that resolve among
+    -- them, three materials per named colour, and air. (F15, F-K-1)
     local flat = 0
     for _ in pairs(blocks.all) do flat = flat + 1 end
-    it('the flat namespace holds three per colour plus air', flat,
-       #palette * 3 + 1)
+    it('the flat namespace holds every palette key, the bare names, three ' ..
+           'materials per colour and air', flat,
+       #codeblock.config.colors.keys + #palette * 4 + 1)
 
     it('there are three categories', #blocks.categories, 3)
 
@@ -1687,8 +1776,59 @@ do
        core.registered_nodes['codeblock:red_glass'].drawtype, 'glasslike')
     it('a lamp emits light',
        (core.registered_nodes['codeblock:red_lamp'].light_source or 0) > 0, true)
-    it('a solid block emits none',
-       (core.registered_nodes['codeblock:red'].light_source or 0), 0)
+    it('a brick emits none',
+       (core.registered_nodes['codeblock:red_brick'].light_source or 0), 0)
+
+    -- The sixteen palette nodes, 256 entries each: all eight bits of param2
+    -- to the colour, each through its own texture, and only the one whose
+    -- index 0 is white in the creative inventory. (F15)
+    local wrong, shown = {}, {}
+    for r = 0, 15 do
+        local digit = ('%x'):format(r)
+        local def = core.registered_nodes['codeblock:color_' .. digit] or
+                        {groups = {}}
+        if def.paramtype2 ~= 'color' or def.palette ~=
+            'codeblock_palette_' .. digit .. '.png' then
+            wrong[#wrong + 1] = digit
+        end
+        if not def.groups.not_in_creative_inventory then
+            shown[#shown + 1] = digit
+        end
+    end
+    it('every palette node takes its colour from param2, through its texture',
+       table.concat(wrong, ' '), '')
+    it('only color_0 is in the creative inventory', table.concat(shown, ' '),
+       '0')
+    it('whose index 0 is white', blocks.all['color_#ffffff'] .. ' ' ..
+           blocks.param2['color_#ffffff'], 'codeblock:color_0 0')
+
+    -- What get_block reads a palette node back through: the key at its
+    -- param2. Every key, so a layout slip in any node shows.
+    local lost = 0
+    for _, key in ipairs(codeblock.config.colors.keys) do
+        local keys = blocks.palette_keys[blocks.all[key]]
+        if not (keys and keys[blocks.param2[key] + 1] == key) then
+            lost = lost + 1
+        end
+    end
+    it('every palette key reads back from its node and param2', lost, 0)
+
+    -- The v1 solids stay registered, so a world and an item from v1 stay
+    -- valid, and leave the creative inventory. The LBM that converts them is
+    -- registered under a name a world records. (F-K-1)
+    local solid = core.registered_nodes['codeblock:red'] or {groups = {}}
+    it('a v1 solid block is still registered',
+       core.registered_nodes['codeblock:red'] ~= nil, true)
+    it('but out of the creative inventory',
+       solid.groups.not_in_creative_inventory, 1)
+    local lbm = false
+    for _, def in ipairs(core.registered_lbms) do
+        if def.name == 'codeblock:solid_to_palette' then lbm = def end
+    end
+    it('the LBM converting them is registered', lbm ~= false, true)
+    it('it covers all thirty-five', #(lbm and lbm.nodenames or {}), #palette)
+    it('and reads a v1 solid as its palette colour',
+       blocks.by_node['codeblock:red'], blocks.canonical.red)
 end
 
 --------------------------------------------------------------------------------
@@ -1779,7 +1919,7 @@ do
             mod = 'agame',
             category = 'agame',
             entries = {
-                mud = 'codeblock:olive',
+                mud = 'codeblock:olive_brick',
                 -- Refused on its own, and must not cost the category the rest:
                 -- one typo is not worth a game's whole palette.
                 broken = 'nosuch:node'
@@ -1806,11 +1946,11 @@ do
     it('the flat key carries the category, so it cannot shadow ours',
        category.spelled.mud, 'agame.mud')
     it('the flat key resolves to the node the game named',
-       blocks.all['agame.mud'], 'codeblock:olive')
-    -- First registrant wins, so get_block() still answers colors.olive for the
+       blocks.all['agame.mud'], 'codeblock:olive_brick')
+    -- First registrant wins, so get_block() still answers bricks.olive for the
     -- node the mod registered itself.
     it('a node the mod already owns keeps its own name',
-       blocks.by_node['codeblock:olive'], 'olive')
+       blocks.by_node['codeblock:olive_brick'], 'olive_brick')
 
     local picked = false
     for _, entry in ipairs(blocks.pickable) do
@@ -1880,7 +2020,7 @@ do
 
     local selector = 'dropdown%[[^%]]-;help_pick;([^;]*);(%d+)%]'
     -- Over the API panel, where meta.help names no category at all.
-    local items, index = help_row('commands', 'colors'):match(selector)
+    local items, index = help_row('commands', 'bricks'):match(selector)
 
     it('the selector is drawn over a panel that is not a block panel',
        items ~= nil, true)
@@ -1892,12 +2032,12 @@ do
     -- would still pass. These two disagree with each other, so only reading
     -- meta.category satisfies both.
     it('the selector follows the choice when a block panel names another',
-       select(2, help_row('agame', 'colors'):match(selector)), '1')
+       select(2, help_row('agame', 'bricks'):match(selector)), '1')
     it('and follows it over a panel that names no category at all',
        select(2, help_row('commands', 'agame'):match(selector)),
        tostring(#blocks.categories))
     it("it labels the mod's own categories in the player's language",
-       (items or ''):find(codeblock.S('Colors'), 1, true) ~= nil, true)
+       (items or ''):find(codeblock.S('Bricks'), 1, true) ~= nil, true)
     it("and a game's by the raw name a program types",
        (items or ''):find('agame', 1, true) ~= nil, true)
     local _, separators = (items or ''):gsub(',', '')
@@ -1906,7 +2046,7 @@ do
     -- The count is the point: three help buttons whatever the palette holds.
     -- A row with one button per category is what this replaced, and it is the
     -- shape that grows off the edge of the form once a game registers one.
-    local _, buttons = help_row('commands', 'colors'):gsub('button%[[^%]]-;help_',
+    local _, buttons = help_row('commands', 'bricks'):gsub('button%[[^%]]-;help_',
                                                            '')
     it('the row keeps a fixed number of buttons as the palette grows', buttons,
        3)
@@ -1918,12 +2058,27 @@ do
     it("a game's block panel lists its blocks",
        help_row('agame', 'agame'):find('agame.mud]', 1, true) ~= nil, true)
 
+    -- The default block on the settings panel: a palette colour drawn as its
+    -- item, the index riding in the item string, and named as the list names
+    -- it. A flat swatch box was drawn before, borderless beside a brick's
+    -- cube. (F15)
+    local settings = help_row('settings', 'bricks')
+    local stack = ItemStack(blocks.all.grey)
+    stack:get_meta():set_int('palette_index', blocks.param2.grey)
+    it('a palette default is drawn as its item, in its colour',
+       settings:find('item_image[14.5,1.15;0.8,0.8;' .. stack:to_string() ..
+                         ']', 1, true) ~= nil, true)
+    it('and not as a swatch', settings:find('box[14.5,1.15', 1, true), nil)
+    it('the default is named as the list names it',
+       settings:find(codeblock.S('Default block: @1', 'colors.grey'), 1, true) ~=
+           nil, true)
+
     -- Drawn, and not merely held by the config. lib/formspecs.lua reads the
     -- palette for the block picker too, and a list copied there at load time
     -- would offer the mod's own blocks and nothing a game added - which the
     -- case above cannot see, because it reads the config's own table. (F11)
     it('the block picker draws it',
-       help_row('settings', 'colors', true):find('agame.mud', 1, true) ~= nil,
+       help_row('settings', 'bricks', true):find('agame.mud', 1, true) ~= nil,
        true)
 
     local _, selected = help_row('agame', 'agame'):match(selector)
@@ -1961,7 +2116,8 @@ do
     -- directory - a read of a path that does not exist. Nothing here writes.
     ----------------------------------------------------------------------------
 
-    local function submit(fields)
+    --- The meta after one submit; `start` is the default block before it.
+    local function submit(fields, start)
         local meta = {
             name = 'codeblock_spec_player',
             tabs = {},
@@ -1969,9 +2125,9 @@ do
             dirty = {},
             active = 0,
             help = 'commands',
-            category = 'colors',
+            category = 'bricks',
             scroll = {},
-            default_block = 'grey',
+            default_block = start or 'grey',
             picking = false,
             soe = false,
             loe = false,
@@ -1999,18 +2155,18 @@ do
     -- written, so they pass against the previous chain too. They fail against a
     -- guard simplified to "differs from the label it was drawn with".
     it('a value matching no label opens no panel',
-       submit({help_pick = 'Couleurs'}).help, 'commands')
+       submit({help_pick = 'Briques'}).help, 'commands')
     it('and leaves the remembered choice alone',
-       submit({help_pick = 'Couleurs'}).category, 'colors')
+       submit({help_pick = 'Briques'}).category, 'bricks')
     it('and does not consume the event it arrived with',
-       submit({help_pick = 'Couleurs', help_settings = 'x'}).help, 'settings')
+       submit({help_pick = 'Briques', help_settings = 'x'}).help, 'settings')
 
     -- The other half of the same guard, and the one an always-sent field makes
     -- necessary: the selector reports the item it was drawn with on every
     -- submit, so that value is a resend and not a choice. Without this the
     -- block panel would open under any submit no branch above claimed.
     it('the value the selector was drawn with reads as a resend',
-       submit({help_pick = codeblock.S('Colors')}).help, 'commands')
+       submit({help_pick = codeblock.S('Bricks')}).help, 'commands')
 
     -- Ordering. Both cases send a value that does match, so neither can pass
     -- by the guard failing to fire - the first two cases above are what proves
@@ -2026,6 +2182,17 @@ do
     -- forgetting it.
     it('a choice that lost its submit is still remembered',
        submit({help_pick = glass_label, quit = 'true'}).category, 'glass')
+
+    -- The default block's picker offers the fallback, a palette colour and in
+    -- no category, so a player who chose another can choose it back. (F15)
+    local row
+    for i, entry in ipairs(blocks.pickable) do
+        if entry.key == blocks.fallback then row = i end
+    end
+    it('the block picker offers the fallback grey', row ~= nil, true)
+    local chose = submit({pick = 'CHG:' .. tostring(row)}, 'red_brick')
+    it('and picking it makes it the default', chose.default_block,
+       blocks.fallback)
 
     ----------------------------------------------------------------------------
     -- no two categories share a label
@@ -2056,7 +2223,7 @@ do
     }), 1)
 
     local seen, duplicate = {}, nil
-    for item in (help_row('commands', 'colors'):match(selector) or ''):gmatch(
+    for item in (help_row('commands', 'bricks'):match(selector) or ''):gmatch(
                     '[^,]+') do
         if seen[item] then duplicate = item end
         seen[item] = true
@@ -2205,10 +2372,10 @@ do
 
     local function holds(cond)
         local drone, err = sandboxed(
-                               ('if %s then default_block(colors.white) else default_block(colors.black) end\n')
+                               ('if %s then default_block(bricks.white) else default_block(bricks.black) end\n')
                                    :format(cond))
         if err then return 'error: ' .. err end
-        return drone.default_block == 'white'
+        return drone.default_block == 'white_brick'
     end
 
     local installed = codeblock.blocks.install({
@@ -2258,11 +2425,11 @@ for k = -8, 16 do
     if ramp.of(wool, v) ~= ramp.of(names, v) then bad = bad + 1 end
 end
 if ramp.of(wool, 'x') ~= ramp.of(names, 'x') then bad = bad + 1 end
-if bad == 0 then default_block(colors.white) else default_block(colors.black) end
+if bad == 0 then default_block(bricks.white) else default_block(bricks.black) end
 ]])
     it('the category-against-array sweep runs', agree_err, nil)
     it('ramp.of over a category answers what it answers over the same array',
-       agreed.default_block, 'white')
+       agreed.default_block, 'white_brick')
 
     ----------------------------------------------------------------------------
     -- and an array is never routed through the category lookup

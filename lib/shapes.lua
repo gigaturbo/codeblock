@@ -45,6 +45,13 @@ local others = {x = {'y', 'z'}, y = {'x', 'z'}, z = {'x', 'y'}}
 local data = {}
 local open
 
+-- The open box's param2, fetched only once a palette shape lands in it, so a
+-- plain shape keeps the path above. From then on a plain shape in that box
+-- writes a 0 here too: a VoxelManip write keeps the old param2, and a node
+-- with a facing written over a palette colour would inherit a random one.
+-- (F15)
+local param2 = {}
+
 -- How many mapblocks one VoxelManip pass may emerge.
 --
 -- A pass cannot be interrupted, so this is the longest stall the mod can cause:
@@ -116,12 +123,15 @@ local bounds = {
 -- in, so it is exactly the extent `data` covers - the invariant that has to hold
 -- whatever build() tiles the shape into.
 --
+-- Each writes `v` into `buf` at every voxel the shape claims: the node id into
+-- `data`, and a second pass the param2 into `param2` when the box carries it.
+--
 -- Clipped on all three axes, which is what lets build() cut along all three.
 -- (B42, F-S-4)
 -------------------------------------------------------------------------------
 
 --- A sphere between `ymin` and `r`. A dome is the half of one above its centre.
-local function ball(s, area, id, o, ymin)
+local function ball(s, area, buf, v, o, ymin)
 
     local r, hollow = s.r, s.hollow
     local ystride, zstride = area.ystride, area.zstride
@@ -142,7 +152,7 @@ local function ball(s, area, id, o, ymin)
             for x = xlo, xhi do
                 local sq = x * x + y * y + z * z
                 if sq <= rmax and (not hollow or sq >= rmin) then
-                    data[iy + ox + x] = id
+                    buf[iy + ox + x] = v
                 end
             end
         end
@@ -152,7 +162,7 @@ end
 
 local fillers = {
 
-    cube = function(s, area, id, o)
+    cube = function(s, area, buf, v, o)
 
         local w, h, l, hollow = s.w, s.h, s.l, s.hollow
         local ystride, zstride = area.ystride, area.zstride
@@ -168,18 +178,18 @@ local fillers = {
                 for x = xlo, xhi do
                     local wall = not hollow or x == 0 or x == w - 1 or y == 0 or
                                      y == h - 1 or z == 0 or z == l - 1
-                    if wall then data[iy + ox + x] = id end
+                    if wall then buf[iy + ox + x] = v end
                 end
             end
         end
 
     end,
 
-    sphere = function(s, area, id, o) ball(s, area, id, o, -s.r) end,
+    sphere = function(s, area, buf, v, o) ball(s, area, buf, v, o, -s.r) end,
 
-    dome = function(s, area, id, o) ball(s, area, id, o, 0) end,
+    dome = function(s, area, buf, v, o) ball(s, area, buf, v, o, 0) end,
 
-    cylinder = function(s, area, id, o)
+    cylinder = function(s, area, buf, value, o)
 
         local r, hollow = s.r, s.hollow
         local a = s.axis
@@ -208,7 +218,7 @@ local fillers = {
                 for v = lo[o2], hi[o2] do
                     local sq = u * u + v * v
                     if sq <= rmax and (not hollow or sq >= rmin) then
-                        data[iu + (v + oo2) * s2] = id
+                        buf[iu + (v + oo2) * s2] = value
                     end
                 end
             end
@@ -273,6 +283,18 @@ local reaches = {
 
 }
 
+--- Write one shape into the open box `o`: its node id, then its param2 once
+-- the box carries param2, fetched the first time a palette shape needs it.
+local function fill(spec, o, id, origin)
+    local f = fillers[spec.kind]
+    f(spec, o.area, data, id, origin)
+    if spec.param2 and not o.param2 then
+        o.manip:get_param2_data(param2)
+        o.param2 = true
+    end
+    if o.param2 then f(spec, o.area, param2, spec.param2 or 0, origin) end
+end
+
 --- The box to tile a shape of `sp` mapblocks into, in mapblocks per axis.
 --
 -- The largest that fits SLICE_BLOCKS, then the least surface, then the one that
@@ -320,6 +342,7 @@ function shapes.flush(pos)
 
     open = nil
     o.manip:set_data(data)
+    if o.param2 then o.manip:set_param2_data(param2) end
     o.manip:write_to_map()
 
 end
@@ -330,6 +353,7 @@ end
 --   kind    'cube', 'sphere', 'dome' or 'cylinder'
 --   pos     reference point, as commands.lua computes it per shape and angle
 --   node    node name
+--   param2  optional, the palette index a palette colour rides in
 --   hollow  surface only
 --   w, h, l cube extents
 --   r       radius, for sphere, dome and cylinder
@@ -424,7 +448,7 @@ function shapes.build(spec)
         end
 
         if within then
-            fillers[spec.kind](spec, o.area, id, origin)
+            fill(spec, o, id, origin)
         elseif reached(spec, origin, lo, hi) then
             -- After the charge, which may yield and so end the step, closing
             -- whatever was open then.
@@ -435,7 +459,7 @@ function shapes.build(spec)
 
             manip:get_data(data)
             open = {manip = manip, area = area}
-            fillers[spec.kind](spec, area, id, origin)
+            fill(spec, open, id, origin)
         else
             load_area(lo, hi)
         end

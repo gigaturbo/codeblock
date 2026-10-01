@@ -27,6 +27,7 @@ end
 
 save('origin')
 local mblocks = {
-    colors.grey, colors.dark_orange, colors.black, colors.light_yellow
+    colors.hex('#808080'), colors.hex('#a5672e'),
+    colors.hex('#101010'), colors.hex('#f3e583')
 }
 recursion('origin', mblocks, #mblocks)

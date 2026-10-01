@@ -6,8 +6,8 @@ local pos = mvt:scale(0.95 * (R1 + R2)):floor()
 
 up(2 * R1 + R2)
 save('center')
-centered.sphere(R1, colors.grey)
-centered.sphere(R1 - 1, colors.cyan)
+centered.sphere(R1, colors.hex('#808080'))
+centered.sphere(R1 - 1, colors.hex('#49c1d1'))
 
 move(pos.x, pos.y, pos.z)
 centered.sphere(R2, air)

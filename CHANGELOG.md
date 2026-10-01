@@ -1,3 +1,13 @@
+# v2.0.0 (unreleased)
+
+- [ ] BREAKING: `colors.red` and the bare name `'red'` build the nearest of the 3930 new colours, a close shade of the old one, and so do the other 34 names. Old programs and saved default blocks keep working.
+- [ ] BREAKING: The 35 old solid blocks already in a world turn into that nearest colour as their area loads.
+- [ ] BREAKING: A name no block table holds, such as `bricks.gren`, stops the program on its line. It used to warn and build the default block.
+- [ ] BREAKING: `colors` is no longer a block table, so `ramp.of(colors, ...)`, `random.of(colors)` and `pairs(colors)` no longer walk the 35 colours. Use `bricks`, or `colors.list`.
+- [ ] BREAKING: A game can no longer register a block category named `bricks`.
+- [ ] FEATURE: 3930 colours in steps of lightness, chroma and hue: `colors.hex('#f7a8e7')`, `colors.rgb(r, g, b)`, `colors.oklch(L, c, h)`, `colors.okhsl(h, s, l)` and `colors.okhsv(h, s, v)` round to one of them, a gradient in one never stepping back in another, and `colors.list` holds them all. `get_block` answers the same name back.
+- [ ] FEATURE: The 35 named colours come as bricks, `bricks.red`, beside `glass.red` and `lamps.red`.
+
 # v1.1.0 (unreleased)
 
 - [x] FEATURE: New codelevel limit `max_map_generated`, the new map one program may make the server generate. Shown on the HUD and in the drone panel.

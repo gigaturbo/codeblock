@@ -43,9 +43,10 @@ end
 -- load the description and the block tables
 --------------------------------------------------------------------------------
 
--- config.lua assigns into a `codeblock` global and references nothing else, so a
--- stub is enough to read the block tables out of it without the mod loaded.
-codeblock = codeblock or {}
+-- config.lua assigns into a `codeblock` global and loads lib/palette.lua
+-- through codeblock.modpath, so a stub is enough to read the block tables out of it
+-- without the mod loaded.
+codeblock = codeblock or {modpath = root}
 dofile(root .. '/lib/config.lua')
 local api = dofile(root .. '/lib/api.lua')
 
