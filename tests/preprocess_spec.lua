@@ -323,9 +323,9 @@ do
     -- stayed, and because a missing file was silently skipped, fourteen names
     -- came to a count of thirteen and the count read as correct.
     local names = {
-        'death_star', 'density', 'donuts', 'forest', 'game', 'menger',
-        'mosely', 'planet', 'plot2D', 'plot3D', 'recursion', 'spirals',
-        'stairs', 'torus'
+        'animation', 'death_star', 'density', 'donuts', 'forest', 'game',
+        'menger', 'mosely', 'planet', 'plot2D', 'plot3D', 'recursion',
+        'spirals', 'stairs', 'torus'
     }
 
     local checked, broken, missing = 0, {}, {}

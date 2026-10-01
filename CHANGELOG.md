@@ -12,6 +12,7 @@
 - [x] FEATURE: New settings `codeblock_server_share`, the percent of the step all drones share, and `codeblock_step_share`, each codelevel's part of it. They replace `codeblock_step_budget_us` and `codeblock_server_step_budget_us`, which now only warn in the log.
 - [x] FEATURE: New setting `codeblock_wait_for_mapgen`, on by default. Turn it off only in a game that pre-generates all the map drones can reach.
 - [x] FEATURE: The examples show every kind of block between them: named colours, bricks, glass, lamps, a hex palette in `menger`, and `colors.okhsv` in the two plots.
+- [x] FEATURE: New example `animation`, a sphere of lamps that grows and shrinks until you stop the drone.
 - [x] FEATURE: The API reference sorts blocks into Material blocks, Color names, Solid colors and Block utilities, and `random()` is documented as a fraction from 0 up to but not including 1.
 - [x] PACKAGING: Declared on ContentDB as working in any game, with a new description and its AI disclosure.
 - [x] PERF: A drone runs for a share of each server step rather than a fixed time: twice as long in singleplayer at the default codelevel, and about seven times on a server. It no longer slows down when the game window loses focus.
