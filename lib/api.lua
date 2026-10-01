@@ -178,20 +178,78 @@ api.groups = {
             }
         }
     }, {
-        title = 'Color blocks',
-        intro = 'Solid blocks in 3930 colours. The quickest are the ' ..
-            'thirty-five named colours listed under Block types, such ' ..
-            'as `colors.red` or `colors.dark_blue`, each the nearest of ' ..
-            'the 3930. A bare name such as `\'red\'`, or one taken out ' ..
-            'of `hues`, is the same block. For any other colour, each ' ..
-            'function below rounds the colour asked for to one of the ' ..
-            '3930, as a block you can place: ' ..
-            '`place(colors.hex(\'#f7a8e7\'))`. The answer is a ' ..
-            'name, here `color_#f9a7ef`, which is also what `get_block` ' ..
-            'reads back. The colours are steps of lightness, chroma and ' ..
-            'hue, as `colors.oklch` counts them, each rounded on its own, ' ..
-            'so a gradient in one never steps back in another. They ' ..
-            'include 47 greys and the six pure colours such as `#ff0000`.',
+        title = 'Material blocks',
+        -- Named, because lib/blocks.lua appends an entry here for every
+        -- category a game registers and matching on the title would break on a
+        -- rewording. It is the only group that grows at run time. (F11)
+        id = 'blocks',
+        intro = 'Bricks, glass and lamps, each in 35 named colours: 5 ' ..
+            'neutrals, and 10 hues in a light, a plain and a dark shade. ' ..
+            '`bricks.red`, `glass.light_blue` and `lamps.dark_green` are ' ..
+            'blocks to place. The names are listed under Block types ' ..
+            'below. A name that does not exist stops the program, naming ' ..
+            'it. For any other colour, use a solid colour.',
+        entries = {
+            {
+                name = 'bricks',
+                kind = 'value',
+                doc = 'Brick blocks, indexed by colour name.'
+            }, {
+                name = 'glass',
+                kind = 'value',
+                doc = 'See-through blocks, indexed by colour name.'
+            }, {
+                name = 'lamps',
+                kind = 'value',
+                doc = 'Glowing blocks, indexed by colour name. The light is ' ..
+                    'the same whatever the colour.'
+            }, {
+                name = 'air',
+                kind = 'value',
+                doc = 'Empty space. Place it to carve rather than to build.'
+            }
+        }
+    }, {
+        title = 'Color names',
+        intro = 'The 35 names in four arrays: 10 `hues`, 10 `light_hues`, ' ..
+            '10 `dark_hues` and 5 `neutrals`. They hold names, not ' ..
+            'blocks. A name indexes any material: `bricks[hues[i]]` is a ' ..
+            'brick and `lamps[dark_hues[i]]` a lamp. A name placed by ' ..
+            'itself places a solid colour block, `place(hues[i])` (see ' ..
+            'Solid colors below).',
+        entries = {
+            {
+                name = 'hues',
+                kind = 'value',
+                doc = 'The plain shade of each hue, in colour-wheel order.'
+            }, {
+                name = 'light_hues',
+                kind = 'value',
+                doc = 'The light shade of each hue, same order.'
+            }, {
+                name = 'dark_hues',
+                kind = 'value',
+                doc = 'The dark shade of each hue, same order.'
+            }, {
+                name = 'neutrals',
+                kind = 'value',
+                doc = 'The neutrals, white to black.'
+            }
+        }
+    }, {
+        title = 'Solid colors',
+        intro = 'Solid blocks in 3930 colours. The functions below reach ' ..
+            'any of them, from a hex string, from red, green and blue, ' ..
+            'or from OKLCh, OKHSL or OKHSV numbers, each rounding the ' ..
+            'colour asked for to the nearest of the 3930: ' ..
+            '`place(colors.hex(\'#f7a8e7\'))` places `color_#f9a7ef`, the ' ..
+            'name `get_block` reads back. The colours are steps of ' ..
+            'lightness, chroma and hue, so a gradient in one never steps ' ..
+            'back in another.\n\n' ..
+            '35 of them are named, `colors.red`, `colors.dark_blue` and ' ..
+            'the rest: each is the one of the 3930 closest to the ' ..
+            'material colour of the same name. A bare name such as ' ..
+            '`\'red\'` is the same block.',
         entries = {
             {
                 name = 'colors.hex',
@@ -201,203 +259,108 @@ api.groups = {
                 name = 'colors.rgb',
                 params = {'r', 'g', 'b'},
                 doc = 'The palette colour of red, green and blue, each 0 to 255.',
-                note = 'A value outside 0 to 255 is clamped rather than ' ..
-                    'stopping the program. A value that is not a number does ' ..
-                    'stop it.'
+                note = 'A value outside 0 to 255 is clamped. A value that ' ..
+                    'is not a number stops the program.'
             }, {
                 name = 'colors.oklch',
                 params = {'L', 'c', 'h'},
                 doc = 'The palette colour of a lightness, a chroma and a hue.',
                 note = 'The numbers of CSS `oklch()`: `L` from 0 (black) to ' ..
                     '1 (white), `c` from 0 (grey) to about 0.37, and `h` an ' ..
-                    'angle in degrees. Keep `L` and `c` and turn `h` for a ' ..
-                    'rainbow of one brightness. A colour no screen can show ' ..
-                    'loses chroma, keeping its lightness and hue, before it is ' ..
-                    'rounded. A screen reaches far more chroma in ' ..
-                    'some hues than others: at `L` 0.45, blue reaches 0.31 ' ..
-                    'and cyan only 0.08, so a large `c` gives vivid blues ' ..
-                    'and dull greens. For a rainbow as strong in every hue, ' ..
-                    'keep `c` at 0.128 or less, which every hue reaches at ' ..
-                    '`L` 0.75 and at no other lightness. For a saturation ' ..
-                    'from 0 to 1 instead, use `colors.okhsl`, and for vivid ' ..
-                    'colours `colors.okhsv`.'
+                    'angle in degrees. Turn `h` for a rainbow of one ' ..
+                    'lightness. A screen shows far more chroma in some hues ' ..
+                    'than others, so a large `c` gives vivid blues and dull ' ..
+                    'greens. For a rainbow as strong in every hue, use `L` ' ..
+                    '0.75 and `c` 0.128 or less.'
             }, {
                 name = 'colors.okhsl',
                 params = {'h', 's', 'l'},
                 doc = 'The palette colour of a hue, a saturation and a ' ..
                     'lightness.',
-                note = '`h` is the hue of `colors.oklch`, in degrees. `s` ' ..
-                    'and `l` run from 0 to 1. `l` is the same lightness in ' ..
-                    'every hue, 0 black and 1 white, so turning `h` at one ' ..
-                    '`s` and `l` gives a rainbow of one brightness. `s` 0 is ' ..
-                    'a grey and `s` 1 the most chroma a screen can show at ' ..
-                    'that hue and lightness, which is vivid in some hues and ' ..
-                    'soft in others. The lower `s`, the more nearly it is ' ..
-                    'as strong in every hue.'
+                note = '`h` in degrees, `s` and `l` from 0 to 1. `l` is the ' ..
+                    'same lightness in every hue, so turning `h` gives a ' ..
+                    'rainbow of one brightness. `s` 1 is the most chroma a ' ..
+                    'screen shows at that hue and lightness.'
             }, {
                 name = 'colors.okhsv',
                 params = {'h', 's', 'v'},
                 doc = 'The palette colour of a hue, a saturation and a value.',
-                note = '`h` is the hue of `colors.oklch`, in degrees. `s` ' ..
-                    'and `v` run from 0 to 1, and are measured against what ' ..
-                    'a screen can show in that hue: `colors.okhsv(h, 1, 1)` ' ..
-                    'is its most vivid colour, `s` 0 a grey and `v` 0 black. ' ..
-                    'Turn `h` for the most vivid rainbow there is; its ' ..
-                    'lightness changes with the hue, yellow being light and ' ..
-                    'blue dark, because that is where each is vivid.'
+                note = '`h` in degrees, `s` and `v` from 0 to 1. ' ..
+                    '`colors.okhsv(h, 1, 1)` is the most vivid colour of a ' ..
+                    'hue, `s` 0 a grey and `v` 0 black. Turning `h` gives ' ..
+                    'the most vivid rainbow, light in yellow and dark in blue.'
             }, {
                 name = 'colors.list',
                 kind = 'value',
                 doc = 'All 3930 colours as an array, greys first.',
                 note = 'For `random.of(colors.list)`. It is not a gradient: ' ..
-                    'no order of 3930 colours reads as one, so ramp with ' ..
-                    '`colors.oklch`, `colors.okhsl` or `colors.okhsv` instead.'
+                    'ramp with `colors.oklch`, `colors.okhsl` or ' ..
+                    '`colors.okhsv` instead.'
             }
         }
     }, {
-        title = 'Block tables',
-        -- Named, because lib/blocks.lua appends an entry here for every
-        -- category a game registers and matching on the title would break on a
-        -- rewording. It is the only group that grows at run time. (F11)
-        id = 'blocks',
-        intro = 'Three materials beside the solid colours: bricks, glass ' ..
-            'and lamps. Each comes in the thirty-five named colours ' ..
-            'only, the five neutrals and a light, a plain and a dark ' ..
-            'shade of ten hues, which are the names `neutrals`, ' ..
-            '`light_hues`, `hues` and `dark_hues` hold. For any other ' ..
-            'colour, use a solid block from Color blocks. The names are ' ..
-            'listed under Block types below. A name that does not exist ' ..
-            'stops the program, naming it.',
-        entries = {
-            {
-                name = 'bricks',
-                kind = 'value',
-                doc = 'One brick block per colour, indexed by name.'
-            }, {
-                name = 'glass',
-                kind = 'value',
-                doc = 'One see-through block per colour, indexed by name.'
-            }, {
-                name = 'lamps',
-                kind = 'value',
-                doc = 'One glowing block per colour, indexed by name. The ' ..
-                    'light itself is the same whatever the colour.'
-            }, {
-                name = 'hues',
-                kind = 'value',
-                doc = 'The plain shade of each hue family as an array, in ' ..
-                    'colour-wheel order.',
-                note = '`hues`, `light_hues`, `dark_hues` and `neutrals` are ' ..
-                    'the four ways of walking the palette: which colours, in ' ..
-                    'what order. They hold colour names rather than blocks, ' ..
-                    'and every table above is indexed by the same names, so ' ..
-                    '`glass[hues[1]]` is glass and `lamps[dark_hues[1]]` is ' ..
-                    'a lamp. A name out of one of them is a solid colour ' ..
-                    'already, so `place(hues[1])` needs nothing around it. ' ..
-                    'Use them with `ramp.of` and `random.of`.'
-            }, {
-                name = 'light_hues',
-                kind = 'value',
-                doc = 'The light shade of each hue family, same order.'
-            }, {
-                name = 'dark_hues',
-                kind = 'value',
-                doc = 'The dark shade of each hue family, same order.'
-            }, {
-                name = 'neutrals',
-                kind = 'value',
-                doc = 'The neutrals as an array, white to black.'
-            }, {
-                name = 'air',
-                kind = 'value',
-                doc = 'Empty space. Place it to carve rather than to build.'
-            }
-        }
-    }, {
-        title = 'Choosing blocks',
-        intro = 'Two ways of picking a block out of many: `ramp` maps a ' ..
-            'number onto a list, so a shape can be coloured by height, ' ..
-            'distance or anything else that is a number, and `random.of` ' ..
-            'picks one without an order at all. For a ramp, values at or ' ..
-            'below `min` give the first block and those at or above `max` ' ..
-            'the last; anything outside the range is clamped rather than ' ..
-            'wrapped. `min` and `max` default to 1 and the number of blocks ' ..
-            'in the list.',
+        title = 'Block utilities',
+        intro = 'Picking a block out of many, and reading the map. ' ..
+            '`random` picks one at random. `ramp` maps a number onto a ' ..
+            'list, so a shape can be coloured by height, distance or any ' ..
+            'other number: `min` and below give the first item, `max` and ' ..
+            'above the last. `min` and `max` default to 1 and the length ' ..
+            'of the list.',
         entries = {
             {
                 name = 'random.of',
                 params = {'list'},
                 doc = 'One value of a list or a block table, at random.',
-                note = 'Takes anything holding values: a palette order, a ' ..
-                    'block table such as `bricks` or `glass`, ' ..
-                    '`colors.list`, or a list you ' ..
-                    'built. It takes a block table as it stands where ' ..
-                    '`ramp.of` has to put one in order first, because a ' ..
-                    'random pick has no order to respect. Prefer ' ..
-                    '`random.of(hues)`: a pick across a whole table draws ' ..
-                    'light, plain and dark shades of unrelated families in a ' ..
-                    'row and looks muddled, where the hues are ten clean ' ..
-                    'families.'
+                note = 'Takes any list: `hues`, a block table such as ' ..
+                    '`bricks`, `colors.list`, or a list you built. ' ..
+                    '`random.of(hues)` gives ten clean colours, where a ' ..
+                    'pick across a whole block table mixes light, plain and ' ..
+                    'dark shades and looks muddled.'
             }, {
                 name = 'random.hues',
                 params = {},
-                doc = 'A random hue; short for random.of(hues).',
+                doc = 'A random hue, short for random.of(hues).',
                 note = 'A colour name, so `place(random.hues())` is a solid ' ..
                     'colour and `lamps[random.hues()]` the matching lamp.'
             }, {
                 name = 'ramp.hues',
                 params = {'v', 'min', 'max'},
-                doc = 'Map a number onto the hues: a smooth rainbow.',
-                note = 'Short for `ramp.of(hues, v, min, max)`. It reads as a ' ..
-                    'gradient because `hues` is one name per family in ' ..
-                    'colour-wheel order.'
+                doc = 'A smooth rainbow, short for ramp.of(hues, v, min, max).'
             }, {
                 name = 'ramp.of',
                 params = {'list', 'v', 'min', 'max'},
-                doc = 'Map a number onto any list: a palette order, a block ' ..
-                    'table, or a list you built.',
-                note = 'The material is whatever you index with the answer, ' ..
-                    'so `glass[ramp.of(dark_hues, i, 1, n)]` is the dark ' ..
-                    'shades in glass, and a name out of a palette order is a ' ..
-                    'solid colour already. A block table is a map and has no ' ..
-                    'order of its own, so it is walked in the only order ' ..
-                    'there is: palette order for `bricks`, `glass` and ' ..
-                    '`lamps`, and alphabetical for a table the game added. ' ..
-                    'Neither reads as a gradient - `ramp.of(bricks, i, 1, ' ..
-                    'n)` runs light, plain and dark through one family ' ..
-                    'before reaching the next, so it strobes, and an ' ..
-                    'alphabetical one is a lookup. `ramp.of(hues, ...)` is ' ..
-                    'the smooth one. It returns whatever the list holds, so ' ..
-                    'a list of your own works too, and a value that is ' ..
-                    'neither a list nor a block table reads as nothing ' ..
-                    'rather than stopping the program.'
+                doc = 'Map a number onto a list or a block table.',
+                note = 'Answers whatever the list holds, so ' ..
+                    '`glass[ramp.of(dark_hues, i, 1, n)]` runs through the ' ..
+                    'dark shades in glass. The four colour-name arrays read ' ..
+                    'as gradients. A block table has no order of its own: ' ..
+                    '`bricks`, `glass` and `lamps` are walked in palette ' ..
+                    'order, light, plain and dark through each hue, which ' ..
+                    'strobes, and a table the game added alphabetically. A ' ..
+                    'value that is neither a list nor a block table gives ' ..
+                    'nothing rather than stopping the program.'
             }, {
                 name = 'get_block',
                 params = {'n_right', 'n_up', 'n_forward'},
                 doc = 'The block at an offset from the drone, without ' ..
                     'moving it.',
                 note = 'Each offset defaults to zero, so `get_block()` reads ' ..
-                    'where the drone is and `get_block(0, 0, 1)` reads one ' ..
-                    'step ahead of it. The offsets turn with the drone, the ' ..
-                    'same way `place_relative` does. Three answers: the name ' ..
-                    'of a block the drone could place, `false` for a node it ' ..
-                    'could not, and `nil` where there is no answer at all - ' ..
-                    'map that has never been generated, or a position ' ..
-                    'outside the world.'
+                    'where the drone is and `get_block(0, 0, 1)` one step ' ..
+                    'ahead. The offsets turn with the drone, as in ' ..
+                    '`place_relative`. It answers the name of a block the ' ..
+                    'drone could place, `false` for a node it could not, ' ..
+                    'and `nil` for map never generated or outside the world.'
             }, {
                 name = 'is_block',
                 params = {'block', 'n_right', 'n_up', 'n_forward'},
                 doc = 'Whether the block at an offset from the drone is the ' ..
                     'one named.',
-                note = 'The offsets are `get_block`\'s: each defaults to ' ..
-                    'zero, they turn with the drone, and nothing is moved. ' ..
-                    'True only when the block there is exactly the one ' ..
-                    'named, so `is_block(air)` asks whether the space is ' ..
-                    'empty and `is_block(colors.hex(\'#fff\'))` whether it ' ..
-                    'is white. Everything else is false - a node no program can ' ..
-                    'place, map that has never been generated, a position ' ..
-                    'outside the world, and a name that does not exist. Use ' ..
-                    '`get_block` to tell those apart.'
+                note = 'The offsets are those of `get_block`. True only ' ..
+                    'when the block there is exactly the one named: ' ..
+                    '`is_block(air)` asks whether the space is empty, ' ..
+                    '`is_block(bricks.red)` whether it is a red brick. ' ..
+                    'Anything else is false, whatever the reason, so use ' ..
+                    '`get_block` to tell the cases apart.'
             }
         }
     }, {
@@ -691,8 +654,8 @@ function api.to_markdown(allowed)
         w('# Block types')
         w()
         w('The names each block table holds, in palette order, then the four')
-        w('palette orders themselves. The same thirty-five names are the')
-        w('named solid colours, `colors.red` and the rest. Generated from')
+        w('colour-name arrays. The same thirty-five names are the named solid')
+        w('colours, `colors.red` and the rest. Generated from')
         w('`lib/config.lua`.')
         w()
         local listed = {}

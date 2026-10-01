@@ -1,9 +1,13 @@
--- The most vivid colour of each hue, from blue at `vmin` round through cyan,
--- green and yellow to red at `vmax`.
 function heat(v, vmin, vmax)
     local t = (v - vmin) / (vmax - vmin)
     return colors.okhsv(264 - 235 * t, 1, 1)
 end
+
+function fun(x, z)
+    return cos(x + pi / 2) * sin(z)
+end
+
+
 
 function plot3D(XMIN, XMAX, ZMIN, ZMAX, FMIN, FMAX, NPOINTS, SIZE, fun)
 
@@ -20,7 +24,7 @@ function plot3D(XMIN, XMAX, ZMIN, ZMAX, FMIN, FMAX, NPOINTS, SIZE, fun)
             rz = round0((z - ZMIN) / (ZMAX - ZMIN) * SIZE)
 
             i = (rx - XMIN) / NPOINTS + (ry - FMIN) / NPOINTS * NPOINTS +
-                    (rz - ZMIN) / NPOINTS * NPOINTS * NPOINTS + 3
+                (rz - ZMIN) / NPOINTS * NPOINTS * NPOINTS + 3
             if not visited[i] then
                 place_relative(rx, ry, rz, heat(y, FMIN, FMAX))
                 visited[i] = true
@@ -30,6 +34,5 @@ function plot3D(XMIN, XMAX, ZMIN, ZMAX, FMIN, FMAX, NPOINTS, SIZE, fun)
     end
 end
 
-fun = function(x, z) return cos(x + pi / 2) * sin(z) end
 
 plot3D(-2 * pi, 2 * pi, -2 * pi, 2 * pi, -1, 1, 300, 100, fun)

@@ -2,25 +2,26 @@
 
 - [x] BREAKING: `colors.red` and the bare name `'red'` build the nearest of the 3930 new colours, a close shade of the old one, and so do the other 34 names. Old programs and saved default blocks keep working.
 - [x] BREAKING: The 35 old solid blocks already in a world turn into that nearest colour as their area loads.
-- [x] BREAKING: A name no block table holds, such as `bricks.gren`, stops the program on its line. It used to warn and build the default block.
+- [x] BREAKING: A name that does not exist, such as `colors.gren` or `bricks.gren`, stops the program on its line. It used to warn and build the default block.
 - [x] BREAKING: `colors` is no longer a block table, so `ramp.of(colors, ...)`, `random.of(colors)` and `pairs(colors)` no longer walk the 35 colours. Use `bricks`, or `colors.list`.
+- [x] BREAKING: `get_block` answers a solid colour as its palette name, such as `color_#f9a7ef`, never `'red'`. Compare with `colors.red`, or ask `is_block('red')`.
 - [x] BREAKING: A game can no longer register a block category named `bricks`.
 - [x] FEATURE: 3930 colours in steps of lightness, chroma and hue: `colors.hex('#f7a8e7')`, `colors.rgb(r, g, b)`, `colors.oklch(L, c, h)`, `colors.okhsl(h, s, l)` and `colors.okhsv(h, s, v)` round to one of them, a gradient in one never stepping back in another, and `colors.list` holds them all. `get_block` answers the same name back.
 - [x] FEATURE: The 35 named colours come as bricks, `bricks.red`, beside `glass.red` and `lamps.red`.
-- [x] FEATURE: The examples show every kind of block between them: named colours, bricks, glass, lamps, a hex palette in `menger`, and `colors.okhsv` in the two plots.
 - [x] FEATURE: New codelevel limit `max_map_generated`, the new map one program may make the server generate. Shown on the HUD and in the drone panel.
+- [x] FEATURE: New settings `codeblock_server_share`, the percent of the step all drones share, and `codeblock_step_share`, each codelevel's part of it. They replace `codeblock_step_budget_us` and `codeblock_server_step_budget_us`, which now only warn in the log.
 - [x] FEATURE: New setting `codeblock_wait_for_mapgen`, on by default. Turn it off only in a game that pre-generates all the map drones can reach.
-- [x] FEATURE: New settings `codeblock_server_share`, the percent of the step all drones share, and `codeblock_step_share`, each codelevel's part of it.  They replace `codeblock_step_budget_us` and `codeblock_server_step_budget_us`, which now only warn in the log.
+- [x] FEATURE: The examples show every kind of block between them: named colours, bricks, glass, lamps, a hex palette in `menger`, and `colors.okhsv` in the two plots.
+- [x] FEATURE: The API reference sorts blocks into Material blocks, Color names, Solid colors and Block utilities, and `random()` is documented as a fraction from 0 up to but not including 1.
 - [x] PACKAGING: Declared on ContentDB as working in any game, with a new description and its AI disclosure.
+- [x] PERF: A drone runs for a share of each server step rather than a fixed time: twice as long in singleplayer at the default codelevel, and about seven times on a server. It no longer slows down when the game window loses focus.
 - [x] PERF: Programs of many small shapes run several times faster: shapes in the same mapblock share one write.
 - [x] PERF: A wide or flat shape no longer stalls the server, being written in boxes of at most 16 mapblocks.
-- [x] PERF: The drone moves on screen once per server step instead of once per command, which costs the server less.
-- [x] PERF: A drone runs for a share of each server step rather than a fixed time: twice as long in singleplayer at the default codelevel, and about seven times on a server. It no longer slows down when the game window loses focus.
 - [x] PERF: What a paced, waiting or low-codelevel drone leaves of the step goes to the other drones instead of being lost.
 - [x] PERF: Drones in unexplored ground ask the map generator one at a time, so players' own terrain keeps loading.
-- [x] FIX: A build beside freshly explored ground no longer comes out with mapblock-sized holes.
-  The drone waits for the map around a write to be generated first.
-- [x] FIX: A carve into unexplored ground no longer grows the game's grass and dirt on its floor.
+- [x] PERF: The drone moves on screen once per server step instead of once per command, which costs the server less.
+- [x] FIX: A build beside freshly explored ground no longer comes out with mapblock-sized holes: the drone waits for the map around a write to be generated first.
 - [x] FIX: Shapes are lit correctly: a hollow shape is dark inside, with no dark lines every 16 nodes around it.
 - [x] FIX: A long shape facing west or south is built from the drone's end, as the others are, instead of starting at its far end, out of sight.
+- [x] FIX: A carve into unexplored ground no longer grows the game's grass and dirt on its floor.
 - [x] FIX: A retired setting with no replacement says so, instead of naming a setting that does not exist.

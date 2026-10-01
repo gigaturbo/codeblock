@@ -179,7 +179,7 @@ do
             at = n:find('.', at + 1, true)
         end
     end
-    -- colors.red and the other named colours, which the Color blocks intro
+    -- colors.red and the other named colours, which the Solid colors intro
     -- describes in one sentence rather than as an entry each.
     for _, entry in ipairs(codeblock.config.named) do
         described['colors.' .. entry[1]] = true

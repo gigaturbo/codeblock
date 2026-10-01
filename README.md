@@ -59,7 +59,7 @@ codeblock.register_blocks('wool', {
 ```
 
 `wool.red` is then a block a player's program can place, listed in the editor
-beside the mod's own colours, glass and lamps. The keys are the names a program
+beside the mod's own bricks, glass and lamps. The keys are the names a program
 spells; the values are itemstrings your game has registered.
 
 Registrations are queued at the call and checked once every mod has loaded, so a
