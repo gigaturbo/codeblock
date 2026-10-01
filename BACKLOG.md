@@ -108,13 +108,7 @@ default ships under a new name.
 
 ## Tests
 
-### F12-1 · the nodes register, and the picker shows them in palette order
-
-`todo` `playtest` `filed 2026-10-01`
-
-The creative inventory holds 106 items since `F-K-1`: 35 bricks, 35 glass, 35
-lamps and one *Color block*. Last passed 2026-09-07 as *105 nodes register*,
-commit not recorded.
+Nothing open.
 
 ## Closed
 
@@ -340,6 +334,7 @@ whoever re-runs it knows what they are re-reading against.
 - `F11-9` done `playtest` 2026-09-07 · `is_ground_content = false` survives mapgen
 - `F11-10` done `playtest` 2026-09-07 · a real game mod calls `register_blocks`
 - `F11-11` done `playtest` 2026-09-07 · a registered category reaches `place()`, `get_block()` and player meta
+- `F12-1` done `playtest` 2026-10-01 · the nodes register, and the picker shows them in palette order; pass at `5076aad`: the creative inventory holds 106 nodes and the 2 tools
 - `F12-2` done `playtest` 2026-09-07 · a lamp wall shows the grid; a solid wall shows nothing
 - `F12-3` done `playtest` 2026-10-01 · `get_block` and `is_block` answer over real map; pass at `5076aad`
 - `F12-4` done `playtest` 2026-09-07 · the read offsets turn with the drone and move nothing
