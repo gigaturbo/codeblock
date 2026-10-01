@@ -108,67 +108,6 @@ default ships under a new name.
 
 ## Tests
 
-### W4 · an unknown block name stops the program
-
-`todo` `playtest` `filed 2026-10-01`
-
-`F-K-1` turned the once-per-run warning into an error raised on the line that
-reads the name, for a block table and for `colors` alike. Last passed
-2026-09-03 as *an unknown block name warns, once*, commit not recorded.
-
-### F12-3 · `get_block` and `is_block` answer over real map
-
-`todo` `playtest` `filed 2026-10-01`
-
-`get_block` now answers a solid colour as `color_#rrggbb`, and `colors.typo`
-raises before `is_block` sees it, so step 3 asks `is_block(nil)` instead. Last
-passed 2026-09-07, commit not recorded.
-
-### F14-2 · reading past the end of a palette view is silent
-
-`todo` `playtest` `filed 2026-10-01`
-
-The contrast case, `place(colors.gray)`, now stops the program instead of
-reporting once. Last passed 2026-09-07, commit not recorded.
-
-### F17-3 · `ramp.of` over a category walks that category's own order
-
-`todo` `playtest` `filed 2026-10-01`
-
-`colors` is no longer a category, so step 1 ramps `bricks`. Last passed
-2026-09-09, commit not recorded.
-
-### T-S-2 · small shapes, `place` and `get_block` sharing a mapblock
-
-`todo` `playtest` `filed 2026-10-01`
-
-`get_block` answers palette names since `F-K-1`, so step 1 reads with
-`is_block` instead of printing `blue` and `green`. Last passed 2026-09-28 at
-`2ed906d`, engine 5.17.0, singleplayer, codelevel 4: the reads saw `blue` then
-`green`, the error named line 2 with all twenty nodes built, and `mosely.lua`
-at `pow(3, 4)` took 3.2 s.
-
-### H1 · the HUD appears, updates and goes
-
-`todo` `playtest` `filed 2026-10-01`
-
-`B-S-3` added a fourth limit, so the HUD is six lines with *New map*. Last
-passed 2026-09-02, commit not recorded.
-
-### H4 · the setter's left click always opens the panel
-
-`todo` `playtest` `filed 2026-10-01`
-
-The running drone's panel now lists four hard limits, `max_map_generated`
-added. Last passed 2026-09-02, commit not recorded.
-
-### H5 · the panel's numbers, and its own refresh
-
-`todo` `playtest` `filed 2026-10-01`
-
-Four rows now, *Map generated* added, and the codelevel 4 node cap reads
-`50.0M`. Last passed 2026-09-02, commit not recorded.
-
 ### F12-1 · the nodes register, and the picker shows them in palette order
 
 `todo` `playtest` `filed 2026-10-01`
@@ -343,7 +282,10 @@ whoever re-runs it knows what they are re-reading against.
 - `D6` done `playtest` 2026-08-28 · removing the file a drone is holding
 - `D7` done `playtest` 2026-09-04 · a run cut short says *stopped*
 - `H2` done `playtest` 2026-09-02 · the binding limit is the one it names, and it changes
+- `H1` done `playtest` 2026-10-01 · the HUD appears, updates and goes; pass at `5076aad`, six lines with *New map*
+- `H4` done `playtest` 2026-10-01 · the setter's left click always opens the panel; pass at `5076aad`, four hard limits listed
 - `H3` done `playtest` 2026-09-02 · the toggle, whose choice wins, and where it lives
+- `H5` done `playtest` 2026-10-01 · the panel's numbers, and its own refresh; pass at `5076aad`, four rows with *Map generated*
 - `H6` done `playtest` 2026-09-02 · pause and Resume
 - `H7` done `playtest` 2026-09-02 · stop
 - `H8` done `playtest` `unreachable` · the panel over the editor, and a run that ends under it; the remaining cases cannot be performed on this form and no future run improves it
@@ -359,12 +301,14 @@ whoever re-runs it knows what they are re-reading against.
 - `W1` done `playtest` 2026-09-03 · `place()` far from spawn
 - `W2` done `playtest` 2026-09-04 · a node written into never-generated ground
 - `W3` done `playtest` 2026-09-24 · a large bulk shape; pass at `9c369c7`, engine 5.17.0, `cube(200, 200, 200)` in ~0.68 s against 0.4 s in slabs at `e0c2d23`: about 196 short passes cost more in all than 13 long ones
+- `W4` done `playtest` 2026-10-01 · an unknown block name stops the program; pass at `5076aad`
 - `W5` done `playtest` 2026-09-04 · a drone that stands still far away keeps running
 - `W6` done `playtest` 2026-09-24 · the drone's entity goes away and comes back; pass at `4b61623`, engine 5.17.0, after `F-D-1` changed the re-spawn
 - `W7` done `playtest` 2026-09-07 · `print` sends every argument, in one line
 - `T-K-1` done `playtest` 2026-10-01 · the palette's colours and the bricks, in a world; pass at `2b5b0de`, branch `v2`, all nine steps, step 8 re-run after it failed at `0da7df0`: the picker offers the 35 plain colours and the default grey picks back
 - `T-K-2` done `playtest` 2026-10-01 · a v1 world opens under v2; pass at `2b5b0de`, branch `v2`: the v1 blocks turn into their nearest palette colour, a v1 item places, a saved v1 default block builds
 - `T-S-3` done `playtest` 2026-09-28 · throughput, and the game while a drone builds; pass at `2b5b913`: `mosely.lua` at `pow(3, 4)` after a `sleep(2)`, mean of 3, 5.2 s focused, 4.8 s unfocused, 6.9 s on a server, and digging beside it stayed responsive
+- `T-S-2` done `playtest` 2026-10-01 · small shapes, `place` and `get_block` sharing a mapblock; pass at `5076aad`: `mosely.lua` at `pow(3, 4)` took 3.25 s
 - `T-S-1` done `playtest` 2026-09-28 · a shape is lit correctly, inside and out; pass at `2ed906d`, engine 5.17.0, after `F-S-1` moved the relight to the step's end: even faces, a dark inside, and no light defect after the rebuild and removal
 - `P3` done `playtest` 2026-09-28 · the footprint throttle actually throttling; pass at `2b5b913` on the recipe rewritten after `B-S-3`: `cube(1, 1, 30000)` at codelevel 1 over ground a level 4 run had generated took 24 s, pausing then finishing, against ~26 s for 875 mapblocks over the 16 MB ceiling to drain in the 29 s window; the display read 30 KB during the pause, unexplained. At 2 and up the line fits the footprint and never waits; in fresh ground it tests `max_map_generated` instead
 - `P1` done `playtest` 2026-09-28 · `pace_ms` at the low codelevels; pass at `2b5b913`
@@ -397,10 +341,12 @@ whoever re-runs it knows what they are re-reading against.
 - `F11-10` done `playtest` 2026-09-07 · a real game mod calls `register_blocks`
 - `F11-11` done `playtest` 2026-09-07 · a registered category reaches `place()`, `get_block()` and player meta
 - `F12-2` done `playtest` 2026-09-07 · a lamp wall shows the grid; a solid wall shows nothing
+- `F12-3` done `playtest` 2026-10-01 · `get_block` and `is_block` answer over real map; pass at `5076aad`
 - `F12-4` done `playtest` 2026-09-07 · the read offsets turn with the drone and move nothing
 - `F12-5` done `playtest` 2026-09-07 · `ramp.hues` reads as a gradient, and clamps
 - `F12-6` done `playtest` 2026-09-09 · a game-registered category is rampable through `ramp.of`
 - `F14-1` done `playtest` 2026-09-07 · the API help panel lists the new views and `ramp.of`
+- `F14-2` done `playtest` 2026-10-01 · reading past the end of a palette view is silent; pass at `5076aad`
 - `F14-3` done `playtest` 2026-09-07 · a gradient built through a view actually lands
 - `F16-1` done `playtest` 2026-09-08 · reading your own codelevel with the privilege not granted
 - `F16-2` done `playtest` 2026-09-08 · reading another player's codelevel
@@ -412,4 +358,5 @@ whoever re-runs it knows what they are re-reading against.
 - `F16-8` done `playtest` 2026-09-08 · an engine-legal odd name, on all three subcommands
 - `F17-1` done `playtest` 2026-09-09 · `random.of` draws from a category and from a list
 - `F17-2` done `playtest` 2026-09-09 · `random.hues()` answers a colour name, not a block
+- `F17-3` done `playtest` 2026-10-01 · `ramp.of` over a category walks that category's own order; pass at `5076aad`, over `bricks`
 - `F17-4` done `playtest` 2026-09-09 · the help panel after the deletions
