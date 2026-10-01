@@ -289,7 +289,7 @@ whoever re-runs it knows what they are re-reading against.
 - `F-2` done `playtest` 2026-08-27 · `/codeblock generate <player>`
 - `F-3` done `playtest` 2026-08-28 · a file that cannot be read
 - `F-4` done `playtest` 2026-08-28 · a file too large to open
-- `F-5` done `playtest` 2026-09-02 · every bundled example finishes at codelevel 2
+- `F-5` done `playtest` 2026-10-01 · every bundled example finishes at codelevel 2; pass at `108072c`, `game.lua` and `animation.lua` stopping on running time as expected
 - `F-6` done `playtest` 2026-09-09 · a run's `vector.one` is its own copy
 - `F-7` done `playtest` 2026-09-08 · every shipped example still runs, after a dependency bump
 - `W1` done `playtest` 2026-09-03 · `place()` far from spawn

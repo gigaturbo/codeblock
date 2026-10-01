@@ -1,4 +1,4 @@
-# v2.0.0 (unreleased)
+# v2.0.0
 
 - [x] BREAKING: `colors.red` and the bare name `'red'` build the nearest of the 3930 new colours, a close shade of the old one, and so do the other 34 names. Old programs and saved default blocks keep working.
 - [x] BREAKING: The 35 old solid blocks already in a world turn into that nearest colour as their area loads.
