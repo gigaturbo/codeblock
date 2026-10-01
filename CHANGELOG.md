@@ -7,9 +7,6 @@
 - [ ] BREAKING: A game can no longer register a block category named `bricks`.
 - [ ] FEATURE: 3930 colours in steps of lightness, chroma and hue: `colors.hex('#f7a8e7')`, `colors.rgb(r, g, b)`, `colors.oklch(L, c, h)`, `colors.okhsl(h, s, l)` and `colors.okhsv(h, s, v)` round to one of them, a gradient in one never stepping back in another, and `colors.list` holds them all. `get_block` answers the same name back.
 - [ ] FEATURE: The 35 named colours come as bricks, `bricks.red`, beside `glass.red` and `lamps.red`.
-
-# v1.1.0 (unreleased)
-
 - [x] FEATURE: New codelevel limit `max_map_generated`, the new map one program may make the server generate. Shown on the HUD and in the drone panel.
 - [x] FEATURE: New setting `codeblock_wait_for_mapgen`, on by default. Turn it off only in a game that pre-generates all the map drones can reach.
 - [x] FEATURE: New settings `codeblock_server_share`, the percent of the step all drones share, and `codeblock_step_share`, each codelevel's part of it.  They replace `codeblock_step_budget_us` and `codeblock_server_step_budget_us`, which now only warn in the log.
