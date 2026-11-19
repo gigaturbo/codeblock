@@ -1,11 +1,11 @@
 # BACKLOG
 
-CodeBlock is a Luanti mod that adds programming to the game. **v1.0.0 is
-released** and on ContentDB, published by the tag itself. v2.0.0 is next, with
-no v1.1.0 before it: it turns `colors` into a palette of 3930 and the 35
-colours into bricks, `F15` and `F-K-1`, and carries the drone throughput of
-`F-S-1` to `F-S-4`. v2.1.0 is the editor's icons and a quick start, `F-E-1`
-and `F-E-2`, and `go()` returning to the last checkpoint, `F-D-2`; v3.0.0 holds `F6` alone.
+CodeBlock is a Luanti mod that adds programming to the game. **v2.0.0 is
+released** and on ContentDB, published by the tag itself. It turned `colors`
+into a palette of 3930 and the 35 colours into bricks, `F15` and `F-K-1`, and
+carried the drone throughput of `F-S-1` to `F-S-4`. v2.1.0 is next: the
+editor's icons and a quick start, `F-E-1` and `F-E-2`, and `go()` returning to
+the last checkpoint, `F-D-2`; v3.0.0 holds `F6` alone.
 
 **Every id here predates the `B-X-N` scheme and keeps its old form for ever**,
 because commit messages cite them: `B` bugs, `S` sandbox and security, `C`
