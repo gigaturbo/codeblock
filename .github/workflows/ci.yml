@@ -109,8 +109,15 @@ jobs:
         run: lua tests/palette_spec.lua
 
   engine:
-    name: the ten specs in Luanti
+    name: the ten specs in Luanti ${{ matrix.luanti }}
     runs-on: ubuntu-latest
+    strategy:
+      # One engine failing must not cancel the other: which version broke is
+      # the information.
+      fail-fast: false
+      matrix:
+        # The version this mod is developed against, then the latest release.
+        luanti: ["5.17.0", "5.18.0"]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -119,12 +126,12 @@ jobs:
           # and nothing reports.
           submodules: recursive
 
-      # Upstream's own server-only build of the exact version this mod is
-      # developed against - no build step here, and no third party's binary.
+      # Upstream's own server-only build of each version in the matrix - no
+      # build step here, and no third party's binary.
       # It is a LuaJIT build, so this is also the first CI job to run the mod
       # on the interpreter the engine actually uses rather than plain 5.1.
       - name: Pull the engine
-        run: docker pull ghcr.io/luanti-org/luanti:5.17.0
+        run: docker pull ghcr.io/luanti-org/luanti:${{ matrix.luanti }}
 
       # The game has to contain this repository as one of its mods, so it is
       # assembled outside the workspace and handed over as one mount. A symlink
@@ -160,7 +167,7 @@ jobs:
             -e LUANTI_GAME_PATH=/cb/games \
             -e HOME=/var/lib/minetest \
             -v /tmp/cb/games:/cb/games:ro \
-            ghcr.io/luanti-org/luanti:5.17.0 \
+            ghcr.io/luanti-org/luanti:${{ matrix.luanti }} \
             --gameid cbtest --world /var/lib/minetest/cbworld \
             > engine.log 2>&1 || true
           cat engine.log
