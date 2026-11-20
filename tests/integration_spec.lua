@@ -2046,10 +2046,46 @@ do
     -- The count is the point: three help buttons whatever the palette holds.
     -- A row with one button per category is what this replaced, and it is the
     -- shape that grows off the edge of the form once a game registers one.
-    local _, buttons = help_row('commands', 'bricks'):gsub('button%[[^%]]-;help_',
-                                                           '')
+    -- Counted by field name, not by element, so a button drawn as two elements
+    -- under one name still counts as the one button the player sees. (F-E-1)
+    local help_fields, buttons = {}, 0
+    for field in help_row('commands', 'bricks'):gmatch(
+                     'button%[[^%]]-;(help_[%w_]+);') do
+        if not help_fields[field] then buttons = buttons + 1 end
+        help_fields[field] = true
+    end
     it('the row keeps a fixed number of buttons as the palette grows', buttons,
        3)
+
+    -- Every icon carries its word as a tooltip, on each of the three forms that
+    -- draw icons: a picture with no word one hover away is a guess. Returns the
+    -- first icon without one, or nil, and how many icons it looked at, so a
+    -- form that drew none cannot pass by having nothing to check. (F-E-1)
+    local function untipped(fs)
+        local tips, count = {}, 0
+        for field in fs:gmatch('tooltip%[([^;%]]+);') do tips[field] = true end
+        for field in fs:gmatch('image_button[_exit]*%[[^%]]-%.png;([^;%]]+);') do
+            count = count + 1
+            if not tips[field] then return field, count end
+        end
+        return nil, count
+    end
+    local editor_open = codeblock.formspecs.file_editor.get_form({
+        name = 'codeblock_spec_player', tabs = {'a.lua'}, contents = {'x'},
+        dirty = {false}, active = 1, help = 'commands', category = 'bricks',
+        scroll = {}, default_block = 'grey', picking = false, newfile = ''
+    })
+    local missing, icons = untipped(editor_open)
+    it('every icon in the editor has a tooltip', missing, nil)
+    it('and the editor with a file open draws nine of them', icons, 9)
+    missing, icons = untipped(codeblock.formspecs.file_chooser.get_form(
+                                  {name = 'codeblock_spec_player'}))
+    it('every icon in the file chooser has a tooltip', missing, nil)
+    it('and the chooser draws two', icons, 2)
+    missing, icons = untipped(codeblock.formspecs.drone_panel.get_form(
+                                  {name = 'codeblock_spec_nobody'}))
+    it('the drone panel\'s close icon has a tooltip', missing, nil)
+    it('and a panel with no drone draws only that one', icons, 1)
 
     -- The panel itself, and not only the selector above it. The help panel
     -- looks a category up by name, and a table of them copied at load time

@@ -66,6 +66,37 @@ local CATEGORY_LABELS = {
 
 local function category_label(name) return CATEGORY_LABELS[name] or name end
 
+-- A button drawn as an icon, with a tooltip saying what pressing it does, so the
+-- meaning stays one hover away and translated. `icon` names
+-- textures/codeblock_icon_<icon>.png, a white glyph with a margin round it;
+-- `colour` tints the pane behind it, which is what says go, stop or help; `exit`
+-- makes it close the form like button_exit. (F-E-1)
+local function icon_button(b)
+    local style = b.colour and
+                      ('style[%s;bgcolor=%s]'):format(b.name, b.colour) or ''
+    return style ..
+               ('%s[%s,%s;%s,%s;codeblock_icon_%s.png;%s;]tooltip[%s;%s]'):format(
+                   b.exit and 'image_button_exit' or 'image_button', b.x, b.y,
+                   b.w, b.h, b.icon, b.name, b.name, b.tip)
+end
+
+-- The panes' colours: green starts or makes something, red ends or deletes it,
+-- blue opens a help panel. The rest stay the engine's grey, Pause included: the
+-- panel's yellow already means *paused* and amber a limit close to binding, and
+-- one colour meaning two things on one form is worse than none (F8).
+local GO, END, HELP = 'green', 'red', 'blue'
+
+-- The editor's top row, in its legacy coordinates (imgsize S). An image_button
+-- is W * 1.25 S - 0.25 S wide and H * 15/13 S - 2/13 S tall, starting at X,Y
+-- exactly, unlike a legacy button, which is vertically centred on H * S / 2 with
+-- a fixed height of 0.7 * 15/13 S (guiFormSpecMenu.cpp parseImageButton and
+-- parseButton, 5.4.0 to 5.17.0). These make a square icon exactly as tall as the
+-- category selector beside it and in the same place: W = 11/13 is 10.5/13 S
+-- wide, H = 5/6 is 10.5/13 S tall, and y = -0.025 puts its top on the
+-- selector's. Consecutive x values W apart leave the 0.25 S gap legacy buttons
+-- leave; an icon ends W - 0.2 after its x.
+local ICON_W, ICON_H, ROW_TOP = 11 / 13, 5 / 6, -0.025
+
 local get_user_data = codeblock.filesystem.get_user_data
 local read_file = codeblock.filesystem.read_file
 local write_file = codeblock.filesystem.write_file
@@ -204,14 +235,10 @@ local file_editor = {
         local fs = "size[20,10]"
 
         -- styles
-        fs = fs .. 'style[remove;bgcolor=red]'
+        -- The buttons' colours are set with each icon. The category selector has
+        -- none: a dropdown is one of the two elements the engine will not
+        -- colorize.
         fs = fs .. 'style[content;font=mono;font_size=-2;textcolor=#115555]'
-        fs = fs .. 'style[create;bgcolor=green]'
-        -- No style for the selector beside it: a dropdown is one of the two
-        -- elements the engine will not colorize.
-        fs = fs .. 'style[help_blocks;bgcolor=blue]'
-        fs = fs .. 'style[help_cmds;bgcolor=blue]'
-        fs = fs .. 'style[help_settings;bgcolor=blue]'
 
         -- tabs. The asterisk marks a buffer that differs from the file, and is
         -- decoration only: meta.tabs holds the name write_file, read_file and
@@ -228,10 +255,8 @@ local file_editor = {
             fs = fs .. ';' .. (meta.active or 0) .. ';false;false]'
         end
 
-        -- files. Shortened from 8.75 to leave the row below it for Copy file;
-        -- the gap stays empty with no file open rather than the list changing
-        -- height as tabs come and go. (F2)
-        fs = fs .. 'textlist[0, 0; 3, 8.1;files;'
+        -- files
+        fs = fs .. 'textlist[0, 0; 3, 8.75;files;'
         for i, file in ipairs(ud.list) do
             if i ~= 1 then fs = fs .. ',' end
             fs = fs .. formspec_escape(file.name)
@@ -239,47 +264,51 @@ local file_editor = {
         local shown = ud.byname[meta.tabs[meta.active]]
         fs = fs .. ';' .. (shown and shown.index or 0) .. ']'
 
-        -- Copy file. Down here rather than with Save/Remove/Close: that row
-        -- runs to x=14.08 and the help row starts at 14, so a fifth button
-        -- means re-laying-out four that work. Drawn only with a file open, for
-        -- the same reason those four are - it acts on the open file. (F2)
-        -- 3.2 wide, not 3, to end flush with the 3-wide list above it. In
-        -- legacy coordinates a button is not as wide as its W says: the engine
-        -- computes W*spacing - (spacing - imgsize) for a button and plain
-        -- W*spacing for a textlist, and spacing is imgsize*5/4, so every button
-        -- is short by a fixed 0.2 units whatever W is. The H is decoration
-        -- too - a legacy button's height is fixed and W's partner only shifts
-        -- it down. (F2)
-        if meta.active ~= 0 then
-            fs = fs .. 'button[0, 8.3;3.2, 0.7;copy;' .. S('Create a copy') ..
-                     ']'
-        end
-
         -- new file
         fs = fs .. 'field_close_on_enter[newfile;false]'
         fs = fs .. 'field[0.27, 9.5;2.5, 1;newfile;' .. S('New file:') .. ';' ..
                  formspec_escape(meta.newfile) .. ']'
-        -- 0.95 for the same reason 'copy' above is 3.2: at W=1 this button ran
-        -- 0.05 units past the list's right edge instead of ending on it. (F2)
-        fs = fs .. 'button[2.25, 9.20;0.95, 1;create;+]'
+        -- The rectangle the 0.95-wide `+` button had, its right edge flush with
+        -- the 3-wide list's at 3.75 S, and its top at 9.2 * 15/13 + 0.5 - 0.35
+        -- * 15/13 S, which is y = 9.283 in an image_button's terms.
+        fs = fs .. icon_button{x = 3.2 - ICON_W, y = 9.283, w = ICON_W,
+                               h = ICON_H, icon = 'new', name = 'create',
+                               colour = GO,
+                               tip = S('Create a file with the name typed')}
 
-        -- file buttons
+        -- The file row: the actions on the open file, drawn only with one open.
+        -- Run, save, duplicate and close together, run first; Remove apart at
+        -- the row's end, so the one that deletes is not beside the one that
+        -- saves. The tooltips say what the icon cannot: run saves first, close
+        -- keeps nothing that was not saved. (F-E-1)
         if meta.active ~= 0 then
-            fs = fs .. 'button[3.25 ,0 ;2 ,0.75;save;' .. S('Save') .. ']'
-            fs = fs .. 'button[5.25 ,0 ;3 ,0.75;load;' .. S('Load and close') ..
-                     ']'
-            fs = fs .. 'button[8.25 ,0 ;3, 0.75;remove;' .. S('Remove file') ..
-                     ']'
-            fs = fs .. 'button[11.25,0;2.83, 0.75;close;' .. S('Close file') ..
-                     ']'
+            fs = fs .. icon_button{x = 3.25, y = ROW_TOP, w = ICON_W,
+                                   h = ICON_H, icon = 'play', name = 'load',
+                                   colour = GO,
+                                   tip = S('Save, give this file to the drone and close the editor')}
+            fs = fs .. icon_button{x = 3.25 + ICON_W, y = ROW_TOP, w = ICON_W,
+                                   h = ICON_H, icon = 'save', name = 'save',
+                                   tip = S('Save this file')}
+            fs = fs .. icon_button{x = 3.25 + 2 * ICON_W, y = ROW_TOP,
+                                   w = ICON_W, h = ICON_H, icon = 'copy',
+                                   name = 'copy',
+                                   tip = S('Duplicate this file as it is on screen, and open the copy')}
+            fs = fs .. icon_button{x = 3.25 + 3 * ICON_W, y = ROW_TOP,
+                                   w = ICON_W, h = ICON_H, icon = 'close',
+                                   name = 'close', colour = END,
+                                   tip = S('Close this tab, without saving')}
+            fs = fs .. icon_button{x = 13, y = ROW_TOP, w = ICON_W, h = ICON_H,
+                                   icon = 'trash', name = 'remove',
+                                   colour = END,
+                                   tip = S('Delete this file for good')}
         end
 
         -- help panel switches. Outside the block above on purpose: the panel is
         -- drawn with no file open, so without these it opens on the block list
         -- with no way to reach the others.
-        -- Across the same 14-to-20 span the four used, so Settings fits without
-        -- the row running off the form. It is the wider one: the word does not
-        -- fit 1.1. (F1)
+        -- Across the same 14-to-20 span the worded buttons used: Blocks at 14,
+        -- the gear's right edge on Settings' old one at 19.8, and the selector
+        -- taking what the icons leave. (F1, F-E-1)
         --
         -- One layout, always. The three category buttons are gone and a Blocks
         -- button with a selector beside it stands where they did, drawn the
@@ -295,22 +324,33 @@ local file_editor = {
         -- button is W * spacing.X - 0.25 S wide, so consecutive buttons whose
         -- x values touch stand 0.25 S apart. A dropdown is W * spacing.**Y**
         -- wide, with no offset, so its W is a different unit from a button's:
-        -- 15.15 to the 0.25 S before API's edge is 2.625 S, which is W = 2.275.
+        -- from 0.25 S after the Blocks icon to 0.25 S before the API icon is
+        -- 3.2615 * 1.25 S = 4.077 S, which is W = 4.077 * 13/15 = 3.5333.
         -- A button's H shifts it down by H * imgsize.Y / 2 and its height is a
         -- fixed 2 * m_btn_height; a dropdown's is the same height but hangs
         -- from its y, so -0.025 puts the two rectangles on each other exactly
-        -- (0.375 - 0.35 * 15/13 = -0.375/13 of S, over spacing.Y).
-        fs = fs .. 'button[14,0;1.15, 0.75;help_blocks;' .. S('Blocks') .. ']'
+        -- (0.375 - 0.35 * 15/13 = -0.375/13 of S, over spacing.Y), and the icons
+        -- share that y for the same reason (ROW_TOP).
+        local gear_x = 20 - ICON_W
+        local api_x = gear_x - ICON_W
+        fs = fs .. icon_button{x = 14, y = ROW_TOP, w = ICON_W, h = ICON_H,
+                               icon = 'cube', name = 'help_blocks',
+                               colour = HELP,
+                               tip = S('Show the blocks of the category chosen beside')}
         local items, index = {}, 1
         for i, category in ipairs(categories) do
             items[i] = formspec_escape(category_label(category.name))
             if category.name == meta.category then index = i end
         end
-        fs = fs .. 'dropdown[15.15,-0.025;2.275;help_pick;' ..
-                 table.concat(items, ',') .. ';' .. index .. ']'
-        fs = fs .. 'button[17.45,0;0.95, 0.75;help_cmds;' .. S('API') .. ']'
-        fs = fs .. 'button[18.4,0;1.6, 0.75;help_settings;' .. S('Settings') ..
-                 ']'
+        fs = fs .. 'dropdown[' .. (14 + ICON_W) .. ',-0.025;' ..
+                 ((api_x - 0.2 - 14 - ICON_W) * 1.25 * 13 / 15) ..
+                 ';help_pick;' .. table.concat(items, ',') .. ';' .. index .. ']'
+        fs = fs .. icon_button{x = api_x, y = ROW_TOP, w = ICON_W, h = ICON_H,
+                               icon = 'api', name = 'help_cmds', colour = HELP,
+                               tip = S('Show the API: every command a program can use')}
+        fs = fs .. icon_button{x = gear_x, y = ROW_TOP, w = ICON_W, h = ICON_H,
+                               icon = 'gear', name = 'help_settings',
+                               colour = HELP, tip = S('Show the settings')}
 
         -- The three preference checkboxes used to be here, loose along the bottom
         -- edge. They are on the Settings panel now, with the default-block
@@ -856,11 +896,16 @@ local file_chooser = {
             table.insert(files_txt, formspec_escape(file.name))
         end
         files_txt = table.concat(files_txt, ',')
+        -- Choose under the list's left edge, Cancel under its right one.
         return 'formspec_version[4]' .. 'size[6,6]' .. 'label[0.5,0.5;' ..
                    S('Choose a file:') .. ']' .. 'textlist[0.5,1;5,3;file;' ..
-                   files_txt .. ']' .. 'button[0.5,4.5;2,1;choose;' ..
-                   S('Choose') .. ']' .. 'button[3.5,4.5;2,1;cancel;' ..
-                   S('Cancel') .. ']'
+                   files_txt .. ']' ..
+                   icon_button{x = 0.5, y = 4.5, w = 0.8, h = 0.8, icon = 'check',
+                               name = 'choose', colour = GO,
+                               tip = S('Give the selected file to the drone')} ..
+                   icon_button{x = 4.7, y = 4.5, w = 0.8, h = 0.8, icon = 'close',
+                               name = 'cancel', colour = END,
+                               tip = S('Cancel, and take the drone away')}
     end,
 
     on_close = function(meta, player, fields)
@@ -1036,7 +1081,9 @@ local drone_panel = {
         -- An x in the top-right corner, where a window's close control lives,
         -- rather than a fourth button competing with the ones that do something.
         -- ESC still works and arrives as the same quit event.
-        fs = fs .. 'button_exit[' .. (PANEL_W - 1.1) .. ',0.35;0.7,0.7;close;x]'
+        fs = fs .. icon_button{exit = true, x = PANEL_W - 1.1, y = 0.35,
+                               w = 0.7, h = 0.7, icon = 'close', name = 'close',
+                               colour = END, tip = S('Close')}
 
         if not drone then
             return fs .. 'label[0.6,0.9;' .. S('You have no drone') .. ']'
@@ -1055,9 +1102,9 @@ local drone_panel = {
             fs = fs .. 'style_type[label;font=normal]'
             -- The same Stop as below: on an idle drone there is no run to end,
             -- so it simply takes the drone away.
-            fs = fs .. 'style[stop;bgcolor=red]'
-            fs = fs .. 'button[0.6,1.7;2.1,0.8;stop;' .. S('Stop') .. ']'
-            return fs
+            return fs .. icon_button{x = 0.6, y = 1.7, w = 0.8, h = 0.8,
+                                     icon = 'stop', name = 'stop', colour = END,
+                                     tip = S('Take the drone away')}
         end
 
         -- The header: file name in bold, state in green or yellow.
@@ -1120,14 +1167,19 @@ local drone_panel = {
             end
         end
 
-        fs = fs .. 'button[0.6,' .. BUTTON_Y .. ';2.1,0.8;pause;' ..
-                 (drone.paused and S('Resume') or S('Pause')) .. ']'
+        -- Paused shows the play icon, Resume being what the press does.
+        fs = fs .. icon_button{x = 0.6, y = BUTTON_Y, w = 0.8, h = 0.8,
+                               icon = drone.paused and 'play' or 'pause',
+                               name = 'pause',
+                               colour = drone.paused and GO or nil,
+                               tip = drone.paused and S('Resume the program') or
+                                   S('Pause the program')}
         -- One destructive button, not two. Cancel and Remove drone were the same
         -- call - Drone.on_remove - wearing different labels and colours, which is
         -- a distinction a player would look for and never find.
-        fs = fs .. 'style[stop;bgcolor=red]'
-        fs = fs .. 'button[2.85,' .. BUTTON_Y .. ';2.1,0.8;stop;' .. S('Stop') ..
-                 ']'
+        fs = fs .. icon_button{x = 1.65, y = BUTTON_Y, w = 0.8, h = 0.8,
+                               icon = 'stop', name = 'stop', colour = END,
+                               tip = S('Stop the program and take the drone away')}
 
         return fs
     end,
