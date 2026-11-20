@@ -4,8 +4,8 @@ CodeBlock is a Luanti mod that adds programming to the game. **v2.0.0 is
 released** and on ContentDB, published by the tag itself. It turned `colors`
 into a palette of 3930 and the 35 colours into bricks, `F15` and `F-K-1`, and
 carried the drone throughput of `F-S-1` to `F-S-4`. v2.1.0 is next: the
-editor's icons and a quick start, `F-E-1` and `F-E-2`, and `go()` returning to
-the last checkpoint, `F-D-2`; v3.0.0 holds `F6` alone.
+editor's icons are in, `F-E-1`; a quick start, `F-E-2`, and `go()` returning to
+the last checkpoint, `F-D-2`, are left; v3.0.0 holds `F6` alone.
 
 **Every id here predates the `B-X-N` scheme and keeps its old form for ever**,
 because commit messages cite them: `B` bugs, `S` sandbox and security, `C`
@@ -55,17 +55,6 @@ licensing and privacy question, or an in-tree server this mod does not have.
 **Do:** one written answer to *where do the assets live and who allows the HTTP
 call*, before any code.
 
-### F-E-1 · icons instead of words on the editor's buttons
-
-`todo` `medium` `filed 2026-10-01` `target: v2.1.0`
-
-Save, Load and close, Remove file, Close file, Settings and the other editor
-buttons carry words, which overflow their buttons on a small window and need a
-translation each. An icon fits the button at any size.
-
-**Do:** draw an original icon per action, show it with `image_button` and keep
-the word as its tooltip, so the meaning stays one hover away and translated.
-
 ### F-E-2 · an in-game quick start
 
 `todo` `medium` `filed 2026-10-01` `target: v2.1.0`
@@ -108,7 +97,22 @@ default ships under a new name.
 
 ## Tests
 
-Nothing open.
+### E1, E2, E5, E7, E11, E13, E15 · the editor checks whose buttons moved
+
+`todo` `playtest` `reopened 2026-11-20`
+
+`F-E-1` redrew every editor button as an icon and moved *Create a copy* to the
+top row; `E13`'s step 6 now checks the `+` icon. Last passes: `E1`, `E5`, `E7`,
+`E11`, `E13`, `E15` on 2026-08-27, `E2` on 2026-09-08.
+
+### H6, H7, H10, D5, F1-1 · the panel, chooser and Settings checks
+
+`todo` `playtest` `reopened 2026-11-20`
+
+`F-E-1` made Pause, Stop, the panel's close, the chooser's Choose and Cancel,
+and the Settings button image buttons. `H10` re-measures dropped clicks on an
+image button. Last passes: `H6`, `H7`, `H10` on 2026-09-02, `F1-1` on
+2026-08-27, `D5` on 2026-08-28.
 
 ## Closed
 
@@ -225,6 +229,7 @@ whoever re-runs it knows what they are re-reading against.
 
 ### Features
 
+- `F-E-1` done `medium` 2026-11-20 · the editor, the drone panel and the file chooser draw their buttons as white icons on panes coloured by meaning, each with a tooltip saying what it does; run first, Duplicate beside Save, Remove apart; a word pane beside two icons was tried and dropped on screen
 - `F-S-6` done `small` 2026-10-01 · the `random` help line says `random()` answers a fraction from 0 up to but not including 1, and whole numbers for one and two arguments
 - `F-K-1` done `large` 2026-10-01 · the 35 named colours became textured `bricks.<name>`; `colors.red`, the bare name `'red'` and the old nodes in a world round to the nearest palette colour, and a name no block table holds stops the program
 - `F15` done `medium` 2026-10-01 · `colors.hex`, `colors.rgb`, `colors.oklch`, `colors.okhsl` and `colors.okhsv` round to one of 3930 colours of an OKLCh grid, on sixteen palette nodes of 256 each, and `get_block` answers the name back
@@ -251,28 +256,21 @@ whoever re-runs it knows what they are re-reading against.
 
 ### In-world checks
 
-- `E1` done `playtest` 2026-08-27 · open, save and close a program
-- `E2` done `playtest` 2026-09-08 · create and remove a file
 - `E3` done `playtest` 2026-09-08 · tabs
 - `E4` done `playtest` 2026-08-27 · tab state survives ESC
-- `E5` done `playtest` 2026-08-27 · tab state after **Load and close**
 - `E6` done `playtest` 2026-08-27 · the two checkboxes
-- `E7` done `playtest` 2026-08-27 · the help panels
 - `E8` done `playtest` 2026-08-27 · tab state survives a disconnect
 - `E9` done `playtest` 2026-08-27 · tab state survives a server shutdown
 - `E10` done `playtest` 2026-08-27 · the checkboxes for a player who has never set them
-- `E11` done `playtest` 2026-08-27 · typing survives every button that is not Save
 - `E12` done `playtest` 2026-08-27 · **Save on tab switch** off really does not write to disk
-- `E13` done `playtest` 2026-08-27 · **Create a copy**
 - `E14` done `playtest` 2026-08-27 · closing the editor with **ESC** saves the open tabs
-- `E15` done `playtest` 2026-08-27 · **Enter** in the New file field creates the file
 - `E16` done `playtest` 2026-09-03 · the unsaved marker on a tab
 - `E17` done `playtest` 2026-09-07 · a brand new file runs as it is
+- `T-E-1` done `playtest` 2026-11-20 · the buttons as icons; pass on the working copy over `02f5bb7`, engine 5.17.0, playbot: viewer shots at 1280×720 in English and 1024×600 in French show every icon centred, aligned with the selector, coloured by meaning and tooltipped on hover; the bot pressed every editor, panel and chooser button and each did what its tooltip says. Not run: `gui_scaling`, and `H10`'s dropped clicks
 - `D1` done `playtest` 2026-08-27 · place a drone and run a program
 - `D2` done `playtest` 2026-08-28 · place a drone at nothing
 - `D3` done `playtest` 2026-08-27 · replace a drone under the same name
 - `D4` done `playtest` 2026-08-27 · join with a full inventory
-- `D5` done `playtest` 2026-08-28 · cancelling the file chooser
 - `D6` done `playtest` 2026-08-28 · removing the file a drone is holding
 - `D7` done `playtest` 2026-09-04 · a run cut short says *stopped*
 - `H2` done `playtest` 2026-09-02 · the binding limit is the one it names, and it changes
@@ -280,11 +278,8 @@ whoever re-runs it knows what they are re-reading against.
 - `H4` done `playtest` 2026-10-01 · the setter's left click always opens the panel; pass at `5076aad`, four hard limits listed
 - `H3` done `playtest` 2026-09-02 · the toggle, whose choice wins, and where it lives
 - `H5` done `playtest` 2026-10-01 · the panel's numbers, and its own refresh; pass at `5076aad`, four rows with *Map generated*
-- `H6` done `playtest` 2026-09-02 · pause and Resume
-- `H7` done `playtest` 2026-09-02 · stop
 - `H8` done `playtest` `unreachable` · the panel over the editor, and a run that ends under it; the remaining cases cannot be performed on this form and no future run improves it
 - `H9` done `playtest` 2026-08-29 · leaving and rejoining with a program running
-- `H10` done `playtest` 2026-09-02 · a panel button responds to one click
 - `F-1` done `playtest` 2026-08-27 · `/codeblock generate` on your own files
 - `F-2` done `playtest` 2026-08-27 · `/codeblock generate <player>`
 - `F-3` done `playtest` 2026-08-28 · a file that cannot be read
@@ -315,7 +310,6 @@ whoever re-runs it knows what they are re-reading against.
 - `R4` done `playtest` 2026-09-09 · a brand new world hands out the right codelevel
 - `R5` done `playtest` 2026-09-09 · an old `vector3` is named in the log at mod load
 - `CI1` done `playtest` 2026-09-10 · the suite's verdict reaches the annotation list and the run summary
-- `F1-1` done `playtest` 2026-08-27 · the Settings panel
 - `F1-2` done `playtest` 2026-08-27 · the preference survives a relog
 - `F3-1` done `playtest` 2026-08-27 · `sleep(seconds)` in a running world
 - `F9-1` done `playtest` 2026-09-02 · the words on the panel and the HUD
