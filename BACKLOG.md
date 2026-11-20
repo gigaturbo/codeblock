@@ -31,7 +31,27 @@ in-world check recipes are in its `references/playtests.md`.
 
 ## Bugs
 
-Nothing open.
+### B-E-1 · the French *New file* label is cut short
+
+`open` `low` `filed 2026-11-20`
+
+In a 1024×600 window in French the label above the New file field reads
+*Nouveau*: the field is 2.5 wide and *Nouveau fichier :* does not fit. Seen in
+a playbot viewer shot while running `T-E-1`.
+
+**Do:** shorten the French string, or widen the label as an area label that
+wraps.
+
+### B-E-2 · the last block row is half cut at the bottom of a help panel
+
+`open` `low` `filed 2026-11-20`
+
+Scrolled to the end, a block panel shows its last row (`dark_violet`) cut in
+half by the panel's lower edge. The scrollbar's maximum, `#names * 2.32 -
+20.56`, stops short of the last row. Seen in playbot viewer shots of glass
+and lamps while running `E7`.
+
+**Do:** raise the maximum by the missing part of a row and look again.
 
 ## Features
 
@@ -97,22 +117,7 @@ default ships under a new name.
 
 ## Tests
 
-### E1, E2, E5, E7, E11, E13, E15 · the editor checks whose buttons moved
-
-`todo` `playtest` `reopened 2026-11-20`
-
-`F-E-1` redrew every editor button as an icon and moved *Create a copy* to the
-top row; `E13`'s step 6 now checks the `+` icon. Last passes: `E1`, `E5`, `E7`,
-`E11`, `E13`, `E15` on 2026-08-27, `E2` on 2026-09-08.
-
-### H6, H7, H10, D5, F1-1 · the panel, chooser and Settings checks
-
-`todo` `playtest` `reopened 2026-11-20`
-
-`F-E-1` made Pause, Stop, the panel's close, the chooser's Choose and Cancel,
-and the Settings button image buttons. `H10` re-measures dropped clicks on an
-image button. Last passes: `H6`, `H7`, `H10` on 2026-09-02, `F1-1` on
-2026-08-27, `D5` on 2026-08-28.
+Nothing open.
 
 ## Closed
 
@@ -256,14 +261,21 @@ whoever re-runs it knows what they are re-reading against.
 
 ### In-world checks
 
+- `E1` done `playtest` 2026-11-20 · open, save and close a program; pass at `ef48865`, engine 5.17.0, playbot: the edit was on disk and came back on reopen, no error in the log
+- `E2` done `playtest` 2026-11-20 · create and remove a file; pass at `ef48865`, engine 5.17.0, playbot: one tab removed left an empty editor, two left the other active with its text on screen
 - `E3` done `playtest` 2026-09-08 · tabs
 - `E4` done `playtest` 2026-08-27 · tab state survives ESC
+- `E5` done `playtest` 2026-11-20 · tab state after **Load and close**; pass at `ef48865`, engine 5.17.0, playbot: both tabs and the active one came back
 - `E6` done `playtest` 2026-08-27 · the two checkboxes
+- `E7` done `playtest` 2026-11-20 · the help panels; pass at `ef48865`, engine 5.17.0, playbot: every panel drew, textures on every row, glass and lamps kept their own scroll, the API page rendered; the last row is half cut at the bottom, `B-E-2`
 - `E8` done `playtest` 2026-08-27 · tab state survives a disconnect
 - `E9` done `playtest` 2026-08-27 · tab state survives a server shutdown
 - `E10` done `playtest` 2026-08-27 · the checkboxes for a player who has never set them
+- `E11` done `playtest` 2026-11-20 · typing survives every button that is not Save; pass at `ef48865`, engine 5.17.0, playbot: unsaved text kept through nine panel switches, nothing written
 - `E12` done `playtest` 2026-08-27 · **Save on tab switch** off really does not write to disk
+- `E13` done `playtest` 2026-11-20 · **Create a copy**, now Duplicate; pass at `ef48865`, engine 5.17.0, playbot: all six parts, `_12` reached, part 6 from a viewer shot
 - `E14` done `playtest` 2026-08-27 · closing the editor with **ESC** saves the open tabs
+- `E15` done `playtest` 2026-11-20 · **Enter** in the New file field creates the file; pass at `ef48865`, engine 5.17.0, playbot: created and opened on a block panel, scrollbar field in the same submission
 - `E16` done `playtest` 2026-09-03 · the unsaved marker on a tab
 - `E17` done `playtest` 2026-09-07 · a brand new file runs as it is
 - `T-E-1` done `playtest` 2026-11-20 · the buttons as icons; pass on the working copy over `02f5bb7`, engine 5.17.0, playbot: viewer shots at 1280×720 in English and 1024×600 in French show every icon centred, aligned with the selector, coloured by meaning and tooltipped on hover; the bot pressed every editor, panel and chooser button and each did what its tooltip says. Not run: `gui_scaling`, and `H10`'s dropped clicks
@@ -271,6 +283,7 @@ whoever re-runs it knows what they are re-reading against.
 - `D2` done `playtest` 2026-08-28 · place a drone at nothing
 - `D3` done `playtest` 2026-08-27 · replace a drone under the same name
 - `D4` done `playtest` 2026-08-27 · join with a full inventory
+- `D5` done `playtest` 2026-11-20 · cancelling the file chooser; pass at `ef48865`, engine 5.17.0, playbot: Cancel and ESC left no drone, a chosen file ran
 - `D6` done `playtest` 2026-08-28 · removing the file a drone is holding
 - `D7` done `playtest` 2026-09-04 · a run cut short says *stopped*
 - `H2` done `playtest` 2026-09-02 · the binding limit is the one it names, and it changes
@@ -278,8 +291,11 @@ whoever re-runs it knows what they are re-reading against.
 - `H4` done `playtest` 2026-10-01 · the setter's left click always opens the panel; pass at `5076aad`, four hard limits listed
 - `H3` done `playtest` 2026-09-02 · the toggle, whose choice wins, and where it lives
 - `H5` done `playtest` 2026-10-01 · the panel's numbers, and its own refresh; pass at `5076aad`, four rows with *Map generated*
+- `H6` done `playtest` 2026-11-20 · pause and Resume; pass at `ef48865`, engine 5.17.0, playbot: HUD said paused, icon and tooltip turned to Resume, resumed after a minute with no time message; a second drone placed 261k nodes/s with the first paused against 188k with it running; paused inside `sleep(10)` and resumed past it, finished at once
+- `H7` done `playtest` 2026-11-20 · stop; pass at `ef48865`, engine 5.17.0, playbot: running: one message, drone gone, panel closed; idle: no message
 - `H8` done `playtest` `unreachable` · the panel over the editor, and a run that ends under it; the remaining cases cannot be performed on this form and no future run improves it
 - `H9` done `playtest` 2026-08-29 · leaving and rejoining with a program running
+- `H10` done `playtest` 2026-11-20 · a panel button responds to one click; pass at `ef48865`, engine 5.17.0, playbot: 20 real mouse clicks on the viewer's panel, 20 arrived; HUD live and agreeing with the panel. Case 2 not run: an idle panel has only Stop and the close cross, both ending the form
 - `F-1` done `playtest` 2026-08-27 · `/codeblock generate` on your own files
 - `F-2` done `playtest` 2026-08-27 · `/codeblock generate <player>`
 - `F-3` done `playtest` 2026-08-28 · a file that cannot be read
@@ -310,6 +326,7 @@ whoever re-runs it knows what they are re-reading against.
 - `R4` done `playtest` 2026-09-09 · a brand new world hands out the right codelevel
 - `R5` done `playtest` 2026-09-09 · an old `vector3` is named in the log at mod load
 - `CI1` done `playtest` 2026-09-10 · the suite's verdict reaches the annotation list and the run summary
+- `F1-1` done `playtest` 2026-11-20 · the Settings panel; pass at `ef48865`, engine 5.17.0, playbot: texture and label changed together, `air` first, the list toggles, usable after switching away
 - `F1-2` done `playtest` 2026-08-27 · the preference survives a relog
 - `F3-1` done `playtest` 2026-08-27 · `sleep(seconds)` in a running world
 - `F9-1` done `playtest` 2026-09-02 · the words on the panel and the HUD
