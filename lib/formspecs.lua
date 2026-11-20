@@ -381,10 +381,12 @@ local file_editor = {
             local spelled = category.spelled
             local field = 'scroll_' .. category.name
 
-            -- The scrollbar's range: 2.32 units per listed block, less the
-            -- 20.56 the container already shows.
+            -- The scrollbar's range: 2.32 units per listed block, less what
+            -- the container already shows. 19.2 rather than the 20.56 it
+            -- shows leaves room for the last row's overhang, which would
+            -- otherwise be cut in half at the end. (B-E-2)
             fs = fs .. 'scrollbaroptions[min=0;max=' ..
-                     (#category.names * 2.32 - 20.56) ..
+                     (#category.names * 2.32 - 19.2) ..
                      ';smallstep=1;largestep=5]'
             fs = fs .. 'scrollbar[19.5, 1;0.3, 9.25;vertical;' .. field .. ';' ..
                      (meta.scroll[category.name] or 0) .. ']'
