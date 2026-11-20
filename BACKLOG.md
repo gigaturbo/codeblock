@@ -31,27 +31,7 @@ in-world check recipes are in its `references/playtests.md`.
 
 ## Bugs
 
-### B-E-1 · the French *New file* label is cut short
-
-`open` `low` `filed 2026-11-20`
-
-In a 1024×600 window in French the label above the New file field reads
-*Nouveau*: the field is 2.5 wide and *Nouveau fichier :* does not fit. Seen in
-a playbot viewer shot while running `T-E-1`.
-
-**Do:** shorten the French string, or widen the label as an area label that
-wraps.
-
-### B-E-2 · the last block row is half cut at the bottom of a help panel
-
-`open` `low` `filed 2026-11-20`
-
-Scrolled to the end, a block panel shows its last row (`dark_violet`) cut in
-half by the panel's lower edge. The scrollbar's maximum, `#names * 2.32 -
-20.56`, stops short of the last row. Seen in playbot viewer shots of glass
-and lamps while running `E7`.
-
-**Do:** raise the maximum by the missing part of a row and look again.
+Nothing open.
 
 ## Features
 
@@ -128,6 +108,9 @@ entry the moment the code under it moves, and keep the commit and date below so
 whoever re-runs it knows what they are re-reading against.
 
 ### Bugs and findings
+
+- `B-E-2` closed `low` `03afd83` · scrolled to the end, a block panel cut its last row in half; the scrollbar's maximum now subtracts 19.2 rather than 20.56, and playbot viewer shots of glass at 1024×600 and lamps at 1280×720 show the last row whole
+- `B-E-1` closed `low` `1635f2e` · the French *New file* label read only *Nouveau* at 1024×600; it is now *Nouveau :*, shown in full in a playbot viewer shot
 
 - `B-S-4` closed `low` 2026-09-28 · a shape facing west or south was built from its far end, starting past what a client is sent, since the boxes went from its lowest corner; x and z now start at the end nearest the drone, y still bottom up for the light; confirmed in-world at `fad21fa`, all four facings building alike and in the same time, which also closes the 71 s against 37 s `P3` saw at codelevel 3
 - `B-S-3` closed `medium` 2026-09-28 · a write into a mapchunk the engine was generating was overwritten when generation finished, leaving mapblock-sized holes in a completed build; a write now waits for the map one mapblock around it to be generated, bounded per run by `max_map_generated` and to one drone request server-wide, and `codeblock_wait_for_mapgen` turns it off; headless 6 of 6 exact against 2 of 3 wrong, and the in-world `sphere(100)` beside fresh ground passed
@@ -267,7 +250,7 @@ whoever re-runs it knows what they are re-reading against.
 - `E4` done `playtest` 2026-08-27 · tab state survives ESC
 - `E5` done `playtest` 2026-11-20 · tab state after **Load and close**; pass at `ef48865`, engine 5.17.0, playbot: both tabs and the active one came back
 - `E6` done `playtest` 2026-08-27 · the two checkboxes
-- `E7` done `playtest` 2026-11-20 · the help panels; pass at `ef48865`, engine 5.17.0, playbot: every panel drew, textures on every row, glass and lamps kept their own scroll, the API page rendered; the last row is half cut at the bottom, `B-E-2`
+- `E7` done `playtest` 2026-11-20 · the help panels; pass at `ef48865`, engine 5.17.0, playbot: every panel drew, textures on every row, glass and lamps kept their own scroll, the API page rendered; scrolling re-run at `1635f2e`: glass at 1024×600 in French and lamps at 1280×720 end on a whole last row
 - `E8` done `playtest` 2026-08-27 · tab state survives a disconnect
 - `E9` done `playtest` 2026-08-27 · tab state survives a server shutdown
 - `E10` done `playtest` 2026-08-27 · the checkboxes for a player who has never set them
@@ -278,7 +261,7 @@ whoever re-runs it knows what they are re-reading against.
 - `E15` done `playtest` 2026-11-20 · **Enter** in the New file field creates the file; pass at `ef48865`, engine 5.17.0, playbot: created and opened on a block panel, scrollbar field in the same submission
 - `E16` done `playtest` 2026-09-03 · the unsaved marker on a tab
 - `E17` done `playtest` 2026-09-07 · a brand new file runs as it is
-- `T-E-1` done `playtest` 2026-11-20 · the buttons as icons; pass on the working copy over `02f5bb7`, engine 5.17.0, playbot: viewer shots at 1280×720 in English and 1024×600 in French show every icon centred, aligned with the selector, coloured by meaning and tooltipped on hover; the bot pressed every editor, panel and chooser button and each did what its tooltip says. Not run: `gui_scaling`, and `H10`'s dropped clicks
+- `T-E-1` done `playtest` 2026-11-20 · the buttons as icons; pass on the working copy over `02f5bb7`, engine 5.17.0, playbot: viewer shots at 1280×720 in English and 1024×600 in French show every icon centred, aligned with the selector, coloured by meaning and tooltipped on hover; the bot pressed every editor, panel and chooser button and each did what its tooltip says. Not run: `gui_scaling`, and `H10`'s dropped clicks. French shot at 1024×600 re-taken at `1635f2e`: the New file label reads *Nouveau :* in full
 - `D1` done `playtest` 2026-08-27 · place a drone and run a program
 - `D2` done `playtest` 2026-08-28 · place a drone at nothing
 - `D3` done `playtest` 2026-08-27 · replace a drone under the same name
