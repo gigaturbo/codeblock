@@ -5,7 +5,8 @@ released** and on ContentDB, published by the tag itself. It turned `colors`
 into a palette of 3930 and the 35 colours into bricks, `F15` and `F-K-1`, and
 carried the drone throughput of `F-S-1` to `F-S-4`. v2.1.0 is next: the
 editor's icons are in, `F-E-1`, and `save()` returns a name it can pick itself,
-`F-D-2`, and a quick start opens at join, `F-E-2`. v3.0.0 holds `F6` and `go()`
+`F-D-2`, a quick start opens at join, `F-E-2`, and the two drone tools
+became four, `F-D-4`. v3.0.0 holds `F6` and `go()`
 returning to the last checkpoint, `F-D-3`.
 
 **Every id here predates the `B-X-N` scheme and keeps its old form for ever**,
@@ -72,7 +73,62 @@ version (author, 2026-11-26).
 
 ## Tests
 
-Nothing open.
+### T-D-1 · the four tools
+
+`todo` `playtest` `filed 2026-11-26`
+
+Each tool on both buttons, `/codeblock tools` handing four over in hotbar order,
+an old `codeblock:poser` and `codeblock:setter` arriving as the Placer and the
+Editor, and no tool digging a node. Recipe in `codeblock-kb`'s
+`references/playtests.md`.
+
+### T-E-2 · reopened by `F-D-4`
+
+`todo` `playtest`
+
+Its steps now show the four tools. Last: the quick start; pass at `fcc1a3c`, engine 5.17.0, playbot: the window reached a new player a second after join; tools added, then *already carries*, then *no room* with a full inventory and nothing cleared; the pencil opened the editor; the box wrote `1` and `0` and a rejoin honoured each; `?` drew the steps with unsaved text kept; with `codeblock.config.quickstart` set false through the probe rather than a restart, no window at join and `/codeblock help` still showed it. Layout fixed at `1913431` after a French 1024×600 shot hid steps 4 and 5 below a scrollbar; English 1280×720 and French 1024×600 shots then show all five steps. Re-run at `39e3b77` after the author reworked it: playbot viewer shots in French at 1024×600 show the tools and buttons beside each step, the box under the text and Close ending the button row, all without a scrollbar; the bot's Close press ended the session
+
+### D1 · reopened by `F-D-4`
+
+`todo` `playtest`
+
+The drone is placed with the Placer and run with the Runner. Last: place a drone and run a program
+
+### D2 · reopened by `F-D-4`
+
+`todo` `playtest`
+
+Aiming the Placer at nothing now arrives through on_use as well. Last: place a drone at nothing
+
+### D5 · reopened by `F-D-4`
+
+`todo` `playtest`
+
+The chooser now opens from the Placer. Last: cancelling the file chooser; pass at `ef48865`, engine 5.17.0, playbot: Cancel and ESC left no drone, a chosen file ran
+
+### H4 · reopened by `F-D-4`
+
+`todo` `playtest`
+
+The panel now opens from the Status tool, on either button. Last: the setter's left click always opens the panel; pass at `5076aad`, four hard limits listed
+
+### F10-1 · reopened by `F-D-4`
+
+`todo` `playtest`
+
+The join line no longer names the creative inventory. Last: a fresh player is given nothing
+
+### F10-2 · reopened by `F-D-4`
+
+`todo` `playtest`
+
+`/codeblock tools` now hands over four tools. Last: `/codeblock tools`
+
+### F10-4 · reopened by `F-D-4`
+
+`todo` `playtest`
+
+The tool to drop is now one of four. Last: a dropped tool can be recovered
 
 ## Closed
 
@@ -192,6 +248,7 @@ whoever re-runs it knows what they are re-reading against.
 
 ### Features
 
+- `F-D-4` done `medium` 2026-11-26 · the two drone tools became four, one action each and the same on either button: Editor, Placer, Runner, Status; each a half of the old textures; `codeblock:poser` and `codeblock:setter` alias to the Placer and the Editor
 - `F-E-2` done `medium` 2026-11-26 · a quick start opens at join until *Do not show again* is ticked, with buttons for the tools and the editor; the editor's `?` draws it as a help panel, `/codeblock help` reopens it, and `codeblock_quickstart` turns the join popup off
 - `F-D-2` done `small` 2026-11-26 · `save()` with no name saves under `cp1`, `cp2`..., skipping a name already saved, and every `save` returns its name; the `go()` default it also asked for is `F-D-3`, split off as major
 - `F-S-5` done `small` 2026-11-26 · player code has `tonumber(s, base)`, which answers nil for a string that is not a number where `s + 0` stops the program, and `tostring`, so `..` can join a nil or a boolean
@@ -240,17 +297,12 @@ whoever re-runs it knows what they are re-reading against.
 - `E16` done `playtest` 2026-09-03 · the unsaved marker on a tab
 - `E17` done `playtest` 2026-09-07 · a brand new file runs as it is
 - `T-E-1` done `playtest` 2026-11-26 · the buttons as icons; partial re-run at `1913431`, engine 5.17.0, playbot: a French 1024×600 viewer shot shows the new ? icon aligned with the selector, blue, with its tooltip, and *Briques* fitting the narrower selector; the other icons are unchanged since the last full pass, over `02f5bb7` on 2026-11-20. At `39e3b77` the help row reads cube, selector, book, ?, gear, shown in a French 1024×600 viewer shot
-- `T-E-2` done `playtest` 2026-11-26 · the quick start; pass at `fcc1a3c`, engine 5.17.0, playbot: the window reached a new player a second after join; tools added, then *already carries*, then *no room* with a full inventory and nothing cleared; the pencil opened the editor; the box wrote `1` and `0` and a rejoin honoured each; `?` drew the steps with unsaved text kept; with `codeblock.config.quickstart` set false through the probe rather than a restart, no window at join and `/codeblock help` still showed it. Layout fixed at `1913431` after a French 1024×600 shot hid steps 4 and 5 below a scrollbar; English 1280×720 and French 1024×600 shots then show all five steps. Re-run at `39e3b77` after the author reworked it: playbot viewer shots in French at 1024×600 show the tools and buttons beside each step, the box under the text and Close ending the button row, all without a scrollbar; the bot's Close press ended the session
-- `D1` done `playtest` 2026-08-27 · place a drone and run a program
-- `D2` done `playtest` 2026-08-28 · place a drone at nothing
 - `D3` done `playtest` 2026-08-27 · replace a drone under the same name
 - `D4` done `playtest` 2026-08-27 · join with a full inventory
-- `D5` done `playtest` 2026-11-20 · cancelling the file chooser; pass at `ef48865`, engine 5.17.0, playbot: Cancel and ESC left no drone, a chosen file ran
 - `D6` done `playtest` 2026-08-28 · removing the file a drone is holding
 - `D7` done `playtest` 2026-09-04 · a run cut short says *stopped*
 - `H2` done `playtest` 2026-09-02 · the binding limit is the one it names, and it changes
 - `H1` done `playtest` 2026-10-01 · the HUD appears, updates and goes; pass at `5076aad`, six lines with *New map*
-- `H4` done `playtest` 2026-10-01 · the setter's left click always opens the panel; pass at `5076aad`, four hard limits listed
 - `H3` done `playtest` 2026-09-02 · the toggle, whose choice wins, and where it lives
 - `H5` done `playtest` 2026-10-01 · the panel's numbers, and its own refresh; pass at `5076aad`, four rows with *Map generated*
 - `H6` done `playtest` 2026-11-20 · pause and Resume; pass at `ef48865`, engine 5.17.0, playbot: HUD said paused, icon and tooltip turned to Resume, resumed after a minute with no time message; a second drone placed 261k nodes/s with the first paused against 188k with it running; paused inside `sleep(10)` and resumed past it, finished at once
@@ -293,10 +345,7 @@ whoever re-runs it knows what they are re-reading against.
 - `F1-2` done `playtest` 2026-08-27 · the preference survives a relog
 - `F3-1` done `playtest` 2026-08-27 · `sleep(seconds)` in a running world
 - `F9-1` done `playtest` 2026-09-02 · the words on the panel and the HUD
-- `F10-1` done `playtest` 2026-09-04 · a fresh player is given nothing
-- `F10-2` done `playtest` 2026-09-04 · `/codeblock tools`
 - `F10-3` done `playtest` 2026-09-03 · the two renamed subcommands
-- `F10-4` done `playtest` 2026-09-03 · a dropped tool can be recovered
 - `F11-1` done `playtest` 2026-09-07 · the category selector, in French
 - `F11-2` done `playtest` 2026-09-07 · the help row's geometry
 - `F11-3` done `playtest` 2026-09-07 · the mod installs into a game that ships neither `default` nor `wool`

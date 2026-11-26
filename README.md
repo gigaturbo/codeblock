@@ -23,15 +23,15 @@ The **?** button in the editor and `/codeblock help` bring them back.
 
 1. Create an empty (flat) world, enable the `codeblock` mod and its one dependency `vector3`
 2. Enable creative mode and start the game
-3. Get the two drone tools: run the `/codeblock tools` command (or use creative inventory)
-4. Right click with ![drone_placer](https://raw.githubusercontent.com/gigaturbo/codeblock/master/doc/drone_poser.png) tool on a block to place the drone, choose `stairs.lua` then left click with ![drone_placer](https://raw.githubusercontent.com/gigaturbo/codeblock/master/doc/drone_poser.png) to start the drone
+3. Get the four drone tools: run the `/codeblock tools` command
+4. Click a block with the ![placer](https://raw.githubusercontent.com/gigaturbo/codeblock/master/doc/codeblock_tool_placer.png) **Placer** to place the drone, choose `stairs.lua`, then click with the ![runner](https://raw.githubusercontent.com/gigaturbo/codeblock/master/doc/codeblock_tool_runner.png) **Runner** to start the drone
 
 ### Write your first program
 
-1. Right click with ![drone_setter](https://raw.githubusercontent.com/gigaturbo/codeblock/master/doc/drone_setter.png) tool to open the `lua` editor
-2. Create a new file with the `new file` field and write some code on the main window
-3. Click `load and close` to load your code in the drone
-4. Right click with ![drone_placer](https://raw.githubusercontent.com/gigaturbo/codeblock/master/doc/drone_poser.png) tool on a block and run the code with a left click on ![drone_placer](https://raw.githubusercontent.com/gigaturbo/codeblock/master/doc/drone_poser.png)
+1. Click with the ![editor](https://raw.githubusercontent.com/gigaturbo/codeblock/master/doc/codeblock_tool_editor.png) **Editor** to open the `lua` editor
+2. Create a new file with the `New file` field and write some code on the main window
+3. Click the green run button to save the file, give it to the drone and close the editor
+4. Click a block with the ![placer](https://raw.githubusercontent.com/gigaturbo/codeblock/master/doc/codeblock_tool_placer.png) **Placer**, then run the code by clicking with the ![runner](https://raw.githubusercontent.com/gigaturbo/codeblock/master/doc/codeblock_tool_runner.png) **Runner**
 5. Read the [Lua API](https://github.com/gigaturbo/codeblock/blob/master/doc/api.md#lua-api) in `doc/api.md` to know which commands and blocks you can use
 
 ### Watch and steer a running program
@@ -39,7 +39,7 @@ The **?** button in the editor and `/codeblock help` bring them back.
 - While your program runs, a **HUD** in the top-right corner names the file, says
   whether it is running or paused, and shows the limits of the drone. Untick *Show the drone HUD* on the editor's **Settings** panel to turn it
   off or set `codeblock_drone_hud = false` for the server's default.
-- **Left click your drone with the drone setter** to open its panel, whatever it
+- **Click with the ![status](https://raw.githubusercontent.com/gigaturbo/codeblock/master/doc/codeblock_tool_status.png) Status tool** to open your drone's panel, whatever it
   is doing: every limit with what the run has spent beside it, a line saying what
   each one means, and buttons to **pause**/**resume** and **stop**
   the drone.

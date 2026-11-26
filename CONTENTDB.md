@@ -25,18 +25,18 @@ can imagine: learn to code, or give your inner computer artist somewhere to play
 ## Quick start
 
 1. New flat world, creative mode, mod enabled. Run `/codeblock tools` to be given
-   the **Drone placer** and the **Drone setter**, or take them from the creative
-   inventory.
-2. **Right click a block with the Drone placer.** A list of programs appears,
-   pick `stairs.lua`.
-3. **Left click with the Drone placer.** The drone builds the staircase in front
-   of you.
+   the four drone tools: the **Editor**, the **Placer**, the **Runner** and
+   **Status**. Each does one thing, with either mouse button.
+2. **Click a block with the Placer.** A list of programs appears, pick
+   `stairs.lua`.
+3. **Click with the Runner.** The drone builds the staircase in front of you.
 
 To change what it builds:
 
-4. **Right click with the Drone setter** to open the editor. Open `stairs.lua`,
-   change the number of stairs, click *Load and close*.
-5. Place a drone and left click again.
+4. **Click with the Editor** to open it. Open `stairs.lua`, change the number of
+   stairs, click the green run button.
+5. Place a drone and click with the Runner again. **Status** shows what it is
+   doing, and pauses or stops it.
 
 Experiment and discover with the other examples, or write your own!
 

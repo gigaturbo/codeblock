@@ -108,30 +108,31 @@ local ICON_W, ICON_H, ROW_TOP = 11 / 13, 5 / 6, -0.025
 --
 -- Each step shows what it names: the tool's own image, or the button as the
 -- editor draws it, an icon over a pane tinted to the colours the engine gives
--- a styled button (sampled on screen). A tool's texture is its two icons in the
--- middle third of a square, so `[sheet` cuts that band out and it is drawn at
--- the height of a line. The creative inventory is not named: a game may have
--- none.
+-- a styled button (sampled on screen). The creative inventory is not named: a
+-- game may have none.
 local QUICKSTART = (function()
-    local function tool(texture)
-        return '<img name=' .. texture .. '^[sheet:1x3:0,1 width=66 height=22>'
+    local function tool(name)
+        return '<img name=codeblock_tool_' .. name ..
+                   '.png width=22 height=22>'
     end
     local function button(icon, colour)
         return '<img name=codeblock_pane.png^[colorize:' .. colour ..
                    ':255^codeblock_icon_' .. icon ..
                    '.png width=22 height=22>'
     end
-    local setter, placer = tool('drone_setter.png'), tool('drone_poser.png')
+    local editor, placer = tool('editor'), tool('placer')
+    local runner, status = tool('runner'), tool('status')
     local green, blue = '#2d5a2d', '#2d2d87'
     local steps = {
-        {S('1. Get the tools'), setter .. ' ' .. placer,
-         S('The Drone setter writes programs and the Drone placer runs them. Get both with /codeblock tools.')},
-        {S('2. Write a program'), setter .. ' ' .. button('new', green),
-         S('Right-click with the setter to open the editor. Type a name under New file and press the green +. A new file already builds a column of colours, and the example programs are in the file list.')},
+        {S('1. Get the tools'),
+         editor .. ' ' .. placer .. ' ' .. runner .. ' ' .. status,
+         S('Four tools, one click each: the Editor writes programs, the Placer puts the drone down, the Runner starts it and Status shows what it is doing. Get them with /codeblock tools.')},
+        {S('2. Write a program'), editor .. ' ' .. button('new', green),
+         S('Click with the Editor to open it. Type a name under New file and press the green +. A new file already builds a column of colours, and the example programs are in the file list.')},
         {S('3. Place the drone'), placer,
-         S('Right-click a block with the placer, then choose the program it runs.')},
-        {S('4. Run it'), placer .. ' ' .. setter,
-         S('Left-click with the placer to run the program. Left-click with the setter to see the drone, pause it or take it away.')},
+         S('Click a block with the Placer, then choose the program it runs.')},
+        {S('4. Run it'), runner .. ' ' .. status,
+         S('Click with the Runner to run the program. Click with Status to see the drone, pause it or take it away.')},
         {S('5. Learn more'),
          button('cube', blue) .. ' ' .. button('api', blue) .. ' ' ..
              button('help', blue) .. ' ' .. button('gear', blue),
@@ -1099,12 +1100,9 @@ local quickstart = {
 -- program is spending against each ceiling, and every action a player can take
 -- on it. The at-a-glance version is lib/hud.lua; this is the whole table.
 --
--- **Reached by left-clicking the drone with the setter, whatever it is doing.**
--- That gesture has meant three things in turn: it removed the drone, then it
--- removed an idle one and opened this panel on a running one, and now it always
--- opens this panel. The two-meanings version was `F4`'s and lasted one playtest
--- (`H4`): a gesture whose effect depends on invisible state is a gesture a player
--- has to guess at.
+-- **Reached by clicking with the Status tool, whatever the drone is doing.** A
+-- gesture whose effect depends on invisible state is one a player has to guess
+-- at, which is why it always opens this panel. (F4, H4, F-D-4)
 --
 -- **Two buttons, Pause and Stop, and a close x in the corner.** Stop is
 -- `Drone.on_remove`, which ends a run if there is one and takes the drone away

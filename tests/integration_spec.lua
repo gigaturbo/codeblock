@@ -2087,6 +2087,24 @@ do
     missing, icons = untipped(codeblock.formspecs.quickstart.get_form({}))
     it('every icon in the quick start has a tooltip', missing, nil)
     it('and the quick start draws three', icons, 3)
+
+    -- Four tools, one action each, the same on either button: a callback left
+    -- to the engine's default, or a different function on one button, is the
+    -- two-meanings tool this replaced. (F-D-4)
+    local quick = codeblock.formspecs.quickstart.get_form({})
+    for _, tool in ipairs({'editor', 'placer', 'runner', 'status'}) do
+        local def = core.registered_items['codeblock:' .. tool]
+        it('the ' .. tool .. ' tool answers both buttons with one action',
+           def ~= nil and def.on_use ~= nil and def.on_place == def.on_use and
+               def.on_secondary_use == def.on_use, true)
+        it('and the quick start shows it',
+           quick:find('codeblock_tool_' .. tool .. '.png', 1, true) ~= nil, true)
+    end
+    -- A world that had the two old tools keeps a working item for each.
+    it('the old poser is now the placer',
+       core.registered_aliases['codeblock:poser'], 'codeblock:placer')
+    it('and the old setter the editor',
+       core.registered_aliases['codeblock:setter'], 'codeblock:editor')
     missing, icons = untipped(codeblock.formspecs.file_chooser.get_form(
                                   {name = 'codeblock_spec_player'}))
     it('every icon in the file chooser has a tooltip', missing, nil)

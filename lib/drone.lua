@@ -277,7 +277,7 @@ local drone_mt = {
 
             -- Answered before the drone is looked at all: with no position the
             -- gesture failed, and whether a drone happens to be running is not
-            -- what the player got wrong. The poser routes its no-node case here
+            -- what the player got wrong. The placer routes its no-node case here
             -- rather than repeating the message, so this branch is the only one
             -- that runs for it. (B38)
             if not pos then
@@ -366,8 +366,7 @@ local drone_mt = {
         --- Take the drone away, reporting a run it cut short.
         --
         -- Reached from the drone panel's Stop button and from a player
-        -- disconnecting. The setter only opens the panel; it stopped
-        -- removing anything at F8. (F4, F8)
+        -- disconnecting. The Status tool only opens the panel. (F4, F8)
         on_remove = function(name)
 
             local drone = Drone.get(name)

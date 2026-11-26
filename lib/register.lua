@@ -33,10 +33,11 @@ local examples = codeblock.examples.examples
 -- private
 --------------------------------------------------------------------------------
 
---- Add whichever of the two drone tools a player is not already carrying.
+--- Add whichever of the four drone tools a player is not already carrying, in
+-- the order they then sit in the hotbar.
 --
 -- Clears nothing, ever. Emptying the inventory first is destructive in any
--- world that had players before the mod was installed, where both tools are
+-- world that had players before the mod was installed, where the tools are
 -- missing at once and everything else is theirs. (B39)
 --
 -- The craft grid counts as carrying: nothing stops a player parking a tool
@@ -48,7 +49,8 @@ local function give_tools(player)
     local inv = player:get_inventory()
     local added, full = 0, false
 
-    for _, itemname in ipairs({'codeblock:poser', 'codeblock:setter'}) do
+    for _, itemname in ipairs({'codeblock:editor', 'codeblock:placer',
+                               'codeblock:runner', 'codeblock:status'}) do
 
         local stack = ItemStack(itemname)
         local carried = inv:contains_item('main', stack) or
@@ -109,68 +111,64 @@ end
 -- tools
 --------------------------------------------------------------------------------
 
-core.register_tool("codeblock:poser", {
-    description = S("Drone placer"),
-    inventory_image = "drone_poser.png",
-    range = 128,
-    stack_max = 1,
-    liquids_pointable = true,
-    on_use = function(itemstack, user, pointed_thing)
-        local name = user:get_player_name()
-        drone_on_run(name)
-        return itemstack
-    end,
-    on_place = function(itemstack, placer, pointed_thing)
-        local name = placer:get_player_name()
-        local pos = get_pointed_thing_position(pointed_thing)
-        -- The drone decides whether a file still has to be picked; the form
-        -- layer is asked for it from here, so lib/drone.lua need not know it
-        -- exists. (A11)
-        if drone_on_place(name, pos) then show_file_chooser(name) end
-        return itemstack
-    end,
-    -- The engine calls this instead of on_place when there is no node to point
-    -- at, which is how aiming past loaded ground or into the sky arrives: the
-    -- client cannot point at a node it does not have. An empty function meant
-    -- the one gesture a player makes to find the tool's reach was the one that
-    -- answered nothing at all - the B10 refusal below could only be seen by
-    -- pointing at a node the *server* had not loaded. Routed through the same
-    -- call with no position, so there is one refusal and not two. (B38)
-    on_secondary_use = function(itemstack, user)
-        if user then drone_on_place(user:get_player_name(), nil) end
+-- Four tools, one action each, the same on either mouse button: a player never
+-- has to learn which button does what. The engine calls on_place with a node
+-- under the crosshair and on_secondary_use without one, so all three callbacks
+-- are the one function. (F-D-4)
+--
+-- `act(name, pointed_thing)` is the action; `def` is the rest of the tool.
+local function register_tool(itemname, def, act)
+    local function use(itemstack, user, pointed_thing)
+        if user then act(user:get_player_name(), pointed_thing) end
         return itemstack
     end
-})
+    def.stack_max = 1
+    def.on_use, def.on_place, def.on_secondary_use = use, use, use
+    core.register_tool(itemname, def)
+end
 
-core.register_tool("codeblock:setter", {
-    description = S("Drone setter"),
-    inventory_image = "drone_setter.png",
-    range = 0,
-    stack_max = 1,
-    -- One gesture, one meaning: show me this drone.
-    --
-    -- It has meant three things in turn. It removed the drone; then `F4` split
-    -- it, removing an idle one and opening the panel on a running one; and that
-    -- split lasted exactly one playtest (`H4`), because a gesture whose effect
-    -- depends on state the player cannot see is a gesture they have to guess at
-    -- - and the guess destroys a build. Now it always opens the panel, which
-    -- answers for all three states including *you have no drone*, and removal is
-    -- a button in there. (F4, F8)
-    on_use = function(itemstack, user)
-        show_drone_panel(user:get_player_name())
-        return itemstack
-    end,
-    on_place = function(itemstack, placer)
-        local name = placer:get_player_name()
-        show_file_editor(name)
-        return itemstack
-    end,
-    on_secondary_use = function(itemstack, user)
-        local name = user:get_player_name()
-        show_file_editor(name)
-        return itemstack
-    end
-})
+register_tool('codeblock:editor', {
+    description = S('Editor'),
+    inventory_image = 'codeblock_tool_editor.png',
+    range = 0
+}, show_file_editor)
+
+-- Aimed at a node, wherever it is clicked from; anything else, the sky, ground
+-- past what is loaded or an object, arrives with no position, so there is one
+-- refusal and not two. (B38) The drone decides whether a file still has to be
+-- picked and the form is asked for from here, so lib/drone.lua need not know
+-- forms exist. (A11)
+register_tool('codeblock:placer', {
+    description = S('Placer'),
+    inventory_image = 'codeblock_tool_placer.png',
+    range = 128,
+    liquids_pointable = true
+}, function(name, pointed_thing)
+    local pos = pointed_thing and pointed_thing.type == 'node' and
+                    get_pointed_thing_position(pointed_thing) or nil
+    if drone_on_place(name, pos) then show_file_chooser(name) end
+end)
+
+register_tool('codeblock:runner', {
+    description = S('Runner'),
+    inventory_image = 'codeblock_tool_runner.png',
+    range = 0
+}, drone_on_run)
+
+-- Always the panel, whatever the drone is doing, *you have no drone* included:
+-- an effect that depends on state the player cannot see is one they have to
+-- guess at, and the guess destroyed builds. Removal is a button in there.
+-- (F4, F8)
+register_tool('codeblock:status', {
+    description = S('Status'),
+    inventory_image = 'codeblock_tool_status.png',
+    range = 0
+}, show_drone_panel)
+
+-- The two tools these four replaced, so a world that had them keeps a working
+-- item: the poser placed and ran, the setter edited and showed the panel.
+core.register_alias('codeblock:poser', 'codeblock:placer')
+core.register_alias('codeblock:setter', 'codeblock:editor')
 
 --------------------------------------------------------------------------------
 -- entities
@@ -367,7 +365,7 @@ subcommands.tools = function(caller, params)
         return false, S('No room for the drone tools of @1, free a slot', pname)
     end
     if added == 0 then
-        return true, S('@1 already carries both drone tools', pname)
+        return true, S('@1 already carries all four drone tools', pname)
     end
     return true, S('Drone tools given to @1', pname)
 

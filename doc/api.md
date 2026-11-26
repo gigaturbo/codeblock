@@ -132,18 +132,29 @@ A name may be any of the characters the engine allows in one — letters, digits
 
 ## `/codeblock tools [<playername>]`
 
-Puts the **Drone placer** and the **Drone setter** in a player's main inventory.
+Puts the four drone tools in a player's main inventory, in this order, so they
+land in the hotbar when it has room. Each does one thing, and either mouse
+button does it:
+
+- **Editor** (`codeblock:editor`) opens the program editor.
+- **Placer** (`codeblock:placer`) places the drone on the block it points at,
+  and asks which program it runs.
+- **Runner** (`codeblock:runner`) runs the drone's program.
+- **Status** (`codeblock:status`) opens the drone's panel: what it is doing and
+  spending, with Pause and Stop.
 
 The mod does not hand these out. A player takes them from the creative inventory
 or asks for them here, and this command is the only route in a game with no
 creative inventory.
 
-Whichever of the two tools the player is not already carrying is added, and
-nothing is ever cleared. A tool parked in the craft grid counts as carried, so
-running this twice does not produce duplicates. With no free slot it refuses and
-says so rather than making room.
+Whichever tools the player is not already carrying are added, and nothing is
+ever cleared. A tool parked in the craft grid counts as carried, so running this
+twice does not produce duplicates. With no free slot it refuses and says so
+rather than making room.
 
-Both tools can be dropped and thrown away; this command is how you get them back.
+The tools can be dropped and thrown away; this command is how you get them back.
+The two tools of earlier versions, `codeblock:poser` and `codeblock:setter`,
+are now the Placer and the Editor.
 
 ## `/codeblock level [<playername>] [<1-4>]`
 
