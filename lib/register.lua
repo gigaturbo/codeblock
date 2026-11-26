@@ -214,10 +214,10 @@ core.register_on_newplayer(function(player)
     -- example
     generate_examples(name)
 
-    -- The two routes to the tools, said once. Nothing hands them out any more,
-    -- so a player who is never told has no way in. (F10)
-    chat_send_player(name, S(
-        'Get the drone tools with /codeblock tools, or from the creative inventory'))
+    -- The route to the tools, said once. Nothing hands them out any more, so a
+    -- player who is never told has no way in (F10). The creative inventory is
+    -- not named: a game may have none.
+    chat_send_player(name, S('Get the drone tools with /codeblock tools'))
 
     -- meta
     local meta = player:get_meta()

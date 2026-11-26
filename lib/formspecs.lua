@@ -105,22 +105,42 @@ local ICON_W, ICON_H, ROW_TOP = 11 / 13, 5 / 6, -0.025
 -- The client translates a hypertext before it parses the markup (parseHyperText,
 -- 5.4.0 and 5.17.0), so the tags around a translation hold, and a `<`, `>` or
 -- `\` in a sentence or its translation is read as markup. Keep them out.
+--
+-- Each step shows what it names: the tool's own image, or the button as the
+-- editor draws it, an icon over a pane tinted to the colours the engine gives
+-- a styled button (sampled on screen). A tool's texture is its two icons in the
+-- middle third of a square, so `[sheet` cuts that band out and it is drawn at
+-- the height of a line. The creative inventory is not named: a game may have
+-- none.
 local QUICKSTART = (function()
+    local function tool(texture)
+        return '<img name=' .. texture .. '^[sheet:1x3:0,1 width=66 height=22>'
+    end
+    local function button(icon, colour)
+        return '<img name=codeblock_pane.png^[colorize:' .. colour ..
+                   ':255^codeblock_icon_' .. icon ..
+                   '.png width=22 height=22>'
+    end
+    local setter, placer = tool('drone_setter.png'), tool('drone_poser.png')
+    local green, blue = '#2d5a2d', '#2d2d87'
     local steps = {
-        {S('1. Get the tools'),
-         S('The Drone setter writes programs and the Drone placer runs them. Get both with /codeblock tools, or from the creative inventory.')},
-        {S('2. Write a program'),
+        {S('1. Get the tools'), setter .. ' ' .. placer,
+         S('The Drone setter writes programs and the Drone placer runs them. Get both with /codeblock tools.')},
+        {S('2. Write a program'), setter .. ' ' .. button('new', green),
          S('Right-click with the setter to open the editor. Type a name under New file and press the green +. A new file already builds a column of colours, and the example programs are in the file list.')},
-        {S('3. Place the drone'),
+        {S('3. Place the drone'), placer,
          S('Right-click a block with the placer, then choose the program it runs.')},
-        {S('4. Run it'),
+        {S('4. Run it'), placer .. ' ' .. setter,
          S('Left-click with the placer to run the program. Left-click with the setter to see the drone, pause it or take it away.')},
         {S('5. Learn more'),
+         button('cube', blue) .. ' ' .. button('api', blue) .. ' ' ..
+             button('help', blue) .. ' ' .. button('gear', blue),
          S('The blue buttons in the editor show the API and the blocks. The ? button brings this page back, and so does /codeblock help.')}
     }
     local out = {'<b><style size=18>' .. S('Quick start') .. '</style></b>'}
     for _, step in ipairs(steps) do
-        out[#out + 1] = '<b>' .. step[1] .. '</b> ' .. step[2]
+        out[#out + 1] = '<b>' .. step[1] .. '</b> ' .. step[2] .. ' ' ..
+                            step[3]
     end
     return formspec_escape(table.concat(out, '\n'))
 end)()
@@ -361,8 +381,9 @@ local file_editor = {
         -- (0.375 - 0.35 * 15/13 = -0.375/13 of S, over spacing.Y), and the icons
         -- share that y for the same reason (ROW_TOP).
         local gear_x = 20 - ICON_W
-        local api_x = gear_x - ICON_W
-        local start_x = api_x - ICON_W
+        -- API beside the selector, the quick start between it and the gear.
+        local start_x = gear_x - ICON_W
+        local api_x = start_x - ICON_W
         fs = fs .. icon_button{x = 14, y = ROW_TOP, w = ICON_W, h = ICON_H,
                                icon = 'cube', name = 'help_blocks',
                                colour = HELP,
@@ -373,7 +394,7 @@ local file_editor = {
             if category.name == meta.category then index = i end
         end
         fs = fs .. 'dropdown[' .. (14 + ICON_W) .. ',-0.025;' ..
-                 ((start_x - 0.2 - 14 - ICON_W) * 1.25 * 13 / 15) ..
+                 ((api_x - 0.2 - 14 - ICON_W) * 1.25 * 13 / 15) ..
                  ';help_pick;' .. table.concat(items, ',') .. ';' .. index .. ']'
         fs = fs .. icon_button{x = start_x, y = ROW_TOP, w = ICON_W,
                                h = ICON_H, icon = 'help', name = 'help_start',
@@ -1028,21 +1049,24 @@ local quickstart = {
     end,
 
     get_form = function(meta)
-        return 'formspec_version[4]' .. 'size[16,10]' ..
-                   icon_button{exit = true, x = 14.9, y = 0.35, w = 0.7,
-                               h = 0.7, icon = 'close', name = 'close',
-                               colour = END, tip = S('Close')} ..
-                   'hypertext[0.6,0.5;14.1,7.7;quickstart;' .. QUICKSTART .. ']' ..
-                   icon_button{x = 0.6, y = 8.4, w = 0.8, h = 0.8, icon = 'new',
+        -- The text, the box that belongs to it, then one row of actions
+        -- ending on Close, each with its word beside it.
+        return 'formspec_version[4]' .. 'size[16,9.4]' ..
+                   'hypertext[0.6,0.5;14.8,6.6;quickstart;' .. QUICKSTART .. ']' ..
+                   'checkbox[0.6,7.5;hide;' .. S('Do not show again') .. ';' ..
+                   (meta.hide and 'true' or 'false') .. ']' ..
+                   icon_button{x = 0.6, y = 8.2, w = 0.8, h = 0.8, icon = 'new',
                                name = 'tools', colour = GO,
                                tip = S('Give me the drone tools')} ..
-                   'label[1.6,8.8;' .. S('Give me the drone tools') .. ']' ..
-                   icon_button{x = 7.2, y = 8.4, w = 0.8, h = 0.8, icon = 'edit',
+                   'label[1.6,8.6;' .. S('Give me the drone tools') .. ']' ..
+                   icon_button{x = 7.2, y = 8.2, w = 0.8, h = 0.8, icon = 'edit',
                                name = 'editor',
                                tip = S('Open the editor')} ..
-                   'label[8.2,8.8;' .. S('Open the editor') .. ']' ..
-                   'checkbox[0.6,9.6;hide;' .. S('Do not show again') .. ';' ..
-                   (meta.hide and 'true' or 'false') .. ']'
+                   'label[8.2,8.6;' .. S('Open the editor') .. ']' ..
+                   icon_button{exit = true, x = 12.2, y = 8.2, w = 0.8, h = 0.8,
+                               icon = 'close', name = 'close', colour = END,
+                               tip = S('Close')} ..
+                   'label[13.2,8.6;' .. S('Close') .. ']'
     end,
 
     on_close = function(meta, player, fields)
