@@ -2605,6 +2605,32 @@ end)()]]), true)
     it('and neither is what it used to carry',
        holds('random.color == nil and random.glass == nil'), true)
 
+    ----------------------------------------------------------------------------
+    -- save() picks a name when given none, and every save returns its name
+    --
+    -- Through the real environment, so the sandbox closure's return is pinned
+    -- too. The answers come back as one more checkpoint, named by joining them.
+    -- cp3 saved by hand is skipped by the fresh names that follow. (F-D-2)
+    ----------------------------------------------------------------------------
+
+    do
+        local drone, err = sandboxed([[
+local a = save()
+local b = save()
+save('cp3')
+local c = save()
+local d = save('x')
+save(a .. '-' .. b .. '-' .. c .. '-' .. d)
+]])
+        it('save() runs without a name', err, nil)
+        it('fresh names are cp1, cp2, skip one taken, and a named save returns its name',
+           drone.checkpoints['cp1-cp2-cp4-x'] ~= nil, true)
+
+        local _, bad = sandboxed('save(5)\n')
+        it('a name that is not a string still stops the program',
+           type(bad) == 'string' and bad:find('incorrect') ~= nil, true)
+    end
+
     codeblock.filesystem.remove_file('test_player', program_file)
     codeblock.filesystem.remove_user_data('test_player')
 end

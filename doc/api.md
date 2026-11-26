@@ -207,9 +207,11 @@ sleep(seconds) -- Pause the drone for this many seconds.
 A checkpoint remembers a position so it can be returned to. Names are strings. The checkpoint `spawn` always exists and is where the drone was placed.
 
 ```lua
-save(name)                         -- Save the current position under this name.
+save(name)                         -- Save the current position under this name, and return the name.
 go(name, n_right, n_up, n_forward) -- Return to a checkpoint, with an optional offset.
 ```
+
+**`save`** &mdash; Leave `name` out and a fresh one is picked: `cp1`, `cp2`, and so on, skipping any name already saved.
 
 **`go`** &mdash; Every argument is optional: `go()` is `go('spawn', 0, 0, 0)`.
 

@@ -4,8 +4,9 @@ CodeBlock is a Luanti mod that adds programming to the game. **v2.0.0 is
 released** and on ContentDB, published by the tag itself. It turned `colors`
 into a palette of 3930 and the 35 colours into bricks, `F15` and `F-K-1`, and
 carried the drone throughput of `F-S-1` to `F-S-4`. v2.1.0 is next: the
-editor's icons are in, `F-E-1`; a quick start, `F-E-2`, and `go()` returning to
-the last checkpoint, `F-D-2`, are left; v3.0.0 holds `F6` alone.
+editor's icons are in, `F-E-1`, and `save()` returns a name it can pick itself,
+`F-D-2`; a quick start, `F-E-2`, is left. v3.0.0 holds `F6` and `go()`
+returning to the last checkpoint, `F-D-3`.
 
 **Every id here predates the `B-X-N` scheme and keeps its old form for ever**,
 because commit messages cite them: `B` bugs, `S` sandbox and security, `C`
@@ -65,20 +66,19 @@ write and run a first program; the API panel is a reference, not a start.
 **Do:** one quick-start panel, shown once at a player's first join, again on
 `/codeblock help`, and from a help button in the editor.
 
-### F-D-2 · `go()` returns to the last checkpoint saved
+### F-D-3 · `go()` and `place_relative` default to the last checkpoint saved
 
-`todo` `medium` `filed 2026-10-01` `target: v2.1.0`
+`todo` `small` `filed 2026-11-26` `target: v3.0.0`
 
 A program that saves a checkpoint and comes back to it has to name it twice,
-and an offset from it needs the name too.
+and an offset from it needs the name too. `F-D-2` shipped the half that breaks
+nothing: `save()` picks a name and every `save` returns it.
 
-**Do:** `save()` with no name saves under a fresh one and returns it, as does a
-named `save`. `go()` goes to the last checkpoint saved, and `spawn` until one
-is; an offset from it is `go(_, 1, 2, 3)` or `go(nil, 1, 2, 3)`.
-`place_relative` defaults its checkpoint the same way. **A program that saves
-and then calls a bare `go()` goes somewhere else afterwards**, which by the
-version rule is major: the author's call before it is written, or the new
-default ships under a new name.
+**Do:** `go()` goes to the last checkpoint saved, and `spawn` until one is; an
+offset from it is `go(_, 1, 2, 3)` or `go(nil, 1, 2, 3)`. `place_relative`
+defaults its checkpoint the same way. **A program that saves and then calls a
+bare `go()` goes somewhere else afterwards**, which is why it waits for a major
+version (author, 2026-11-26).
 
 ## Tests
 
@@ -202,6 +202,7 @@ whoever re-runs it knows what they are re-reading against.
 
 ### Features
 
+- `F-D-2` done `small` 2026-11-26 · `save()` with no name saves under `cp1`, `cp2`..., skipping a name already saved, and every `save` returns its name; the `go()` default it also asked for is `F-D-3`, split off as major
 - `F-S-5` done `small` 2026-11-26 · player code has `tonumber(s, base)`, which answers nil for a string that is not a number where `s + 0` stops the program, and `tostring`, so `..` can join a nil or a boolean
 - `F-E-1` done `medium` 2026-11-20 · the editor, the drone panel and the file chooser draw their buttons as white icons on panes coloured by meaning, each with a tooltip saying what it does; run first, Duplicate beside Save, Remove apart; a word pane beside two icons was tried and dropped on screen
 - `F-S-6` done `small` 2026-10-01 · the `random` help line says `random()` answers a fraction from 0 up to but not including 1, and whole numbers for one and two arguments

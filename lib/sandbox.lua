@@ -204,7 +204,7 @@ local function getScriptEnv(drone)
             set_default_block(drone, block)
         end,
         -- checkpoints
-        ['save'] = function(chkpt) save_checkpoint(drone, chkpt) end,
+        ['save'] = function(chkpt) return save_checkpoint(drone, chkpt) end,
         ['go'] = function(chkpt, x, y, z)
             goto_checkpoint(drone, chkpt, x, y, z)
         end,

@@ -551,10 +551,22 @@ end
 -- checkpoints
 -------------------------------------------------------------------------------
 
+--- Save the drone's position under `chkpt` and return the name.
+--
+-- With no name, a fresh one: cp1, cp2... skipping any already saved. The
+-- counter only moves forward, so the skipping costs at most one step per name
+-- the program saved itself; a scan from 1 on every call would cost O(n) per
+-- save with nothing charging for it. (F-D-2)
 local function drone_save_checkpoint(drone, chkpt)
 
     assert(drone, S("Error, drone does not exist"))
 
+    if chkpt == nil then
+        local n = (drone.fresh_cp or 0) + 1
+        while drone.checkpoints['cp' .. n] do n = n + 1 end
+        drone.fresh_cp = n
+        chkpt = 'cp' .. n
+    end
     if type(chkpt) ~= 'string' then error(S('Checkpoint name is incorrect')) end
 
     drone.checkpoints[chkpt] = {
@@ -565,6 +577,7 @@ local function drone_save_checkpoint(drone, chkpt)
     }
 
     end_command(drone)
+    return chkpt
 
 end
 

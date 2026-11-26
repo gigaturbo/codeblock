@@ -75,7 +75,10 @@ api.groups = {
             {
                 name = 'save',
                 params = {'name'},
-                doc = 'Save the current position under this name.'
+                doc = 'Save the current position under this name, and ' ..
+                    'return the name.',
+                note = 'Leave `name` out and a fresh one is picked: `cp1`, ' ..
+                    '`cp2`, and so on, skipping any name already saved.'
             }, {
                 name = 'go',
                 params = {'name', 'n_right', 'n_up', 'n_forward'},
