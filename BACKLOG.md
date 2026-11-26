@@ -5,8 +5,7 @@ released** and on ContentDB, published by the tag itself. It turned `colors`
 into a palette of 3930 and the 35 colours into bricks, `F15` and `F-K-1`, and
 carried the drone throughput of `F-S-1` to `F-S-4`. v2.1.0 is next: the
 editor's icons are in, `F-E-1`, and `save()` returns a name it can pick itself,
-`F-D-2`, and a quick start opens at join, `F-E-2`; its in-world checks are left.
-v3.0.0 holds `F6` and `go()`
+`F-D-2`, and a quick start opens at join, `F-E-2`. v3.0.0 holds `F6` and `go()`
 returning to the last checkpoint, `F-D-3`.
 
 **Every id here predates the `B-X-N` scheme and keeps its old form for ever**,
@@ -73,35 +72,7 @@ version (author, 2026-11-26).
 
 ## Tests
 
-### T-E-2 · the quick start
-
-`todo` `playtest` `filed 2026-11-26`
-
-The window at join, its two buttons and its checkbox, the editor's `?` panel,
-and `codeblock_quickstart` off. Recipe in `codeblock-kb`'s
-`references/playtests.md`.
-
-### E7 · the help panels
-
-`todo` `playtest`
-
-A fourth panel, the quick start, joined the help row. Last: pass at `ef48865`,
-engine 5.17.0, 2026-11-20, playbot; scrolling re-run at `1635f2e`.
-
-### E11 · typing survives every button that is not Save
-
-`todo` `playtest`
-
-The `?` button is a new one to survive. Last: pass at `ef48865`, engine 5.17.0,
-2026-11-20, playbot.
-
-### T-E-1 · the buttons as icons
-
-`todo` `playtest`
-
-The `?` icon joined the help row and the category selector lost one icon's
-width. Last: pass on the working copy over `02f5bb7`, engine 5.17.0,
-2026-11-20, playbot; French shot re-taken at `1635f2e`.
+Nothing open.
 
 ## Closed
 
@@ -257,15 +228,19 @@ whoever re-runs it knows what they are re-reading against.
 - `E4` done `playtest` 2026-08-27 · tab state survives ESC
 - `E5` done `playtest` 2026-11-20 · tab state after **Load and close**; pass at `ef48865`, engine 5.17.0, playbot: both tabs and the active one came back
 - `E6` done `playtest` 2026-08-27 · the two checkboxes
+- `E7` done `playtest` 2026-11-26 · the help panels; pass at `1913431`, engine 5.17.0, playbot: Blocks, ?, API and Settings each drew their panel, glass and lamps through the selector; scrolling not re-run, its code untouched since `1635f2e`
 - `E8` done `playtest` 2026-08-27 · tab state survives a disconnect
 - `E9` done `playtest` 2026-08-27 · tab state survives a server shutdown
 - `E10` done `playtest` 2026-08-27 · the checkboxes for a player who has never set them
+- `E11` done `playtest` 2026-11-26 · typing survives every button that is not Save; pass at `1913431`, engine 5.17.0, playbot: unsaved text kept through the four help buttons and two category switches, nothing written
 - `E12` done `playtest` 2026-08-27 · **Save on tab switch** off really does not write to disk
 - `E13` done `playtest` 2026-11-20 · **Create a copy**, now Duplicate; pass at `ef48865`, engine 5.17.0, playbot: all six parts, `_12` reached, part 6 from a viewer shot
 - `E14` done `playtest` 2026-08-27 · closing the editor with **ESC** saves the open tabs
 - `E15` done `playtest` 2026-11-20 · **Enter** in the New file field creates the file; pass at `ef48865`, engine 5.17.0, playbot: created and opened on a block panel, scrollbar field in the same submission
 - `E16` done `playtest` 2026-09-03 · the unsaved marker on a tab
 - `E17` done `playtest` 2026-09-07 · a brand new file runs as it is
+- `T-E-1` done `playtest` 2026-11-26 · the buttons as icons; partial re-run at `1913431`, engine 5.17.0, playbot: a French 1024×600 viewer shot shows the new ? icon aligned with the selector, blue, with its tooltip, and *Briques* fitting the narrower selector; the other icons are unchanged since the last full pass, over `02f5bb7` on 2026-11-20
+- `T-E-2` done `playtest` 2026-11-26 · the quick start; pass at `fcc1a3c`, engine 5.17.0, playbot: the window reached a new player a second after join; tools added, then *already carries*, then *no room* with a full inventory and nothing cleared; the pencil opened the editor; the box wrote `1` and `0` and a rejoin honoured each; `?` drew the steps with unsaved text kept; with `codeblock.config.quickstart` set false through the probe rather than a restart, no window at join and `/codeblock help` still showed it. Layout fixed at `1913431` after a French 1024×600 shot hid steps 4 and 5 below a scrollbar; English 1280×720 and French 1024×600 shots then show all five steps
 - `D1` done `playtest` 2026-08-27 · place a drone and run a program
 - `D2` done `playtest` 2026-08-28 · place a drone at nothing
 - `D3` done `playtest` 2026-08-27 · replace a drone under the same name
