@@ -136,10 +136,10 @@ Puts the four drone tools in a player's main inventory, in this order, so they
 land in the hotbar when it has room. Each does one thing, and either mouse
 button does it:
 
-- **Editor** (`codeblock:editor`) opens the program editor.
 - **Placer** (`codeblock:placer`) places the drone on the block it points at,
   and asks which program it runs.
 - **Runner** (`codeblock:runner`) runs the drone's program.
+- **Editor** (`codeblock:editor`) opens the program editor.
 - **Status** (`codeblock:status`) opens the drone's panel: what it is doing and
   spending, with Pause and Stop.
 

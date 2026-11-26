@@ -49,8 +49,8 @@ local function give_tools(player)
     local inv = player:get_inventory()
     local added, full = 0, false
 
-    for _, itemname in ipairs({'codeblock:editor', 'codeblock:placer',
-                               'codeblock:runner', 'codeblock:status'}) do
+    for _, itemname in ipairs({'codeblock:placer', 'codeblock:runner',
+                               'codeblock:editor', 'codeblock:status'}) do
 
         local stack = ItemStack(itemname)
         local carried = inv:contains_item('main', stack) or

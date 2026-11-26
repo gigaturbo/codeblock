@@ -125,8 +125,8 @@ local QUICKSTART = (function()
     local green, blue = '#2d5a2d', '#2d2d87'
     local steps = {
         {S('1. Get the tools'),
-         editor .. ' ' .. placer .. ' ' .. runner .. ' ' .. status,
-         S('Four tools, one click each: the Editor writes programs, the Placer puts the drone down, the Runner starts it and Status shows what it is doing. Get them with /codeblock tools.')},
+         placer .. ' ' .. runner .. ' ' .. editor .. ' ' .. status,
+         S('Four tools, one click each: the Placer puts the drone down, the Runner starts it, the Editor writes programs and Status shows what it is doing. Get them with /codeblock tools.')},
         {S('2. Write a program'), editor .. ' ' .. button('new', green),
          S('Click with the Editor to open it. Type a name under New file and press the green +. A new file already builds a column of colours, and the example programs are in the file list.')},
         {S('3. Place the drone'), placer,

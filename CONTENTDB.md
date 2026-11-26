@@ -25,7 +25,7 @@ can imagine: learn to code, or give your inner computer artist somewhere to play
 ## Quick start
 
 1. New flat world, creative mode, mod enabled. Run `/codeblock tools` to be given
-   the four drone tools: the **Editor**, the **Placer**, the **Runner** and
+   the four drone tools: the **Placer**, the **Runner**, the **Editor** and
    **Status**. Each does one thing, with either mouse button.
 2. **Click a block with the Placer.** A list of programs appears, pick
    `stairs.lua`.
