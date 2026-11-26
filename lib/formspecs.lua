@@ -120,7 +120,7 @@ local QUICKSTART = (function()
     }
     local out = {'<b><style size=18>' .. S('Quick start') .. '</style></b>'}
     for _, step in ipairs(steps) do
-        out[#out + 1] = '\n<b>' .. step[1] .. '</b>\n' .. step[2]
+        out[#out + 1] = '<b>' .. step[1] .. '</b> ' .. step[2]
     end
     return formspec_escape(table.concat(out, '\n'))
 end)()
@@ -1028,19 +1028,19 @@ local quickstart = {
     end,
 
     get_form = function(meta)
-        return 'formspec_version[4]' .. 'size[12,10]' ..
-                   icon_button{exit = true, x = 10.9, y = 0.35, w = 0.7,
+        return 'formspec_version[4]' .. 'size[16,10]' ..
+                   icon_button{exit = true, x = 14.9, y = 0.35, w = 0.7,
                                h = 0.7, icon = 'close', name = 'close',
                                colour = END, tip = S('Close')} ..
-                   'hypertext[0.6,0.5;10.1,7.6;quickstart;' .. QUICKSTART .. ']' ..
+                   'hypertext[0.6,0.5;14.1,7.7;quickstart;' .. QUICKSTART .. ']' ..
                    icon_button{x = 0.6, y = 8.4, w = 0.8, h = 0.8, icon = 'new',
                                name = 'tools', colour = GO,
                                tip = S('Give me the drone tools')} ..
                    'label[1.6,8.8;' .. S('Give me the drone tools') .. ']' ..
-                   icon_button{x = 6.2, y = 8.4, w = 0.8, h = 0.8, icon = 'edit',
+                   icon_button{x = 7.2, y = 8.4, w = 0.8, h = 0.8, icon = 'edit',
                                name = 'editor',
                                tip = S('Open the editor')} ..
-                   'label[7.2,8.8;' .. S('Open the editor') .. ']' ..
+                   'label[8.2,8.8;' .. S('Open the editor') .. ']' ..
                    'checkbox[0.6,9.6;hide;' .. S('Do not show again') .. ';' ..
                    (meta.hide and 'true' or 'false') .. ']'
     end,
