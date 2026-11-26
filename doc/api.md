@@ -360,18 +360,24 @@ atan2(x, y)        -- Arc tangent of x/y, using the signs to pick the quadrant.
 sinh(x)            -- Hyperbolic sine.
 cosh(x)            -- Hyperbolic cosine.
 tanh(x)            -- Hyperbolic tangent.
+tonumber(s, base)  -- The number a string spells, or nil if it spells none.
 pi                 -- 3.14159...
 e                  -- 2.71828...
 ```
+
+**`tonumber`** &mdash; `base` defaults to 10 and may be anything from 2 to 36: `tonumber('ff', 16)` is 255 and `tonumber('101', 2)` is 5. Without a base, `'0x1f'` reads as 31 too. `"12" + 0` also gives 12, but a string that is not a number stops the program there, where `tonumber` answers nil for the program to test.
 
 ## Misc
 
 ```lua
 print(message, ...) -- Print every argument in the chat, joined by a space.
+tostring(value)     -- Any value as a string, as print shows it.
 error(message)      -- Stop the program and print a message.
 ipairs(table)       -- Standard ipairs.
 pairs(table)        -- Standard pairs.
 ```
+
+**`tostring`** &mdash; `..` already joins a number into a string. `tostring` is for the rest: `'found ' .. tostring(get_block())` works when the answer is `nil` or `false`, where `..` alone stops the program.
 
 # Block types
 

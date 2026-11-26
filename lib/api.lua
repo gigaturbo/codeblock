@@ -421,7 +421,18 @@ api.groups = {
             }, {name = 'sinh', params = {'x'}, doc = 'Hyperbolic sine.'},
             {name = 'cosh', params = {'x'}, doc = 'Hyperbolic cosine.'},
             {name = 'tanh', params = {'x'}, doc = 'Hyperbolic tangent.'},
-            {name = 'pi', kind = 'value', doc = '3.14159...'},
+            {
+                name = 'tonumber',
+                params = {'s', 'base'},
+                doc = 'The number a string spells, or nil if it spells none.',
+                note = '`base` defaults to 10 and may be anything from 2 to ' ..
+                    '36: `tonumber(\'ff\', 16)` is 255 and ' ..
+                    '`tonumber(\'101\', 2)` is 5. Without a base, ' ..
+                    '`\'0x1f\'` reads as 31 too. `"12" + 0` also gives 12, ' ..
+                    'but a string that is not a number stops the program ' ..
+                    'there, where `tonumber` answers nil for the program to ' ..
+                    'test.'
+            }, {name = 'pi', kind = 'value', doc = '3.14159...'},
             {name = 'e', kind = 'value', doc = '2.71828...'}
         }
     }, {
@@ -431,6 +442,14 @@ api.groups = {
                 name = 'print',
                 params = {'message', '...'},
                 doc = 'Print every argument in the chat, joined by a space.'
+            }, {
+                name = 'tostring',
+                params = {'value'},
+                doc = 'Any value as a string, as print shows it.',
+                note = '`..` already joins a number into a string. ' ..
+                    '`tostring` is for the rest: `\'found \' .. ' ..
+                    'tostring(get_block())` works when the answer is `nil` ' ..
+                    'or `false`, where `..` alone stops the program.'
             }, {
                 name = 'error',
                 params = {'message'},

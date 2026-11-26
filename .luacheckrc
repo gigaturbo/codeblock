@@ -135,12 +135,13 @@ stds.codeblock_sandbox = {
         ramp = {fields = {"hues", "of"}},
         -- utilities. `vector` is left open: a program sees the whole vector3
         -- module through it, and the std holds API names only.
-        "get_block", "is_block", "print", "ipairs", "pairs", "vector", "error",
+        "get_block", "is_block", "print", "tostring", "ipairs", "pairs",
+        "vector", "error",
         random = {fields = {"of", "hues"}},
         -- math
         "floor", "ceil", "round", "round0", "deg", "rad", "exp", "log", "max",
         "min", "pow", "sqrt", "abs", "sin", "sinh", "asin", "cos", "cosh",
-        "acos", "tan", "tanh", "atan", "atan2", "pi", "e"
+        "acos", "tan", "tanh", "atan", "atan2", "tonumber", "pi", "e"
     }
 }
 

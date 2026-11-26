@@ -342,6 +342,7 @@ local function getScriptEnv(drone)
         ['sinh'] = math.sinh,
         ['cosh'] = math.cosh,
         ['tanh'] = math.tanh,
+        ['tonumber'] = tonumber,
         ['pi'] = math.pi,
         ['e'] = math.exp(1),
         -- misc
@@ -360,6 +361,7 @@ local function getScriptEnv(drone)
             end
             return send_message(drone, table.concat(parts, ' '))
         end,
+        ['tostring'] = tostring,
         ['error'] = error,
         ['ipairs'] = ipairs,
         ['pairs'] = pairs

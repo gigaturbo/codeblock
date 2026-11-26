@@ -243,7 +243,8 @@ do
         'ramp.hues', 'ramp.of',
         'floor', 'ceil', 'round', 'round0', 'deg', 'rad', 'exp', 'log', 'max',
         'min', 'pow', 'sqrt', 'abs', 'sin', 'sinh', 'asin', 'cos', 'cosh',
-        'acos', 'tan', 'tanh', 'atan', 'atan2', 'pi', 'e', 'error'
+        'acos', 'tan', 'tanh', 'atan', 'atan2', 'pi', 'e', 'error',
+        'tonumber', 'tostring'
     }
 
     local described, listed = {}, {}

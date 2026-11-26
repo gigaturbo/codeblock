@@ -2539,6 +2539,21 @@ end)()]]), true)
        holds('random.of() == nil'), true)
 
     ----------------------------------------------------------------------------
+    -- tonumber and tostring
+    --
+    -- The point of tonumber over `s + 0` is the nil answer: coercion stops the
+    -- program on a bad string and nothing in the sandbox can catch it. (F-S-5)
+    ----------------------------------------------------------------------------
+
+    it('tonumber reads a decimal string', holds("tonumber('12') == 12"), true)
+    it('tonumber answers nil for a string that is not a number',
+       holds("tonumber('zz') == nil"), true)
+    it('tonumber reads a base', holds("tonumber('ff', 16) == 255"), true)
+    it('tonumber reads binary', holds("tonumber('101', 2) == 5"), true)
+    it('tostring writes a boolean', holds("tostring(true) == 'true'"), true)
+    it('tostring writes nil', holds("tostring(nil) == 'nil'"), true)
+
+    ----------------------------------------------------------------------------
     -- random.hues
     --
     -- It answers a colour *name*, the same shape ramp.hues answers, and that is

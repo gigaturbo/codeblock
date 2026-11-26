@@ -65,21 +65,6 @@ write and run a first program; the API panel is a reference, not a start.
 **Do:** one quick-start panel, shown once at a player's first join, again on
 `/codeblock help`, and from a help button in the editor.
 
-### F-S-5 · decide whether player code needs `tonumber`
-
-`todo` `small` `filed 2026-10-01`
-
-The sandbox has no `tonumber` or `tostring`. Player code can already turn a
-string into a number: arithmetic coerces one, so `"12" + 0` is 12 and
-`"0x1f" + 0` is 31, and the string methods reach `match` and `byte`. A string
-that is not a number stops the program instead of answering `nil`. The
-question came up while writing an image program, where a compact encoding
-needs a row's run lengths read back as numbers.
-
-**Do:** decide whether coercion is enough, and if so document it under Math;
-otherwise add `tonumber(s, base)` to `lib/api.lua`, which brings the sandbox,
-the help panel and `doc/api.md` along with it.
-
 ### F-D-2 · `go()` returns to the last checkpoint saved
 
 `todo` `medium` `filed 2026-10-01` `target: v2.1.0`
@@ -217,6 +202,7 @@ whoever re-runs it knows what they are re-reading against.
 
 ### Features
 
+- `F-S-5` done `small` 2026-11-26 · player code has `tonumber(s, base)`, which answers nil for a string that is not a number where `s + 0` stops the program, and `tostring`, so `..` can join a nil or a boolean
 - `F-E-1` done `medium` 2026-11-20 · the editor, the drone panel and the file chooser draw their buttons as white icons on panes coloured by meaning, each with a tooltip saying what it does; run first, Duplicate beside Save, Remove apart; a word pane beside two icons was tried and dropped on screen
 - `F-S-6` done `small` 2026-10-01 · the `random` help line says `random()` answers a fraction from 0 up to but not including 1, and whole numbers for one and two arguments
 - `F-K-1` done `large` 2026-10-01 · the 35 named colours became textured `bricks.<name>`; `colors.red`, the bare name `'red'` and the old nodes in a world round to the nearest palette colour, and a name no block table holds stops the program
