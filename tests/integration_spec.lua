@@ -2043,7 +2043,7 @@ do
     local _, separators = (items or ''):gsub(',', '')
     it('it offers every category', separators + 1, #blocks.categories)
 
-    -- The count is the point: three help buttons whatever the palette holds.
+    -- The count is the point: four help buttons whatever the palette holds.
     -- A row with one button per category is what this replaced, and it is the
     -- shape that grows off the edge of the form once a game registers one.
     -- Counted by field name, not by element, so a button drawn as two elements
@@ -2055,9 +2055,15 @@ do
         help_fields[field] = true
     end
     it('the row keeps a fixed number of buttons as the palette grows', buttons,
-       3)
+       4)
 
-    -- Every icon carries its word as a tooltip, on each of the three forms that
+    -- The quick start's own panel, which the editor draws instead of opening
+    -- the window over itself and losing what is typed. (F-E-2)
+    it('the quick-start panel draws the steps',
+       help_row('start', 'bricks'):find('hypertext[14.5,1;5.75,10.75;quickstart;',
+                                        1, true) ~= nil, true)
+
+    -- Every icon carries its word as a tooltip, on each of the four forms that
     -- draw icons: a picture with no word one hover away is a guess. Returns the
     -- first icon without one, or nil, and how many icons it looked at, so a
     -- form that drew none cannot pass by having nothing to check. (F-E-1)
@@ -2077,7 +2083,10 @@ do
     })
     local missing, icons = untipped(editor_open)
     it('every icon in the editor has a tooltip', missing, nil)
-    it('and the editor with a file open draws nine of them', icons, 9)
+    it('and the editor with a file open draws ten of them', icons, 10)
+    missing, icons = untipped(codeblock.formspecs.quickstart.get_form({}))
+    it('every icon in the quick start has a tooltip', missing, nil)
+    it('and the quick start draws three', icons, 3)
     missing, icons = untipped(codeblock.formspecs.file_chooser.get_form(
                                   {name = 'codeblock_spec_player'}))
     it('every icon in the file chooser has a tooltip', missing, nil)

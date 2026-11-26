@@ -112,3 +112,8 @@ codeblock_wait_for_mapgen (Wait for map generation) bool true
 #    leaves the screen the moment the program ends. A player's own choice, made
 #    in the editor, overrides this.
 codeblock_drone_hud (Drone HUD) bool true
+
+#    Whether a player sees the quick start when they join, until they tick "Do
+#    not show again" in it. Turn it off for a game that teaches its own way in.
+#    The editor's help button and /codeblock help show it either way.
+codeblock_quickstart (Quick start at join) bool true

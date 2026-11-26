@@ -394,6 +394,55 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- the quick start (F-E-2)
+--------------------------------------------------------------------------------
+
+reset_backend()
+forms.forget('judy')
+
+do
+    local quickstart = codeblock.formspecs.quickstart
+
+    -- The tools button runs whatever the caller handed in, for this player,
+    -- and nothing else: the form knows no inventory.
+    local given
+    quickstart.show('judy', function(name)
+        given = name
+        return true, 'given'
+    end)
+    local form = last_shown().form
+    it('the quick start opens as its own form',
+       (form:find('^codeblock:quickstart:') ~= nil), true)
+    it('and draws the steps', (last_shown().spec:find('hypertext[', 1, true) ~=
+           nil), true)
+    it('with the box unticked for a player who never chose',
+       (last_shown().spec:find('hide;', 1, true) ~= nil and
+           last_shown().spec:find(';false]', 1, true) ~= nil), true)
+
+    forms.on_receive_fields(fake_player('judy'), form, {tools = 'x'})
+    it('the tools button hands the tools to this player', given, 'judy')
+
+    -- A checkbox is absent unless clicked, so the tick arrives alone. Its write
+    -- to player meta needs a player online, which the suite never has.
+    forms.on_receive_fields(fake_player('judy'), form, {hide = 'true'})
+    it('ticking the box is remembered', forms.get_meta('judy').hide, true)
+    forms.on_receive_fields(fake_player('judy'), form, {hide = 'false'})
+    it('and unticking it too', forms.get_meta('judy').hide, false)
+
+    forms.on_receive_fields(fake_player('judy'), form, {quit = 'true'})
+    it('closing leaves no session', forms.is_open('judy'), false)
+
+    -- /codeblock help ignores the setting and the checkbox: asked for, shown.
+    local saved = codeblock.config.quickstart
+    codeblock.config.quickstart = false
+    local ok = core.registered_chatcommands.codeblock.func('judy', 'help')
+    codeblock.config.quickstart = saved
+    it('/codeblock help shows it with the join popup turned off',
+       (ok and last_shown().form:find('^codeblock:quickstart:') ~= nil), true)
+    forms.forget('judy')
+end
+
+--------------------------------------------------------------------------------
 -- restore the real backend, or the editor stops working for the rest of the run
 --------------------------------------------------------------------------------
 

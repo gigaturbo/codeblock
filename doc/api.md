@@ -111,9 +111,19 @@ about 65,000 nodes and under 10 ms) overshoots it.
 # Chat commands
 
 Everything the mod offers a player outside the game world is a subcommand of
-`/codeblock`. Running it with no subcommand prints the three usages.
+`/codeblock`. Running it with no subcommand prints the four usages.
 
-In every one, `<playername>` defaults to the caller. Acting on **another** player
+## `/codeblock help`
+
+Shows the quick start: how to get the tools, write a program, place the drone
+and run it, with buttons to be given the tools and to open the editor. It is
+also shown when a player joins, until they tick *Do not show again*, unless the
+server sets `codeblock_quickstart = false`. The **?** button in the editor shows
+the same steps beside the text. Free, and only for yourself.
+
+## Acting on a player
+
+In the three below, `<playername>` defaults to the caller. Acting on **another** player
 requires the `codeblock` privilege (`/grant <user> codeblock`); in singleplayer it
 is granted automatically, since the player is the administrator.
 

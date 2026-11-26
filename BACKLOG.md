@@ -5,7 +5,8 @@ released** and on ContentDB, published by the tag itself. It turned `colors`
 into a palette of 3930 and the 35 colours into bricks, `F15` and `F-K-1`, and
 carried the drone throughput of `F-S-1` to `F-S-4`. v2.1.0 is next: the
 editor's icons are in, `F-E-1`, and `save()` returns a name it can pick itself,
-`F-D-2`; a quick start, `F-E-2`, is left. v3.0.0 holds `F6` and `go()`
+`F-D-2`, and a quick start opens at join, `F-E-2`; its in-world checks are left.
+v3.0.0 holds `F6` and `go()`
 returning to the last checkpoint, `F-D-3`.
 
 **Every id here predates the `B-X-N` scheme and keeps its old form for ever**,
@@ -56,16 +57,6 @@ licensing and privacy question, or an in-tree server this mod does not have.
 **Do:** one written answer to *where do the assets live and who allows the HTTP
 call*, before any code.
 
-### F-E-2 · an in-game quick start
-
-`todo` `medium` `filed 2026-10-01` `target: v2.1.0`
-
-A new player has the tools and the editor, but nothing in the game says how to
-write and run a first program; the API panel is a reference, not a start.
-
-**Do:** one quick-start panel, shown once at a player's first join, again on
-`/codeblock help`, and from a help button in the editor.
-
 ### F-D-3 · `go()` and `place_relative` default to the last checkpoint saved
 
 `todo` `small` `filed 2026-11-26` `target: v3.0.0`
@@ -82,7 +73,35 @@ version (author, 2026-11-26).
 
 ## Tests
 
-Nothing open.
+### T-E-2 · the quick start
+
+`todo` `playtest` `filed 2026-11-26`
+
+The window at join, its two buttons and its checkbox, the editor's `?` panel,
+and `codeblock_quickstart` off. Recipe in `codeblock-kb`'s
+`references/playtests.md`.
+
+### E7 · the help panels
+
+`todo` `playtest`
+
+A fourth panel, the quick start, joined the help row. Last: pass at `ef48865`,
+engine 5.17.0, 2026-11-20, playbot; scrolling re-run at `1635f2e`.
+
+### E11 · typing survives every button that is not Save
+
+`todo` `playtest`
+
+The `?` button is a new one to survive. Last: pass at `ef48865`, engine 5.17.0,
+2026-11-20, playbot.
+
+### T-E-1 · the buttons as icons
+
+`todo` `playtest`
+
+The `?` icon joined the help row and the category selector lost one icon's
+width. Last: pass on the working copy over `02f5bb7`, engine 5.17.0,
+2026-11-20, playbot; French shot re-taken at `1635f2e`.
 
 ## Closed
 
@@ -202,6 +221,7 @@ whoever re-runs it knows what they are re-reading against.
 
 ### Features
 
+- `F-E-2` done `medium` 2026-11-26 · a quick start opens at join until *Do not show again* is ticked, with buttons for the tools and the editor; the editor's `?` draws it as a help panel, `/codeblock help` reopens it, and `codeblock_quickstart` turns the join popup off
 - `F-D-2` done `small` 2026-11-26 · `save()` with no name saves under `cp1`, `cp2`..., skipping a name already saved, and every `save` returns its name; the `go()` default it also asked for is `F-D-3`, split off as major
 - `F-S-5` done `small` 2026-11-26 · player code has `tonumber(s, base)`, which answers nil for a string that is not a number where `s + 0` stops the program, and `tostring`, so `..` can join a nil or a boolean
 - `F-E-1` done `medium` 2026-11-20 · the editor, the drone panel and the file chooser draw their buttons as white icons on panes coloured by meaning, each with a tooltip saying what it does; run first, Duplicate beside Save, Remove apart; a word pane beside two icons was tried and dropped on screen
@@ -237,18 +257,15 @@ whoever re-runs it knows what they are re-reading against.
 - `E4` done `playtest` 2026-08-27 · tab state survives ESC
 - `E5` done `playtest` 2026-11-20 · tab state after **Load and close**; pass at `ef48865`, engine 5.17.0, playbot: both tabs and the active one came back
 - `E6` done `playtest` 2026-08-27 · the two checkboxes
-- `E7` done `playtest` 2026-11-20 · the help panels; pass at `ef48865`, engine 5.17.0, playbot: every panel drew, textures on every row, glass and lamps kept their own scroll, the API page rendered; scrolling re-run at `1635f2e`: glass at 1024×600 in French and lamps at 1280×720 end on a whole last row
 - `E8` done `playtest` 2026-08-27 · tab state survives a disconnect
 - `E9` done `playtest` 2026-08-27 · tab state survives a server shutdown
 - `E10` done `playtest` 2026-08-27 · the checkboxes for a player who has never set them
-- `E11` done `playtest` 2026-11-20 · typing survives every button that is not Save; pass at `ef48865`, engine 5.17.0, playbot: unsaved text kept through nine panel switches, nothing written
 - `E12` done `playtest` 2026-08-27 · **Save on tab switch** off really does not write to disk
 - `E13` done `playtest` 2026-11-20 · **Create a copy**, now Duplicate; pass at `ef48865`, engine 5.17.0, playbot: all six parts, `_12` reached, part 6 from a viewer shot
 - `E14` done `playtest` 2026-08-27 · closing the editor with **ESC** saves the open tabs
 - `E15` done `playtest` 2026-11-20 · **Enter** in the New file field creates the file; pass at `ef48865`, engine 5.17.0, playbot: created and opened on a block panel, scrollbar field in the same submission
 - `E16` done `playtest` 2026-09-03 · the unsaved marker on a tab
 - `E17` done `playtest` 2026-09-07 · a brand new file runs as it is
-- `T-E-1` done `playtest` 2026-11-20 · the buttons as icons; pass on the working copy over `02f5bb7`, engine 5.17.0, playbot: viewer shots at 1280×720 in English and 1024×600 in French show every icon centred, aligned with the selector, coloured by meaning and tooltipped on hover; the bot pressed every editor, panel and chooser button and each did what its tooltip says. Not run: `gui_scaling`, and `H10`'s dropped clicks. French shot at 1024×600 re-taken at `1635f2e`: the New file label reads *Nouveau :* in full
 - `D1` done `playtest` 2026-08-27 · place a drone and run a program
 - `D2` done `playtest` 2026-08-28 · place a drone at nothing
 - `D3` done `playtest` 2026-08-27 · replace a drone under the same name

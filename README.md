@@ -16,6 +16,9 @@ A drone you program in Lua, an in-game editor, a sandbox and a documented API. I
 
 ## Quick start
 
+The game shows these steps when you join, until you tick *Do not show again*.
+The **?** button in the editor and `/codeblock help` bring them back.
+
 ### Run your first program
 
 1. Create an empty (flat) world, enable the `codeblock` mod and its one dependency `vector3`
@@ -66,3 +69,7 @@ Registrations are queued at the call and checked once every mod has loaded, so a
 node belonging to a mod that loads later is still accepted. A name that collides
 with the existing API, cannot be a table key, or names no node is logged and
 dropped — never raised, so a typo in your game cannot stop the server.
+
+A player sees the mod's quick start when they join. A game that teaches its own
+way in turns it off with `codeblock_quickstart = false`; the editor's **?**
+button and `/codeblock help` still show it.

@@ -97,6 +97,34 @@ local GO, END, HELP = 'green', 'red', 'blue'
 -- leave; an icon ends W - 0.2 after its x.
 local ICON_W, ICON_H, ROW_TOP = 11 / 13, 5 / 6, -0.025
 
+-- The quick start, as hypertext: drawn by its own window and by the editor's
+-- help panel, so the two cannot disagree. Markup stays outside every
+-- translated string and each sentence is one literal key (C17). Built once, at
+-- load. (F-E-2)
+--
+-- The client translates a hypertext before it parses the markup (parseHyperText,
+-- 5.4.0 and 5.17.0), so the tags around a translation hold, and a `<`, `>` or
+-- `\` in a sentence or its translation is read as markup. Keep them out.
+local QUICKSTART = (function()
+    local steps = {
+        {S('1. Get the tools'),
+         S('The Drone setter writes programs and the Drone placer runs them. Get both with /codeblock tools, or from the creative inventory.')},
+        {S('2. Write a program'),
+         S('Right-click with the setter to open the editor. Type a name under New file and press the green +. A new file already builds a column of colours, and the example programs are in the file list.')},
+        {S('3. Place the drone'),
+         S('Right-click a block with the placer, then choose the program it runs.')},
+        {S('4. Run it'),
+         S('Left-click with the placer to run the program. Left-click with the setter to see the drone, pause it or take it away.')},
+        {S('5. Learn more'),
+         S('The blue buttons in the editor show the API and the blocks. The ? button brings this page back, and so does /codeblock help.')}
+    }
+    local out = {'<b><style size=18>' .. S('Quick start') .. '</style></b>'}
+    for _, step in ipairs(steps) do
+        out[#out + 1] = '\n<b>' .. step[1] .. '</b>\n' .. step[2]
+    end
+    return formspec_escape(table.concat(out, '\n'))
+end)()
+
 local get_user_data = codeblock.filesystem.get_user_data
 local read_file = codeblock.filesystem.read_file
 local write_file = codeblock.filesystem.write_file
@@ -325,7 +353,8 @@ local file_editor = {
         -- x values touch stand 0.25 S apart. A dropdown is W * spacing.**Y**
         -- wide, with no offset, so its W is a different unit from a button's:
         -- from 0.25 S after the Blocks icon to 0.25 S before the API icon is
-        -- 3.2615 * 1.25 S = 4.077 S, which is W = 4.077 * 13/15 = 3.5333.
+        -- 3.2615 * 1.25 S = 4.077 S, which is W = 4.077 * 13/15 = 3.5333. The
+        -- quick-start icon then took one icon's width from it. (F-E-2)
         -- A button's H shifts it down by H * imgsize.Y / 2 and its height is a
         -- fixed 2 * m_btn_height; a dropdown's is the same height but hangs
         -- from its y, so -0.025 puts the two rectangles on each other exactly
@@ -333,6 +362,7 @@ local file_editor = {
         -- share that y for the same reason (ROW_TOP).
         local gear_x = 20 - ICON_W
         local api_x = gear_x - ICON_W
+        local start_x = api_x - ICON_W
         fs = fs .. icon_button{x = 14, y = ROW_TOP, w = ICON_W, h = ICON_H,
                                icon = 'cube', name = 'help_blocks',
                                colour = HELP,
@@ -343,8 +373,11 @@ local file_editor = {
             if category.name == meta.category then index = i end
         end
         fs = fs .. 'dropdown[' .. (14 + ICON_W) .. ',-0.025;' ..
-                 ((api_x - 0.2 - 14 - ICON_W) * 1.25 * 13 / 15) ..
+                 ((start_x - 0.2 - 14 - ICON_W) * 1.25 * 13 / 15) ..
                  ';help_pick;' .. table.concat(items, ',') .. ';' .. index .. ']'
+        fs = fs .. icon_button{x = start_x, y = ROW_TOP, w = ICON_W,
+                               h = ICON_H, icon = 'help', name = 'help_start',
+                               colour = HELP, tip = S('Show the quick start')}
         fs = fs .. icon_button{x = api_x, y = ROW_TOP, w = ICON_W, h = ICON_H,
                                icon = 'api', name = 'help_cmds', colour = HELP,
                                tip = S('Show the API: every command a program can use')}
@@ -407,6 +440,11 @@ local file_editor = {
 
             fs = fs .. 'hypertext[14.5,1;5.75,10.75;commands_html;' ..
                      codeblock.api.html_commands .. ']'
+
+        elseif meta.help == 'start' then
+
+            fs = fs .. 'hypertext[14.5,1;5.75,10.75;quickstart;' .. QUICKSTART ..
+                     ']'
 
         elseif meta.help == 'settings' then
 
@@ -822,6 +860,9 @@ local file_editor = {
         elseif fields.help_cmds then
             meta.help = 'commands'
             update()
+        elseif fields.help_start then
+            meta.help = 'start'
+            update()
         elseif fields.help_settings then
             meta.help = 'settings'
             update()
@@ -954,6 +995,76 @@ local file_chooser = {
             close()
         end
 
+    end
+
+}
+
+-- quickstart
+--
+-- How to write and run a first program, shown at join until the player ticks
+-- *Do not show again*, and on /codeblock help. The editor shows the same text as
+-- a help panel instead of opening this window, which would replace the editor's
+-- session and lose what is typed in it. (F-E-2)
+--
+-- The one form with a word beside its icons: it is for a player who has not met
+-- them yet.
+
+local quickstart = {
+
+    --- Show the quick start to `name`. `give_tools(name)` hands out the drone
+    -- tools and answers ok, message as a chat command does; the caller owns
+    -- inventories, this form does not.
+    show = function(name, give_tools)
+        local player = get_player_by_name(name)
+        local meta = {
+            name = name,
+            give_tools = give_tools,
+            hide = player and player:get_meta():get_string(
+                       'codeblock:quickstart_hide') == '1'
+        }
+        show_form(name, 'codeblock:quickstart', meta,
+                  codeblock.formspecs.quickstart.get_form(meta),
+                  codeblock.formspecs.quickstart.on_close)
+    end,
+
+    get_form = function(meta)
+        return 'formspec_version[4]' .. 'size[12,10]' ..
+                   icon_button{exit = true, x = 10.9, y = 0.35, w = 0.7,
+                               h = 0.7, icon = 'close', name = 'close',
+                               colour = END, tip = S('Close')} ..
+                   'hypertext[0.6,0.5;10.1,7.6;quickstart;' .. QUICKSTART .. ']' ..
+                   icon_button{x = 0.6, y = 8.4, w = 0.8, h = 0.8, icon = 'new',
+                               name = 'tools', colour = GO,
+                               tip = S('Give me the drone tools')} ..
+                   'label[1.6,8.8;' .. S('Give me the drone tools') .. ']' ..
+                   icon_button{x = 6.2, y = 8.4, w = 0.8, h = 0.8, icon = 'edit',
+                               name = 'editor',
+                               tip = S('Open the editor')} ..
+                   'label[7.2,8.8;' .. S('Open the editor') .. ']' ..
+                   'checkbox[0.6,9.6;hide;' .. S('Do not show again') .. ';' ..
+                   (meta.hide and 'true' or 'false') .. ']'
+    end,
+
+    on_close = function(meta, player, fields)
+        local name = player:get_player_name()
+        -- A checkbox is absent unless it was the one clicked, so none of these
+        -- is an always-sent field.
+        if fields.hide then
+            meta.hide = (fields.hide == 'true')
+            -- Written now, not on close, so it holds however the window is left.
+            -- Looked up fresh: the player object of a form event can be stale.
+            local cur_player = get_player_by_name(name)
+            if cur_player then
+                cur_player:get_meta():set_string('codeblock:quickstart_hide',
+                                                  meta.hide and '1' or '0')
+            end
+        elseif fields.tools then
+            local _, message = meta.give_tools(name)
+            chat_send_player(name, message)
+        elseif fields.editor then
+            -- Replaces this session; nothing here needs a quit path.
+            file_editor.show(name)
+        end
     end
 
 }
@@ -1256,3 +1367,4 @@ local drone_panel = {
 codeblock.formspecs.file_chooser = file_chooser
 codeblock.formspecs.file_editor = file_editor
 codeblock.formspecs.drone_panel = drone_panel
+codeblock.formspecs.quickstart = quickstart

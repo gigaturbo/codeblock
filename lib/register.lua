@@ -14,6 +14,7 @@ local drone_on_remove = codeblock.Drone.on_remove
 local show_file_editor = codeblock.formspecs.file_editor.show
 local show_file_chooser = codeblock.formspecs.file_chooser.show
 local show_drone_panel = codeblock.formspecs.drone_panel.show
+local show_quickstart = codeblock.formspecs.quickstart.show
 local drone_panel_tick = codeblock.formspecs.drone_panel.tick
 
 local hud_tick = codeblock.hud.tick
@@ -66,6 +67,10 @@ local function give_tools(player)
 
     return added, full
 end
+
+-- Show the quick start to `name`. Assigned once `subcommands.tools` exists,
+-- which its tools button runs so the window answers exactly as the command does.
+local open_quickstart
 
 --- Write the bundled example programs into a player's directory.
 --
@@ -239,6 +244,20 @@ core.register_on_joinplayer(function(player)
         return err
     end
     get_user_data(name)
+
+    -- The quick start, until the player ticks *Do not show again*. Read with
+    -- get_string so nothing has to be written before they choose (B5, B36).
+    -- Delayed because a form sent from the join callback can reach the client
+    -- before it is ready to show one; the player may have left by then.
+    -- (F-E-2)
+    if codeblock.config.quickstart and
+        player:get_meta():get_string('codeblock:quickstart_hide') ~= '1' then
+        core.after(1, function()
+            if get_player_by_name(name) then
+                open_quickstart(name)
+            end
+        end)
+    end
 end)
 
 core.register_on_leaveplayer(function(player, timed_out)
@@ -354,6 +373,17 @@ subcommands.tools = function(caller, params)
 
 end
 
+open_quickstart = function(name)
+    show_quickstart(name, function(pname) return subcommands.tools(pname, '') end)
+end
+
+-- /codeblock help - the quick start, whatever the setting and the checkbox say,
+-- because the player asked for it. Free, and only ever for yourself. (F-E-2)
+subcommands.help = function(caller)
+    open_quickstart(caller)
+    return true
+end
+
 --- /codeblock level [<playername>] - report a codelevel, changing nothing.
 --
 -- Free for your own and privileged for anybody else's, which is the split
@@ -465,11 +495,11 @@ subcommands.generate = function(caller, params)
 end
 
 core.register_chatcommand("codeblock", {
-    params = "tools [<playername>] | level [<playername>] [<1-4>] | " ..
+    params = "help | tools [<playername>] | level [<playername>] [<1-4>] | " ..
         "generate [<playername>]",
-    description = "Give the drone tools, read or set a codelevel, or write " ..
-        "the example programs",
-    -- No command-level privs: two of the three subcommands are free for
+    description = "Show the quick start, give the drone tools, read or set " ..
+        "a codelevel, or write the example programs",
+    -- No command-level privs: three of the four subcommands are free for
     -- yourself, so each one asks for what it needs.
     func = function(name, params)
 
@@ -477,7 +507,8 @@ core.register_chatcommand("codeblock", {
         local handler = sub and subcommands[sub]
 
         if not handler then
-            return false, S('Usage: /codeblock tools [<playername>]') .. '\n' ..
+            return false, S('Usage: /codeblock help') .. '\n' ..
+                       S('Usage: /codeblock tools [<playername>]') .. '\n' ..
                        S('Usage: /codeblock level [<playername>] [<1-4>]') ..
                        '\n' .. S('Usage: /codeblock generate [<playername>]')
         end

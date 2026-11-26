@@ -102,6 +102,12 @@ codeblock.config.drone_hud = flag('drone_hud', true)
 -- generates in advance all the map its drones can reach.
 codeblock.config.wait_for_mapgen = flag('wait_for_mapgen', true)
 
+-- Whether a player sees the quick start when they join, until they tick *Do not
+-- show again*. A window at join is presentation imposed on every game (C18), so
+-- a game that teaches its own way in turns it off; /codeblock help and the
+-- editor's help button show it either way. (F-E-2)
+codeblock.config.quickstart = flag('quickstart', true)
+
 codeblock.config.auth_levels = {1, 2, 3, 4}
 
 --- Validate a codelevel, from player meta or from a setting.

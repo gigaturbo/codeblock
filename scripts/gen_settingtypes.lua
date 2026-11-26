@@ -251,6 +251,17 @@ local SETTINGS = {
                 'the screen the moment the program ends. A player\'s own ' ..
                 'choice, made in the editor, overrides this.'
             }
+        },
+        {
+            name = 'quickstart',
+            label = 'Quick start at join',
+            kind = 'bool',
+            text = {
+                'Whether a player sees the quick start when they join, until ' ..
+                'they tick "Do not show again" in it. Turn it off for a game ' ..
+                'that teaches its own way in. The editor\'s help button and ' ..
+                '/codeblock help show it either way.'
+            }
         }
     }}
 }

@@ -1,4 +1,9 @@
 # textdomain: codeblock
+1. Get the tools=1. Prendre les outils
+2. Write a program=2. Écrire un programme
+3. Place the drone=3. Poser le drone
+4. Run it=4. Le lancer
+5. Learn more=5. Aller plus loin
 @1 : @2=@1 : @2
 @1 already carries both drone tools=@1 possède déjà les deux outils du drone
 @1 block=Bloc @1
@@ -33,6 +38,17 @@ Choose a file:=Choisissez un fichier :
 Close=Fermer
 Close this tab, without saving=Fermer cet onglet, sans enregistrer
 Color block=Bloc de couleur
+Do not show again=Ne plus afficher
+Give me the drone tools=Me donner les outils du drone
+Left-click with the placer to run the program. Left-click with the setter to see the drone, pause it or take it away.=Clic gauche avec le poseur pour lancer le programme. Clic gauche avec le régleur pour voir le drone, le mettre en pause ou le retirer.
+Open the editor=Ouvrir l'éditeur
+Quick start=Bien démarrer
+Right-click a block with the placer, then choose the program it runs.=Clic droit sur un bloc avec le poseur, puis choisir le programme qu'il lance.
+Right-click with the setter to open the editor. Type a name under New file and press the green +. A new file already builds a column of colours, and the example programs are in the file list.=Clic droit avec le régleur pour ouvrir l'éditeur. Taper un nom sous Nouveau et appuyer sur le + vert. Un nouveau fichier construit déjà une colonne de couleurs, et les programmes d'exemple sont dans la liste des fichiers.
+Show the quick start=Afficher le guide de démarrage
+The Drone setter writes programs and the Drone placer runs them. Get both with /codeblock tools, or from the creative inventory.=Le régleur de drone écrit les programmes et le poseur de drone les lance. Les deux s'obtiennent avec /codeblock tools, ou dans l'inventaire créatif.
+The blue buttons in the editor show the API and the blocks. The ? button brings this page back, and so does /codeblock help.=Les boutons bleus de l'éditeur montrent l'API et les blocs. Le bouton ? rouvre cette page, tout comme /codeblock help.
+Usage: /codeblock help=Usage : /codeblock help
 colors.hex needs a colour such as '#f7a8e7', not @1=colors.hex attend une couleur comme '#f7a8e7', pas @1
 colors.oklch needs three numbers=colors.oklch attend trois nombres
 colors.okhsv needs three numbers=colors.okhsv attend trois nombres

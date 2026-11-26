@@ -40,6 +40,9 @@ To change what it builds:
 
 Experiment and discover with the other examples, or write your own!
 
+The game shows a quick start when you join, until you tick *Do not show again*.
+The **?** button in the editor and `/codeblock help` bring it back.
+
 ## Important notes
 
 - **Install `vector3` 2.0.2 or newer.** On an older one a program in the sandbox
